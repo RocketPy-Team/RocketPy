@@ -50,6 +50,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: Store the reference-area correction factor on each rocket aero surface component, so it is carried with the surface instead of being recomputed at every lift evaluation. `Rocket.aerodynamic_surfaces`, `rail_buttons` and `sensors` now yield `(component, position, ref_factor)`, so code that unpacks a pair from them (`for surface, position in rocket.aerodynamic_surfaces`) has to take the third field or absorb it. Simulation results are unchanged, and `.rpy` files written before this still load. [#1129](https://github.com/RocketPy-Team/RocketPy/pull/1129) [#561](https://github.com/RocketPy-Team/RocketPy/issues/561)
 - ENH: Compute the rocket static margin lazily [#1135](https://github.com/RocketPy-Team/RocketPy/pull/1135) [#780](https://github.com/RocketPy-Team/RocketPy/issues/780)
 - DOC: Tighten the comments that came with the sampler seed groups [#1154](https://github.com/RocketPy-Team/RocketPy/pull/1154)
 - CI: make the Gemini PR reviewer actually review [#1140](https://github.com/RocketPy-Team/RocketPy/pull/1140)
@@ -60,6 +61,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
+- BUG: Report a Monte Carlo worker that fails instead of hanging or passing for a finished run [#1182](https://github.com/RocketPy-Team/RocketPy/pull/1182)
 - BUG: Sample `StochasticFlight` inputs once per simulation [#1126](https://github.com/RocketPy-Team/RocketPy/pull/1126) [#1090](https://github.com/RocketPy-Team/RocketPy/issues/1090)
 - BUG: Fix spurious `ValueError` from floating-point roundoff at exact tank depletion [#1166](https://github.com/RocketPy-Team/RocketPy/pull/1166)
 - BUG: Draw each declared eccentricity once per simulation [#1168](https://github.com/RocketPy-Team/RocketPy/pull/1168)

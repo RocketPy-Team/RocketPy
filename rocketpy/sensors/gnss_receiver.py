@@ -4,7 +4,7 @@ from rocketpy.tools import inverted_haversine
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GnssReceiverPrints
-from .sensor import ScalarSensor
+from .sensor import ScalarSensor, SeedLike
 
 
 class GnssReceiver(ScalarSensor):
@@ -38,7 +38,7 @@ class GnssReceiver(ScalarSensor):
         position_accuracy=0,
         altitude_accuracy=0,
         name="GnssReceiver",
-        seed=None,
+        seed: SeedLike | None = None,
     ):
         """Initialize the Gnss Receiver sensor.
 
@@ -54,11 +54,14 @@ class GnssReceiver(ScalarSensor):
             position in meters. Default is 0.
         name : str
             The name of the sensor. Default is "GnssReceiver".
-        seed : int, optional
+        seed : int, array_like of ints, numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. Only seeds that describe a stream are
+            taken: live ``Generator``, ``BitGenerator`` and ``RandomState``
+            objects are rejected, because their state advances as noise is
+            drawn and so cannot be represented in ``to_dict()``. Default is
+            None, meaning the noise is seeded from fresh entropy per instance.
         """
         super().__init__(sampling_rate=sampling_rate, name=name, seed=seed)
         self.position_accuracy = position_accuracy

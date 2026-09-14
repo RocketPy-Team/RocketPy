@@ -694,7 +694,7 @@ class _FlightPlots:
         """Map a rocket axial coordinate onto the centered display model."""
         coordinates = [
             float(position.z)
-            for _surface, position in self.flight.rocket.aerodynamic_surfaces
+            for _surface, position, _ref_factor in self.flight.rocket.aerodynamic_surfaces
         ]
         coordinates.extend(
             [
@@ -2897,6 +2897,92 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
+    def center_of_pressure(self, *, filename=None):
+        """Plot center-of-pressure position evolution through flight time.
+
+        The rocket center of pressure is a function of Mach number. This method
+        evaluates it at the flight Mach number at each time step and plots the
+        resulting position against time. Center of mass is shown on the same
+        axis for context, and static margin is shown on a twin axis.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        time = self.flight.mach_number[:, 0]
+        mask = time <= self.first_event_time
+        time = time[mask]
+        mach = self.flight.mach_number[:, 1][mask]
+
+        center_of_pressure = self.flight.rocket.cp_position.get_value_opt(mach)
+        center_of_mass = self.flight.rocket.center_of_mass.get_value_opt(time)
+        static_margin = self.flight.rocket.static_margin.get_value_opt(time)
+
+        plt.figure(figsize=(9, 6))
+        ax1 = plt.subplot(111)
+        (line_cp,) = ax1.plot(
+            time,
+            center_of_pressure,
+            color="#1f77b4",
+            label="Center of Pressure",
+        )
+        (line_cm,) = ax1.plot(
+            time,
+            center_of_mass,
+            color="#ff7f0e",
+            label="Center of Mass",
+        )
+        ax1.set_xlim(0, self.first_event_time)
+        ax1.set_title("Center of Pressure Evolution")
+        ax1.set_xlabel("Time (s)")
+        ax1.set_ylabel("Position (m)")
+        ax1.grid(True)
+
+        ax2 = ax1.twinx()
+        (line_sm,) = ax2.plot(
+            time,
+            static_margin,
+            color="#2ca02c",
+            linestyle="--",
+            label="Static Margin",
+        )
+        ax2.set_ylabel("Static Margin (c)", color="#2ca02c")
+        ax2.tick_params("y", colors="#2ca02c")
+
+        event_lines = [
+            ax1.axvline(
+                x=self.flight.out_of_rail_time,
+                color="r",
+                linestyle="--",
+                label="Out of Rail Time",
+            ),
+            ax1.axvline(
+                x=self.flight.rocket.motor.burn_out_time,
+                color="g",
+                linestyle=":",
+                label="Burn Out Time",
+            ),
+            ax1.axvline(
+                x=self.flight.apogee_time,
+                color="m",
+                linestyle="--",
+                label="Apogee Time",
+            ),
+        ]
+
+        lines = [line_cp, line_cm, line_sm, *event_lines]
+        ax1.legend(lines, [line.get_label() for line in lines], loc="best")
+
+        show_or_save_plot(filename)
+
     def stability_and_control_data(self, *, filename=None):  # pylint: disable=too-many-statements
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
@@ -3100,6 +3186,9 @@ class _FlightPlots:
 
         print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
+
+        print("\n\nCenter of Pressure Evolution Plot\n")
+        self.center_of_pressure()
 
         print("\n\nRocket and Parachute Pressure Plots\n")
         self.pressure_rocket_altitude()

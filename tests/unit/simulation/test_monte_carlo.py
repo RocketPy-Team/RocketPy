@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation import MonteCarlo
+from rocketpy.simulation import monte_carlo as mc_module
 from rocketpy.simulation.monte_carlo import (
     _refuse_logs_this_run_cannot_write,
 )
@@ -789,3 +790,441 @@ def test_two_names_for_a_file_that_does_not_exist_yet_are_still_one_file(tmp_pat
     assert not pathlib.Path(missing).exists()
     with pytest.raises(ValueError, match="same file"):
         _refuse_logs_this_run_cannot_write(missing, same_by_another_name, errors)
+
+
+class _InterruptingMonteCarlo(MonteCarlo):
+    """A MonteCarlo that raises ``KeyboardInterrupt`` where Ctrl-C would land.
+
+    Only the attributes ``simulate`` and ``__run_in_serial`` touch are set, so no
+    stochastic object graph or real flight is needed. The name-mangled overrides
+    stand in for the members ``MonteCarlo`` calls on itself.
+    """
+
+    # pylint: disable=super-init-not-called,invalid-name,unused-argument
+
+    def __init__(self, filename, interrupt_after):
+        self.filename = filename
+        self._input_file = filename + ".inputs.txt"
+        self._output_file = filename + ".outputs.txt"
+        self._error_file = filename + ".errors.txt"
+        self.num_of_loaded_sims = 0
+        self.number_of_simulations = 0
+        self._export_config = {}
+        self._initial_sim_idx = 0
+        self.interrupt_after = interrupt_after
+        self.completed = 0
+
+    def _MonteCarlo__run_single_simulation(self):
+        if self.completed >= self.interrupt_after:
+            raise KeyboardInterrupt("ctrl-c")
+        self.completed += 1
+        return object()
+
+    def _MonteCarlo__evaluate_flight_inputs(self, index):
+        return json.dumps({"index": index}) + "\n"
+
+    def _MonteCarlo__evaluate_flight_outputs(self, flight, index):
+        return json.dumps({"index": index, "apogee": 1000.0 + index}) + "\n"
+
+
+def test_interrupted_serial_run_reaches_the_caller(tmp_path):
+    """``simulate`` used to return normally after Ctrl-C.
+
+    A caller could not tell a partial run from a complete one without opening
+    the output file and counting rows.
+    """
+    mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=2)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=10, parallel=False)
+
+
+def test_interrupted_serial_run_keeps_the_rows_that_finished(tmp_path):
+    """The two simulations that completed stay readable and paired."""
+    mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=2)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=10, parallel=False)
+
+    inputs = (tmp_path / "run.inputs.txt").read_text(encoding="utf-8").splitlines()
+    outputs = (tmp_path / "run.outputs.txt").read_text(encoding="utf-8").splitlines()
+
+    assert len(inputs) == 2
+    assert len(outputs) == 2
+    assert [json.loads(row)["index"] for row in inputs] == [
+        json.loads(row)["index"] for row in outputs
+    ]
+
+
+def test_interrupted_serial_run_still_reloads_the_logs(tmp_path):
+    """``__terminate_simulation`` runs before the interrupt leaves ``simulate``.
+
+    It is what reloads the logs through the file setters. Asserting on the
+    state those setters produce, rather than on the call, is what shows the
+    reload actually happened.
+    """
+    mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=2)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=10, parallel=False)
+
+    assert mc.num_of_loaded_sims == 2
+    assert len(mc.inputs_log) == 2
+    assert len(mc.outputs_log) == 2
+    assert mc.results["apogee"] == pytest.approx([1001.0, 1002.0])
+
+
+def test_an_interrupted_run_can_be_continued_with_append(tmp_path):
+    """The behavior the ``simulate`` docstring promises after an interrupt.
+
+    ``set_num_of_loaded_sims`` is what ``append=True`` reads to decide where to
+    resume, and it is only set by the reload above. This runs the whole path:
+    interrupt, then continue, and check the indices on disk have no gap and no
+    repeat.
+    """
+    stem = str(tmp_path / "run")
+    mc = _InterruptingMonteCarlo(stem, interrupt_after=2)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=10, parallel=False)
+
+    mc.interrupt_after = 10
+    mc.simulate(number_of_simulations=10, append=True, parallel=False)
+
+    rows = pathlib.Path(stem + ".outputs.txt").read_text(encoding="utf-8").splitlines()
+    assert [json.loads(row)["index"] for row in rows] == list(range(1, 11))
+
+
+def test_ctrl_c_before_the_first_simulation_is_still_the_interrupt(
+    tmp_path, monkeypatch
+):
+    """The handler appends ``inputs_json``, which used to be unbound this early.
+
+    Ctrl-C during the first ``keep_simulating()`` call reached the handler
+    before the loop body had bound the name, so the run died with
+    ``UnboundLocalError`` from inside the cleanup instead of with the interrupt.
+    """
+
+    def interrupt(self):
+        raise KeyboardInterrupt("ctrl-c before the first simulation")
+
+    monkeypatch.setattr(mc_module._SimMonitor, "keep_simulating", interrupt)
+    mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=0)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=5, parallel=False)
+
+
+class _FakeWorker:
+    """Stands in for a ``multiprocess.Process`` without starting anything.
+
+    It leaves on the first join it is given, so every test built on it covers
+    workers that exit cooperatively once the stop event is set — the guarantee
+    the ``simulate`` docstring makes. A worker that outlives the grace period
+    is terminated and then killed by ``_stop_the_workers_still_running``, and
+    ``tests/unit/simulation/test_monte_carlo_worker_join.py`` is where that
+    bounded shutdown is pinned; these tests are about the interrupt reaching
+    the caller, not about the bound.
+    """
+
+    def __init__(self, interrupt_on_first_join=False, interrupt_on_start=False):
+        self.starts = 0
+        self.joins = 0
+        self.timeouts = []
+        self.terminated = False
+        self.killed = False
+        self.exitcode = None
+        self._interrupt_on_first_join = interrupt_on_first_join
+        self._interrupt_on_start = interrupt_on_start
+
+    def is_alive(self):
+        return self.exitcode is None
+
+    def start(self):
+        self.starts += 1
+        if self._interrupt_on_start:
+            raise KeyboardInterrupt("ctrl-c inside Process.start()")
+
+    def join(self, timeout=None):
+        self.joins += 1
+        self.timeouts.append(timeout)
+        if self._interrupt_on_first_join and self.joins == 1:
+            raise KeyboardInterrupt("ctrl-c while waiting for the workers")
+        self.exitcode = 0
+
+    def terminate(self):
+        self.terminated = True
+        self.exitcode = -15
+
+    def kill(self):
+        self.killed = True
+        self.exitcode = -9
+
+
+class _FakeManager:
+    """The subset of the multiprocess manager that ``__run_in_parallel`` uses."""
+
+    # pylint: disable=invalid-name
+
+    def __init__(self):
+        self.event = _FakeEvent()
+        self.monitor = _FakeSimMonitor()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+    def Lock(self):
+        return object()
+
+    def Event(self):
+        return self.event
+
+    def _SimMonitor(self, **_kwargs):
+        return self.monitor
+
+
+class _FakeEvent:
+    def __init__(self):
+        self._set = False
+
+    def set(self):
+        self._set = True
+
+    def is_set(self):
+        return self._set
+
+
+class _FakeSimMonitor:
+    def __init__(self, **_kwargs):
+        self.final_status_calls = 0
+
+    def print_final_status(self):
+        self.final_status_calls += 1
+
+
+def test_interrupted_parallel_run_signals_joins_and_reaches_the_caller(
+    tmp_path, monkeypatch
+):
+    """Ctrl-C while waiting on the workers must not end as a successful run.
+
+    The handler already signalled and joined the workers, but it then swallowed
+    the interrupt, so ``simulate`` went on to report the study as finished.
+    """
+    manager = _FakeManager()
+    workers = []
+
+    class _FakeMultiprocess:
+        # pylint: disable=invalid-name
+        @staticmethod
+        def Process(target=None, args=()):  # pylint: disable=unused-argument
+            worker = _FakeWorker(interrupt_on_first_join=not workers)
+            workers.append(worker)
+            return worker
+
+    monkeypatch.setattr(
+        mc_module, "_import_multiprocess", lambda: (_FakeMultiprocess, None)
+    )
+    monkeypatch.setattr(
+        mc_module, "_create_multiprocess_manager", lambda *_args: manager
+    )
+    mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=0)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=4, parallel=True, n_workers=2)
+
+    assert len(workers) == 2
+    assert all(worker.starts == 1 for worker in workers)
+    assert manager.event.is_set(), "the workers were never told to stop"
+    # At least, not exactly: the bounded shutdown joins each worker once per
+    # escalation stage, and how many stages it walks is its own business.
+    assert workers[0].joins >= 2, (
+        "the interrupted join was not retried after signalling"
+    )
+    assert workers[1].joins >= 1, "the second worker was never joined"
+    assert manager.monitor.final_status_calls == 0, "a partial run reported completion"
+    # __init__ above never sets inputs_log; only the reload in
+    # __terminate_simulation does. Interrupted before any row was written, the
+    # reload of the empty files must produce empty logs, not be skipped.
+    assert mc.inputs_log == [], "the reload did not run on the interrupted path"
+    assert mc.outputs_log == []
+
+
+def test_ctrl_c_during_worker_startup_still_stops_the_started_workers(
+    tmp_path, monkeypatch
+):
+    """Ctrl-C in the middle of the startup loop must clean up what came up.
+
+    The cleanup handler used to begin only after every worker had started, so
+    an interrupt during ``Process.start()`` left the earlier workers running
+    with nobody signalling or joining them.
+    """
+    manager = _FakeManager()
+    workers = []
+
+    class _FakeMultiprocess:
+        # pylint: disable=invalid-name
+        @staticmethod
+        def Process(target=None, args=()):  # pylint: disable=unused-argument
+            # The second start() raises where a real Ctrl-C could land.
+            worker = _FakeWorker(interrupt_on_start=len(workers) == 1)
+            workers.append(worker)
+            return worker
+
+    monkeypatch.setattr(
+        mc_module, "_import_multiprocess", lambda: (_FakeMultiprocess, None)
+    )
+    monkeypatch.setattr(
+        mc_module, "_create_multiprocess_manager", lambda *_args: manager
+    )
+    mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=0)
+
+    with pytest.raises(KeyboardInterrupt):
+        mc.simulate(number_of_simulations=4, parallel=True, n_workers=2)
+
+    assert manager.event.is_set(), "the started worker was never told to stop"
+    assert workers[0].joins >= 1, "the started worker was never joined"
+    # The second worker's start() raised, so it never entered the started list
+    # and must not be joined: joining a never-started process raises.
+    assert workers[1].joins == 0
+
+
+def test_ctrl_c_between_the_two_appends_rolls_the_inputs_row_back(tmp_path):
+    """The rollback in ``_append_simulation_record`` must catch the interrupt.
+
+    It caught ``Exception``, and ``KeyboardInterrupt`` derives from
+    ``BaseException``, so Ctrl-C after the inputs append but before the outputs
+    append left the inputs file one row longer — a one-sided record that the
+    reload then disagrees with. This is the boundary between this change and
+    the pairing that #1125 introduced.
+    """
+    stem = str(tmp_path / "run")
+    mc = _InterruptingMonteCarlo(stem, interrupt_after=10)
+
+    real_open = builtins.open
+    outputs_path = stem + ".outputs.txt"
+    appends = {"count": 0}
+
+    def interrupt_third_outputs_append(*args, **kwargs):
+        file = args[0] if args else kwargs["file"]
+        mode = args[1] if len(args) > 1 else kwargs.get("mode", "r")
+        if os.fspath(file) == outputs_path and "a" in mode:
+            appends["count"] += 1
+            if appends["count"] == 3:
+                raise KeyboardInterrupt("ctrl-c between the appends")
+        return real_open(*args, **kwargs)
+
+    with pytest.raises(KeyboardInterrupt):
+        with patch("builtins.open", side_effect=interrupt_third_outputs_append):
+            mc.simulate(number_of_simulations=10, parallel=False)
+
+    inputs = pathlib.Path(stem + ".inputs.txt").read_text(encoding="utf-8").splitlines()
+    outputs = pathlib.Path(outputs_path).read_text(encoding="utf-8").splitlines()
+    errors = pathlib.Path(stem + ".errors.txt").read_text(encoding="utf-8").splitlines()
+
+    assert len(inputs) == 2, "the third inputs row was not rolled back"
+    assert len(outputs) == 2
+    assert [json.loads(row)["index"] for row in inputs] == [
+        json.loads(row)["index"] for row in outputs
+    ]
+    # The simulation that was cut short is recorded where errors go, so the
+    # rolled-back row is preserved rather than lost.
+    assert [json.loads(row)["index"] for row in errors] == [3]
+    assert mc.num_of_loaded_sims == 2
+
+
+def test_ctrl_c_in_the_progress_print_leaves_the_error_file_empty(tmp_path):
+    """A committed row must not be reported as one that never finished.
+
+    After ``_append_simulation_record`` returns, the pair is on disk. The
+    handler used to write ``inputs_json`` to the error file anyway when the
+    interrupt landed in ``print_update_status()`` — or in the next
+    ``keep_simulating()`` call — because the name still held the committed row.
+    """
+    stem = str(tmp_path / "run")
+    mc = _InterruptingMonteCarlo(stem, interrupt_after=10)
+
+    updates = {"count": 0}
+    real_update = mc_module._SimMonitor.print_update_status
+
+    def counting_update(self, *args, **kwargs):
+        updates["count"] += 1
+        if updates["count"] == 2:
+            raise KeyboardInterrupt("ctrl-c during the progress print")
+        return real_update(self, *args, **kwargs)
+
+    with patch.object(mc_module._SimMonitor, "print_update_status", counting_update):
+        with pytest.raises(KeyboardInterrupt):
+            mc.simulate(number_of_simulations=10, parallel=False)
+
+    inputs = pathlib.Path(stem + ".inputs.txt").read_text(encoding="utf-8").splitlines()
+    outputs = (
+        pathlib.Path(stem + ".outputs.txt").read_text(encoding="utf-8").splitlines()
+    )
+    errors = pathlib.Path(stem + ".errors.txt").read_text(encoding="utf-8")
+
+    assert len(inputs) == 2
+    assert len(outputs) == 2
+    assert errors == "", "a committed row was written to the error file"
+    assert mc.num_of_loaded_sims == 2
+
+
+class _TornWrite:
+    """A context manager that writes half the row, flushes, and interrupts."""
+
+    def __init__(self, real_file):
+        self._real_file = real_file
+
+    def __enter__(self):
+        self._file = self._real_file.__enter__()
+        return self
+
+    def __exit__(self, *exc_info):
+        return self._real_file.__exit__(*exc_info)
+
+    def write(self, text):
+        self._file.write(text[: len(text) // 2])
+        self._file.flush()
+        raise KeyboardInterrupt("ctrl-c inside the outputs write")
+
+
+def test_a_torn_outputs_write_rolls_both_files_back(tmp_path):
+    """An interrupt inside the write itself must not leave half a row.
+
+    Rolling back only the inputs file handled the interrupt *between* the two
+    appends; one landing *inside* the outputs write leaves a torn partial row
+    that the rollback then has to remove too, or the reload dies with
+    ``JSONDecodeError`` instead of the interrupt.
+    """
+    stem = str(tmp_path / "run")
+    mc = _InterruptingMonteCarlo(stem, interrupt_after=10)
+
+    outputs_path = stem + ".outputs.txt"
+    appends = {"count": 0}
+    real_open = builtins.open
+
+    def torn_third_outputs_append(*args, **kwargs):
+        file = args[0] if args else kwargs["file"]
+        mode = args[1] if len(args) > 1 else kwargs.get("mode", "r")
+        if os.fspath(file) == outputs_path and "a" in mode:
+            appends["count"] += 1
+            if appends["count"] == 3:
+                return _TornWrite(real_open(*args, **kwargs))
+        return real_open(*args, **kwargs)
+
+    with pytest.raises(KeyboardInterrupt):
+        with patch("builtins.open", side_effect=torn_third_outputs_append):
+            mc.simulate(number_of_simulations=10, parallel=False)
+
+    inputs = pathlib.Path(stem + ".inputs.txt").read_text(encoding="utf-8").splitlines()
+    outputs = pathlib.Path(outputs_path).read_text(encoding="utf-8").splitlines()
+    errors = pathlib.Path(stem + ".errors.txt").read_text(encoding="utf-8").splitlines()
+
+    assert len(inputs) == 2, "the inputs row of the torn record was not rolled back"
+    assert len(outputs) == 2, "the torn outputs row was not rolled back"
+    for row in inputs + outputs:
+        json.loads(row)  # every surviving row must still parse
+    assert [json.loads(row)["index"] for row in errors] == [3]
+    assert mc.num_of_loaded_sims == 2
