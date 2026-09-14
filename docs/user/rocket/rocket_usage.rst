@@ -360,7 +360,8 @@ arguments described in :ref:`eventusage`, and includes (among others):
 - ``pressure`` (float): current atmospheric pressure in Pa at the rocket's
   altitude.
 - ``height_agl`` (float): height above ground level in meters.
-- ``step_size`` (float, optional): most recent solver step size in seconds.
+- ``step_size`` (float): how long the simulation has been inside the solver
+  step being evaluated, in seconds.
 
 **Simulation objects:**
 
@@ -372,9 +373,10 @@ arguments described in :ref:`eventusage`, and includes (among others):
 
 **Sensor and Event data:**
 
-- ``sensors`` (dict): dictionary mapping sensor names (or class names) to sensor
-  instances, each exposing its most recent ``measurement``. If several sensors
-  share a name, the value is a list.
+- ``sensors`` (list): the sensors attached to the rocket, each exposing its
+  most recent ``measurement``.
+- ``sensors_by_name`` (dict): the same sensors keyed by name (or class name).
+  If several sensors share a name, the value is a list.
 - ``sampling_rate`` (float or None): the sampling rate of the parachute trigger
   in Hz (or ``None`` for a continuous trigger).
 - ``event`` (:class:`rocketpy.Event`): a reference to the wrapping Event object,
