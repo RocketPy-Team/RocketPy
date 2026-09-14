@@ -5,13 +5,14 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.rocket.components import Components
 from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
 from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
-from rocketpy.simulation import FlightDataExporter
+from rocketpy.sensors.magnetometer import Magnetometer
+from rocketpy.simulation import Flight, FlightDataExporter
 
 
 def test_sensor_on_rocket(calisto_with_sensors):
@@ -32,6 +33,8 @@ def test_sensor_on_rocket(calisto_with_sensors):
     assert isinstance(sensors[3].position, Vector)
     assert isinstance(sensors[4].component, GnssReceiver)
     assert isinstance(sensors[4].position, Vector)
+    assert isinstance(sensors[5].component, Magnetometer)
+    assert isinstance(sensors[5].position, Vector)
 
 
 class TestIdealSensors:
@@ -41,10 +44,11 @@ class TestIdealSensors:
     def setup(self, flight_calisto_with_sensors):
         """Setup an flight fixture for all tests."""
         self.flight = flight_calisto_with_sensors
+        self.rocket = flight_calisto_with_sensors.rocket
 
     def test_accelerometer(self):
         """Test an ideal accelerometer."""
-        accelerometer = self.flight.rocket.sensors[0].component
+        accelerometer = self.rocket.sensors[0].component
         time, ax, ay, az = zip(*accelerometer.measured_data[0])
         sim_ax = self.flight.ax_body_frame(time)
         sim_ay = self.flight.ay_body_frame(time)
@@ -56,13 +60,13 @@ class TestIdealSensors:
 
         # check if both added accelerometer instances saved the same data
         assert (
-            self.flight.sensors[0].measured_data[0]
-            == self.flight.sensors[0].measured_data[1]
+            self.rocket.sensors[0].component.measured_data[0]
+            == self.rocket.sensors[0].component.measured_data[1]
         )
 
     def test_gyroscope(self):
         """Test an ideal gyroscope."""
-        gyroscope = self.flight.rocket.sensors[2].component
+        gyroscope = self.rocket.sensors[2].component
         time, wx, wy, wz = zip(*gyroscope.measured_data)
         sim_wx = self.flight.w1(time)
         sim_wy = self.flight.w2(time)
@@ -74,7 +78,7 @@ class TestIdealSensors:
 
     def test_barometer(self):
         """Test an ideal barometer."""
-        barometer = self.flight.rocket.sensors[3].component
+        barometer = self.rocket.sensors[3].component
         time, pressure = zip(*barometer.measured_data)
         pressure = np.array(pressure)
         sim_data = self.flight.pressure(time)
@@ -82,7 +86,7 @@ class TestIdealSensors:
 
     def test_gnss_receiver(self):
         """Test an ideal GnssReceiver."""
-        gnss = self.flight.rocket.sensors[4].component
+        gnss = self.rocket.sensors[4].component
         time, latitude, longitude, altitude = zip(*gnss.measured_data)
         sim_latitude = self.flight.latitude(time)
         sim_longitude = self.flight.longitude(time)
@@ -117,39 +121,61 @@ def test_export_all_sensors_data(flight_calisto_with_sensors):
         data = f.read()
         sensor_data = json.loads(data)
     # convert list of tuples into list of lists to compare with the json
-    flight_calisto_with_sensors.sensors[0].measured_data[0] = [
+    flight_calisto_with_sensors.rocket.sensors[0].component.measured_data[0] = [
         list(measurement)
-        for measurement in flight_calisto_with_sensors.sensors[0].measured_data[0]
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            0
+        ].component.measured_data[0]
     ]
-    flight_calisto_with_sensors.sensors[1].measured_data[1] = [
+    flight_calisto_with_sensors.rocket.sensors[1].component.measured_data[1] = [
         list(measurement)
-        for measurement in flight_calisto_with_sensors.sensors[1].measured_data[1]
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            1
+        ].component.measured_data[1]
     ]
-    flight_calisto_with_sensors.sensors[2].measured_data = [
+    flight_calisto_with_sensors.rocket.sensors[2].component.measured_data = [
         list(measurement)
-        for measurement in flight_calisto_with_sensors.sensors[2].measured_data
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            2
+        ].component.measured_data
     ]
-    flight_calisto_with_sensors.sensors[3].measured_data = [
+    flight_calisto_with_sensors.rocket.sensors[3].component.measured_data = [
         list(measurement)
-        for measurement in flight_calisto_with_sensors.sensors[3].measured_data
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            3
+        ].component.measured_data
     ]
-    flight_calisto_with_sensors.sensors[4].measured_data = [
+    flight_calisto_with_sensors.rocket.sensors[4].component.measured_data = [
         list(measurement)
-        for measurement in flight_calisto_with_sensors.sensors[4].measured_data
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            4
+        ].component.measured_data
+    ]
+    flight_calisto_with_sensors.rocket.sensors[5].component.measured_data = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            5
+        ].component.measured_data
     ]
     assert (
         sensor_data["Accelerometer"]
-        == flight_calisto_with_sensors.sensors[0].measured_data
+        == flight_calisto_with_sensors.rocket.sensors[0].component.measured_data
     )
     assert (
-        sensor_data["Gyroscope"] == flight_calisto_with_sensors.sensors[2].measured_data
+        sensor_data["Gyroscope"]
+        == flight_calisto_with_sensors.rocket.sensors[2].component.measured_data
     )
     assert (
-        sensor_data["Barometer"] == flight_calisto_with_sensors.sensors[3].measured_data
+        sensor_data["Barometer"]
+        == flight_calisto_with_sensors.rocket.sensors[3].component.measured_data
     )
     assert (
         sensor_data["GnssReceiver"]
-        == flight_calisto_with_sensors.sensors[4].measured_data
+        == flight_calisto_with_sensors.rocket.sensors[4].component.measured_data
+    )
+    assert (
+        sensor_data["Magnetometer"]
+        == flight_calisto_with_sensors.rocket.sensors[5].component.measured_data
     )
     os.remove(filename)
 
@@ -172,11 +198,52 @@ def test_export_single_sensor_data(flight_calisto_with_sensors):
         data = f.read()
         sensor_data = json.loads(data)
     # convert list of tuples into list of lists to compare with the json
-    flight_calisto_with_sensors.sensors[2].measured_data = [
+    flight_calisto_with_sensors.rocket.sensors[2].component.measured_data = [
         list(measurement)
-        for measurement in flight_calisto_with_sensors.sensors[2].measured_data
+        for measurement in flight_calisto_with_sensors.rocket.sensors[
+            2
+        ].component.measured_data
     ]
     assert (
-        sensor_data["Gyroscope"] == flight_calisto_with_sensors.sensors[2].measured_data
+        sensor_data["Gyroscope"]
+        == flight_calisto_with_sensors.rocket.sensors[2].component.measured_data
     )
     os.remove(filename)
+
+
+def test_magnetometer_with_wires_and_plates_in_flight(
+    calisto_robust_with_magnetometer_wires_and_plates, example_plain_env
+):
+    """A magnetometer whose distortion comes from plates and wires must work
+    inside a real Flight, not only when ``measure`` is called by hand.
+
+    The distortion branches reach for ``rocket.plates``, ``rocket._ignition_wires``
+    and ``rocket._communication_wires``, so they are the only part of the sensor
+    that depends on what the simulation hands it. The unit tests call ``measure``
+    with a Rocket directly, which never exercises that hand-off; this flies the
+    rocket so the object Flight actually passes is the one under test.
+    """
+    flight = Flight(
+        rocket=calisto_robust_with_magnetometer_wires_and_plates,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+    magnetometer = flight.rocket.sensors[-1].component
+    assert isinstance(magnetometer, Magnetometer)
+    assert len(magnetometer.measured_data) > 0
+
+    # Earth's field is tens of microtesla; anything outside this band means the
+    # field, the frame changes or the distortion went wrong rather than merely
+    # being imprecise.
+    for _, b_x, b_y, b_z in magnetometer.measured_data:
+        magnitude = (b_x**2 + b_y**2 + b_z**2) ** 0.5
+        assert 1e-6 < magnitude < 1e-3
+
+    # The plates and wires must actually have moved the reading.
+    assert magnetometer._soft_iron_distortion_matrix != Matrix.identity()
+    assert magnetometer.magnetic_interference != [0, 0, 0]

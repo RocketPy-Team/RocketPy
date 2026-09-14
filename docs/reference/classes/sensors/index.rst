@@ -10,3 +10,4 @@ Sensor Classes
    Barometer Class <barometer>
    Gyroscope Class <gyroscope>
    GNSS Receiver Class <gnss_receiver>
+   Magnetometer Class <magnetometer>

@@ -14,8 +14,10 @@ This reference manual details functions, modules, methods and attributes include
    classes/Components
    classes/Rocket
    classes/Parachute
-   classes/sensors/index.rst
+   Sensor Classes <classes/sensors/index>
    classes/Flight
+   classes/Wire
+   classes/Plate
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis
    Monte Carlo Analysis <classes/monte_carlo/index>
@@ -31,6 +33,8 @@ This reference manual details functions, modules, methods and attributes include
    Motor Classes Plots and Prints <plots_prints/motors/index>
    AeroSurface Classes Plots and Prints <plots_prints/aero_surfaces/index>
    Rocket Plots and Prints <plots_prints/Rocket/index>
+   Wire Plots and Prints <plots_prints/Wire/index>
+   Plate Plots and Prints <plots_prints/Plate/index>
    Flight Plots and Prints <plots_prints/Flight/index>
    EnvironmentAnalysis Plots and Prints <plots_prints/EnvironmentAnalysis/index>
    CompareFlights Plots <plots_prints/compare_flights>

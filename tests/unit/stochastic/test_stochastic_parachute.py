@@ -3,8 +3,8 @@ import inspect
 import numpy as np
 import pytest
 
-from rocketpy.stochastic import StochasticParachute
 from rocketpy.rocket.parachute import Parachute
+from rocketpy.stochastic import StochasticParachute
 from rocketpy.stochastic.stochastic_parachute import _is_a_trigger
 
 

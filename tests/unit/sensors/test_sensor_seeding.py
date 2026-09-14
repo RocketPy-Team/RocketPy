@@ -23,6 +23,7 @@ from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
 from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
+from rocketpy.sensors.magnetometer import Magnetometer
 
 
 def _accelerometer(seed):
@@ -126,7 +127,14 @@ def test_seed_survives_serialization_round_trip():
             ),
             44,
         ),
+        (
+            Magnetometer(
+                sampling_rate=10, noise_density=1.0, noise_variance=1.0, seed=55
+            ),
+            55,
+        ),
     ]
+
     for sensor, seed in cases:
         assert sensor.to_dict()["seed"] == seed
         data = json.loads(json.dumps(sensor.to_dict(), cls=RocketPyEncoder))

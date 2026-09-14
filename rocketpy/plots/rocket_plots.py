@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.pyplot import Axes
 
+from rocketpy.exceptions import InvalidParameterError
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
@@ -175,8 +177,8 @@ class _RocketPlots:
             A full list of color names can be found at: \
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional
-            Plane in which the rocket will be drawn. Default is 'xz'. Other
-            options is 'yz'. Used only for sensors representation.
+            Plane in which the rocket will be drawn. Default is "xz". Other
+            options is "yz". Used only for sensors representation.
         filename : str | None, optional
             The path the plot should be saved to. By default None, in which case
             the plot will be shown instead of saved. Supported file endings are:
@@ -198,16 +200,7 @@ class _RocketPlots:
                 "line_width": 1.0,
             }
 
-        _, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
-        ax.set_aspect("equal")
-        ax.grid(True, linestyle="--", linewidth=0.5)
-
-        csys = self.rocket._csys
-        reverse = csys == 1
-        surfaces = self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
-
-        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args, plane, surfaces)
-        last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
+        ax, last_radius, last_x = self._rocket_shape_plot(vis_args, plane)
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
         self._draw_center_of_mass_and_pressure(ax)
@@ -224,11 +217,13 @@ class _RocketPlots:
 
     def __validate_aerodynamic_surfaces(self, plane):
         if not self.rocket.aerodynamic_surfaces:
-            raise ValueError(
+            raise InvalidParameterError(
                 "The rocket must have at least one aerodynamic surface to be drawn."
             )
         if plane not in ("xz", "yz"):
-            raise ValueError("The plane must be 'xz' or 'yz'. The default is 'xz'.")
+            raise InvalidParameterError(
+                "The plane must be 'xz' or 'yz'. The default is 'xz'."
+            )
 
     def _draw_aerodynamic_surfaces(self, ax, vis_args, plane, surfaces):
         """Draws the aerodynamic surfaces and saves the position of the points
@@ -382,7 +377,7 @@ class _RocketPlots:
             x_rotated = self.rocket._csys * z_fin_rotated + position.z
             y_rotated = y_fin_rotated + position.y
         else:  # pragma: no cover
-            raise ValueError("Plane must be 'xz' or 'yz'.")
+            raise InvalidParameterError("Plane must be 'xz' or 'yz'.")
 
         ax.plot(
             x_rotated,
@@ -418,7 +413,7 @@ class _RocketPlots:
                 # y position of the surface is the y position in the plot
                 y_pos = position[1]
             case _:  # pragma: no cover
-                raise ValueError("Plane must be 'xz' or 'yz'.")
+                raise InvalidParameterError("Plane must be 'xz' or 'yz'.")
 
         ax.scatter(
             x_pos,
@@ -692,7 +687,7 @@ class _RocketPlots:
                     y_pos = pos[1]
                     normal_y = sensor.normal_vector.y
                 case _:  # pragma: no cover
-                    raise ValueError("Plane must be 'xz' or 'yz'.")
+                    raise InvalidParameterError("Plane must be 'xz' or 'yz'.")
 
             # line length is 2/5 of the rocket radius
             line_length = self.rocket.radius / 2.5
@@ -719,6 +714,227 @@ class _RocketPlots:
                     headlength=4,
                     zorder=10,
                 )
+
+    def draw_wires(
+        self,
+        wires: str = "all",
+        vis_args: dict | None = None,
+        plane: str = "xz",
+        color: str | list[str] | tuple[str, ...] = "default",
+        marker: str = "o",
+        linestyle: str = "-",
+        filename: str | None = None,
+    ) -> None:
+        """Plots all the wires that are attached to the rocket.
+
+        Parameters
+        ----------
+        wires : str, optional
+            String that determines which wires will be plotted:
+
+            - "communication_wires": only communication wires will be shown.
+            - "ignition_wires": only ignition wires will be shown.
+            - "all": all wires are shown.
+
+            Default is "all".
+        vis_args : dict, optional
+            Determines the visual aspects when drawing the rocket. If ``None``,
+            default values are used. Default values are:
+
+            .. code-block:: python
+
+                {
+                    "background": "#EEEEEE",
+                    "tail": "black",
+                    "nose": "black",
+                    "body": "black",
+                    "fins": "black",
+                    "motor": "black",
+                    "buttons": "black",
+                    "line_width": 1.0,
+                }
+
+            A full list of color names can be found at:
+            https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Cross-sectional projection plane to represent. Accepted options are
+            "xz" and "yz". Default is "xz".
+        color : str, list of str, tuple of str, optional
+            Color of the wires. If it is a list or tuple, it must contain one
+            color for each wire. A full list of color names can be found at:
+            https://matplotlib.org/stable/gallery/color/named_colors
+            Default is "default", meaning a distinct color from the default cycle
+            is assigned to each wire.
+        marker : str, optional
+            Shape of the markers representing the wire endpoints. A full list
+            of markers can be found at:
+            https://matplotlib.org/stable/api/markers_api.html
+            Default is "o".
+        linestyle : str, optional
+            Style of the line that represents the wire. A full list of
+            linestyles can be found at:
+            https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html
+            Default is "-".
+        filename : str, optional
+            The path the plot should be saved to. If None, the plot will be shown instead
+            of saved. Supported file formats include: eps, jpg, jpeg, pdf, pgf, png, ps,
+            raw, rgba, svg, svgz, tif, tiff, and webp. Default is None.
+        """
+        if vis_args is None:
+            vis_args = {
+                "background": "#EEEEEE",
+                "tail": "black",
+                "nose": "black",
+                "body": "black",
+                "fins": "black",
+                "motor": "black",
+                "buttons": "black",
+                "line_width": 1.0,
+            }
+
+        ax, _, _ = self._rocket_shape_plot(vis_args, plane)
+
+        if wires == "all":
+            wires_list = self.rocket._ignition_wires + self.rocket._communication_wires
+        elif wires == "communication_wires":
+            wires_list = self.rocket._communication_wires
+        elif wires == "ignition_wires":
+            wires_list = self.rocket._ignition_wires
+        else:
+            raise InvalidParameterError(
+                "Only 'communication_wires', 'ignition_wires', or 'all' are valid inputs."
+            )
+
+        if isinstance(color, str):
+            if color == "default":
+                color_list = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+            else:
+                color_list = [color] * len(wires_list)
+        elif isinstance(color, (list, tuple)):
+            if len(color) == len(wires_list):
+                color_list = color
+            else:
+                raise InvalidParameterError(
+                    "The length of the list of colors must be the same as the number of wires."
+                )
+        else:
+            raise InvalidParameterError(
+                "The accepted entries for color are str, list, or tuple."
+            )
+
+        for wire, color_wire in zip(wires_list, color_list):
+            wire.plots._draw_wires(
+                ax, plane, color_wire, marker, linestyle, endpoints_names=False
+            )
+
+        plt.title("Wires representation")
+        plt.xlim()
+        plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
+        plt.xlabel("Position (m)")
+        plt.ylabel("Radius (m)")
+        leg = plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+        if leg:
+            for handle in leg.legend_handles:
+                handle.set_linewidth(2.0)
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def draw_plates(
+        self,
+        vis_args: dict | None = None,
+        plane: str = "xz",
+        color: str | list[str] | tuple[str, ...] = "default",
+        filename: str | None = None,
+    ) -> None:
+        """Plots all the plates that are attached to the rocket.
+
+        Parameters
+        ----------
+        vis_args : dict, optional
+            Determines the visual aspects when drawing the rocket. If ``None``,
+            default values are used. Default values are:
+
+            .. code-block:: python
+
+                {
+                    "background": "#EEEEEE",
+                    "tail": "black",
+                    "nose": "black",
+                    "body": "black",
+                    "fins": "black",
+                    "motor": "black",
+                    "buttons": "black",
+                    "line_width": 1.0,
+                }
+
+            A full list of color names can be found at:
+            https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Cross-sectional projection plane to represent. Accepted options are
+            "xz" and "yz". Default is "xz".
+        color : str, list of str, tuple of str, optional
+            Color of the plates. If it is a list or tuple, it must contain one
+            color for each plate. A full list of color names can be found at:
+            https://matplotlib.org/stable/gallery/color/named_colors
+            Default is "default", meaning a distinct color from the default cycle
+            is applied to each plate.
+        filename : str, optional
+            The path the plot should be saved to. If None, the plot will be shown instead
+            of saved. Supported file formats include: eps, jpg, jpeg, pdf, pgf, png, ps,
+            raw, rgba, svg, svgz, tif, tiff, and webp. Default is None.
+        """
+        if vis_args is None:
+            vis_args = {
+                "background": "#EEEEEE",
+                "tail": "black",
+                "nose": "black",
+                "body": "black",
+                "fins": "black",
+                "motor": "black",
+                "buttons": "black",
+                "line_width": 1.0,
+            }
+        ax, _, _ = self._rocket_shape_plot(vis_args, plane)
+
+        if self.rocket.plates:
+            plates_list, _, _ = zip(*self.rocket.plates)
+        else:
+            plates_list = ()
+
+        if isinstance(color, str):
+            if color == "default":
+                color_list = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+            else:
+                color_list = [color] * len(plates_list)
+        elif isinstance(color, (list, tuple)):
+            if len(color) == len(plates_list):
+                color_list = color
+            else:
+                raise InvalidParameterError(
+                    "The length of the list of colors must be the same as the number of plates."
+                )
+        else:
+            raise InvalidParameterError(
+                "The accepted entries for color are str, list, or tuple."
+            )
+
+        sorted_plates_list = sorted(plates_list, key=lambda p: p.area, reverse=True)
+        for plate, color_plate in zip(sorted_plates_list, color_list):
+            plate.plots._plot_plate_rocket(ax, plane, color_plate)
+
+        plt.title("Plates representation")
+        plt.xlim()
+        plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
+        plt.xlabel("Position (m)")
+        plt.ylabel("Radius (m)")
+        plt.legend(
+            bbox_to_anchor=(1.05, 1),
+            loc="upper left",
+            handlelength=0.8,
+            handleheight=0.6,
+        )
+        plt.tight_layout()
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the Rocket. It simply calls
@@ -760,3 +976,63 @@ class _RocketPlots:
         print("\nThrust-to-Weight Plot")
         print("-" * 40)
         self.thrust_to_weight()
+
+        # Wire and Plate plots
+        print("\n Wire plots")
+        print("-" * 20)
+        self.draw_wires()
+        self.draw_plates()
+
+    def _rocket_shape_plot(
+        self, vis_args: dict | None = None, plane: str = "xz"
+    ) -> tuple[Axes, float, float]:
+        """
+        This is an auxiliary function that plots the outline of the rocket
+        including the aerodynamic surfaces. 
+
+        Parameters
+        ----------
+        vis_args : dict, optional
+            Determines the visual aspects when drawing the rocket. If ``None``,
+            default values are used. Default values are:
+
+            .. code-block:: python
+
+                {
+                    "background": "#EEEEEE",
+                    "tail": "black",
+                    "nose": "black",
+                    "body": "black",
+                    "fins": "black",
+                    "motor": "black",
+                    "line_width": 2.0,
+                }
+
+            A full list of color names can be found at: \
+            https://matplotlib.org/stable/gallery/color/named_colors
+        plane: str, optional
+            Plane that it is wanted to be represented:
+            Accepted options are "xz" and "yz"
+            Default value is "xz"
+
+        Returns
+        -------
+        ax: Axes 
+            Axes instance in which the rocket outline has been displayed.
+        radius: float
+            Last radius of the rocket, (y axis in the plot).
+        last_x: float
+            Last x value of the plot, (z axis value in the rocket frame).
+        """
+        _, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
+        ax.set_aspect("equal")
+        ax.grid(True, linestyle="--", linewidth=0.5)
+
+        csys = self.rocket._csys
+        reverse = csys == 1
+        surfaces = self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
+
+        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args, plane, surfaces)
+        radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
+
+        return ax, radius, last_x

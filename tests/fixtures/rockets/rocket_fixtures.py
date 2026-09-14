@@ -281,6 +281,7 @@ def calisto_with_sensors(
     ideal_gyroscope,
     ideal_barometer,
     ideal_gnss,
+    ideal_magnetometer,
 ):
     """Create an object class of the Rocket class to be used in the tests. This
     is the same Calisto rocket that was defined in the calisto fixture, but with
@@ -296,11 +297,12 @@ def calisto_with_sensors(
     calisto.add_surfaces(calisto_tail, -1.313)
     calisto.add_surfaces(calisto_trapezoidal_fins, -1.168)
     # double sensors to test using same instance twice
-    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
-    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
-    calisto.add_sensor(ideal_gyroscope, -0.1180124376577797)
-    calisto.add_sensor(ideal_barometer, -0.1180124376577797)
-    calisto.add_sensor(ideal_gnss, -0.1180124376577797)
+    calisto.add_sensor(ideal_accelerometer, (0, 0, -0.1180124376577797))
+    calisto.add_sensor(ideal_accelerometer, (0, 0, -0.1180124376577797))
+    calisto.add_sensor(ideal_gyroscope, (0, 0, -0.1180124376577797))
+    calisto.add_sensor(ideal_barometer, (0, 0, -0.1180124376577797))
+    calisto.add_sensor(ideal_gnss, (0, 0, -0.1180124376577797))
+    calisto.add_sensor(ideal_magnetometer, (0, 0, -0.1180124376577797))
     return calisto
 
 
@@ -415,3 +417,36 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
         trigger=457.2,  # 1500 ft
     )
     return prometheus
+
+
+@pytest.fixture
+def calisto_robust_with_magnetometer_wires_and_plates(
+    noisy_rotated_magnetometer,
+    calisto_robust,
+    test_communications_wire,
+    test_ignition_wire_motor,
+    test_ignition_wire_parachute,
+    test_circular_plate,
+    test_personalized_plate,
+):
+
+    calisto_robust.add_sensor(noisy_rotated_magnetometer, position=[0, 0, 0.5])
+    calisto_robust.add_wire(
+        test_ignition_wire_motor,
+        position_endpoints=[[0.002, 0.004, -0.3], [0.003, 0.001, -1.3]],
+    )
+    calisto_robust.add_wire(
+        test_communications_wire,
+        position_endpoints=[[0.002, 0.004, -0.3], [0.003, 0.001, -1.3]],
+    )
+    calisto_robust.add_wire(
+        test_ignition_wire_parachute,
+        position_endpoints=[[0.002, 0.004, 0.3], [0.003, 0.001, 0.5]],
+        parachute_name="calisto_main_chute",
+    )
+    calisto_robust.add_plate(test_circular_plate, position=30, height=0.2)
+    calisto_robust.add_plate(
+        test_personalized_plate,
+        position=[[0.003, 0.001, -0.4], [0.002, 0.002, -0.4], [-0.002, 0.002, -0.4]],
+    )
+    return calisto_robust

@@ -2,9 +2,9 @@ import json
 import os
 from datetime import datetime
 
+import netCDF4
 import numpy as np
 import numpy.testing as npt
-import netCDF4
 import pytest
 import pytz
 

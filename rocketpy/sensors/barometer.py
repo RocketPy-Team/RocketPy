@@ -159,7 +159,7 @@ class Barometer(ScalarSensor):
                 State vector of the rocket.
             - u_dot : np.array
                 Derivative of the state vector of the rocket.
-            - relative_position : np.array
+            - relative_position : Vector
                 Position of the sensor relative to the rocket center of mass.
             - environment : Environment
                 Environment object containing the atmospheric conditions.
