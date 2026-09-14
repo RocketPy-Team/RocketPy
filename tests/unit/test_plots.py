@@ -450,7 +450,7 @@ def test_animation_options_validation_errors(kwargs, error):
 
 @patch("matplotlib.pyplot.show")
 @pytest.mark.parametrize("filename", [None, "test_cp_evolution.png"])
-def test_flight_center_of_pressure_plot(mock_show, filename, flight_calisto):  # pylint: disable=unused-argument
+def test_flight_center_of_pressure_plot(mock_show, filename, flight_calisto):
     """Center-of-pressure evolution plot runs for a fixture flight.
 
     Parameters
