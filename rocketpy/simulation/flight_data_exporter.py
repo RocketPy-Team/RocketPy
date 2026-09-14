@@ -3,11 +3,11 @@ Exports a rocketpy.Flight object's data to external files.
 """
 
 import json
-import warnings
 
 import numpy as np
 import simplekml
 
+from rocketpy.mathutils.function import Function
 from rocketpy.tools import deprecated
 
 
@@ -63,6 +63,29 @@ class FlightDataExporter:
             for t in time_points:
                 file.write(f"{t:f}, {f.pressure.get_value_opt(t):.5f}\n")
 
+    def _variable_function(self, variable):
+        """Return the Function of one exportable variable.
+
+        A Flight attribute wins; otherwise the variable is read from the flight
+        solution by state name, which covers states that only some flight
+        phases integrate.
+        """
+        f = self._flight
+        if variable in f.__dict__:
+            return f.__dict__[variable]
+        try:
+            return getattr(f, variable)
+        except AttributeError:
+            pass
+        try:
+            history = f.solution[variable]
+        except KeyError as exc:
+            raise AttributeError(
+                f"Variable '{variable}' is neither a Flight attribute nor a state "
+                f"of this flight's solution."
+            ) from exc
+        return Function(history, "Time (s)", variable, "linear", "constant")
+
     def data(self, file_name, *variables, time_step=None):
         """Exports flight data to a comma separated value file (.csv).
 
@@ -77,10 +100,15 @@ class FlightDataExporter:
             Do not use forbidden characters, such as / in Linux/Unix and
             `<, >, :, ", /, \\, | ?, *` in Windows.
         variables : strings, optional
-            Names of the data variables which shall be exported. Must be Flight
-            class attributes which are instances of the Function class. Usage
-            example: test_flight.exports.data('test.csv', 'z', 'angle_of_attack',
-            'mach_number').
+            Names of the data variables which shall be exported. Each is a
+            Flight attribute that is a Function (``'z'``, ``'angle_of_attack'``,
+            ``'mach_number'``) or the name of a state stored in the flight
+            solution, which is how a state only some flight phases integrate,
+            such as a parafoil heading, is exported. Usage example:
+            test_flight.exports.data('test.csv', 'z', 'angle_of_attack',
+            'mach_number'). With no names and no ``time_step``, the 14-column
+            state table ``[t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2,
+            w3]`` is written at every integration time step.
         time_step : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
@@ -90,14 +118,6 @@ class FlightDataExporter:
 
         # Fast evaluation for the most basic scenario
         if time_step is None and len(variables) == 0:
-            warnings.warn(
-                "Exporting with no variables writes the full 14-column "
-                "canonical state table and will require explicit variable names "
-                "in v1.14. Pass the variable names you want, e.g. "
-                "data(file_name, 'x', 'y', 'z').",
-                DeprecationWarning,
-                stacklevel=2,
-            )
             np.savetxt(
                 file_name,
                 f.solution.canonical_array,
@@ -149,16 +169,7 @@ class FlightDataExporter:
 
         # Loop through variables, get points and names (for the header)
         for variable in variables:
-            if variable in f.__dict__:
-                variable_function = f.__dict__[variable]
-            # Deal with decorated Flight methods
-            else:
-                try:
-                    variable_function = getattr(f, variable)
-                except AttributeError as exc:
-                    raise AttributeError(
-                        f"Variable '{variable}' not found in Flight class"
-                    ) from exc
+            variable_function = self._variable_function(variable)
             variable_points = variable_function(time_points)
             exported_matrix += [variable_points]
             exported_header += f",{variable_function.__outputs__[0]}"
