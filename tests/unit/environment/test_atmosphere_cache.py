@@ -485,3 +485,91 @@ def test_mismatched_profiles_are_skipped_without_warning(monkeypatch, tmp_path):
         env._Environment__save_forecast_profiles_to_cache(path)
 
     assert not path.exists()
+
+
+# ---------------------------------------------------------------------------
+# The cache swallows unusable-file errors, and nothing else
+# ---------------------------------------------------------------------------
+
+
+def test_unexpected_error_while_opening_is_not_swallowed(monkeypatch, tmp_path):
+    """A defect inside the cache must surface, not look like a cache miss."""
+    monkeypatch.setenv("ROCKETPY_CACHE", str(tmp_path))
+    path = atmosphere_cache.cache_path_for("forecast_boom", ".nc")
+    _write_minimal_profile_nc(path)
+
+    def explode(*_args, **_kwargs):
+        raise ZeroDivisionError("a bug, not a damaged file")
+
+    monkeypatch.setattr(atmosphere_cache.netCDF4, "Dataset", explode)
+
+    with pytest.raises(ZeroDivisionError):
+        atmosphere_cache.read_profile_netcdf(path)
+
+
+def test_unexpected_error_while_reading_is_not_swallowed(monkeypatch, tmp_path):
+    """Same contract for failures after the file has been opened."""
+    monkeypatch.setenv("ROCKETPY_CACHE", str(tmp_path))
+    path = atmosphere_cache.cache_path_for("forecast_boom_read", ".nc")
+    _write_minimal_profile_nc(path)
+
+    def explode(_dataset):
+        raise ZeroDivisionError("a bug, not a damaged file")
+
+    monkeypatch.setattr(atmosphere_cache, "_read_metadata", explode)
+
+    with pytest.raises(ZeroDivisionError):
+        atmosphere_cache.read_profile_netcdf(path)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        OSError("damaged file"),
+        RuntimeError("dataset is closed"),
+        ValueError("wrong length"),
+        TypeError("bad dtype"),
+        KeyError("missing variable"),
+        AttributeError("missing attribute"),
+    ],
+)
+def test_unusable_cache_file_degrades_to_a_miss(monkeypatch, tmp_path, error):
+    """Every way netCDF4 reports an unusable file must become a cache miss."""
+    monkeypatch.setenv("ROCKETPY_CACHE", str(tmp_path))
+    path = atmosphere_cache.cache_path_for("forecast_unusable", ".nc")
+    _write_minimal_profile_nc(path)
+
+    def explode(_dataset):
+        raise error
+
+    monkeypatch.setattr(atmosphere_cache, "_read_metadata", explode)
+
+    with pytest.warns(UserWarning):
+        assert atmosphere_cache.read_profile_netcdf(path) is None
+
+
+def test_write_failure_degrades_to_no_cache_entry(monkeypatch, tmp_path):
+    """A failed write warns and reports False instead of raising."""
+    monkeypatch.setenv("ROCKETPY_CACHE", str(tmp_path))
+    path = atmosphere_cache.cache_path_for("forecast_writefail", ".nc")
+
+    def explode(_dataset, _metadata):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(atmosphere_cache, "_write_metadata", explode)
+
+    with pytest.warns(UserWarning):
+        written = atmosphere_cache.write_profile_netcdf(
+            path,
+            height=np.array([0.0, 1000.0]),
+            pressure=np.array([101325.0, 89875.0]),
+            temperature=np.array([288.0, 281.0]),
+            wind_u=np.array([1.0, 2.0]),
+            wind_v=np.array([0.0, 1.0]),
+            elevation=0.0,
+            max_expected_height=1000.0,
+        )
+
+    assert written is False
+    assert not path.exists()
+    assert not list(path.parent.glob("*.tmp")), "temporary file was left behind"

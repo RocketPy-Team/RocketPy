@@ -48,6 +48,31 @@ IMMUTABLE_KINDS = frozenset({"reanalysis"})
 _DISABLED_VALUES = frozenset({"", "0", "off", "false", "no", "none", "disabled"})
 _DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
+#: Raised by ``netCDF4.Dataset`` when a file cannot be opened at all: a damaged,
+#: empty or truncated file gives ``OSError``, a missing one ``FileNotFoundError``
+#: and an unwritable location ``PermissionError`` (both ``OSError`` subclasses).
+#: ``RuntimeError`` is listed because netCDF4 surfaces some HDF5-level failures
+#: that way, and the installed version is not pinned.
+CACHE_OPEN_ERRORS = (OSError, RuntimeError)
+
+#: Everything the above can raise, plus what reading or writing the contents of
+#: an otherwise-openable cache file can raise. Verified against netCDF4 1.7.4:
+#: a missing variable raises ``KeyError``; a missing or non-numeric attribute
+#: ``AttributeError``; a wrong-length array or an undeclared dimension
+#: ``ValueError``; an invalid dtype or attribute type ``TypeError``; and
+#: touching a closed dataset ``RuntimeError``.
+#:
+#: The list is deliberately explicit rather than a bare ``except Exception``: a
+#: corrupt cache entry must degrade to a re-download, but a ``NameError`` or any
+#: other genuine defect in this module has to keep propagating instead of being
+#: silently reported to the user as a cache miss.
+CACHE_FILE_ERRORS = CACHE_OPEN_ERRORS + (
+    ValueError,
+    TypeError,
+    KeyError,
+    AttributeError,
+)
+
 # Scalar metadata persisted as netCDF attributes, with the caster used on read.
 _SCALAR_METADATA = (
     ("atmospheric_model_interval", float),
@@ -421,9 +446,8 @@ def _open_valid_cache(path: Path, expected_kind=None):
         return None
     try:
         dataset = netCDF4.Dataset(path, mode="r")
-    except Exception as exc:  # pylint: disable=broad-except
-        # netCDF4 raises OSError, RuntimeError or others for damaged files. A
-        # cache miss must never be louder than the download it replaces.
+    except CACHE_OPEN_ERRORS as exc:
+        # A cache miss must never be louder than the download it replaces.
         warnings.warn(
             f"Failed to open atmosphere cache '{path}': {exc}. Fetching fresh data.",
             UserWarning,
@@ -488,7 +512,7 @@ def write_profile_netcdf(
             dataset.close()
         temp_path.replace(path)
         return True
-    except Exception as exc:  # pylint: disable=broad-except
+    except CACHE_FILE_ERRORS as exc:
         warnings.warn(
             f"Failed to write atmosphere profile cache '{path}': {exc}.",
             UserWarning,
@@ -513,7 +537,7 @@ def read_profile_netcdf(path: Path) -> dict | None:
             profiles[name] = np.array(dataset.variables[name][:], dtype=float)
         profiles["metadata"] = _read_metadata(dataset)
         return profiles
-    except Exception as exc:  # pylint: disable=broad-except
+    except CACHE_FILE_ERRORS as exc:
         warnings.warn(
             f"Failed to read atmosphere profile cache '{path}': {exc}. "
             "Fetching fresh data.",
@@ -578,7 +602,7 @@ def write_ensemble_profile_netcdf(
             dataset.close()
         temp_path.replace(path)
         return True
-    except Exception as exc:  # pylint: disable=broad-except
+    except CACHE_FILE_ERRORS as exc:
         warnings.warn(
             f"Failed to write ensemble atmosphere cache '{path}': {exc}.",
             UserWarning,
@@ -608,7 +632,7 @@ def read_ensemble_profile_netcdf(path: Path) -> dict | None:
             profiles[key] = np.array(dataset.variables[name][:], dtype=float)
         profiles["metadata"] = _read_metadata(dataset)
         return profiles
-    except Exception as exc:  # pylint: disable=broad-except
+    except CACHE_FILE_ERRORS as exc:
         warnings.warn(
             f"Failed to read ensemble atmosphere cache '{path}': {exc}. "
             "Fetching fresh data.",
