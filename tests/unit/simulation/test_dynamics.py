@@ -16,8 +16,8 @@ from rocketpy.simulation.helpers.dynamics import (
     SOLID_PROPULSION_DYNAMICS,
     THREE_DOF_DYNAMICS,
     _PhaseDynamics,
-    dynamics_for_name,
 )
+from rocketpy.simulation.helpers.event_commands import apply_rollback_command
 from rocketpy.simulation.solution import Solution
 
 
@@ -50,8 +50,8 @@ def stub_flight_shell(live=False):
     flight = Flight.__new__(Flight)
     flight.calls = []
     flight.solution = Solution()
-    flight._post_process = None
     flight._has_change_dynamics_events = live
+    flight.solution.records_post_values = live
     return flight
 
 
@@ -78,47 +78,8 @@ def test_dynamics_names_and_states():
     assert PARACHUTE_DYNAMICS.states == CANONICAL_STATE_NAMES
     assert PARACHUTE_DYNAMICS.is_canonical
     assert PARACHUTE_DYNAMICS.width == 13
-    assert PARACHUTE_DYNAMICS.frozen_states == ()
     # It still reports only the variables a descent has.
     assert PARACHUTE_DYNAMICS.post_process_vars == ("ax", "ay", "az", "R1", "R2", "R3")
-
-
-def test_state_index_of():
-    assert SIX_DOF_DYNAMICS.state_index_of("vz") == 5
-    assert TRANSLATION_DYNAMICS.state_index_of("vz") == 5
-    with pytest.raises(KeyError, match="not integrated by this flight phase"):
-        TRANSLATION_DYNAMICS.state_index_of("e0")
-
-
-def test_dynamics_for_name_recovers_the_built_ins():
-    assert dynamics_for_name("six_dof", CANONICAL_STATE_NAMES) is SIX_DOF_DYNAMICS
-    assert dynamics_for_name("parachute", CANONICAL_STATE_NAMES) is PARACHUTE_DYNAMICS
-
-
-def test_dynamics_for_unknown_name_keeps_the_states():
-    """An unrecognized name still yields something that can report its states."""
-    for name in (None, "made_up"):
-        recovered = dynamics_for_name(name, ("a", "b"))
-        assert recovered.states == ("a", "b")
-        assert recovered.post_process_vars == ()
-
-
-def test_dynamics_for_a_known_name_with_different_states_falls_back():
-    """A flight saved before a phase's states changed still reads correctly."""
-    recovered = dynamics_for_name("parachute", TRANSLATION_STATES)
-    assert recovered is not PARACHUTE_DYNAMICS
-    assert recovered.states == TRANSLATION_STATES
-
-
-def test_a_states_only_phase_cannot_be_flown():
-    recovered = dynamics_for_name("made_up", TRANSLATION_STATES)
-    with pytest.raises(NotImplementedError, match="read back from a saved flight"):
-        recovered.bind(StubFlight())(0.0, [0.0] * 6)
-
-
-def test_a_phase_needs_a_derivative():
-    with pytest.raises(TypeError, match="not a function"):
-        _PhaseDynamics("no_derivative", None, TRANSLATION_STATES)
 
 
 # ---------------------------------------------------------------------------
@@ -140,27 +101,39 @@ def test_canonicalize_freezes_the_states_a_phase_does_not_integrate():
     assert result[6:] == frozen[6:]
 
 
-def heading_dynamics():
+def heading_to_canonical(values):
+    """Rebuild e0 from the heading; every other canonical state is copied."""
+    values["e0"] = values["heading"] * 2
+    return [values[name] for name in CANONICAL_STATE_NAMES]
+
+
+def heading_to_canonical_dot(values, values_dot):
+    result = [0.0] * 13
+    for name, value in values_dot.items():
+        if name in CANONICAL_STATE_NAMES:
+            result[CANONICAL_STATE_NAMES.index(name)] = value
+    result[6] = 2 * values_dot["heading"]
+    return result
+
+
+def heading_dynamics(with_dot=True):
     """A parafoil-style phase: integrates a heading and rebuilds e0 from it."""
     return _PhaseDynamics(
         "heading",
         stub_derivative,
         (*TRANSLATION_STATES, "heading"),
-        reconstructed_states=("e0",),
-        reconstruct=lambda values, values_dot=None: (
-            (values["heading"] * 2,)
-            if values_dot is None
-            else (2 * values_dot["heading"],)
-        ),
+        to_canonical=heading_to_canonical,
+        to_canonical_dot=heading_to_canonical_dot if with_dot else None,
     )
 
 
-def test_reconstructed_states_fill_canonical_slots():
+def test_to_canonical_rebuilds_states_and_keeps_the_rest():
     heading = heading_dynamics()
-    frozen = [0.0] * 13
+    frozen = [float(i) for i in range(13)]
     result = heading.canonicalize([1, 2, 3, 4, 5, 6, 0.25], frozen)
-    assert result[6] == 0.5
-    assert heading.frozen_states == ("e1", "e2", "e3", "w1", "w2", "w3")
+    assert result[:6] == [1, 2, 3, 4, 5, 6]
+    assert result[6] == 0.5  # rebuilt from the heading
+    assert result[7:] == frozen[7:]  # copied from the start of the phase
 
 
 def test_canonicalize_derivative_zeroes_held_states():
@@ -171,8 +144,8 @@ def test_canonicalize_derivative_zeroes_held_states():
     assert SIX_DOF_DYNAMICS.canonicalize_derivative(canonical_dot) is canonical_dot
 
 
-def test_canonicalize_derivative_uses_the_reconstruction_rule():
-    """A reconstructed state changes, so its derivative must not read as zero."""
+def test_canonicalize_derivative_uses_to_canonical_dot():
+    """A rebuilt state changes, so its derivative must not read as zero."""
     heading = heading_dynamics()
     state = [1, 2, 3, 4, 5, 6, 0.25]
     state_dot = [0, 0, 0, 0, 0, 0, 3.0]  # heading turning at 3 rad/s
@@ -187,71 +160,11 @@ def test_canonicalize_derivative_without_the_state_raises():
         heading.canonicalize_derivative([0, 0, 0, 0, 0, 0, 3.0])
 
 
-def test_reconstruction_inputs_merges_frozen_and_own_states():
+def test_state_values_merges_start_of_phase_and_own_states():
     frozen = [float(i) for i in range(13)]
-    values = TRANSLATION_DYNAMICS.reconstruction_inputs([9, 9, 9, 9, 9, 9], frozen)
+    values = TRANSLATION_DYNAMICS.state_values([9, 9, 9, 9, 9, 9], frozen)
     assert values["x"] == 9  # own state wins
-    assert values["e0"] == 6.0  # frozen supplies the rest
-
-
-def test_state_from_canonical():
-    canonical = list(range(13))
-    assert TRANSLATION_DYNAMICS.state_from_canonical(canonical) == [0, 1, 2, 3, 4, 5]
-    assert SIX_DOF_DYNAMICS.state_from_canonical(canonical) == canonical
-
-
-# ---------------------------------------------------------------------------
-# Constructor validation
-# ---------------------------------------------------------------------------
-
-
-def test_a_state_cannot_also_be_reconstructed():
-    with pytest.raises(ValueError, match="both in states"):
-        _PhaseDynamics(
-            "bad",
-            stub_derivative,
-            ("z",),
-            reconstructed_states=("z",),
-            reconstruct=lambda values, values_dot=None: (0,),
-        )
-
-
-def test_only_canonical_states_can_be_reconstructed():
-    with pytest.raises(ValueError, match="not a canonical state"):
-        _PhaseDynamics(
-            "bad",
-            stub_derivative,
-            ("z",),
-            reconstructed_states=("nope",),
-            reconstruct=lambda values, values_dot=None: (0,),
-        )
-
-
-def test_reconstructed_states_need_a_reconstruct_function():
-    with pytest.raises(ValueError, match="no reconstruct function"):
-        _PhaseDynamics("bad", stub_derivative, ("z",), reconstructed_states=("e0",))
-
-
-def test_a_reconstruct_function_needs_the_states_it_rebuilds():
-    with pytest.raises(ValueError, match="reconstructed_states is empty"):
-        _PhaseDynamics(
-            "bad",
-            stub_derivative,
-            ("z",),
-            reconstruct=lambda values, values_dot=None: (0,),
-        )
-
-
-def test_a_reconstruction_must_answer_for_every_state_named():
-    dynamics = _PhaseDynamics(
-        "bad",
-        stub_derivative,
-        TRANSLATION_STATES,
-        reconstructed_states=("e0", "e1"),
-        reconstruct=lambda values, values_dot=None: (0.0,),  # one short
-    )
-    with pytest.raises(ValueError, match="returned 1 values"):
-        dynamics.canonicalize([0] * 6, [0.0] * 13)
+    assert values["e0"] == 6.0  # the start of the phase supplies the rest
 
 
 # ---------------------------------------------------------------------------
@@ -267,8 +180,6 @@ def test_bound_dynamics_calls_free_function():
     assert bound(1.5, [1.0, 2.0, 3.0]) == [2.0, 4.0, 6.0]
     assert flight.calls == [(1.5, [1.0, 2.0, 3.0], False)]
     assert bound.dynamics is dynamics
-    assert bound.post_process_vars == ("ax",)
-    assert bound.name == "stub"
     assert bound.__name__ == "stub_derivative"
 
 
@@ -294,14 +205,6 @@ def test_bound_dynamics_forwards_phase_arguments():
     assert bound(0.0, [0] * 6) == ["main"]
     assert bound.post_process_at(0.0, [0] * 6) == ["main"]
     assert flight.calls == [(0.0, False, "main"), (0.0, True, "main")]
-    # binding again replaces the fixed arguments, and keeps the same flight
-    rebound = bound.bind(parachute="drogue")
-    assert rebound(0.0, [0] * 6) == ["drogue"]
-    assert rebound.flight is flight
-    # an explicit flight wins, which is how an event's dynamics reach the
-    # flight that is running
-    other = StubFlight()
-    assert bound.bind(other, parachute="main").flight is other
 
 
 def test_a_phase_reporting_no_variables_never_calls_the_derivative():
@@ -312,7 +215,7 @@ def test_a_phase_reporting_no_variables_never_calls_the_derivative():
     )
     bound = dynamics.bind(StubFlight())
     assert bound(0.0, [1] * 6) == [1] * 6
-    assert bound.post_process_at(2.0, [1] * 6) == {}
+    assert bound.post_process_at(2.0, [1] * 6) == []
 
 
 def test_bound_dynamics_default_initial_state():
@@ -339,17 +242,14 @@ def test_bound_dynamics_custom_initial_state():
 # ---------------------------------------------------------------------------
 
 
-def test_bound_dynamics_select_atol():
+def test_select_atol_reduces_a_canonical_vector():
     flight = StubFlight()
-    canonical_bound = SIX_DOF_DYNAMICS.bind(flight)
-    assert canonical_bound.select_atol(flight.atol) == flight.atol
-    reduced_bound = TRANSLATION_DYNAMICS.bind(flight)
-    assert reduced_bound.select_atol(flight.atol) == [1e-3] * 6
+    assert SIX_DOF_DYNAMICS.select_atol(flight.atol) == flight.atol
+    assert TRANSLATION_DYNAMICS.select_atol(flight.atol) == [1e-3] * 6
 
 
 def test_scalar_atol_passthrough():
-    bound = SIX_DOF_DYNAMICS.bind(StubFlight())
-    assert bound.select_atol(1e-5) == 1e-5
+    assert SIX_DOF_DYNAMICS.select_atol(1e-5) == 1e-5
 
 
 def test_atol_matching_the_phase_width_passes_through():
@@ -366,9 +266,8 @@ def test_non_canonical_states_use_the_largest_atol():
 
 
 def test_bad_atol_length_raises():
-    bound = TRANSLATION_DYNAMICS.bind(StubFlight())
     with pytest.raises(ValueError, match="matches neither"):
-        bound.select_atol([1e-3, 1e-3, 1e-3])
+        TRANSLATION_DYNAMICS.select_atol([1e-3, 1e-3, 1e-3])
 
 
 # ---------------------------------------------------------------------------
@@ -381,21 +280,10 @@ def test_post_process_values_from_a_sequence():
     assert dynamics.post_process_values([7, 8]) == [7, 8]
 
 
-def test_post_process_values_from_a_dict_zeroes_what_is_missing():
-    dynamics = _PhaseDynamics("d", stub_derivative, ("z",), ("ax", "ay"))
-    assert dynamics.post_process_values({"ay": 8}) == [0.0, 8]
-
-
 def test_post_process_values_rejects_the_wrong_number_of_values():
     dynamics = _PhaseDynamics("d", stub_derivative, ("z",), ("ax", "ay"))
     with pytest.raises(ValueError, match="computes 2 post-process variables"):
         dynamics.post_process_values([1])
-
-
-def test_post_process_values_rejects_an_unknown_name():
-    dynamics = _PhaseDynamics("d", stub_derivative, ("z",), ("ax",))
-    with pytest.raises(KeyError, match="not computed by this flight phase"):
-        dynamics.post_process_values({"nope": 1})
 
 
 # ---------------------------------------------------------------------------
@@ -407,14 +295,14 @@ def test_build_replays_the_stored_states():
     """With no dynamics-changing event, each phase is replayed after the flight."""
     flight = stub_flight_shell()
     dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution.start_phase(
+    flight.solution._start_phase(
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
-    flight.solution.append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.append([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight.solution._append([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
 
     # The stub reports the time as its single post-process variable.
-    assert flight._post_process_series("ax").tolist() == [[0.0, 0.0], [0.5, 0.5]]
+    assert flight.solution.post["ax"].tolist() == [[0.0, 0.0], [0.5, 0.5]]
     # Every stored state was replayed, in post-processing mode.
     assert [call[0] for call in flight.calls] == [0.0, 0.5]
     assert all(call[2] is True for call in flight.calls)
@@ -424,36 +312,67 @@ def test_build_prefers_values_recorded_during_the_simulation():
     """Live rows win, since a replay cannot reproduce a controller's changes."""
     flight = stub_flight_shell(live=True)
     dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution.start_phase(
+    flight.solution._start_phase(
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
-    flight.solution.append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.set_last_post_values([42.0])
+    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight.solution._set_post_values(-1, [42.0])
 
-    assert flight._post_process_series("ax").tolist() == [[0.0, 42.0]]
+    assert flight.solution.post["ax"].tolist() == [[0.0, 42.0]]
     assert flight.calls == []  # nothing was replayed
 
 
-def test_build_carries_a_recorded_neighbour_into_an_inserted_row():
-    """A row added to mark an exact event time takes its neighbour's values."""
+def test_a_row_records_the_values_of_its_own_state():
+    """A row added to mark an exact event time gets values of its own.
+
+    The row is written out of order, before the step the solver already took
+    past it, so recording it against the most recent row would put the values
+    on the wrong row and leave this one with nothing.
+    """
     flight = stub_flight_shell(live=True)
     dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution.start_phase(
+    flight.solution._start_phase(
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
-    flight.solution.append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.set_last_post_values([42.0])
-    flight.solution.append([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.set_last_post_values([43.0])
-    # an exact-time row wedged between them records nothing of its own
-    flight.solution.insert_before_last([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight._Flight__post_process_step()
+    # a step, with an exact-time row wedged in before its end by an event of
+    # that step: the wedged row is recorded as soon as it is inserted, the
+    # step's own row once its events are handled
+    flight.solution._append([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight.solution._insert_before_last([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight._post_process_row(-2)
+    assert flight.solution._post_values[-2] == [0.5]
+    assert flight.solution._post_values[-1] is None
+    flight._Flight__post_process_step()
 
-    assert flight._post_process_series("ax").tolist() == [
-        [0.0, 42.0],
-        [0.5, 42.0],
-        [1.0, 43.0],
+    # the stub reports the row's own time as its post-process variable
+    assert flight.solution.post["ax"].tolist() == [
+        [0.0, 0.0],
+        [0.5, 0.5],
+        [1.0, 1.0],
     ]
-    assert flight.calls == []  # still nothing was replayed
+
+
+def test_a_replaced_row_records_the_values_of_its_new_state():
+    """Rolling a row back clears its values; the loop then records them anew."""
+    flight = stub_flight_shell(live=True)
+    dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
+    flight.solution._start_phase(
+        dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
+    )
+    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight._Flight__post_process_step()
+    flight.solution._append([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    flight._Flight__post_process_step()
+    apply_rollback_command(flight, 0.75, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    # the rollback itself records nothing: the solver loop does, once per step
+    assert flight.solution._post_values[-1] is None
+    flight._Flight__post_process_step()
+    recorded_calls = len(flight.calls)
+
+    assert flight.solution.post["ax"].tolist() == [[0.0, 0.0], [0.75, 0.75]]
+    assert len(flight.calls) == recorded_calls  # nothing was replayed
 
 
 def test_a_phase_that_does_not_compute_a_variable_reports_zero():
@@ -474,34 +393,38 @@ def test_a_phase_that_does_not_compute_a_variable_reports_zero():
         TRANSLATION_STATES,
         ("ax",),
     )
-    flight.solution.start_phase(full.bind(flight), start_canonical=tuple([0.0] * 13))
-    flight.solution.append([0.0, *[0.0] * 6])
-    flight.solution.start_phase(partial.bind(flight), start_canonical=tuple([0.0] * 13))
-    flight.solution.append([1.0, *[0.0] * 6])
+    flight.solution._start_phase(full.bind(flight), start_canonical=tuple([0.0] * 13))
+    flight.solution._append([0.0, *[0.0] * 6])
+    flight.solution._start_phase(
+        partial.bind(flight), start_canonical=tuple([0.0] * 13)
+    )
+    flight.solution._append([1.0, *[0.0] * 6])
 
-    assert flight._post_process_series("ax").tolist() == [[0.0, 1.0], [1.0, 3.0]]
+    assert flight.solution.post["ax"].tolist() == [[0.0, 1.0], [1.0, 3.0]]
     # M1 is not computed by the second phase, so it is zero there.
-    assert flight._post_process_series("M1").tolist() == [[0.0, 2.0], [1.0, 0.0]]
+    assert flight.solution.post["M1"].tolist() == [[0.0, 2.0], [1.0, 0.0]]
 
 
 def test_unknown_post_process_variable_raises():
     flight = stub_flight_shell()
     dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution.start_phase(
+    flight.solution._start_phase(
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
-    flight.solution.append([0.0, *[0.0] * 6])
+    flight.solution._append([0.0, *[0.0] * 6])
     with pytest.raises(KeyError, match="No flight phase computed"):
-        flight._post_process_series("nope")
+        flight.solution.post["nope"]
 
 
 def test_a_phase_with_no_live_dynamics_is_skipped():
     """A phase read back from a file cannot be replayed, so it contributes nothing."""
     flight = stub_flight_shell()
-    flight.solution.start_phase(SIX_DOF_DYNAMICS, start_canonical=tuple([0.0] * 13))
-    flight.solution.append([0.0, *[0.0] * 13])
-    with pytest.raises(KeyError, match="No flight phase computed"):
-        flight._post_process_series("ax")
+    flight.solution._start_phase(SIX_DOF_DYNAMICS, start_canonical=tuple([0.0] * 13))
+    flight.solution._append([0.0, *[0.0] * 13])
+    # The variable is one the phase declares, so the error says why it cannot be
+    # produced rather than claiming the flight never computes it.
+    with pytest.raises(KeyError, match="read back from a saved file"):
+        flight.solution.post["ax"]
 
 
 @pytest.mark.parametrize("name", FULL_POST_PROCESS_VARS)
@@ -521,11 +444,11 @@ def test_every_built_in_variable_has_a_flight_attribute(name):
     dynamics = _PhaseDynamics(
         "all", report_everything, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
     )
-    flight.solution.start_phase(
+    flight.solution._start_phase(
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
     for t in (0.0, 0.5, 1.0, 1.5):
-        flight.solution.append([t, *([0.0] * 13)])
+        flight.solution._append([t, *([0.0] * 13)])
 
     attribute = getattr(flight, name)
     assert np.allclose(attribute.y_array, [0.0, 0.5, 1.0, 1.5])
