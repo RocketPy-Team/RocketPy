@@ -183,9 +183,9 @@ def find_roots_cubic_function(a, b, c, d):
     Notes
     -----
     A cubic Hermite fit over a step where the quantity changes at a constant
-    rate — a rocket descending at its terminal speed, for example — has no
-    cubic term at all. The degenerate cases below are the ordinary way that
-    shows up, not an error.
+    rate, a rocket descending at its terminal speed for example, has no cubic
+    term at all. The degenerate cases below are the ordinary way that shows up,
+    not an error.
 
     References
     ----------
@@ -225,13 +225,18 @@ def find_roots_cubic_function(a, b, c, d):
 
     delta_0 = b**2 - 3 * a * c
     delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
-    c1 = ((delta_1 + (delta_1**2 - 4 * delta_0**3) ** (0.5)) / 2) ** (1 / 3)
 
-    if c1 == 0:
-        # delta_0 and delta_1 both vanish, so the cubic is a perfect cube and
-        # all three roots sit at the same place.
+    if delta_0 == 0 and delta_1 == 0:
+        # The cubic is a perfect cube, so all three roots sit at the same place.
         triple_root = complex(-b / (3 * a))
         return triple_root, triple_root, triple_root
+
+    root_term = (delta_1**2 - 4 * delta_0**3) ** 0.5
+    c1 = ((delta_1 + root_term) / 2) ** (1 / 3)
+    if c1 == 0:
+        # The two terms cancelled. The other sign of the square root gives a
+        # usable cube root, and either one solves the same cubic.
+        c1 = ((delta_1 - root_term) / 2) ** (1 / 3)
 
     c2_0 = c1
     x1 = -(1 / (3 * a)) * (b + c2_0 + delta_0 / c2_0)
