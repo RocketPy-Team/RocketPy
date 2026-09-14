@@ -62,7 +62,7 @@ def udot_rail1(flight, t, u, post_processing=False):
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, return this phase's derived quantities instead of the
+        If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
 
     Returns
@@ -70,7 +70,7 @@ def udot_rail1(flight, t, u, post_processing=False):
     list or dict
         State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
         alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
-        derived quantities as a quantity name to value map.
+        post-process variables as a variable name to value map.
     """
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, _, _, _ = u
@@ -125,22 +125,9 @@ def udot_rail1(flight, t, u, post_processing=False):
         ax, ay, az = 0, 0, 0
 
     if post_processing:
-        # The forces, moments and environment data are the free-flight ones, so
-        # they come from that derivative. Only the accelerations differ: the
-        # rail constrains motion to its own axis, so there is no angular
-        # acceleration and the linear acceleration is the one computed above.
-        free_flight = flight.u_dot_generalized
-        derived = dict(
-            zip(
-                free_flight.derived_names,
-                free_flight.derived_at(t, u),
-                strict=True,
-            )
-        )
-        derived.update(
-            {"ax": ax, "ay": ay, "az": az, "alpha1": 0, "alpha2": 0, "alpha3": 0}
-        )
-        return derived
+        values = list(flight.u_dot_generalized.post_process_at(t, u))
+        values[:6] = [ax, ay, az, 0.0, 0.0, 0.0]
+        return values
 
     return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -160,7 +147,7 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, return this phase's derived quantities instead of the
+        If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
 
     Returns
@@ -170,7 +157,7 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
     """
     # Hey! We will finish this function later, now we just can use u_dot
     if post_processing:
-        return flight.u_dot_generalized.derived_at(t, u)
+        return flight.u_dot_generalized.post_process_at(t, u)
     return flight.u_dot_generalized(t, u)
 
 
@@ -190,7 +177,7 @@ def u_dot(flight, t, u, post_processing=False):
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, return this phase's derived quantities instead of the
+        If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
 
     Returns
@@ -198,7 +185,7 @@ def u_dot(flight, t, u, post_processing=False):
     list
         State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
         alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
-        derived quantities in its declared order.
+        post-process variables in its declared order.
     """
 
     # Retrieve integration data
@@ -523,7 +510,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, return this phase's derived quantities instead of the
+        If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
 
     Returns
@@ -531,7 +518,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     list
         State derivative ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot,
         alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
-        derived quantities in its declared order.
+        post-process variables in its declared order.
     """
     # Unpack state
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
@@ -749,7 +736,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, return this phase's derived quantities instead of the
+        If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
 
     Returns
@@ -757,7 +744,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     list
         State derivative ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot,
         alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
-        derived quantities in its declared order.
+        post-process variables in its declared order.
     """
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
@@ -965,9 +952,10 @@ def u_dot_generalized(flight, t, u, post_processing=False):
 def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):
     """Compute the parachute descent derivative.
 
-    The parachute descent integrates only position and velocity. Attitude and
+    Only position and velocity actually move under a parachute. The attitude and
     angular rates are held fixed at their values when the parachute deployed, so
-    they are not part of this phase's state.
+    their derivatives are zero, but they are still part of this phase's state,
+    so that the descent reports the full canonical state.
 
     Parameters
     ----------
@@ -976,9 +964,11 @@ def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):
     t : float
         Time in seconds.
     u : list
-        State vector ``[x, y, z, vx, vy, vz]``.
+        State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``. Only
+        the position and velocity are read; the attitude and angular rates come
+        along unchanged.
     post_processing : bool, optional
-        If ``True``, return this phase's derived quantities instead of the
+        If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
     parachute : Parachute
         The parachute descending during this phase, supplying the drag area,
@@ -988,8 +978,9 @@ def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):
     Returns
     -------
     list
-        State derivative ``[vx, vy, vz, ax, ay, az]``. With ``post_processing``,
-        this phase's derived quantities in its declared order.
+        State derivative ``[vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]``. With
+        ``post_processing``, this phase's post-process variables in its declared
+        order.
     """
     # Get relevant state data
     z, vx, vy, vz = u[2:6]
@@ -1046,4 +1037,4 @@ def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):
     if post_processing:
         return [ax, ay, az, Dx, Dy, Dz]
 
-    return [vx, vy, vz, ax, ay, az]
+    return [vx, vy, vz, ax, ay, az, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
