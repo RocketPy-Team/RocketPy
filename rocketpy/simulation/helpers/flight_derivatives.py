@@ -191,7 +191,6 @@ def u_dot(flight, t, u, post_processing=False):
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
     # Determine lift force and moment
-    omega1, omega2, omega3 = 0, 0, 0
     R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
     # Thrust correction parameters
     pressure = flight.env.pressure.get_value_opt(z)

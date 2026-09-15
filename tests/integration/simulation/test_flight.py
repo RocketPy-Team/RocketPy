@@ -239,6 +239,65 @@ def test_a_parachute_keeps_falling_freely_during_its_lag(
     assert vz_opened == pytest.approx(vz_fired - g * lag, abs=0.5)
 
 
+def test_solid_propulsion_equations_damp_rotation(example_plain_env, calisto_robust):
+    """The solid-propulsion equations must see the angular rates.
+
+    They once zeroed the rates before the aerodynamics, which removed all
+    aerodynamic damping: a pitch rate produced no restoring moment and a
+    canted fin spun the rocket up without bound. At a coasting state, a pitch
+    rate must produce an angular acceleration that opposes it, and the roll
+    rate of a canted-fin flight must match the generalized equations.
+    """
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        equations_of_motion="solid_propulsion",
+        terminate_on_apogee=True,
+    )
+    assert flight.u_dot_generalized is flight.u_dot
+
+    # a coasting state a few seconds after burnout, with a pitch rate added
+    t = flight.rocket.motor.burn_out_time + 3.0
+    still = list(flight.solution.at(t).values())[:13]
+    pitching = [*still[:10], 2.0, 0.0, 0.0]
+    alpha_still = flight.u_dot(t, still)[10]
+    alpha_pitching = flight.u_dot(t, pitching)[10]
+    assert alpha_pitching != alpha_still
+    assert alpha_pitching < alpha_still  # the moment opposes the rate
+
+    # a rolling flight settles at the same roll rate with either set of equations
+    calisto_robust.aerodynamic_surfaces.clear()  # rebuild with canted fins
+    calisto_robust.add_nose(length=0.55829, kind="vonkarman", position=1.160)
+    calisto_robust.add_tail(
+        top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.313
+    )
+    calisto_robust.add_trapezoidal_fins(
+        4,
+        span=0.100,
+        root_chord=0.120,
+        tip_chord=0.040,
+        position=-1.168,
+        cant_angle=1.5,
+    )
+    roll = {}
+    for equations in ("solid_propulsion", "standard"):
+        rolling = Flight(
+            rocket=calisto_robust,
+            environment=example_plain_env,
+            rail_length=5.2,
+            inclination=85,
+            heading=0,
+            equations_of_motion=equations,
+            terminate_on_apogee=True,
+        )
+        roll[equations] = np.max(np.abs(rolling.w3[:, 1]))
+    assert roll["solid_propulsion"] == pytest.approx(roll["standard"], rel=0.02)
+    assert roll["standard"] < 100  # rad/s; unbounded spin-up would give thousands
+
+
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(  # pylint: disable=unused-argument
     mock_show,
@@ -276,6 +335,18 @@ def test_rolling_flight(  # pylint: disable=unused-argument
     )
 
     assert test_flight.all_info() is None
+
+    # The canted fins spin the rocket up and their damping balances it, so the
+    # roll rate tracks the airspeed during the coast. Without damping it grows
+    # past a thousand rad/s.
+    times = test_flight.w3[:, 0]
+    coast = (times > test_flight.rocket.motor.burn_out_time + 1) & (
+        times < test_flight.apogee_time - 3
+    )
+    roll_rate = np.abs(test_flight.w3[coast, 1])
+    assert 1.0 < roll_rate.max() < 100.0
+    roll_per_speed = roll_rate / test_flight.speed(times[coast])
+    assert roll_per_speed.std() < 0.15 * roll_per_speed.mean()
 
 
 @patch("matplotlib.pyplot.show")
