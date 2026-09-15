@@ -7,4 +7,5 @@ pandas==2.3.2
 lxml_html_clean==0.4.2
 sphinx-copybutton==0.5.2
 sphinx-tabs==3.4.7
+sphinxcontrib-mermaid==1.0.0
 plotly==6.3.0

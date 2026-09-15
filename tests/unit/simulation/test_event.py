@@ -387,6 +387,24 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
     assert event.commands._disabled is True
 
 
+def test_enable_on_is_checked_before_the_trigger_and_disable_on_after():
+    """When both gates are true on one check, the event fires and ends disabled."""
+
+    event = Event(
+        callback=_callback_record_kwargs,
+        trigger=_always_true,
+        enabled=False,
+        enable_on=_always_true,
+        disable_on=_always_true,
+    )
+
+    assert event(_context(time=1.0, state=[0.0] * 13)) is True
+    assert len(event.callback_log) == 1
+    # enable_on queued an enable, then disable_on queued a disable: the disable
+    # is what the simulation applies
+    assert event.commands._disabled is True
+
+
 def test_call_returns_false_when_enable_gate_is_absent_or_raises():
     """A disabled event should stay disabled when no enable gate exists, and
     gate exceptions should be handled without crashing."""
