@@ -23,18 +23,6 @@ disable events, add events, switch the equations of motion, start a new phase,
 or end the flight. The loop applies those commands and adjusts the phase list
 and node schedule accordingly.
 
-.. mermaid::
-
-   flowchart TD
-       A["Start a phase: create the solver and its time nodes"] --> B["Advance the solver one step and store the state"]
-       B --> C["Check events, apply their commands"]
-       C --> D{"What did the commands ask for?"}
-       D -- "nothing" --> B
-       D -- "roll back" --> E["Restore the state at the crossing and restart the solver"]
-       E --> B
-       D -- "new phase or dynamics" --> A
-       D -- "end the flight" --> F["Finalize and cache the results"]
-
 The structure is three nested loops::
 
     for phase in flight_phases:           # one solver per phase

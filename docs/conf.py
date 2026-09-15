@@ -45,7 +45,6 @@ extensions = [
     "sphinx_design",
     "jupyter_sphinx",
     "nbsphinx",
-    "sphinxcontrib.mermaid",
 ]
 
 
