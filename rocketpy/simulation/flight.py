@@ -605,7 +605,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         equations_of_motion : str, optional
             Type of equations of motion to use. Can be "standard" or
             "solid_propulsion". Default is "standard". Solid propulsion is a
-            more restricted set of equations of motion that only works for
+            more restricted set of equations of motion that is only valid for
             solid propulsion rockets. Solid motors are automatically mapped to
             "solid_propulsion".
         ode_solver : str, ``scipy.integrate.OdeSolver``, optional
