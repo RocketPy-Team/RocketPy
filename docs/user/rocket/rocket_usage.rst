@@ -420,15 +420,16 @@ reading them from ``context``:
 - ``p`` (float): pressure in Pa **considering the parachute noise signal**.
 - ``h`` (float): height above ground level in meters, **considering the
   parachute noise signal**.
-- ``y`` (list of float): the state vector (same content as the ``state`` kwarg).
-- ``sensors`` (dict, optional fourth argument): the same dictionary as the
-  ``sensors`` kwarg.
+- ``y`` (list of float): the state vector (same content as
+  ``context["state"]``).
+- ``sensors`` (list, optional fourth argument): the same list as
+  ``context["sensors"]``.
 
 .. note::
     The legacy positional ``p`` and ``h`` carry the parachute noise signal,
-    whereas the ``pressure`` and ``height_agl`` keyword arguments
-    are the clean, noise-free values. For of pressure/height signals with noise,
-    use Sensor objects instead.
+    whereas ``context["pressure"]`` and ``context["height_agl"]`` are the
+    clean, noise-free values. For pressure or height signals with noise, use
+    Sensor objects instead.
 
 A legacy trigger therefore looked like this:
 

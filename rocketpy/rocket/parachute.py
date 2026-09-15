@@ -52,9 +52,9 @@ class Parachute:
     Parachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
         condition for the parachute ejection system. It is a callable that
-        receives the event keyword arguments (pressure, height above ground
-        level, state vector, sensors, etc.) and returns ``True`` if the
-        parachute ejection system should be triggered and ``False`` otherwise.
+        receives the event ``context`` (pressure, height above ground level,
+        state vector, sensors, etc.) and returns ``True`` if the parachute
+        ejection system should be triggered and ``False`` otherwise.
 
         .. note:
 

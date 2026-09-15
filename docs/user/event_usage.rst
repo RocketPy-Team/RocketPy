@@ -248,8 +248,11 @@ practical examples and demonstrate proper activation.
       print(simple_event)
 
 **trigger** (optional)
-  A callable that returns ``True`` when the event should fire. If ``None``, the
-  event acts as a passive hook and always triggers when called.
+  A callable that returns ``True`` when the event should fire. If ``None``,
+  the callback runs unconditionally every time the event is checked: at every
+  solver step, or at its ``sampling_rate`` if it has one. Such an event is a
+  passive hook, useful for logging or for driving something on a fixed
+  schedule.
 
   .. note::
     The trigger function receives the same ``context`` as the callback, and
@@ -499,6 +502,10 @@ practical examples and demonstrate proper activation.
   .. tip::
     The times when the event is enabled through ``enable_on`` are recorded in
     the list ``event.enabled_times`` for later inspection.
+
+  ``enable_on`` is checked before the trigger and ``disable_on`` after the
+  callback. So if both conditions are true on the same check, the event is
+  enabled, fires, and is disabled again.
 
   .. jupyter-execute::
 
@@ -774,7 +781,7 @@ Available commands include:
     def add_follow_up(context):
         event = context["event"]
 
-        def follow_up_callback(**follow_up_kwargs):
+        def follow_up_callback(follow_up_context):
             return f"Follow-up event fired at {follow_up_context['time']:.2f} s"
 
         follow_up_event = Event(

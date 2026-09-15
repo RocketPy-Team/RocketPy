@@ -221,8 +221,9 @@ Using Sensors With a Controller (Air Brakes)
 The main motivation for simulating sensors is to feed their measurements into a
 controller, such as an air brakes system, exactly as the real avionics would.
 Inside a controller function, every sensor attached to the rocket is available
-through the ``sensors`` keyword argument (a list, in the order they were added)
-and through ``sensors_by_name`` (a dictionary keyed by the sensor ``name``).
+through ``context["sensors"]`` (a list, in the order they were added)
+and through ``context["sensors_by_name"]`` (a dictionary keyed by the sensor
+``name``).
 Each sensor exposes its *latest* reading via the ``measurement`` attribute.
 
 The controller below reads the accelerometer to detect motor burnout (measured
