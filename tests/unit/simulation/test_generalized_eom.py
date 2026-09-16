@@ -83,7 +83,10 @@ class _Rocket:
         self.nozzle_gyration_tensor = Matrix([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
         self._inertia = Matrix(inertia)
         surface = _Surface(forces_and_moments)
-        self.aerodynamic_surfaces = [(surface, None)]
+        # (component, position, ref_factor) since #1129. The factor is 1.0,
+        # which is Components.add's own default, and u_dot_generalized does
+        # not read it.
+        self.aerodynamic_surfaces = [(surface, None, 1.0)]
         self.surfaces_cp_to_cdm = {surface: Vector(cp)}
 
     def get_inertia_tensor_at_time(self, _t):
