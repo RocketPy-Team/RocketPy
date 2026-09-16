@@ -248,27 +248,28 @@ def test_ellipses_background_works_with_custom_limits(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_saves_file_successfully(mock_show):
+def test_ellipses_background_saves_file_successfully(mock_show, tmp_path):
     """Test that plots with background maps can be saved to file.
 
     Parameters
     ----------
     mock_show : unittest.mock.MagicMock
         Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
+    tmp_path : pathlib.Path
+        Directory to save into, this is a pytest fixture. The bare name this
+        used resolved against whatever directory pytest was started from, and
+        the finally that removed it again does not run if the run is killed.
     """
 
-    filename = "monte_carlo_test.png"
+    stem = tmp_path / "monte_carlo_test"
     mock_monte_carlo = MockMonteCarlo(
-        environment=SimpleEnvironment(), filename="monte_carlo_test"
+        environment=SimpleEnvironment(), filename=str(stem)
     )
 
-    try:
-        result = mock_monte_carlo.plots.ellipses(background="satellite", save=True)
-        assert result is None
-        assert os.path.exists(filename)
-    finally:
-        if os.path.exists(filename):
-            os.remove(filename)
+    result = mock_monte_carlo.plots.ellipses(background="satellite", save=True)
+
+    assert result is None
+    assert os.path.exists(f"{stem}.png")
 
 
 @patch("matplotlib.pyplot.show")
