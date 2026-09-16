@@ -466,7 +466,7 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
 
     npt.assert_allclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
-        0.4641507314747016,
+        0.4639602017451516,
         atol=hard_atol,
         rtol=soft_rtol,
     )
@@ -485,13 +485,13 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     )
     npt.assert_allclose(
         test_flight.free_stream_speed(test_flight.apogee_time),
-        0.46415073147558955,
+        0.46396020175352876,
         atol=hard_atol,
         rtol=soft_rtol,
     )
     npt.assert_allclose(
         test_flight.apogee_freestream_speed,
-        0.46415073147558955,
+        0.46396020175352876,
         atol=hard_atol,
         rtol=soft_rtol,
     )

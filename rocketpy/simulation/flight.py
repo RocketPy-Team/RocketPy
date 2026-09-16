@@ -2769,13 +2769,13 @@ class Flight:
         total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
         total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = self.rocket.com_to_cdm_function
-        r_CM_t = r_CM_z.get_value_opt(t)
-        r_CM = Vector([0, 0, r_CM_t])
-        r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
-        r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
-        ## Nozzle position vector
-        r_NOZ = Vector([0, 0, self.rocket.nozzle_to_cdm])
+        ## com_to_cdm_function runs CM to CDM, so it is negated here
+        com_to_cdm = self.rocket.com_to_cdm_function
+        r_CM = Vector([0, 0, -com_to_cdm.get_value_opt(t)])
+        r_CM_dot = Vector([0, 0, -com_to_cdm.differentiate_complex_step(t)])
+        r_CM_ddot = Vector([0, 0, -com_to_cdm.differentiate(t, order=2)])
+        ## Nozzle position vector, likewise negated
+        r_NOZ = Vector([0, 0, -self.rocket.nozzle_to_cdm])
         ## Nozzle gyration tensor
         S_nozzle = self.rocket.nozzle_gyration_tensor
         ## Inertia tensor
@@ -2961,7 +2961,7 @@ class Flight:
 
         # Velocity vector derivative + Coriolis acceleration
         w_earth = Vector(self.env.earth_rotation_vector)
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
+        v_dot = K @ (T20 / total_mass + (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
         # Position vector derivative
         r_dot = [vx, vy, vz]
