@@ -335,7 +335,7 @@ class _FlightPhase:
     name : str, optional
         Descriptive label for logging and debug output.
     time_bound : float, optional
-        Upper time boundary of this phase (managed by _FlightPhases).
+        Upper time boundary of this phase.
     """
 
     def __init__(

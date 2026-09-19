@@ -107,7 +107,7 @@ class Event:
             ``context["event"].memory``. Useful for counters, thresholds and
             data shared between trigger and callback. It is restored to the
             values given here when the event is reset for a new flight.
-            Defaults to an empty dict. Not persisted to output logs or files.
+            Defaults to an empty dict.
         disable_on : str or int or float or callable, optional
             Condition that automatically disables the event. May be a string
             preset (``"apogee"`` or ``"burnout"``), a simulation time in seconds

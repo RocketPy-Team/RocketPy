@@ -66,9 +66,8 @@ class _PhaseSolution:
         The equations of motion this phase was flown with, describing which
         states it integrates and how the rest are rebuilt.
     bound_dynamics : _BoundDynamics or None
-        The same dynamics tied to a live flight, which is what post-processing
-        needs. ``None`` for a phase read back from a saved file, since binding
-        requires a running simulation.
+        The same dynamics bound to a flight, which lets the phase be
+        post-processed. ``None`` if the phase was given unbound dynamics.
     start_canonical : tuple of float or None
         The 13-value canonical state at the moment the phase began. Supplies
         every canonical state this phase does not integrate. ``None`` only for
@@ -100,9 +99,8 @@ class _PhaseSolution:
         ----------
         dynamics : _PhaseDynamics or _BoundDynamics
             The dynamics this phase was flown with, describing the states it
-            integrates. Pass the flight-bound one during a simulation, so the
-            phase can be post-processed afterwards; a solution loaded from a
-            file passes the plain one, since binding requires a live flight.
+            integrates. Dynamics bound to a flight also let the phase be
+            post-processed.
         start_canonical : sequence of float or None
             The full 13-value canonical state at the start of the phase. It
             supplies every canonical state this phase does not integrate,
@@ -115,7 +113,7 @@ class _PhaseSolution:
             ``None``.
         start : int, optional
             Position of this phase's first row in the solution's row list.
-            Default is ``0``. :meth:`Solution._start_phase` fills this in.
+            Default is ``0``.
 
         Raises
         ------
@@ -309,8 +307,7 @@ class Solution:
         ----------
         phases : sequence of _PhaseSolution, optional
             Pre-built phases, in flight order, each with its ``start`` already
-            set. A new flight starts empty and adds one as each of its flight
-            phases begins. Default is ``None``, an empty solution.
+            set. Default is ``None``, an empty solution.
         rows : sequence of sequence of float, optional
             The flight's rows, each ``[t, *state]``, in flight order. Default
             is ``None``, no rows.
@@ -411,9 +408,8 @@ class Solution:
         ----------
         dynamics : _PhaseDynamics or _BoundDynamics
             The dynamics the new phase is flown with, describing the states it
-            integrates. Pass the flight-bound one during a simulation, so the
-            phase can be post-processed afterwards; a solution loaded from a
-            file passes the plain one, since binding requires a live flight.
+            integrates. Dynamics bound to a flight also let the phase be
+            post-processed.
         start_canonical : sequence of float or None
             The full 13-value canonical state at the start of the phase. It
             supplies every canonical state the phase does not integrate, which
@@ -1280,8 +1276,7 @@ class PostProcessSolution:
         Parameters
         ----------
         solution : Solution
-            The flight whose post-process variables this reads. A ``Solution``
-            builds its own, so there is rarely a reason to build one by hand.
+            The flight whose post-process variables this reads.
         """
         self._solution = solution
         self._tables = None

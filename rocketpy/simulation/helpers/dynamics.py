@@ -81,14 +81,12 @@ class _PhaseDynamics:
         Parameters
         ----------
         name : str
-            Name of this kind of phase, such as ``"parachute"``. It is written
-            out with the phase when a flight is saved.
+            Name of this kind of phase, such as ``"parachute"``.
         derivative : callable or None
             The function ``f(flight, t, u)`` giving the time derivative of each
             state in ``states``, in that same order. ``u`` is the phase's own
-            state. ``None`` for a phase read back from a saved flight: its
-            stored states can still be read by name, but it cannot be flown or
-            post-processed again, since a derivative is code and is not saved.
+            state. With ``None`` the phase's states can still be read by name,
+            but the phase cannot be flown or post-processed.
 
             A phase that reports post-process variables writes
             ``f(flight, t, u, post_processing=False)`` instead, and when the
