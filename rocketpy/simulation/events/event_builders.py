@@ -261,7 +261,6 @@ def build_core_events():
         exact_time_config={
             "solver": "cubic_hermite",
             "derivative_function": out_of_rail_exact_time_derivative,
-            "max_abs_imag": 0.001,
         },
         sampling_rate=None,
         trigger_only_once=True,
@@ -290,7 +289,6 @@ def build_core_events():
         exact_time_config={
             "solver": "cubic_hermite",
             "derivative_function": impact_event_exact_time_derivative,
-            "max_abs_imag": 0.001,
         },
         sampling_rate=None,
         trigger_only_once=True,

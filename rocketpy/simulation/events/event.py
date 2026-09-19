@@ -139,8 +139,8 @@ class Event:
             ``0.0``); ``"brentq"`` also accepts ``xtol``, ``rtol`` and
             ``maxiter``; ``"cubic_hermite"`` requires ``derivative_function``
             (the time derivative of ``exact_time_function``, taking the same
-            ``context``) and accepts ``max_abs_imag``. Any other key raises a
-            ``ValueError``. See :ref:`eventusage` for what each key does.
+            ``context``). Any other key raises a ``ValueError``. See
+            :ref:`eventusage` for what each key does.
         trigger_only_once : bool, optional
             If ``True``, the event disables itself after the first successful
             trigger. Useful for one-shot actions such as deployment or
@@ -409,8 +409,9 @@ class Event:
             return self._compute_exact_time(context)
         except (ValueError, RuntimeError) as error:
             warnings.warn(
-                f"Event '{self.name}' triggered, but its exact time could not be "
-                f"found ({error}). It fires at the end of the solver step instead.",
+                f"Event '{self.name}': the exact moment it happened could not be "
+                f"found, so it fires at t = {context['time']:.6g} s, when its "
+                f"trigger was checked.\n{error}",
                 UserWarning,
             )
             return context
@@ -433,7 +434,10 @@ class Event:
         flight = context["flight"]
         solution = flight.solution
         if len(solution) < 2:
-            raise ValueError("there is no solver step to search yet")
+            raise ValueError(
+                "It fired before the first solver step, so there is no solver "
+                "step to search."
+            )
 
         t0, *state0 = solution.raw_row(-2)
         t1, *state1 = solution.raw_row(-1)
@@ -457,16 +461,40 @@ class Event:
             return cached[t]
 
         options = dict(self.exact_time_config)
-        solver = SOLVERS[options.pop("solver", "brentq")][0]
+        solver_name = options.pop("solver", "brentq")
+        solver = SOLVERS[solver_name][0]
         target = options.pop("target", 0.0)
         function = self.exact_time_function
         derivative = options.pop("derivative_function", None)
         if derivative is not None:
             options["rate_at"] = lambda t: derivative(context_at(t))
 
-        event_time = solver(
-            lambda t: function(context_at(t)) - target, t0, t1, **options
-        )
+        try:
+            event_time = solver(
+                lambda t: function(context_at(t)) - target, t0, t1, **options
+            )
+        except (ValueError, RuntimeError) as error:
+            # The solver only says what went wrong. Add where, with which
+            # values, and what the user can do about it.
+            start = float(function(context_at(t0)))
+            end = float(function(context_at(t1)))
+            if min(start, end) <= target <= max(start, end):
+                hint = (
+                    "A smaller max_time_step on the Flight makes the solver steps "
+                    "shorter, which usually avoids this."
+                )
+            else:
+                hint = (
+                    "The trigger fired in a step where exact_time_function did "
+                    "not cross its target: check that the trigger and "
+                    "exact_time_function describe the same condition."
+                )
+            raise ValueError(
+                f"Over the solver step from t = {t0:.6g} s to {t1:.6g} s, "
+                f"exact_time_function went from {start:.6g} to {end:.6g}; its "
+                f"target is {target:.6g}. The {solver_name!r} solver reports: "
+                f"{error}.\n{hint}"
+            ) from error
 
         exact_context = context_at(event_time)
         self.commands.exact_time = event_time

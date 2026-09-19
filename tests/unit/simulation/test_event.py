@@ -618,6 +618,41 @@ def test_call_falls_back_to_sampled_time_when_exact_time_solver_fails():
     assert event.commands.exact_state is None
 
 
+def test_exact_time_failure_warning_says_where_and_why():
+    """When no exact time is found, the warning names the event, the step that
+    was searched, the values of exact_time_function there, its target, why
+    the search failed and what to check."""
+
+    flight, phase = _make_exact_time_flight(
+        previous_state=_sample_state(0.0, 1.0),
+        current_state=_sample_state(1.0, 2.0),
+        interpolator=_linear_interpolator,
+    )
+    event = Event(
+        callback=_callback_record_kwargs,
+        trigger=_always_true,
+        exact_time_function=_exact_time_function,
+        exact_time_config={"solver": "linear", "target": 5.0},
+        name="Vertical speed 5 m/s",
+    )
+
+    with pytest.warns(UserWarning) as record:
+        event(
+            _context(
+                flight=flight, phase=phase, time=1.0, state=_sample_state(1.0, 2.0)[1:]
+            )
+        )
+
+    message = next(
+        str(w.message) for w in record if "Vertical speed 5 m/s" in str(w.message)
+    )
+    assert "fires at t = 1 s, when its trigger was checked" in message
+    assert "from t = 0 s to 1 s" in message
+    assert "went from 1 to 2; its target is 5" in message
+    assert "'linear' solver reports: the value does not cross its target" in message
+    assert "check that the trigger and exact_time_function describe" in message
+
+
 def test_exact_time_falls_back_when_solution_history_is_short():
     """Without a stored step there is nothing to search, so the event fires at
     the sampled time with a warning."""

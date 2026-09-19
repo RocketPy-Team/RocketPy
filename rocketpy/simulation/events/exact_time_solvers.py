@@ -1,18 +1,14 @@
-"""Root finders that place an event at its exact time inside a solver step.
-
-Each solver looks for the moment in ``[t0, t1]`` where ``value_at`` crosses
-zero and returns that time, raising ``ValueError`` when it cannot find one.
-What the value means, and how the flight is read at a given moment, is up to
-the :class:`Event` calling it.
-"""
-
+from scipy.interpolate import CubicHermiteSpline
 from scipy.optimize import brentq
 
-from ...tools import (
-    calculate_cubic_hermite_coefficients,
-    find_root_linear_interpolation,
-    find_roots_cubic_function,
-)
+from ...tools import find_root_linear_interpolation
+
+_NO_CROSSING = "the value does not cross its target during the step"
+
+
+def _same_side(y0, y1):
+    """Whether two values are both above zero or both below it."""
+    return (y0 > 0 and y1 > 0) or (y0 < 0 and y1 < 0)
 
 
 def solve_linear(value_at, t0, t1):
@@ -29,11 +25,24 @@ def solve_linear(value_at, t0, t1):
     -------
     float
         The event time, in seconds.
+
+    Raises
+    ------
+    ValueError
+        If the value does not cross zero inside the step, or is zero at both
+        ends of it.
     """
     y0 = value_at(t0)
     y1 = value_at(t1)
+    # Without a sign change the line crosses zero outside the step, and the
+    # event would fire at a time the step never reached
+    if _same_side(y0, y1):
+        raise ValueError(_NO_CROSSING)
     if y0 == y1:
-        raise ValueError("the value is the same at both ends of the step")
+        raise ValueError(
+            "the value is exactly at its target at both ends of the step, so "
+            "the crossing could be anywhere in it"
+        )
     return find_root_linear_interpolation(t0, t1, y0, y1, 0.0)
 
 
@@ -60,11 +69,17 @@ def solve_brentq(value_at, t0, t1, xtol=1e-12, rtol=1e-8, maxiter=100):
     """
     try:
         return brentq(value_at, t0, t1, xtol=xtol, rtol=rtol, maxiter=maxiter)
-    except (ValueError, RuntimeError) as error:
-        raise ValueError(f"Brent's method found no crossing: {error}") from error
+    except ValueError as error:
+        # scipy's own message ("f(a) and f(b) must have different signs")
+        # means nothing to a user, so say what it means for the event
+        if _same_side(value_at(t0), value_at(t1)):
+            raise ValueError(_NO_CROSSING) from error
+        raise ValueError(f"Brent's method failed: {error}") from error
+    except RuntimeError as error:
+        raise ValueError(f"Brent's method failed: {error}") from error
 
 
-def solve_cubic_hermite(value_at, t0, t1, rate_at, max_abs_imag=1e-3):
+def solve_cubic_hermite(value_at, t0, t1, rate_at):
     """Find the crossing of a cubic fitted to the values and rates at the ends.
 
     Parameters
@@ -75,26 +90,31 @@ def solve_cubic_hermite(value_at, t0, t1, rate_at, max_abs_imag=1e-3):
         Start and end of the step, in seconds.
     rate_at : callable
         ``rate_at(t) -> float``, the time derivative of ``value_at``.
-    max_abs_imag : float, optional
-        Largest imaginary part a root may have and still count as real.
 
     Returns
     -------
     float
         The event time, in seconds.
+
+    Raises
+    ------
+    ValueError
+        If the fitted cubic does not reach zero exactly once inside the step.
     """
-    duration = t1 - t0
-    coefficients = calculate_cubic_hermite_coefficients(
-        0.0, duration, value_at(t0), rate_at(t0), value_at(t1), rate_at(t1)
-    )
-    roots = [
-        root.real
-        for root in find_roots_cubic_function(*coefficients)
-        if 0.0 < root.real < duration and abs(root.imag) < max_abs_imag
-    ]
-    if len(roots) != 1:
-        raise ValueError(f"expected one crossing inside the step, found {len(roots)}")
-    return t0 + roots[0]
+    # Values and rates are read at one end, then the other, so the event's
+    # context is only worked out once per end.
+    y0, rate0 = value_at(t0), rate_at(t0)
+    y1, rate1 = value_at(t1), rate_at(t1)
+    fitted = CubicHermiteSpline([t0, t1], [y0, y1], [rate0, rate1])
+    crossings = [t for t in fitted.roots(extrapolate=False) if t0 < t < t1]
+    if not crossings:
+        raise ValueError(_NO_CROSSING)
+    if len(crossings) > 1:
+        raise ValueError(
+            f"the cubic fitted over the step reaches the target {len(crossings)} "
+            "times, so it is unclear which one is the event"
+        )
+    return crossings[0]
 
 
 # Solver name -> (solver, the exact_time_config keys it accepts besides
@@ -104,7 +124,7 @@ SOLVERS = {
     "brentq": (solve_brentq, frozenset({"xtol", "rtol", "maxiter"}), frozenset()),
     "cubic_hermite": (
         solve_cubic_hermite,
-        frozenset({"derivative_function", "max_abs_imag"}),
+        frozenset({"derivative_function"}),
         frozenset({"derivative_function"}),
     ),
 }

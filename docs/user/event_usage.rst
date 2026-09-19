@@ -593,8 +593,10 @@ practical examples and demonstrate proper activation.
   step of the search.
 
   Exact-time solving is only available for continuous events
-  (``sampling_rate=None``). If no crossing is found, RocketPy warns and the
-  event fires at the end of the solver step instead.
+  (``sampling_rate=None``). If no crossing is found, the event fires at the
+  end of the solver step instead, with a warning that gives the step searched,
+  the values of ``exact_time_function`` at its ends, the reason and what to
+  check.
 
   **exact_time_config** is a dictionary choosing how the crossing is searched
   for. Leave it out to use Brent's method with its defaults, which suits
@@ -609,8 +611,10 @@ practical examples and demonstrate proper activation.
       step and needs its value to change sign across the step.
     - ``"linear"``: Draws a straight line between the values at the two ends
       of the step. Cheapest, and exact only when the value changes linearly.
+      Needs its value to change sign across the step.
     - ``"cubic_hermite"``: Fits a cubic curve to the values and rates of
-      change at the two ends of the step. Needs ``derivative_function``.
+      change at the two ends of the step. Needs ``derivative_function``, and
+      the curve must reach the target exactly once inside the step.
 
   - **target** (float, optional): The value to find the crossing of, for every
     solver. **Defaults to 0.0.** The solver finds the moment when
@@ -629,8 +633,6 @@ practical examples and demonstrate proper activation.
   - **derivative_function** (callable, **required**): The rate of change of
     ``exact_time_function`` with respect to time. Takes the same ``context``
     and returns a float.
-  - **max_abs_imag** (float, optional): Largest imaginary part a root of the
-    cubic may have and still be treated as real. **Defaults to 1e-3.**
 
   .. jupyter-execute::
 

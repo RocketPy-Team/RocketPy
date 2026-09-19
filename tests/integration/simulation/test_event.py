@@ -143,17 +143,32 @@ def test_exact_time_solvers_search_between_the_given_times():
     ) == pytest.approx(3.0)
 
 
-def test_exact_time_linear_raises_when_endpoint_values_match():
-    """The linear solver should reject steps with identical endpoint values."""
+def test_exact_time_linear_raises_when_the_value_sits_at_the_target():
+    """A value exactly at its target at both ends gives no single crossing."""
 
-    with pytest.raises(ValueError, match="same at both ends"):
-        solve_linear(lambda _t: 1.0, 0.0, 1.0)
+    with pytest.raises(ValueError, match="at its target at both ends"):
+        solve_linear(lambda _t: 0.0, 0.0, 1.0)
+
+
+def test_exact_time_linear_raises_when_the_value_does_not_cross_zero():
+    """A line that reaches zero only outside the step gives no event time,
+    rather than one before the step started (here, t = -1)."""
+
+    with pytest.raises(ValueError, match="does not cross its target"):
+        solve_linear(lambda t: 1.0 + t, 0.0, 1.0)
+
+
+def test_exact_time_linear_accepts_a_crossing_at_either_end():
+    """A value that is exactly zero at one end of the step crosses there."""
+
+    assert solve_linear(lambda t: -t, 0.0, 1.0) == pytest.approx(0.0)
+    assert solve_linear(lambda t: 1.0 - t, 0.0, 1.0) == pytest.approx(1.0)
 
 
 def test_exact_time_brentq_raises_when_no_sign_change_occurs():
     """Brent's method should fail cleanly when the value does not change sign."""
 
-    with pytest.raises(ValueError, match="no crossing"):
+    with pytest.raises(ValueError, match="does not cross its target"):
         solve_brentq(lambda _t: 1.0, 0.0, 1.0)
 
 
@@ -179,15 +194,78 @@ def test_exact_time_cubic_hermite_raises_when_multiple_roots_are_found():
     def rate_at(t):
         return (t - 0.5) * (t - 0.8) + (t - 0.2) * (t - 0.8) + (t - 0.2) * (t - 0.5)
 
-    with pytest.raises(ValueError, match="found 3"):
+    with pytest.raises(ValueError, match="reaches the target 3 times"):
         solve_cubic_hermite(value_at, 0.0, 1.0, rate_at=rate_at)
 
 
 def test_exact_time_cubic_hermite_raises_when_no_roots_are_found():
     """A cubic that stays away from zero inside the step is rejected."""
 
-    with pytest.raises(ValueError, match="found 0"):
+    with pytest.raises(ValueError, match="does not cross its target"):
         solve_cubic_hermite(lambda _t: 1.0, 0.0, 1.0, rate_at=lambda _t: 0.0)
+
+
+def test_exact_time_cubic_hermite_finds_the_crossing_after_a_turn():
+    """A cubic that turns around inside the step still gives its one crossing."""
+
+    # rises to a peak at t = 0.25, then falls through zero once
+    def value_at(t):
+        return 0.3 + t - 2 * t**2
+
+    def rate_at(t):
+        return 1 - 4 * t
+
+    event_time = solve_cubic_hermite(value_at, 0.0, 1.0, rate_at=rate_at)
+
+    assert event_time == pytest.approx((1 + 3.4**0.5) / 4)
+
+
+def _steady_descent(t0, duration, speed, crossing, speed_change):
+    """Height above ground falling at ``speed`` (m/s), with the speed changing
+    by the relative amount ``speed_change`` over the step, reaching zero
+    ``crossing`` seconds after ``t0``."""
+    acceleration = speed * speed_change / duration
+
+    def value_at(t):
+        return speed * (t - t0 - crossing) + 0.5 * acceleration * (
+            (t - t0) ** 2 - crossing**2
+        )
+
+    def rate_at(t):
+        return speed + acceleration * (t - t0)
+
+    return value_at, rate_at
+
+
+@pytest.mark.parametrize(
+    ("t0", "duration", "speed", "crossing", "speed_change"),
+    [
+        (0.0, 10.0, -5.0, 7.0, 0.0),
+        (0.0, 10.0, -5.0, 7.0, 1e-15),
+        (0.0, 0.5, -5.0, 0.05, 1e-15),
+        (0.0, 10.0, -8.0, 5.0, -1e-13),
+        (0.0, 5.0, -8.0, 0.5, 1e-11),
+        (0.0, 5.0, -25.0, 0.5, 1e-4),
+        (137.3, 2.0, -8.0, 1.0, -1e-5),
+        (137.3, 10.0, -5.0, 1.0, -1e-5),
+        (137.3, 2.0, -25.0, 1.0, 1e-4),
+    ],
+)
+def test_exact_time_cubic_hermite_finds_a_steady_descent_crossing(
+    t0, duration, speed, crossing, speed_change
+):
+    """A nearly straight-line descent gives the exact impact time.
+
+    Under a parachute at terminal speed the height falls almost linearly, so
+    the cubic and quadratic terms of the fit are close to rounding noise.
+    Cardano's formula lost all precision there: these steps came out up to
+    3 s off, or with no crossing found at all.
+    """
+    value_at, rate_at = _steady_descent(t0, duration, speed, crossing, speed_change)
+
+    event_time = solve_cubic_hermite(value_at, t0, t0 + duration, rate_at=rate_at)
+
+    assert event_time == pytest.approx(t0 + crossing, abs=1e-9)
 
 
 def test_commands_api_records_expected_payloads():
