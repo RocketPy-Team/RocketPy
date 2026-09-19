@@ -100,10 +100,12 @@ Running a phase
    the phase's dynamics, starting at the phase's ``t`` and bounded by its
    ``time_bound``.
 3. **Build the time nodes.** A node at the phase start, a node at the phase end,
-   and one node per sampling time of every non-overshootable sampled event in
-   between. Nodes are sorted and nodes at the same time are merged. A phase
-   created with ``clear=True`` (the initial phase) has the events removed from
-   its first node, so nothing is checked at ``t = 0`` on an incomplete state.
+   one node per sampling time of every non-overshootable sampled event in
+   between, and, for a motor that ignites after ``t = 0``, an empty node at its
+   ignition and burnout times when they fall inside the phase. Nodes are sorted and nodes at the same time are
+   merged. A phase created with ``clear=True`` (the initial phase) has the
+   events removed from its first node, so nothing is checked at ``t = 0`` on
+   an incomplete state.
 4. **Walk the nodes.** For each node, the solver's ``t_bound`` is set to the
    next node's time, the node's own events are checked, and then the solver is
    stepped until it reaches that bound. If checking the node's events changed

@@ -4,7 +4,7 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Flight
+from rocketpy import Flight, Rocket, SolidMotor
 from rocketpy.simulation.helpers.dynamics import FULL_POST_PROCESS_VARS
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -296,6 +296,65 @@ def test_solid_propulsion_equations_damp_rotation(example_plain_env, calisto_rob
         roll[equations] = np.max(np.abs(rolling.w3[:, 1]))
     assert roll["solid_propulsion"] == pytest.approx(roll["standard"], rel=0.02)
     assert roll["standard"] < 100  # rad/s; unbounded spin-up would give thousands
+
+
+def test_flight_with_delayed_burn_leaves_rail(example_plain_env):
+    """A motor whose thrust curve starts after t = 0 still lifts the rocket off
+    the rail (#411).
+
+    The rocket sits still on the rail until ignition, so the solver's steps
+    grow freely and used to step over the whole burn: the rocket never left
+    the pad. The solver now stops at ignition and at burnout.
+    """
+    motor = SolidMotor(
+        thrust_source=[(8.0, 1500.0), (9.0, 2000.0), (14.0, 2000.0), (20.0, 0.0)],
+        burn_time=(8, 20),
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        nozzle_radius=33 / 1000,
+        grain_number=5,
+        grain_density=1815,
+        grain_outer_radius=33 / 1000,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        grain_separation=5 / 1000,
+        grains_center_of_mass_position=0.397,
+        center_of_dry_mass_position=0.317,
+        nozzle_position=0,
+        throat_radius=11 / 1000,
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    )
+    rocket = Rocket(
+        radius=127 / 2000,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    rocket.add_motor(motor, position=-1.255)
+    rocket.add_nose(length=0.55829, kind="vonKarman", position=1.278)
+    rocket.add_trapezoidal_fins(
+        n=4, root_chord=0.120, tip_chord=0.060, span=0.110, position=-1.04956
+    )
+    rocket.set_rail_buttons(0.082, -0.618)
+
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        max_time=60,
+    )
+
+    assert motor.burn_start_time in flight.time
+    assert motor.burn_out_time in flight.time
+    # ignition is at t = 8 s: the rocket leaves the rail after it, not never
+    assert flight.out_of_rail_time > 8.0
+    assert flight.out_of_rail_velocity > 10.0
+    assert flight.apogee - example_plain_env.elevation > 1000.0
 
 
 @patch("matplotlib.pyplot.show")

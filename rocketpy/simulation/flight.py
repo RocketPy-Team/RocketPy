@@ -1043,6 +1043,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self._non_overshootable_events, phase.t, phase.time_bound
         )
 
+        # Add motor burn nodes so that integration always happen during burn
+        motor = self.rocket.motor
+        if motor.burn_start_time > 0:
+            for t_burn in (motor.burn_start_time, motor.burn_out_time):
+                if phase.t < t_burn < phase.time_bound:
+                    phase.time_nodes.add_node(t_burn, [])
+
         # Organize time nodes
         phase.time_nodes.sort()
         phase.time_nodes.merge()
