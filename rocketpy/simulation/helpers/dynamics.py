@@ -307,8 +307,9 @@ class _PhaseDynamics:
         -------
         float or list of float
             A single number is returned unchanged. A 13-value canonical vector is
-            reduced to this phase's states (states that are not canonical use the
-            largest supplied tolerance).
+            matched to this phase's states by name (states that are not
+            canonical use the largest supplied tolerance), even when the phase
+            also integrates 13 states.
 
         Raises
         ------
@@ -319,7 +320,7 @@ class _PhaseDynamics:
         if not np.iterable(atol):
             return atol
         atol = list(atol)
-        if self.is_canonical or len(atol) == self.width:
+        if self.is_canonical:
             return atol
         if len(atol) == len(CANONICAL_STATE_NAMES):
             fallback = max(atol)
@@ -327,6 +328,8 @@ class _PhaseDynamics:
                 atol[CANONICAL_INDEX[name]] if name in CANONICAL_INDEX else fallback
                 for name in self.states
             ]
+        if len(atol) == self.width:
+            return atol
         raise ValueError(
             f"atol vector has length {len(atol)}, which matches neither the "
             f"canonical state (13) nor this flight phase ({self.width})."

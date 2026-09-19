@@ -277,6 +277,13 @@ def test_non_canonical_states_use_the_largest_atol():
     assert heading.select_atol(atol) == [1e-3] * 6 + [1e-2]
 
 
+def test_a_canonical_atol_is_matched_by_name_for_13_other_states():
+    """Thirteen states of its own do not take the canonical atol by position."""
+    other = _PhaseDynamics("other", stub_derivative, [f"s{i}" for i in range(13)])
+    atol = 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-2]
+    assert other.select_atol(atol) == [1e-2] * 13
+
+
 def test_bad_atol_length_raises():
     with pytest.raises(ValueError, match="matches neither"):
         TRANSLATION_DYNAMICS.select_atol([1e-3, 1e-3, 1e-3])
