@@ -40,6 +40,32 @@ INTERPOLATION_TYPES = {
     "regular_grid": 6,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
+# Maps a requested interpolation name onto a scipy ``RegularGridInterpolator``
+# ``method`` for gridded (N-D Cartesian) data. The 1-D-only names ``spline`` and
+# ``akima`` fall back to their closest grid analogs (``cubic`` and the
+# shape-preserving ``pchip``); anything unrecognized defaults to ``linear``.
+REGULAR_GRID_METHODS = {
+    "linear": "linear",
+    "nearest": "nearest",
+    "slinear": "slinear",
+    "cubic": "cubic",
+    "quintic": "quintic",
+    "pchip": "pchip",
+    "spline": "cubic",
+    "akima": "pchip",
+    "polynomial": "cubic",
+}
+# Minimum points per axis required by each ``RegularGridInterpolator`` method.
+# A grid with fewer samples on any axis cannot use the higher-order methods, so
+# the caller falls back to linear rather than letting SciPy raise mid-build.
+REGULAR_GRID_MIN_POINTS = {
+    "nearest": 1,
+    "linear": 2,
+    "slinear": 2,
+    "pchip": 2,
+    "cubic": 4,
+    "quintic": 6,
+}
 
 
 class SourceType(Enum):
@@ -157,7 +183,12 @@ class Function:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def from_regular_grid_csv(
-        cls, csv_source, variable_names, coeff_name, extrapolation
+        cls,
+        csv_source,
+        variable_names,
+        coeff_name,
+        extrapolation,
+        interpolation="linear",
     ):
         """Create a regular-grid Function from CSV samples when possible.
 
@@ -171,6 +202,14 @@ class Function:  # pylint: disable=too-many-public-methods
             Name of the output coefficient.
         extrapolation : str
             Extrapolation method passed to the Function constructor.
+        interpolation : str, optional
+            Requested interpolation. Mapped onto a
+            :class:`scipy.interpolate.RegularGridInterpolator` ``method`` via
+            :data:`REGULAR_GRID_METHODS` (e.g. ``"spline"`` -> ``"cubic"``,
+            ``"akima"`` -> ``"pchip"``); unrecognized names fall back to
+            ``"linear"``. Smooth methods require enough points per axis
+            (``"cubic"`` needs at least 4), otherwise SciPy raises. Default
+            ``"linear"``.
 
         Returns
         -------
@@ -215,13 +254,33 @@ class Function:  # pylint: disable=too-many-public-methods
             return None
 
         grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
-        return cls(
+        grid_function = cls(
             (axes, grid_data),
             inputs=variable_names,
             outputs=[coeff_name],
             interpolation="regular_grid",
             extrapolation=extrapolation,
         )
+        # Honor the requested interpolation on the grid by rebuilding the
+        # interpolator/extrapolator with the mapped scipy ``method``. The
+        # constructor above always builds the default ("linear"); only rebuild
+        # when a different method was asked for.
+        grid_method = REGULAR_GRID_METHODS.get(interpolation, "linear")
+        smallest_axis = min(axis.size for axis in axes)
+        if smallest_axis < REGULAR_GRID_MIN_POINTS.get(grid_method, 2):
+            warnings.warn(
+                f"Grid interpolation method '{grid_method}' needs at least "
+                f"{REGULAR_GRID_MIN_POINTS[grid_method]} points per axis, but the "
+                f"coarsest axis of '{coeff_name}' has {smallest_axis}; falling "
+                "back to 'linear'.",
+                UserWarning,
+            )
+            grid_method = "linear"
+        if grid_method != "linear":
+            grid_function._grid_method = grid_method
+            grid_function.set_interpolation("regular_grid")
+            grid_function.set_extrapolation(grid_function.get_extrapolation_method())
+        return grid_function
 
     # Define all set methods
     def set_inputs(self, inputs):
@@ -318,6 +377,10 @@ class Function:  # pylint: disable=too-many-public-methods
             self.__dom_dim__ = source.shape[1] - 1
             self._domain = source[:, :-1]
             self._image = source[:, -1]
+            # Cache per-dimension domain bounds so the N-D hot evaluation path
+            # (``__get_value_opt_nd``) does not recompute them on every call.
+            self._domain_min = self._domain.min(axis=0)
+            self._domain_max = self._domain.max(axis=0)
 
             # set x and y. If Function is 2D, also set z
             if self.__dom_dim__ == 1:
@@ -488,11 +551,20 @@ class Function:  # pylint: disable=too-many-public-methods
                     f"{grid_data.shape[i]} points."
                 )
             if not np.all(np.diff(ax) > 0):
-                warnings.warn(
-                    f"Axis {i} is not strictly sorted in ascending order. "
-                    "RegularGridInterpolator requires sorted axes.",
-                    UserWarning,
-                )
+                # RegularGridInterpolator requires strictly ascending axes. Sort
+                # this axis (and reorder the grid data along it) so descending or
+                # shuffled inputs are accepted; repeated coordinates cannot form
+                # a regular grid and are rejected with a clear error rather than
+                # a cryptic SciPy failure.
+                order = np.argsort(ax, kind="stable")
+                ax = ax[order]
+                grid_data = np.take(grid_data, order, axis=i)
+                axes[i] = ax
+                if not np.all(np.diff(ax) > 0):
+                    raise ValueError(
+                        f"Axis {i} has repeated coordinates; a regular grid "
+                        "requires strictly increasing values along each axis."
+                    )
 
         self._grid_axes = axes
         self._grid_data = grid_data
@@ -596,7 +668,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 grid_interpolator = RegularGridInterpolator(
                     self._grid_axes,
                     self._grid_data,
-                    method="linear",
+                    method=getattr(self, "_grid_method", "linear"),
                     bounds_error=True,
                 )
                 # Store so extrapolation funcs can reuse it
@@ -720,9 +792,9 @@ class Function:  # pylint: disable=too-many-public-methods
                         grid_extrapolator = RegularGridInterpolator(
                             self._grid_axes,
                             self._grid_data,
-                            method="linear",
+                            method=getattr(self, "_grid_method", "linear"),
                             bounds_error=False,
-                            fill_value=None,  # linear extrapolation beyond edges
+                            fill_value=None,  # extrapolation beyond edges
                         )
 
                         def natural_extrapolation(  # pylint: disable=function-redefined
@@ -824,8 +896,15 @@ class Function:  # pylint: disable=too-many-public-methods
         arg_qty = len(args)
         result = np.empty(arg_qty)
 
-        min_domain = self._domain.T.min(axis=1)
-        max_domain = self._domain.T.max(axis=1)
+        # Domain bounds are fixed once the source is set, so they are cached in
+        # ``set_source`` (this hot path runs per integration step); fall back to
+        # computing them for any Function built without going through it.
+        min_domain = getattr(self, "_domain_min", None)
+        if min_domain is None:
+            min_domain = self._domain.min(axis=0)
+            max_domain = self._domain.max(axis=0)
+        else:
+            max_domain = self._domain_max
 
         lower, upper = args < min_domain, args > max_domain
         extrap = np.logical_or(lower.any(axis=1), upper.any(axis=1))
@@ -4162,7 +4241,7 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 source = source.__name__
 
-        return {
+        function_dict = {
             "source": source,
             "title": self.title,
             "inputs": self.__inputs__,
@@ -4170,6 +4249,20 @@ class Function:  # pylint: disable=too-many-public-methods
             "interpolation": self.__interpolation__,
             "extrapolation": self.__extrapolation__,
         }
+
+        # A regular-grid Function cannot be rebuilt from its flat scatter
+        # ``source``; persist the ``(axes, grid_data)`` structure (and the mapped
+        # scipy method) instead, so it round-trips through ``from_dict``.
+        if self.__interpolation__ == "regular_grid":
+            function_dict["source"] = [
+                [np.asarray(axis).tolist() for axis in self._grid_axes],
+                np.asarray(self._grid_data).tolist(),
+            ]
+            grid_method = getattr(self, "_grid_method", "linear")
+            if grid_method != "linear":
+                function_dict["grid_method"] = grid_method
+
+        return function_dict
 
     @classmethod
     def from_dict(cls, func_dict):
@@ -4184,7 +4277,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
             source = from_hex_decode(source)
 
-        return cls(
+        function = cls(
             source=source,
             interpolation=func_dict["interpolation"],
             extrapolation=func_dict["extrapolation"],
@@ -4192,6 +4285,16 @@ class Function:  # pylint: disable=too-many-public-methods
             outputs=func_dict["outputs"],
             title=func_dict["title"],
         )
+
+        # Restore a non-default regular-grid method (the constructor above builds
+        # the "linear" default); rebuild the interpolator/extrapolator with it.
+        grid_method = func_dict.get("grid_method")
+        if grid_method and grid_method != "linear":
+            function._grid_method = grid_method
+            function.set_interpolation("regular_grid")
+            function.set_extrapolation(function.get_extrapolation_method())
+
+        return function
 
     @staticmethod
     def __make_arith_lambda(

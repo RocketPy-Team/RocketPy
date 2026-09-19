@@ -7,10 +7,10 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _NoseConePlots
 from rocketpy.prints.aero_surface_prints import _NoseConePrints
 
-from .aero_surface import AeroSurface
+from ._barrowman_surface import _BarrowmanSurface
 
 
-class NoseCone(AeroSurface):
+class NoseCone(_BarrowmanSurface):
     """Keeps nose cone information.
 
     Note
@@ -65,11 +65,12 @@ class NoseCone(AeroSurface):
         Nose cone local center of pressure z coordinate. Has units of length and
         is given in meters.
     NoseCone.cl : Function
-        Function which defines the lift coefficient as a function of the angle
-        of attack and the Mach number. Takes as input the angle of attack in
-        radians and the Mach number. Returns the lift coefficient.
+        Roll-moment coefficient, inherited from the generic-surface model
+        (a function of the flow variables). Zero for a nose cone or tail; for a
+        fin set it carries the cant forcing and roll damping. The lift-curve
+        slope is ``clalpha``.
     NoseCone.clalpha : float
-        Lift coefficient slope. Has units of 1/rad.
+        Normal-force coefficient slope. Has units of 1/rad.
     NoseCone.plots : plots.aero_surface_plots._NoseConePlots
         This contains all the plots methods. Use help(NoseCone.plots) to know
         more about it.
@@ -129,7 +130,9 @@ class NoseCone(AeroSurface):
         None
         """
         rocket_radius = rocket_radius or base_radius
-        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
+        self.name = name
+        self.reference_area = np.pi * rocket_radius**2
+        self.reference_length = 2 * rocket_radius
 
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
@@ -162,6 +165,16 @@ class NoseCone(AeroSurface):
 
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+
+        # Translate the Barrowman geometry (clalpha, cpz) into the linear
+        # generic-surface coefficient model and build the shared compute path.
+        super().__init__(
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=name,
+        )
 
         self.plots = _NoseConePlots(self)
         self.prints = _NoseConePrints(self)
@@ -464,12 +477,7 @@ class NoseCone(AeroSurface):
         self.clalpha = Function(
             lambda mach: 2 * self.radius_ratio**2,
             "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: self.clalpha(mach) * alpha,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
+            f"Normal-force coefficient derivative for {self.name}",
         )
 
     def evaluate_k(self):
@@ -551,15 +559,10 @@ class NoseCone(AeroSurface):
         }
         if kwargs.get("include_outputs", False):
             clalpha = self.clalpha
-            cl = self.cl
             if kwargs.get("discretize", False):
                 clalpha = clalpha.set_discrete(0, 4, 50)
-                cl = cl.set_discrete(
-                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
-                )
             data["cp"] = self.cp
             data["clalpha"] = clalpha
-            data["cl"] = cl
 
         return data
 

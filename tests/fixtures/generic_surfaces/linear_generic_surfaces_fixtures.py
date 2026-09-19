@@ -13,7 +13,7 @@ def filename_valid_coeff_linear_generic_surface(tmpdir_factory):
         {
             "alpha": [0, 1, 2, 3, 0.1],
             "mach": [3, 2, 1, 0, 0.2],
-            "cL_0": [4, 2, 2, 4, 5],
+            "cN_0": [4, 2, 2, 4, 5],
         }
     ).to_csv(filename, index=False)
 
@@ -24,7 +24,7 @@ def filename_valid_coeff_linear_generic_surface(tmpdir_factory):
     params=(
         {
             "alpha": [0, 1, 2, 3, 0.1],
-            "cL_0": [4, 2, 2, 4, 5],
+            "cN_0": [4, 2, 2, 4, 5],
             "mach": [3, 2, 1, 0, 0.2],
         },
         {

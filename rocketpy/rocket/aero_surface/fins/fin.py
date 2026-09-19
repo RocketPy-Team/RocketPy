@@ -81,15 +81,21 @@ class Fin(_BaseFin):
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
     Fin.cl : Function
-        Function which defines the lift coefficient as a function of the angle
-        of attack and the Mach number. Takes as input the angle of attack in
-        radians and the Mach number. Returns the lift coefficient.
+        Roll-moment coefficient, inherited from the generic-surface model
+        (a function of the flow variables). Zero for a nose cone or tail; for a
+        fin set it carries the cant forcing and roll damping. The lift-curve
+        slope is ``clalpha``.
     Fin.clalpha : float
-        Lift coefficient slope. Has units of 1/rad.
+        Normal-force coefficient slope. Has units of 1/rad.
     Fin.roll_parameters : list
         List containing the roll moment lift coefficient, the roll moment
         damping coefficient and the cant angle in radians.
     """
+
+    # A single fin contributes unequally to the pitch and yaw planes, so it is
+    # not axisymmetric on its own. A complete, evenly spaced set may still be
+    # axisymmetric collectively, which the rocket's numeric check resolves.
+    is_axisymmetric = False
 
     def __init__(
         self,
@@ -148,6 +154,12 @@ class Fin(_BaseFin):
         self._angular_position = angular_position
         self._angular_position_rad = math.radians(angular_position)
 
+    def _update_geometry_chain(self):
+        """Run the base geometry/coefficient chain, then (re)build the body to
+        fin rotation matrices."""
+        super()._update_geometry_chain()
+        self.evaluate_rotation_matrix()
+
     @property
     def cant_angle(self):
         return self._cant_angle
@@ -203,14 +215,7 @@ class Fin(_BaseFin):
 
         self.clalpha = self.clalpha_single_fin * self.lift_interference_factor
 
-        # Cl = clalpha * alpha
-        self.cl = Function(
-            lambda alpha, mach: alpha * self.clalpha(mach),
-            ["Alpha (rad)", "Mach"],
-            "Lift coefficient",
-        )
-
-        return self.cl
+        return self.clalpha
 
     def evaluate_roll_parameters(self):
         """Calculates and returns the fin set's roll coefficients.
@@ -318,6 +323,35 @@ class Fin(_BaseFin):
         self._rotation_fin_to_body = R_body_to_fin.transpose
         self._rotation_surface_to_body = self._rotation_fin_to_body
 
+    @property
+    def force_application_point(self):
+        """Point where the fin's aerodynamic force is applied, in body frame.
+
+        Returns
+        -------
+        Vector
+            The fin's center of pressure ``[cpx, cpy, cpz]``.
+        """
+        return Vector([self.cpx, self.cpy, self.cpz])
+
+    def evaluate_coefficients(self):
+        """Evaluate the fin's normal-force slope coefficients.
+
+        Sets ``cN_alpha`` (pitch plane) and ``cY_beta`` (yaw plane) from the
+        fin's normal-force slope projected onto each plane by its angular
+        position. Moment coefficients are left at zero since the moment is
+        transported geometrically in :meth:`compute_forces_and_moments`.
+        """
+        clalpha = self.clalpha
+        sin_sq = math.sin(self.angular_position_rad) ** 2
+        cos_sq = math.cos(self.angular_position_rad) ** 2
+        self.cN_alpha = self._mach_coefficient(
+            lambda mach: clalpha.get_value_opt(mach) * sin_sq
+        )
+        self.cY_beta = self._mach_coefficient(
+            lambda mach: -clalpha.get_value_opt(mach) * cos_sq
+        )
+
     def compute_forces_and_moments(
         self,
         stream_velocity,
@@ -344,6 +378,10 @@ class Fin(_BaseFin):
             Center of pressure coordinates in the body frame.
         omega: tuple[float, float, float]
             Tuple containing angular velocities around the x, y, z axes.
+        *args
+            Extra positional arguments accepted for signature compatibility with
+            the generic surface (e.g. ``density``, ``dynamic_viscosity``,
+            ``z``). Unused by the fin's Barrowman model.
 
         Returns
         -------
@@ -363,7 +401,8 @@ class Fin(_BaseFin):
             * rho
             * stream_speed**2
             * self.reference_area
-            * self.cl.get_value_opt(attack_angle, stream_mach)
+            * self.clalpha.get_value_opt(stream_mach)
+            * attack_angle
         )
         # Force in body frame
         R1, R2, R3 = self._rotation_fin_to_body @ Vector([X, 0, 0])
@@ -438,7 +477,7 @@ class Fin(_BaseFin):
             data.update(
                 {
                     "cp": self.cp,
-                    "cl": self.cl,
+                    "clalpha": self.clalpha,
                     "roll_parameters": self.roll_parameters,
                     "rocket_diameter": self.rocket_diameter,
                     "diameter": self.rocket_diameter,

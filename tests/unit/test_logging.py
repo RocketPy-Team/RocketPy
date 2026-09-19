@@ -10,9 +10,20 @@ from rocketpy.simulation.helpers.flight_phase import _FlightPhases
 
 @pytest.fixture(autouse=True)
 def _restore_logger_state():
-    """Snapshot and restore the rocketpy logger so tests don't leak state."""
+    """Snapshot and restore the rocketpy logger so tests don't leak state.
+
+    Other tests (e.g. verbose ``Flight`` runs, which call ``enable_logging``)
+    may have attached the console handler to the shared logger and left it
+    there. Strip it before each test so these tests start from the library's
+    default state, then restore the original handlers afterwards.
+    """
     saved_handlers = logger.handlers[:]
     saved_level = logger.level
+    logger.handlers[:] = [
+        h
+        for h in logger.handlers
+        if getattr(h, "name", None) != "rocketpy_console_handler"
+    ]
     yield
     logger.handlers[:] = saved_handlers
     logger.setLevel(saved_level)

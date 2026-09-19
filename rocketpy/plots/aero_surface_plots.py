@@ -1,6 +1,4 @@
 # pylint: disable=too-many-statements
-from abc import ABC, abstractmethod
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Ellipse
@@ -8,16 +6,16 @@ from matplotlib.patches import Ellipse
 from .plot_helpers import show_or_save_plot
 
 
-class _AeroSurfacePlots(ABC):
-    """Abstract class that contains all aero surface plots."""
+class _GenericSurfacePlots:
+    """Base plots for a generic aerodynamic surface."""
 
     def __init__(self, aero_surface):
         """Initialize the class
 
         Parameters
         ----------
-        aero_surface : rocketpy.AeroSurface
-            AeroSurface object to be plotted
+        aero_surface : rocketpy.GenericSurface
+            Aerodynamic surface object to be plotted
 
         Returns
         -------
@@ -25,35 +23,117 @@ class _AeroSurfacePlots(ABC):
         """
         self.aero_surface = aero_surface
 
-    @abstractmethod
     def draw(self, *, filename=None):
-        pass
+        """A plain generic surface has no geometry to draw."""
 
-    def lift(self):
-        """Plots the lift coefficient of the aero surface as a function of Mach
-        and the angle of attack. A 3D plot is expected. See the rocketpy.Function
-        class for more information on how this plot is made.
+    # Coefficients swept against their most relevant incidence angle: pitch-plane
+    # coefficients vs. angle of attack, yaw-plane ones vs. sideslip.
+    _COEFFICIENT_SWEEP = [
+        ("cL", "alpha"),
+        ("cQ", "beta"),
+        ("cD", "alpha"),
+        ("cm", "alpha"),
+        ("cn", "beta"),
+    ]
 
-        Returns
-        -------
-        None
+    def coefficients(self, *, mach=0.3, angle_range_deg=15.0, filename=None):
+        """Plot the surface's main aerodynamic coefficients.
+
+        Each available, non-zero coefficient (``cL, cQ, cD, cm, cn``) is swept
+        against its most relevant incidence angle (pitch-plane coefficients vs.
+        angle of attack, yaw-plane vs. sideslip) at a representative Mach,
+        skipping coefficients that are identically zero or flat. Works
+        uniformly across surface types because every generic, linear and
+        Barrowman surface now exposes these coefficients as callables over the
+        standard argument tuple.
+
+        Parameters
+        ----------
+        mach : float, optional
+            Mach number at which to sample the coefficients. Default 0.3.
+        angle_range_deg : float, optional
+            Half-range of the incidence sweep, in degrees. Default 15.
+        filename : str | None, optional
+            Path to save the figure; if None the figure is shown.
         """
-        self.aero_surface.cl()
+        surface = self.aero_surface
+        independent_vars = getattr(surface, "independent_vars", None)
+        if independent_vars is None:
+            return
+        index = {name: i for i, name in enumerate(independent_vars)}
+        if "mach" not in index:
+            return
+        n_args = len(independent_vars)
+
+        angles = np.linspace(
+            np.deg2rad(-angle_range_deg), np.deg2rad(angle_range_deg), 61
+        )
+        entries = []
+        for name, var in self._COEFFICIENT_SWEEP:
+            coeff = getattr(surface, name, None)
+            if coeff is None or getattr(coeff, "is_zero", False):
+                continue
+            if var not in index:
+                continue
+            values = np.empty_like(angles)
+            for i, angle in enumerate(angles):
+                args = [0.0] * n_args
+                args[index["mach"]] = mach
+                args[index[var]] = angle
+                values[i] = coeff(*args)
+            if np.allclose(values, 0.0):
+                continue
+            entries.append((name, var, values))
+
+        if not entries:
+            return
+
+        fig, axes = plt.subplots(
+            len(entries), 1, figsize=(7, 2.3 * len(entries)), squeeze=False
+        )
+        for ax, (name, var, values) in zip(axes[:, 0], entries):
+            ax.plot(np.rad2deg(angles), values)
+            ax.set_xlabel(f"{var.replace('_', ' ').title()} (°)")
+            ax.set_ylabel(name)
+            ax.grid(True)
+        axes[0, 0].set_title(f"{surface.name} coefficients (Mach {mach})")
+        plt.tight_layout()
+        show_or_save_plot(filename)
 
     def all(self):
-        """Plots all aero surface plots.
+        """Plots the generic surface's aerodynamic coefficients."""
+        self.coefficients()
+
+
+class _LinearGenericSurfacePlots(_GenericSurfacePlots):
+    """Plots for a linear generic surface; same plots as the generic base."""
+
+
+class _BarrowmanSurfacePlots(_LinearGenericSurfacePlots):
+    """Plots shared by the geometry-defined (Barrowman) surfaces: adds the
+    geometry drawing and the lift-coefficient surface plot."""
+
+    def lift(self):
+        """Plots the lift-curve slope (``clalpha``) of the aero surface as a
+        function of Mach number.
 
         Returns
         -------
         None
         """
+        self.aero_surface.clalpha()
+
+    def all(self):
+        """Plots the surface geometry, the lift coefficient and the
+        aerodynamic coefficients."""
         self.draw()
         self.lift()
+        self.coefficients()
 
 
-class _NoseConePlots(_AeroSurfacePlots):
+class _NoseConePlots(_BarrowmanSurfacePlots):
     """Class that contains all nosecone plots. This class inherits from the
-    _AeroSurfacePlots class."""
+    _BarrowmanSurfacePlots class."""
 
     def draw(self, *, filename=None):
         """Draw the nosecone shape along with some important information,
@@ -136,9 +216,9 @@ class _NoseConePlots(_AeroSurfacePlots):
         show_or_save_plot(filename)
 
 
-class _FinsPlots(_AeroSurfacePlots):
+class _FinsPlots(_BarrowmanSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
-    _AeroSurfacePlots class."""
+    _BarrowmanSurfacePlots class."""
 
     def airfoil(self, *, filename=None):
         """Plots the airfoil information when the fin has an airfoil shape. If
@@ -193,8 +273,7 @@ class _FinsPlots(_AeroSurfacePlots):
         -------
         None
         """
-        print("Lift coefficient:")
-        self.aero_surface.cl(filename=filename)
+        print("Lift coefficient derivative:")
         self.aero_surface.clalpha_single_fin(filename=filename)
         self.aero_surface.clalpha_multiple_fins(filename=filename)
 
@@ -215,11 +294,12 @@ class _FinsPlots(_AeroSurfacePlots):
         self.airfoil(filename=filename)
         self.roll(filename=filename)
         self.lift(filename=filename)
+        self.coefficients(filename=filename)
 
 
-class _FinPlots(_AeroSurfacePlots):
+class _FinPlots(_BarrowmanSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
-    _AeroSurfacePlots class."""
+    _BarrowmanSurfacePlots class."""
 
     def airfoil(self, *, filename=None):
         """Plots the airfoil information when the fin has an airfoil shape. If
@@ -274,8 +354,7 @@ class _FinPlots(_AeroSurfacePlots):
         -------
         None
         """
-        print("Lift coefficient:")
-        self.aero_surface.cl(filename=filename)
+        print("Lift coefficient derivative:")
         self.aero_surface.clalpha_single_fin(filename=filename)
 
     def all(self, *, filename=None):
@@ -295,6 +374,7 @@ class _FinPlots(_AeroSurfacePlots):
         self.airfoil(filename=filename)
         self.roll(filename=filename)
         self.lift(filename=filename)
+        self.coefficients(filename=filename)
 
 
 class _TrapezoidalFinsPlots(_FinsPlots):
@@ -841,7 +921,7 @@ class _FreeFormFinPlots(_FinPlots):
         show_or_save_plot(filename)
 
 
-class _TailPlots(_AeroSurfacePlots):
+class _TailPlots(_BarrowmanSurfacePlots):
     """Class that contains all tail plots."""
 
     def draw(self, *, filename=None):
@@ -849,7 +929,7 @@ class _TailPlots(_AeroSurfacePlots):
         pass
 
 
-class _AirBrakesPlots(_AeroSurfacePlots):
+class _AirBrakesPlots(_GenericSurfacePlots):
     """Class that contains all air brakes plots."""
 
     def drag_coefficient_curve(self):
@@ -870,17 +950,3 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         None
         """
         self.drag_coefficient_curve()
-
-
-class _GenericSurfacePlots(_AeroSurfacePlots):
-    """Class that contains all generic surface plots."""
-
-    def draw(self, *, filename=None):
-        pass
-
-
-class _LinearGenericSurfacePlots(_AeroSurfacePlots):
-    """Class that contains all linear generic surface plots."""
-
-    def draw(self, *, filename=None):
-        pass

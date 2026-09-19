@@ -182,6 +182,22 @@ def build_event_kwargs(flight, time, state, phase):
 
     Only what nearly every event reads is worked out here; the rest is worked
     out by the context itself when first read.
+
+    Parameters
+    ----------
+    flight : Flight
+        Flight instance whose rocket, environment and sensors are exposed.
+    time : float
+        Current simulation time, in seconds.
+    state : sequence of float
+        The current phase's raw state at ``time``.
+    phase : FlightPhase
+        Active flight phase.
+
+    Returns
+    -------
+    EventContext
+        The context handed to event triggers and callbacks.
     """
     current = flight.solution.phases[-1]
     # A phase that already integrates the full canonical state needs no
@@ -214,8 +230,19 @@ def refresh_event_kwargs(flight, event_kwargs, interpolated_time, interpolated_s
 
     Parameters
     ----------
+    flight : Flight
+        Flight instance whose environment is used to recompute derived values.
+    event_kwargs : EventContext
+        Context (from :func:`build_event_kwargs`) updated in place.
+    interpolated_time : float
+        The moment to describe, in seconds.
     interpolated_state : sequence of float
         The current phase's raw state at ``interpolated_time``.
+
+    Returns
+    -------
+    EventContext
+        The updated ``event_kwargs``.
     """
     current = flight.solution.phases[-1]
     # A phase that already integrates the full canonical state needs no

@@ -5,13 +5,22 @@ import numpy as np
 
 from rocketpy.mathutils.function import Function
 
-from ..aero_surface import AeroSurface
+from .._barrowman_surface import _BarrowmanSurface
+from ..linear_generic_surface import LinearGenericSurface
 
 
-class _BaseFin(AeroSurface):
+# TODO: review note: airfoil handling can now be fully implemented. That is
+# instead of getting just the clalpha from the airfoil, we can get and use the
+# full lift curve. We need to check if simulation does not break with this
+# change. If we use a full curve for airfoils, then we will have fin stall
+# (abrupt cN drop), but the other surfaces do not have this drop, they simply
+# will have their generated normal forces grow linearly with AoA, this can lead
+# to wrong behaviour at high AoA.
+class _BaseFin(_BarrowmanSurface):
     """
     Base class for fins, shared by both Fin and Fins classes.
-    Inherits from AeroSurface.
+    Inherits from :class:`_BarrowmanSurface`, translating the fin geometry into
+    the linear generic-surface coefficient model.
 
     Handles shared initialization logic and common properties.
     """
@@ -47,8 +56,13 @@ class _BaseFin(AeroSurface):
         self.geometry = None
 
         self.reference_area = np.pi * rocket_radius**2
+        self.reference_length = self.rocket_diameter
 
-        super().__init__(name, self.reference_area, self.rocket_diameter)
+        # The linear generic-surface machinery is initialized lazily by
+        # ``_finalize_barrowman`` once the concrete subclass has set up its
+        # geometry strategy and the first ``_update_geometry_chain`` has
+        # produced ``clalpha``, ``cpz`` and ``roll_parameters``.
+        self._barrowman_initialized = False
 
     def _update_reference_quantities(self):
         """Update quantities that depend on rocket radius."""
@@ -56,11 +70,32 @@ class _BaseFin(AeroSurface):
         self.reference_length = self.rocket_diameter
 
     def _update_geometry_chain(self):
-        """Update geometry-dependent quantities in dependency order."""
+        """Update geometry-dependent quantities in dependency order, then
+        (re)build the generic-surface coefficients from the new geometry."""
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
+        if self._barrowman_initialized:
+            # Geometry changed after construction: refresh the coefficients.
+            self.evaluate_coefficients()
+            self.compute_all_coefficients()
+            self._evaluate_stability_derivatives()
+        else:
+            self._finalize_barrowman()
+
+    def _finalize_barrowman(self):
+        """Initialize the linear generic-surface machinery from the geometry
+        computed by the first ``_update_geometry_chain`` call."""
+        LinearGenericSurface.__init__(
+            self,
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=self.name,
+        )
+        self._barrowman_initialized = True
 
     @property
     def rocket_radius(self):
@@ -292,7 +327,7 @@ class _BaseFin(AeroSurface):
             2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
         )
 
-        # Lift coefficient derivative for a single fin
+        # Normal-force coefficient derivative for a single fin
         def lift_source(mach):
             return (
                 clalpha2D(mach)
@@ -308,7 +343,7 @@ class _BaseFin(AeroSurface):
         self.clalpha_single_fin = Function(
             lift_source,
             "Mach",
-            "Lift coefficient derivative for a single fin",
+            "Normal-force coefficient derivative for a single fin",
         )
 
     @abstractmethod

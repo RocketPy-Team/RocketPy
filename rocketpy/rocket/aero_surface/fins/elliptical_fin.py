@@ -77,11 +77,12 @@ class EllipticalFin(Fin):
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
     EllipticalFin.cl : Function
-        Function which defines the lift coefficient as a function of the angle
-        of attack and the Mach number. Takes as input the angle of attack in
-        radians and the Mach number. Returns the lift coefficient.
+        Roll-moment coefficient, inherited from the generic-surface model
+        (a function of the flow variables). Zero for a nose cone or tail; for a
+        fin set it carries the cant forcing and roll damping. The lift-curve
+        slope is ``clalpha``.
     EllipticalFin.clalpha : float
-        Lift coefficient slope. Has units of 1/rad.
+        Normal-force coefficient slope. Has units of 1/rad.
     """
 
     def __init__(
@@ -175,8 +176,8 @@ class EllipticalFin(Fin):
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs=include_outputs)
+    def to_dict(self, include_outputs=False, **kwargs):
+        data = super().to_dict(include_outputs=include_outputs, **kwargs)
         data.update(self.geometry.get_data(include_outputs=include_outputs))
         return data
 

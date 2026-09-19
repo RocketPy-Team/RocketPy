@@ -80,11 +80,12 @@ class Fins(_BaseFin):
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
     Fins.cl : Function
-        Function which defines the lift coefficient as a function of the angle
-        of attack and the Mach number. Takes as input the angle of attack in
-        radians and the Mach number. Returns the lift coefficient.
+        Roll-moment coefficient, inherited from the generic-surface model
+        (a function of the flow variables). Zero for a nose cone or tail; for a
+        fin set it carries the cant forcing and roll damping. The lift-curve
+        slope is ``clalpha``.
     Fins.clalpha : float
-        Lift coefficient slope. Has units of 1/rad.
+        Normal-force coefficient slope. Has units of 1/rad.
     Fins.roll_parameters : list
         List containing the roll moment lift coefficient, the roll moment
         damping coefficient and the cant angle in radians.
@@ -165,7 +166,7 @@ class Fins(_BaseFin):
         """
         self.evaluate_single_fin_lift_coefficient()
 
-        # Lift coefficient derivative for n fins corrected with Fin-Body interference
+        # Normal-force coefficient derivative for n fins corrected with Fin-Body interference
         self.clalpha_multiple_fins = (
             self.fin_num_correction(self.n)
             * self.lift_interference_factor
@@ -173,19 +174,12 @@ class Fins(_BaseFin):
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
         self.clalpha_multiple_fins.set_outputs(
-            f"Lift coefficient derivative for {self.n:.0f} fins"
+            f"Normal-force coefficient derivative for {self.n:.0f} fins"
         )
 
         self.clalpha = self.clalpha_multiple_fins
 
-        # Cl = clalpha * alpha
-        self.cl = Function(
-            lambda alpha, mach: alpha * self.clalpha_multiple_fins(mach),
-            ["Alpha (rad)", "Mach"],
-            "Lift coefficient",
-        )
-
-        return self.cl
+        return self.clalpha
 
     def evaluate_roll_parameters(self):
         """Calculates and returns the fin set's roll coefficients.
@@ -200,11 +194,18 @@ class Fins(_BaseFin):
         """
         clf_delta = (
             self.roll_forcing_interference_factor
-            * self.fin_num_correction(self.n)
+            * self.n
             * (self.Yma + self.rocket_radius)
             * self.clalpha_single_fin
             / self.reference_length
         )  # Function of mach number
+        # NOTE: roll forcing scales with the full fin count ``n`` -- every
+        # identically-canted fin contributes the same roll moment, with no
+        # cancellation. This differs from the normal-force slope, which uses the
+        # ``fin_num_correction(n)`` (~n/2) multiple-fin factor because fins at
+        # different roll angles partially cancel in pitch/yaw. Using
+        # ``fin_num_correction(n)`` here previously halved the roll forcing (and
+        # the roll rate) of a fin set relative to the equivalent individual fins.
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
         clf_delta.set_title(
@@ -251,66 +252,6 @@ class Fins(_BaseFin):
         else:
             return n / 2
 
-    def compute_forces_and_moments(
-        self,
-        stream_velocity,
-        stream_speed,
-        stream_mach,
-        rho,
-        cp,
-        omega,
-        *args,
-    ):  # pylint: disable=arguments-differ
-        """Computes the forces and moments acting on the aerodynamic surface.
-
-        Parameters
-        ----------
-        stream_velocity : tuple of float
-            The velocity of the airflow relative to the surface.
-        stream_speed : float
-            The magnitude of the airflow speed.
-        stream_mach : float
-            The Mach number of the airflow.
-        rho : float
-            Air density.
-        cp : Vector
-            Center of pressure coordinates in the body frame.
-        omega: tuple[float, float, float]
-            Tuple containing angular velocities around the x, y, z axes.
-
-        Returns
-        -------
-        tuple of float
-            The aerodynamic forces (lift, side_force, drag) and moments
-            (pitch, yaw, roll) in the body frame.
-        """
-
-        R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
-            stream_velocity,
-            stream_speed,
-            stream_mach,
-            rho,
-            cp,
-        )
-        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
-        M3_forcing = (
-            (1 / 2 * rho * stream_speed**2)
-            * self.reference_area
-            * self.reference_length
-            * clf_delta.get_value_opt(stream_mach)
-            * cant_angle_rad
-        )
-        M3_damping = (
-            (1 / 2 * rho * stream_speed)
-            * self.reference_area
-            * (self.reference_length) ** 2
-            * cld_omega.get_value_opt(stream_mach)
-            * omega[2]
-            / 2
-        )
-        M3 = M3_forcing + M3_damping
-        return R1, R2, R3, M1, M2, M3
-
     def to_dict(self, **kwargs):
         if self.airfoil:
             if kwargs.get("discretize", False):
@@ -335,16 +276,14 @@ class Fins(_BaseFin):
         }
 
         if kwargs.get("include_outputs", False):
-            cl = self.cl
+            clalpha = self.clalpha
             if kwargs.get("discretize", False):
-                cl = cl.set_discrete(
-                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
-                )
+                clalpha = clalpha.set_discrete(0, 4, 50)
 
             data.update(
                 {
                     "cp": self.cp,
-                    "cl": cl,
+                    "clalpha": clalpha,
                     "roll_parameters": self.roll_parameters,
                     "rocket_diameter": self.rocket_diameter,
                     "diameter": self.rocket_diameter,

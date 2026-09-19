@@ -30,6 +30,7 @@ from .rocket import (
     AeroSurface,
     AirBrakes,
     Components,
+    ControllableGenericSurface,
     EllipticalFin,
     EllipticalFins,
     Fin,

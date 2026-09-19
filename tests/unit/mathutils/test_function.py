@@ -1505,3 +1505,90 @@ def test_regular_grid_invalid_source_raises(bad_source, match):
             outputs=["z"],
             interpolation="regular_grid",
         )
+
+
+def test_regular_grid_sorts_unsorted_axes():
+    """A descending (or shuffled) axis is sorted, with the grid data reordered
+    to match, so the resulting Function matches the equivalent ascending grid."""
+    x_axis = np.array([0.0, 1.0, 2.0])
+    y_axis = np.array([0.0, 1.0, 2.0])
+    x_grid, y_grid = np.meshgrid(x_axis, y_axis, indexing="ij")
+    data = 2.0 * x_grid + 3.0 * y_grid
+
+    ascending = Function(
+        ([x_axis, y_axis], data), interpolation="regular_grid", extrapolation="natural"
+    )
+    # First axis descending, data reversed along that axis to describe the SAME
+    # surface. It must be normalized to ascending and yield identical values.
+    descending = Function(
+        ([x_axis[::-1], y_axis], data[::-1, :]),
+        interpolation="regular_grid",
+        extrapolation="natural",
+    )
+    assert np.all(np.diff(descending._grid_axes[0]) > 0)
+    assert np.isclose(descending(1.5, 0.5), ascending(1.5, 0.5))
+
+
+def test_regular_grid_repeated_axis_coordinate_raises():
+    """An axis with duplicate coordinates cannot form a grid and raises a clear
+    error instead of a cryptic SciPy failure."""
+    with pytest.raises(ValueError, match="repeated coordinates"):
+        Function(
+            ([np.array([0.0, 1.0, 1.0]), np.array([0.0, 1.0, 2.0])], np.ones((3, 3))),
+            interpolation="regular_grid",
+        )
+
+
+def test_from_regular_grid_csv_falls_back_when_too_few_points(tmp_path):
+    """A smooth grid method (e.g. cubic) needs enough points per axis; when the
+    grid is too coarse, from_regular_grid_csv warns and falls back to linear."""
+    filename = tmp_path / "coarse_grid.csv"
+    # 2x2 grid: too few points for cubic (which needs 4 per axis).
+    filename.write_text("mach,alpha,cL\n0,0,0\n0,1,1\n1,0,1\n1,1,2\n", encoding="utf-8")
+    with pytest.warns(UserWarning, match="falling back to 'linear'"):
+        func = Function.from_regular_grid_csv(
+            str(filename),
+            ["mach", "alpha"],
+            "cL",
+            extrapolation="constant",
+            interpolation="cubic",
+        )
+    assert func is not None
+    assert getattr(func, "_grid_method", "linear") == "linear"
+
+
+def test_regular_grid_caches_domain_bounds(bilinear_grid_2d):
+    """The N-D hot path caches per-dimension domain bounds at source time."""
+    assert np.allclose(bilinear_grid_2d._domain_min, [0.0, 0.0])
+    assert np.allclose(bilinear_grid_2d._domain_max, [2.0, 2.0])
+
+
+def test_regular_grid_dict_round_trip(bilinear_grid_2d):
+    """A regular_grid Function round-trips through to_dict/from_dict, rebuilding
+    from the (axes, grid_data) structure rather than the flat scatter source."""
+    restored = Function.from_dict(bilinear_grid_2d.to_dict())
+
+    assert restored.get_interpolation_method() == "regular_grid"
+    assert restored.get_domain_dim() == 2
+    for x, y in [(0.5, 1.5), (1.25, 0.75), (2.0, 2.0)]:
+        assert np.isclose(restored(x, y), bilinear_grid_2d(x, y))
+
+
+def test_regular_grid_dict_round_trip_preserves_method(tmp_path):
+    """A non-default grid method (e.g. pchip) survives to_dict/from_dict."""
+    filename = tmp_path / "grid.csv"
+    rows = ["x,y,z"]
+    for x in (0, 1, 2, 3):
+        for y in (0, 1, 2, 3):
+            rows.append(f"{x},{y},{x + 10 * y**2}")
+    filename.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    original = Function.from_regular_grid_csv(
+        str(filename), ["x", "y"], "z", extrapolation="constant", interpolation="akima"
+    )
+    assert original._grid_method == "pchip"
+
+    restored = Function.from_dict(original.to_dict())
+    assert restored.get_interpolation_method() == "regular_grid"
+    assert getattr(restored, "_grid_method", "linear") == "pchip"
+    assert np.isclose(restored(0.5, 1.5), original(0.5, 1.5))

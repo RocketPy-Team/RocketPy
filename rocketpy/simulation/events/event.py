@@ -17,7 +17,7 @@ PRESETS = {
 
 
 class Event:
-    """Event helper with trigger/callback execution and exact-time support.
+    """A rule that runs an action during a flight when a condition is met.
 
     An ``Event`` is the main way RocketPy reacts to conditions during a
     flight. It pairs a ``trigger`` predicate with a ``callback`` action: at
@@ -155,11 +155,11 @@ class Event:
             slower with no gain in accuracy. Automatically forced to ``False``
             when ``sampling_rate`` is ``None``.
         changes_dynamics : bool, optional
-            Set to ``True`` when the callback changes the simulation dynamics or
-            any parameter affecting the ODE derivative. This includes mutating an
-            attribute of any simulation object, and using the
-            ``set_dynamics``, ``start_flight_phase``, or ``terminate_flight``
-            commands. Defaults to ``False``.
+            Set to ``True`` when the callback changes anything that affects the
+            equations of motion. This includes changing an attribute of any
+            simulation object, and using the ``set_dynamics``,
+            ``start_flight_phase``, or ``terminate_flight`` commands. Defaults to
+            ``False``.
         name : str, optional
             Human-readable identifier used in logs and debugging. Defaults to
             ``"Custom Event"``.
@@ -312,6 +312,9 @@ class Event:
             If True, only execute the callback without evaluating the trigger
             condition. The exact time function and disable_on function are also
             called.
+        reset : bool, optional
+            If True (default), reset the event's queued commands (via
+            ``_reset_commands``) before evaluating the trigger.
 
         Returns
         -------

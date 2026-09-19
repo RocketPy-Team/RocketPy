@@ -310,6 +310,12 @@ We can then see if the rocket is stable by plotting the static margin:
     If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
 
+.. seealso::
+
+    For a full treatment of static margin, stability margin and dynamic
+    stability, including what these numbers mean, what values to aim for, and
+    how they play out over a real flight, see :ref:`aero_cp_stability`.
+
 
 To guarantee that the rocket is stable, the positions of all added components
 must be correct. The ``Rocket`` class can help you with the ``draw`` method:
@@ -580,15 +586,21 @@ following method:
     test_flight.plots.fluid_mechanics_data()
 
 
-Stability Margin and Frequency Response
+Stability Margin and Dynamic Stability
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Stability margin can be checked along with the frequency response of the
-rocket:
+The stability margin over the flight:
 
 .. jupyter-execute::
 
-    test_flight.plots.stability_and_control_data()
+    test_flight.plots.stability_margin_data()
+
+The dynamic-stability quantities (natural frequency, damping ratio and the
+attitude frequency response):
+
+.. jupyter-execute::
+
+    test_flight.plots.dynamic_stability_data()
 
 
 Visualizing the Trajectory in Google Earth
