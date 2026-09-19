@@ -4,7 +4,8 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Flight
+from rocketpy import Flight, Rocket, SolidMotor
+from rocketpy.simulation.helpers.dynamics import FULL_POST_PROCESS_VARS
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -202,6 +203,160 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
     assert test_flight.all_info() is None
 
 
+def test_a_parachute_keeps_falling_freely_during_its_lag(
+    example_plain_env, calisto_robust
+):
+    """The lag between a parachute firing and opening is flown, not skipped.
+
+    The rocket must keep falling under the current equations of motion until
+    the parachute phase begins: rows are stored during the lag, and the
+    vertical speed when the parachute opens is what free fall gives.
+    """
+    lag = 1.5
+    calisto_robust.parachutes.clear()
+    calisto_robust.add_parachute(
+        "Drogue", cd_s=1.0, trigger="apogee", sampling_rate=105, lag=lag
+    )
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        max_time=60,
+    )
+
+    fired_at = flight.parachute_events[0][0]
+    descent = next(p for p in flight.solution.phases if "Drogue" in p.name)
+    assert descent.t_start == pytest.approx(fired_at + lag)
+    # the lag is flown: rows are stored strictly inside it
+    times = flight.time
+    assert np.sum((times > fired_at) & (times < fired_at + lag)) > 3
+    # and the rocket falls freely through it: vz drops by about g * lag
+    g = example_plain_env.gravity(flight.apogee)
+    vz_fired = flight.vz(fired_at)
+    vz_opened = flight.vz(fired_at + lag)
+    assert vz_opened == pytest.approx(vz_fired - g * lag, abs=0.5)
+
+
+def test_solid_propulsion_equations_damp_rotation(example_plain_env, calisto_robust):
+    """The solid-propulsion equations must see the angular rates.
+
+    They once zeroed the rates before the aerodynamics, which removed all
+    aerodynamic damping: a pitch rate produced no restoring moment and a
+    canted fin spun the rocket up without bound. At a coasting state, a pitch
+    rate must produce an angular acceleration that opposes it, and the roll
+    rate of a canted-fin flight must match the generalized equations.
+    """
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        equations_of_motion="solid_propulsion",
+        terminate_on_apogee=True,
+    )
+    assert flight.u_dot_generalized is flight.u_dot
+
+    # a coasting state a few seconds after burnout, with a pitch rate added
+    t = flight.rocket.motor.burn_out_time + 3.0
+    still = list(flight.solution.at(t).values())[:13]
+    pitching = [*still[:10], 2.0, 0.0, 0.0]
+    alpha_still = flight.u_dot(t, still)[10]
+    alpha_pitching = flight.u_dot(t, pitching)[10]
+    assert alpha_pitching != alpha_still
+    assert alpha_pitching < alpha_still  # the moment opposes the rate
+
+    # a rolling flight settles at the same roll rate with either set of equations
+    calisto_robust.aerodynamic_surfaces.clear()  # rebuild with canted fins
+    calisto_robust.add_nose(length=0.55829, kind="vonkarman", position=1.160)
+    calisto_robust.add_tail(
+        top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.313
+    )
+    calisto_robust.add_trapezoidal_fins(
+        4,
+        span=0.100,
+        root_chord=0.120,
+        tip_chord=0.040,
+        position=-1.168,
+        cant_angle=1.5,
+    )
+    roll = {}
+    for equations in ("solid_propulsion", "standard"):
+        rolling = Flight(
+            rocket=calisto_robust,
+            environment=example_plain_env,
+            rail_length=5.2,
+            inclination=85,
+            heading=0,
+            equations_of_motion=equations,
+            terminate_on_apogee=True,
+        )
+        roll[equations] = np.max(np.abs(rolling.w3[:, 1]))
+    assert roll["solid_propulsion"] == pytest.approx(roll["standard"], rel=0.02)
+    assert roll["standard"] < 100  # rad/s; unbounded spin-up would give thousands
+
+
+def test_flight_with_delayed_burn_leaves_rail(example_plain_env):
+    """A motor whose thrust curve starts after t = 0 still lifts the rocket off
+    the rail (#411).
+
+    The rocket sits still on the rail until ignition, so the solver's steps
+    grow freely and used to step over the whole burn: the rocket never left
+    the pad. The solver now stops at ignition and at burnout.
+    """
+    motor = SolidMotor(
+        thrust_source=[(8.0, 1500.0), (9.0, 2000.0), (14.0, 2000.0), (20.0, 0.0)],
+        burn_time=(8, 20),
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        nozzle_radius=33 / 1000,
+        grain_number=5,
+        grain_density=1815,
+        grain_outer_radius=33 / 1000,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        grain_separation=5 / 1000,
+        grains_center_of_mass_position=0.397,
+        center_of_dry_mass_position=0.317,
+        nozzle_position=0,
+        throat_radius=11 / 1000,
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    )
+    rocket = Rocket(
+        radius=127 / 2000,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    rocket.add_motor(motor, position=-1.255)
+    rocket.add_nose(length=0.55829, kind="vonKarman", position=1.278)
+    rocket.add_trapezoidal_fins(
+        n=4, root_chord=0.120, tip_chord=0.060, span=0.110, position=-1.04956
+    )
+    rocket.set_rail_buttons(0.082, -0.618)
+
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        max_time=60,
+    )
+
+    assert motor.burn_start_time in flight.time
+    assert motor.burn_out_time in flight.time
+    # ignition is at t = 8 s: the rocket leaves the rail after it, not never
+    assert flight.out_of_rail_time > 8.0
+    assert flight.out_of_rail_velocity > 10.0
+    assert flight.apogee - example_plain_env.elevation > 1000.0
+
+
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(  # pylint: disable=unused-argument
     mock_show,
@@ -239,6 +394,18 @@ def test_rolling_flight(  # pylint: disable=unused-argument
     )
 
     assert test_flight.all_info() is None
+
+    # The canted fins spin the rocket up and their damping balances it, so the
+    # roll rate tracks the airspeed during the coast. Without damping it grows
+    # past a thousand rad/s.
+    times = test_flight.w3[:, 0]
+    coast = (times > test_flight.rocket.motor.burn_out_time + 1) & (
+        times < test_flight.apogee_time - 3
+    )
+    roll_rate = np.abs(test_flight.w3[coast, 1])
+    assert 1.0 < roll_rate.max() < 100.0
+    roll_per_speed = roll_rate / test_flight.speed(times[coast])
+    assert roll_per_speed.std() < 0.15 * roll_per_speed.mean()
 
 
 @patch("matplotlib.pyplot.show")
@@ -351,6 +518,108 @@ def test_initial_solution(mock_show, example_plain_env, calisto_robust):  # pyli
     assert test_flight.all_info() is None
 
 
+def test_the_rail_phase_reports_forces_but_no_angular_acceleration(
+    example_plain_env, calisto_robust
+):
+    """On the rail the rocket cannot rotate, but it still feels thrust and drag.
+
+    The rail phase works its post-process variables out from the free-flight
+    equations and replaces only the accelerations, so this pins both halves of
+    that: the angular accelerations are exactly zero, and the forces and thrust
+    are the real ones.
+    """
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+    rail = flight.solution.post.phase_values(0)
+    column = FULL_POST_PROCESS_VARS.index
+
+    assert flight.solution.phases[0].dynamics.name == "rail"
+    start, stop = flight.solution.phase_span(0)
+    assert len(rail) == stop - start > 1
+    # the rail holds the rocket, so it cannot turn
+    for name in ("alpha1", "alpha2", "alpha3"):
+        assert np.all(rail[:, column(name)] == 0.0), name
+    # but it burns, it accelerates upwards, and it feels drag
+    assert np.max(rail[:, column("net_thrust")]) > 0
+    assert np.max(rail[:, column("az")]) > 0
+    assert np.min(rail[:, column("R3")]) < 0
+
+
+def test_initial_solution_from_a_previous_flight(example_plain_env, calisto_robust):
+    """A flight can start where another one ended.
+
+    Passing a Flight rather than a list takes the previous flight's last state,
+    canonicalized in case it ended in a phase following fewer than the thirteen
+    states of the full flight state.
+    """
+    first = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+    continued = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        # the rail is not used, since the state given is already off it, but
+        # it still has to be a real length
+        rail_length=5,
+        initial_solution=first,
+    )
+
+    # the second flight picks up exactly where the first stopped
+    assert continued.t_initial == pytest.approx(
+        first.solution.raw_row(-1)[0], abs=1e-12
+    )
+    assert continued.solution[0] == pytest.approx(first.solution[-1], rel=1e-12)
+    # and then goes on to descend under its parachutes and land
+    assert continued.t_final > continued.t_initial
+    assert continued.parachute_events
+    assert continued.z(continued.t_final) < continued.z(continued.t_initial)
+    # post-process variables are reported for the continued flight too
+    assert np.isfinite(continued.az(continued.t_initial))
+
+
+def test_initial_solution_still_on_the_rail(example_plain_env, calisto_robust):
+    """A state inside the rail starts in the rail phase, not in free flight.
+
+    Both other ways of giving an initial state begin out of the rail, so this
+    is the one that exercises the rail dynamics being chosen.
+    """
+    reference = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+    on_rail = next(
+        row for row in reference.solution if 0 < row[0] < reference.out_of_rail_time
+    )
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5,
+        initial_solution=list(on_rail),
+        terminate_on_apogee=True,
+    )
+
+    assert flight.initial_dynamics is flight.udot_rail1
+    assert flight.out_of_rail_time > flight.t_initial
+    # starting partway up the same rail must reach the same apogee
+    assert flight.apogee == pytest.approx(reference.apogee, rel=1e-2)
+
+
 @patch("matplotlib.pyplot.show")
 def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):  # pylint: disable=unused-argument
     flight = Flight(
@@ -398,7 +667,7 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
 
     assert np.isclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
-        0.4641492104717301,
+        0.4641547105489406,
         atol=hard_atol,
     )
     assert np.isclose(
@@ -410,11 +679,11 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     )
     assert np.isclose(
         test_flight.free_stream_speed(test_flight.apogee_time),
-        0.4641492104717798,
+        0.46415471054894075,
         atol=hard_atol,
     )
     assert np.isclose(
-        test_flight.apogee_freestream_speed, 0.4641492104717798, atol=hard_atol
+        test_flight.apogee_freestream_speed, 0.46415471054894075, atol=hard_atol
     )
 
 
@@ -563,25 +832,40 @@ def test_air_brakes_serialization_with_environment(
     assert flight_original.apogee > 0
 
 
-def test_backward_compatibility_6_parameter_controller(
-    calisto_robust, controller_function, example_plain_env
+def test_backward_compatibility_5_parameter_controller(
+    calisto_robust, example_plain_env
 ):
-    """Test that old 6-parameter controllers still work (backward compatibility).
+    """Test that old 5-parameter controllers still work (backward compatibility).
 
     Parameters
     ----------
     calisto_robust : rocketpy.Rocket
         Calisto rocket without air brakes
-    controller_function : function
-        Controller function using the old 6-parameter signature
     example_plain_env : rocketpy.Environment
         Environment object for the simulation
     """
-    # Add air brakes with old-style 6-parameter controller
+
+    def controller_5_params(  # pylint: disable=unused-argument
+        time, sampling_rate, state, observed_variables, air_brakes
+    ):
+        """Controller with the shortest supported positional signature."""
+        altitude = state[2]
+        vz = state[5]
+
+        if time < 3.9:
+            return None
+
+        if altitude < 1500:
+            air_brakes.deployment_level = 0
+        else:
+            air_brakes.deployment_level = min(0.5, max(0, vz / 100))
+        return None
+
+    # Add air brakes with old-style 5-parameter controller
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
         drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-        controller_function=controller_function,
+        controller_function=controller_5_params,
         sampling_rate=10,
         clamp=True,
     )
@@ -605,8 +889,8 @@ def test_backward_compatibility_6_parameter_controller(
     assert len(controllers) > 0
 
 
-def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
-    """Test that 7-parameter controllers (with sensors, no environment) work correctly.
+def test_6_parameter_controller_with_sensors(calisto_robust, example_plain_env):
+    """Test that 6-parameter controllers (with sensors, no environment) work correctly.
 
     Parameters
     ----------
@@ -616,17 +900,16 @@ def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
         Environment object for the simulation
     """
 
-    # Define a 7-parameter controller
-    def controller_7_params(  # pylint: disable=unused-argument
+    # Define a 6-parameter controller
+    def controller_6_params(  # pylint: disable=unused-argument
         time,
         sampling_rate,
         state,
-        state_history,
         observed_variables,
         air_brakes,
         sensors,
     ):
-        """Controller with 7 parameters (includes sensors, but not environment)."""
+        """Controller with 6 parameters (includes sensors, but not environment)."""
         altitude = state[2]
         vz = state[5]
 
@@ -641,11 +924,11 @@ def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
 
         return (time, air_brakes.deployment_level)
 
-    # Add air brakes with 7-parameter controller
+    # Add air brakes with 6-parameter controller
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
         drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-        controller_function=controller_7_params,
+        controller_function=controller_6_params,
         sampling_rate=10,
         clamp=True,
     )
@@ -665,7 +948,7 @@ def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
     assert flight.apogee > 0
 
 
-@pytest.mark.parametrize("param_count", [5, 9])
+@pytest.mark.parametrize("param_count", [4, 8])
 def test_invalid_controller_parameter_count(calisto_robust, param_count):
     """Test that positional controllers with an invalid parameter count raise
     ValueError. Only 6, 7 or 8 positional arguments are supported.
@@ -681,7 +964,6 @@ def test_invalid_controller_parameter_count(calisto_robust, param_count):
         "time",
         "sampling_rate",
         "state",
-        "state_history",
         "observed_variables",
         "air_brakes",
         "sensors",
@@ -697,7 +979,7 @@ def test_invalid_controller_parameter_count(calisto_robust, param_count):
 
     calisto_robust.parachutes = []
 
-    with pytest.raises(ValueError, match="must have 6, 7, or 8"):
+    with pytest.raises(ValueError, match="must have 5, 6, or 7"):
         calisto_robust.add_air_brakes(
             drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
             controller_function=invalid_controller,
@@ -706,7 +988,7 @@ def test_invalid_controller_parameter_count(calisto_robust, param_count):
         )
 
 
-@pytest.mark.parametrize("param_count", [6, 7, 8])
+@pytest.mark.parametrize("param_count", [5, 6, 7])
 def test_deprecated_positional_controller(calisto_robust, param_count):
     """Test that positional controllers with a valid parameter count (6, 7 or
     8) are accepted but emit a DeprecationWarning.
@@ -722,7 +1004,6 @@ def test_deprecated_positional_controller(calisto_robust, param_count):
         "time",
         "sampling_rate",
         "state",
-        "state_history",
         "observed_variables",
         "air_brakes",
         "sensors",
@@ -746,8 +1027,8 @@ def test_deprecated_positional_controller(calisto_robust, param_count):
         )
 
 
-def test_kwargs_controller_no_warning(calisto_robust, recwarn):
-    """Test that a controller using the recommended ``**kwargs`` signature is
+def test_context_controller_no_warning(calisto_robust, recwarn):
+    """Test that a controller using the recommended ``controller(context)`` signature is
     accepted without raising or emitting a deprecation warning.
 
     Parameters
@@ -758,14 +1039,14 @@ def test_kwargs_controller_no_warning(calisto_robust, recwarn):
         Fixture that records warnings raised during the test.
     """
 
-    def kwargs_controller(**kwargs):  # pylint: disable=unused-argument
+    def context_controller(context):  # pylint: disable=unused-argument
         return None
 
     calisto_robust.parachutes = []
 
     calisto_robust.add_air_brakes(
         drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-        controller_function=kwargs_controller,
+        controller_function=context_controller,
         sampling_rate=10,
         clamp=True,
     )
@@ -792,7 +1073,6 @@ def make_controller_test_environment_access(methods_called):
         time,
         sampling_rate,
         state,
-        state_history,
         observed_variables,
         air_brakes,
         sensors,
@@ -869,8 +1149,8 @@ def test_environment_methods_accessible_in_controller(
     assert all(methods_called.values()), f"Not all methods called: {methods_called}"
 
 
-def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
-    """Test that an air brakes controller using the recommended **kwargs API works.
+def test_air_brakes_context_controller(calisto_robust, example_plain_env):
+    """Test that an air brakes controller using the recommended controller(context) API works.
 
     Parameters
     ----------
@@ -880,15 +1160,15 @@ def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
         Environment object for the simulation
     """
 
-    def controller_function(**kwargs):
-        time = kwargs["time"]
-        sampling_rate = kwargs["sampling_rate"]
-        state = kwargs["state"]
-        state_history = kwargs["state_history"]
-        air_brakes = kwargs["air_brakes"]
-        environment = kwargs["environment"]
+    def controller_function(context):
+        time = context["time"]
+        sampling_rate = context["sampling_rate"]
+        state = context["state"]
+        previous_state = context["previous_state"]
+        air_brakes = context["air_brakes"]
+        environment = context["environment"]
 
-        altitude_agl = kwargs["height_agl"]
+        altitude_agl = context["height_agl"]
         altitude_asl = state[2]
         vx, vy, vz = state[3], state[4], state[5]
 
@@ -900,7 +1180,7 @@ def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
         if time < 3.9:
             return None
 
-        previous_vz = state_history[-1][5] if state_history else vz
+        previous_vz = previous_state[5] if previous_state is not None else vz
         if altitude_agl < 1500:
             air_brakes.deployment_level = 0
         else:
@@ -920,7 +1200,6 @@ def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
         controller_function=controller_function,
         sampling_rate=10,
         clamp=True,
-        controller_needs=["state_history"],
     )
 
     flight = Flight(

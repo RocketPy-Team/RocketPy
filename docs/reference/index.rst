@@ -17,6 +17,7 @@ This reference manual details functions, modules, methods and attributes include
    classes/Parachute
    classes/sensors/index.rst
    classes/Flight
+   classes/Solution
    classes/Event
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis

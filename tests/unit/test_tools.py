@@ -64,6 +64,58 @@ def test_cardanos_root_finding():
 
 
 @pytest.mark.parametrize(
+    "a, b, c, d",
+    [
+        (1, 0, 0, -1),  # x**3 - 1, real root at 1
+        (2, 0, 0, -16),  # 2x**3 - 16, real root at 2
+        (1, 0, 0, 1),  # x**3 + 1, real root at -1
+        (1, -3, 3, -1),  # (x - 1)**3, a genuine triple root
+        (1, 6, 12, 8),  # (x + 2)**3, a genuine triple root
+    ],
+)
+def test_cardanos_root_finding_without_a_quadratic_or_linear_term(a, b, c, d):
+    """A cubic with no x**2 and no x term still reports its real root.
+
+    Both the perfect cube and the single-real-root case reach the same
+    degenerate branch of Cardano's method, so the two must be told apart.
+    """
+    roots = find_roots_cubic_function(a=a, b=b, c=c, d=d)
+
+    for root in roots:
+        assert np.isclose(a * root**3 + b * root**2 + c * root + d, 0, atol=1e-9)
+    assert any(np.isclose(root.imag, 0) for root in roots)
+
+
+@pytest.mark.parametrize(
+    "b, c, d, expected_roots",
+    [
+        (1, -3, 2, [1, 2]),  # (x - 1)(x - 2)
+        (1, 0, -4, [-2, 2]),
+        (1, 0, 4, [-2j, 2j]),
+        (2, 0, 0, [0, 0]),  # a double root at zero
+    ],
+)
+def test_cardanos_root_finding_without_a_cubic_term(b, c, d, expected_roots):
+    """With ``a`` zero the function is a quadratic: two roots, then ``nan``."""
+    x1, x2, x3 = find_roots_cubic_function(0, b, c, d)
+
+    for expected in expected_roots:
+        assert any(abs(root - expected) < 1e-12 for root in (x1, x2))
+    assert np.isnan(x3.real)
+
+
+def test_cardanos_root_finding_keeps_a_nearly_linear_root_accurate():
+    """A quadratic term that is only rounding noise must not ruin the root of
+    the nearly straight line, as it did with the textbook quadratic formula."""
+    b, c, d = 5.9e-16, -28.52, 10.0
+
+    roots = [root for root in find_roots_cubic_function(0, b, c, d) if abs(root) < 1e3]
+
+    assert len(roots) == 1
+    assert roots[0].real == pytest.approx(-d / c, rel=1e-12)
+
+
+@pytest.mark.parametrize(
     "lat0, lon0, lat1, lon1, expected_distance",
     [
         (0, 0, 0, 0, 0),

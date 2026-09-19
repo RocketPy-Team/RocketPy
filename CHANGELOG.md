@@ -39,10 +39,13 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- 
+- ENH: store the flight solution as one flat list of rows. `PhaseSolution` no longer holds rows and becomes internal as `_PhaseSolution`: it describes a phase and records where its rows begin. Per-phase reads move to `Solution.phase_rows`, `phase_time`, `phase_series`, `phase_canonical_array` and `phase_post`. `Solution.canonical_states`, `last_row` and `+=` are removed. Saved solutions store the rows once for the whole flight. The pre-`Solution` format, a bare list of rows, still loads.
+- ENH: keep the post-process values recorded during a simulation on the `Solution`, beside the row they were computed from, so a rollback can no longer leave them on a different time grid from the states. `_PhaseDynamics.post_process_row` becomes `post_process_values` and no longer returns the time.
+- ENH: replace the `state_history` event kwarg with `previous_state` / `previous_time`, both gated behind `needs`. Read the trajectory itself from `kwargs["flight"].solution`. Legacy positional controller functions now take 5, 6 or 7 arguments instead of 6, 7 or 8, since `state_history` is no longer passed as the 4th.
 
 ### Fixed
 
+- BUG: read the last state through the flight phase that owns it, rather than the phase being flown, when starting a new phase. The two differ when a phase ends without taking a solver step.
 - BUG: Add wraparound logic for wind direction in environment plots [#939](https://github.com/RocketPy-Team/RocketPy/pull/939)
 
 ## [v1.12.1] - 2026-04-03

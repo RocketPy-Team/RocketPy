@@ -108,3 +108,39 @@ class TestParachuteSerialization:
         }
         parachute = Parachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)
+
+
+def test_a_context_trigger_is_called_without_a_wrapper():
+    """The trigger the user wrote is the one the event calls, with no hop."""
+
+    def my_trigger(context):
+        return context["height_agl"] < 800
+
+    parachute = Parachute(
+        name="Main", cd_s=10.0, trigger=my_trigger, sampling_rate=100, lag=0
+    )
+    assert parachute.event.trigger is my_trigger
+    assert parachute.triggerfunc is my_trigger
+
+
+def test_a_built_in_height_trigger_is_called_without_a_wrapper():
+    parachute = Parachute(name="Main", cd_s=10.0, trigger=800, sampling_rate=100, lag=0)
+    assert parachute.event.trigger is parachute.triggerfunc
+    # and it still answers correctly
+    assert parachute.event.trigger({"state": [0.0] * 13, "height_agl": 700}) is False
+    descending = [0.0] * 5 + [-1.0] + [0.0] * 7
+    assert parachute.event.trigger({"state": descending, "height_agl": 700}) is True
+    assert parachute.event.trigger({"state": descending, "height_agl": 900}) is False
+
+
+def test_a_legacy_positional_trigger_still_goes_through_the_adapter():
+    """The deprecated form needs the wrapper, so it keeps one."""
+    with pytest.warns(DeprecationWarning, match="Positional-argument"):
+        parachute = Parachute(
+            name="Drogue",
+            cd_s=1.0,
+            trigger=lambda p, h, y: h < 800,
+            sampling_rate=100,
+            lag=0,
+        )
+    assert parachute.event.trigger is not parachute.triggerfunc

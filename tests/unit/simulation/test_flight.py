@@ -8,6 +8,7 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Components, Flight, Function, LinearGenericSurface, Rocket
+from rocketpy.simulation.helpers.flight_derivatives import u_dot, u_dot_generalized
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -95,8 +96,7 @@ def test_solution_time_is_monotonically_non_decreasing(flight_calisto_robust):
     flight_calisto_robust : rocketpy.Flight
         Full flight with both drogue and main parachutes enabled.
     """
-    sol = np.array(flight_calisto_robust.solution)
-    times = sol[:, 0]
+    times = flight_calisto_robust.solution.time
     backward_steps = np.where(np.diff(times) < 0)[0]
     assert backward_steps.size == 0, (
         f"Solution time goes backward at {backward_steps.size} step(s). "
@@ -777,3 +777,58 @@ def test_max_acceleration_power_off_time_with_controllers(
     assert test.max_acceleration_power_off > 0, (
         "max_acceleration_power_off should be greater than zero"
     )
+
+
+# ---------------------------------------------------------------------------
+# The equations of motion themselves, evaluated on a fixed state
+# ---------------------------------------------------------------------------
+
+
+def _coasting_state(flight, seconds_after_burnout=3.0):
+    """Return ``(t, state)`` a few seconds into the coast of a flown flight."""
+    t = flight.rocket.motor.burn_out_time + seconds_after_burnout
+    return t, list(flight.solution.at(t).values())[:13]
+
+
+def _with_rates(state, w1=0.0, w2=0.0, w3=0.0):
+    return [*state[:10], w1, w2, w3]
+
+
+@pytest.mark.parametrize("derivative", [u_dot, u_dot_generalized])
+def test_an_angular_rate_is_aerodynamically_damped(flight_calisto_robust, derivative):
+    """A rate about any body axis must produce an angular acceleration against it.
+
+    The solid propulsion equations once zeroed the rates before the
+    aerodynamics, so no rate was ever damped: a canted fin spun the rocket up
+    without bound. This checks each axis on a coasting state, for both sets of
+    equations.
+    """
+    flight = flight_calisto_robust
+    t, state = _coasting_state(flight)
+    at_rest = derivative(flight, t, state)
+    for axis, rate in ((0, 2.0), (1, 2.0), (2, 20.0)):
+        slot = 10 + axis
+        positive = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": rate}))
+        negative = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": -rate}))
+        assert positive[slot] < at_rest[slot] < negative[slot], f"axis {axis + 1}"
+        # damping is close to linear in the rate at these magnitudes
+        assert positive[slot] - at_rest[slot] == pytest.approx(
+            -(negative[slot] - at_rest[slot]), rel=0.2
+        )
+
+
+def test_solid_propulsion_and_generalized_equations_agree_when_rotating(
+    flight_calisto_robust,
+):
+    """With a pitch rate applied, both models give the same damping moment.
+
+    They differ in how variable mass is handled, not in the aerodynamics, so
+    the angular acceleration a rate produces must agree closely.
+    """
+    flight = flight_calisto_robust
+    t, state = _coasting_state(flight)
+    pitching = _with_rates(state, w1=2.0)
+    solid = u_dot(flight, t, pitching)
+    generalized = u_dot_generalized(flight, t, pitching)
+    assert solid[10] == pytest.approx(generalized[10], rel=0.1)
+    assert solid[3:6] == pytest.approx(generalized[3:6], rel=0.05)

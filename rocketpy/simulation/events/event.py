@@ -5,22 +5,14 @@ from numbers import Real
 
 from ..._logging import logger
 from .commands import Commands
-from .exact_time_solvers import (
-    solve_exact_time_brentq,
-    solve_exact_time_cubic_hermite,
-    solve_exact_time_linear,
-)
-
-NEEDS_KEYS = frozenset({"state_dot", "pressure", "state_history"})
+from .exact_time_solvers import SOLVERS
 
 PRESETS = {
-    "apogee": lambda **kwargs: (
-        len(kwargs["flight"].solution) >= 2
-        and kwargs["flight"].solution[-2][6] > 0 >= kwargs["state"][5]
+    "apogee": lambda context: (
+        len(context["flight"].solution) >= 2
+        and context["flight"].solution.at_index(-2)["vz"] > 0 >= context["state"][5]
     ),
-    "burnout": lambda **kwargs: (
-        kwargs.get("time") >= kwargs["rocket"].motor.burn_out_time
-    ),
+    "burnout": lambda context: context["time"] >= context["rocket"].motor.burn_out_time,
 }
 
 
@@ -31,7 +23,7 @@ class Event:
     flight. It pairs a ``trigger`` predicate with a ``callback`` action: at
     each evaluation the trigger is checked and, when it returns ``True``,
     the callback runs. Callbacks can inspect the simulation state, store
-    persistent data in ``context``, log return values, and queue commands
+    persistent data in ``memory``, log return values, and queue commands
     (through ``event.commands``) that modify the simulation, such as
     starting a new flight phase, replacing the derivative, scheduling other
     events, or terminating the flight.
@@ -44,7 +36,7 @@ class Event:
         callback,
         trigger=None,
         sampling_rate=None,
-        context=None,
+        memory=None,
         disable_on=None,
         enable_on=None,
         exact_time_function=None,
@@ -56,38 +48,52 @@ class Event:
         enabled=True,
         verbose=False,
         priority=4,
-        needs=None,
     ):
         """Initialize an Event object.
 
         Parameters
         ----------
         callback : function
-            Required callable executed when the event triggers. It must accept
-            ``**kwargs`` and return ``None`` or a ``dict`` (appended to
-            ``self.callback_log``). Queue commands via
-            ``kwargs["event"].commands`` and access persistent state via
-            ``kwargs["event"].context``.
-            The following keys are always available in ``kwargs``:
+            Required callable executed when the event triggers, with signature
+            ``callback(context) -> None or dict``. A returned ``dict`` is
+            appended to ``self.callback_log``. Queue commands via
+            ``context["event"].commands`` and keep the event's own data in
+            ``context["event"].memory``.
+            ``context`` is a dictionary with the following keys:
             ``time`` (float, s),
             ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+            ``height_agl`` (float, m),
             ``sensors`` (list of sensor objects),
             ``sensors_by_name`` (dict of sensor objects),
             ``environment`` (:class:`rocketpy.Environment`),
             ``rocket`` (:class:`rocketpy.Rocket`),
             ``flight`` (:class:`rocketpy.Flight`),
             ``phase`` (current flight phase),
-            ``step_size`` (float, s),
-            ``height_agl`` (float, m),
             ``event`` (this :class:`Event` instance),
-            ``sampling_rate`` (float, Hz or ``None``).
-            The following keys are only injected when declared via ``needs``:
-            ``pressure`` (float, Pa),
+            ``sampling_rate`` (float, Hz or ``None``),
+            ``step_size`` (float, s, how long the simulation has been inside
+            the solver step being evaluated; not the interval between checks
+            of this callback, and not ``1 / sampling_rate``),
+            ``phase_state`` (dict, this flight phase's own states by name,
+            which may include states the 13 canonical ones cannot hold),
+            ``phase_state_dot`` (dict, time derivative of each entry in
+            ``phase_state``, by the same names),
             ``state_dot`` (list, time derivative of ``state``),
-            ``state_history`` (list of past state vectors).
+            ``pressure`` (float, Pa, at the rocket's altitude),
+            ``previous_state`` (the ``state`` from the previous time this
+            event was checked, or ``None`` on the first check),
+            ``previous_time`` (float, s, or ``None`` on the first check),
+            ``previous_phase_state`` (the ``phase_state`` from that previous
+            check, or ``None`` on the first check and whenever the flight has
+            just entered a new phase, since the states a phase follows are
+            only comparable within that phase).
+            The time derivatives and ``pressure`` are only worked out when a
+            function reads them, and once per solver step, so reading them
+            costs nothing unless they are used. Do not add keys to
+            ``context``: it is shared by every event checked in the step.
         trigger : function, optional
             Predicate that returns ``True`` when the event should fire. It
-            receives the same ``**kwargs`` as ``callback`` (see above), but
+            receives the same ``context`` as ``callback`` (see above), but
             its return value is interpreted as a boolean rather than logged.
             If ``None`` (default), the event fires every time it is evaluated.
         sampling_rate : float, optional
@@ -95,17 +101,17 @@ class Event:
             evaluated continuously at every solver time step. If a float (e.g.
             ``10``), the event is sampled at that rate, i.e. every
             ``1 / sampling_rate`` seconds.
-        context : dict, optional
-            Dictionary of persistent, mutable per-event state, exposed through
-            ``kwargs["event"].context`` inside the trigger and callback. Useful
-            for counters, thresholds, and data shared between trigger and
-            callback. Each key is also unpacked into the ``**kwargs`` passed to
-            the trigger and callback. Defaults to an empty dict. Note that
-            ``context`` is not persisted to output logs or files.
+        memory : dict, optional
+            The event's own dictionary, kept from one check to the next and
+            from trigger to callback. Read and write it as
+            ``context["event"].memory``. Useful for counters, thresholds and
+            data shared between trigger and callback. It is restored to the
+            values given here when the event is reset for a new flight.
+            Defaults to an empty dict. Not persisted to output logs or files.
         disable_on : str or int or float or callable, optional
             Condition that automatically disables the event. May be a string
             preset (``"apogee"`` or ``"burnout"``), a simulation time in seconds
-            (int or float), or a callable ``function(**kwargs)`` that returns
+            (int or float), or a callable ``function(context)`` that returns
             ``True`` when the event should be disabled. The times at which the
             event is disabled are recorded in ``self.disabled_times``.
         enable_on : str or int or float or callable, optional
@@ -114,25 +120,27 @@ class Event:
             callable predicate). The times at which the event is enabled are
             recorded in ``self.enabled_times``.
         exact_time_function : function, optional
-            Callable used to refine the trigger instant to an exact time between
-            solver steps, with signature
-            ``exact_time_function(state, **kwargs) -> float``. The mandatory
-            ``state`` argument receives the interpolated solver state vector
-            (without time); additional keyword arguments are the usual event
-            kwargs. The function must return a scalar whose root (zero crossing,
-            or the configured ``target``) defines the event instant, and it must
-            derive that quantity directly from ``state`` rather than from derived
-            kwargs such as ``height_agl``. Only supported for
-            continuous events (``sampling_rate=None``).
+            Function that pins down the exact moment the event happened, between
+            two solver steps. It receives the same ``context`` as ``trigger``,
+            worked out again at every moment the search tries, and returns a
+            number that crosses zero (or the configured ``target``) at the
+            event. For example, to fire exactly at 500 m above ground level::
+
+                def altitude(context):
+                    return context["height_agl"] - 500
+
+            When a crossing is found, ``callback`` runs with the ``context``
+            of that exact moment. Only supported for continuous events
+            (``sampling_rate=None``).
         exact_time_config : dict, optional
-            Configuration for the exact-time solver. The ``"solver"`` key selects
-            the algorithm: ``"linear"``, ``"cubic_hermite"``, or ``"brentq"``
-            (the default when omitted). All solvers accept a ``target`` float
-            (default ``0.0``); ``brentq`` additionally accepts ``xtol``, ``rtol``,
-            and ``maxiter``, and ``cubic_hermite`` requires a
-            ``derivative_function``. If ``None`` or empty (default), the
-            ``brentq`` solver is used with its defaults. See :ref:`eventusage`
-            for the full list of keys.
+            How the exact moment is searched for. The ``"solver"`` key selects
+            the method: ``"brentq"`` (default), ``"linear"`` or
+            ``"cubic_hermite"``. Every solver accepts ``target`` (float, default
+            ``0.0``); ``"brentq"`` also accepts ``xtol``, ``rtol`` and
+            ``maxiter``; ``"cubic_hermite"`` requires ``derivative_function``
+            (the time derivative of ``exact_time_function``, taking the same
+            ``context``). Any other key raises a ``ValueError``. See
+            :ref:`eventusage` for what each key does.
         trigger_only_once : bool, optional
             If ``True``, the event disables itself after the first successful
             trigger. Useful for one-shot actions such as deployment or
@@ -149,7 +157,7 @@ class Event:
         changes_dynamics : bool, optional
             Set to ``True`` when the callback changes anything that affects the
             equations of motion. This includes changing an attribute of any
-            simulation object, and using the ``set_derivative``,
+            simulation object, and using the ``set_dynamics``,
             ``start_flight_phase``, or ``terminate_flight`` commands. Defaults to
             ``False``.
         name : str, optional
@@ -173,12 +181,6 @@ class Event:
             - 2: Parachute events
             - 3: Controller events
             - 4: Custom / user-defined events (default)
-        needs : list of str or None, optional
-            Which of the slower-to-compute simulation values the event's trigger
-            and callback actually use, so the rest are skipped. Valid keys are
-            ``'state_dot'``, ``'pressure'`` and ``'state_history'``. The default
-            ``None`` means none of them are computed. List the keys your event
-            uses to have them provided in ``kwargs``.
 
         See Also
         --------
@@ -186,17 +188,8 @@ class Event:
         """
         self.callback = self.__validate_callback(callback)
         self.name = name
-        needs_set = frozenset(needs) if needs is not None else frozenset()
-        invalid = needs_set - NEEDS_KEYS
-        if invalid:
-            raise ValueError(
-                f"Unknown needs keys: {invalid!r}. Valid keys: {sorted(NEEDS_KEYS)!r}. "
-                "Note: 'height_agl' is always computed and does "
-                "not need to be declared."
-            )
-        self.needs = needs_set
         self.trigger = self.__validate_trigger(trigger) if trigger is not None else None
-        self.context = context if context is not None else {}
+        self.memory = memory if memory is not None else {}
         self.sampling_rate = sampling_rate
         self.trigger_only_once = trigger_only_once
         self.changes_dynamics = bool(changes_dynamics)
@@ -211,6 +204,7 @@ class Event:
         self.callback_log = []
         self.triggered_times = []
         self._trigger_checked = False
+        self._forget_previous_check()
 
         self.is_discrete = self.sampling_rate is not None
         self.sampling_interval = (
@@ -221,7 +215,7 @@ class Event:
         # These are lists of timestamps (floats) in simulation time.
         self.enabled_times = []
         self.disabled_times = []
-        self._initial_context = deepcopy(self.context)
+        self._initial_memory = deepcopy(self.memory)
         self._initial_enabled_times = list(self.enabled_times)
         self._initial_disabled_times = list(self.disabled_times)
 
@@ -230,20 +224,15 @@ class Event:
         self.disable_on = self.__validate_gate_condition(disable_on, "disable_on")
         self.enable_on = self.__validate_gate_condition(enable_on, "enable_on")
 
-        self.exact_time_function = self.__validate_exact_time_function(
-            exact_time_function
+        self.exact_time_function = (
+            None
+            if exact_time_function is None
+            else self.__validate_context_function(
+                exact_time_function, "exact_time_function"
+            )
         )
-        self.exact_time_config = exact_time_config if exact_time_config else {}
-
-        exact_time_solver_name = self.exact_time_config.get("solver", "brentq")
-        if exact_time_solver_name == "linear":
-            self.exact_time_solver = solve_exact_time_linear
-        elif exact_time_solver_name == "cubic_hermite":
-            self.exact_time_solver = solve_exact_time_cubic_hermite
-        elif exact_time_solver_name == "brentq":
-            self.exact_time_solver = solve_exact_time_brentq
-        else:
-            raise ValueError(f"Unknown exact-time solver: {exact_time_solver_name}")
+        self.exact_time_config = dict(exact_time_config or {})
+        self.__validate_exact_time_config(self.exact_time_config)
 
         if self.exact_time_function is not None and self.sampling_rate is not None:
             raise ValueError(
@@ -258,7 +247,7 @@ class Event:
         """Reset event runtime state.
 
         This clears per-run command/results state and internal logging buffers,
-        restores the initial ``enabled`` flag, and restores ``context`` to its
+        restores the initial ``enabled`` flag, and restores ``memory`` to its
         construction-time snapshot.
 
         Returns
@@ -271,7 +260,8 @@ class Event:
         self.callback_log.clear()
         self.triggered_times.clear()
         self._trigger_checked = False
-        self.context = deepcopy(self._initial_context)
+        self._forget_previous_check()
+        self.memory = deepcopy(self._initial_memory)
 
         # Restore enable/disable time history to initial snapshot
         self.enabled_times = list(self._initial_enabled_times)
@@ -293,11 +283,28 @@ class Event:
             f"trigger_only_once={self.trigger_only_once}, "
         )
 
-    def __call__(self, trigger_only=False, callback_only=False, reset=True, **kwargs):
+    def _forget_previous_check(self):
+        """Drop what this event saw the last time it was checked.
+
+        Called when the event is built and again when it is reset, so a second
+        flight does not compare its first check against the last check of the
+        one before it. The context answers ``previous_state``, ``previous_time``
+        and ``previous_phase_state`` from these.
+        """
+        self._previous_state = None
+        self._previous_time = None
+        self._previous_raw_state = None
+        self._previous_phase = None
+
+    def __call__(self, context, trigger_only=False, callback_only=False, reset=True):
         """Evaluate the event trigger and execute the callback if triggered.
 
         Parameters
         ----------
+        context : EventContext
+            The values to hand the trigger and callback. It is shared with the
+            other events checked in this solver step, so this event is bound to
+            it here and unbound again when the next event is bound.
         trigger_only : bool, optional
             If True, only evaluate the trigger condition without executing the
             callback. The enable_on function is also called.
@@ -308,74 +315,77 @@ class Event:
         reset : bool, optional
             If True (default), reset the event's queued commands (via
             ``_reset_commands``) before evaluating the trigger.
-        kwargs : dict
-            Keyword arguments passed to the trigger and callback functions.
 
         Returns
         -------
         bool
             True if the event was triggered, False otherwise.
         """
+        # A new phase may integrate different states, so forget the previous
+        # raw state. The previous canonical state is kept.
+        if context.get("phase") is not self._previous_phase:
+            self._previous_raw_state = None
+        context.bind(self)
+
         if self.enabled is False:
             # If event is disabled, only evaluate enable_on function if it exists.
-            if self._call_enable_on(**kwargs) is False:
+            if self._call_enable_on(context) is False:
                 return False
 
         if reset:
             self._reset_commands()
 
-        kwargs["event"] = self
-        kwargs["sampling_rate"] = self.sampling_rate
-
         # --- Trigger Phase ---
         # Skip evaluating triggers if we are only running the callback.
         if callback_only is False:
-            if self._call_enable_on(**kwargs) is False:
+            if self._call_enable_on(context) is False:
                 return False
 
-            if self._call_trigger(**kwargs) is False:
+            triggered = self._call_trigger(context)
+
+            # Remember this check, whether or not it triggered, so the next one
+            # can be compared against it. Recorded before the early return so a
+            # trigger that did not fire is still part of the sequence. The
+            # phase's own states are kept raw; the context names them if asked.
+            self._previous_state = context["state"]
+            self._previous_time = context["time"]
+            self._previous_phase = context.get("phase")
+            self._previous_raw_state = context.get("raw_state")
+
+            if triggered is False:
                 return False
 
             if trigger_only:
                 return True
 
         # --- Callback Phase ---
-        kwargs = self._call_exact_time(**kwargs)
+        context = self._call_exact_time(context)
 
-        try:
-            callback_log = self.callback(**kwargs)
-        except KeyError as exc:
-            key = exc.args[0] if exc.args else None
-            if isinstance(key, str) and key in NEEDS_KEYS:
-                raise KeyError(
-                    f"{key!r} is not available in event '{self.name}' callback kwargs. "
-                    f"Add it to the event's needs parameter: Event(..., needs=[{key!r}])"
-                ) from exc
-            raise
+        callback_log = self.callback(context)
 
         self.callback_log.append(callback_log)
-        self.triggered_times.append(kwargs.get("time"))
+        self.triggered_times.append(context.get("time"))
 
-        self._call_disable_on(**kwargs)
+        self._call_disable_on(context)
 
         if self.trigger_only_once:
             self.commands.disable()
 
         self._log(
             triggered=True,
-            kwargs=kwargs,
+            context=context,
         )
         return True
 
-    def _call_enable_on(self, **kwargs):
+    def _call_enable_on(self, context):
         if not self.enabled:
             # No enable_on function. Event stays disabled
             if self.enable_on is None:
-                self._log(triggered=False, kwargs=kwargs)
+                self._log(triggered=False, context=context)
                 return False
             try:
-                if not self.enable_on(**kwargs):
-                    self._log(triggered=False, kwargs=kwargs)
+                if not self.enable_on(context):
+                    self._log(triggered=False, context=context)
                     return False
                 self.commands.enable()
             except Exception as e:  # pylint: disable=W0718
@@ -383,88 +393,121 @@ class Event:
                     f"Error evaluating enable_on for event '{self.name}': {e}",
                     UserWarning,
                 )
-                self._log(triggered=False, kwargs=kwargs)
+                self._log(triggered=False, context=context)
                 return False
 
-    def _call_trigger(self, **kwargs):
+    def _call_trigger(self, context):
         if self.trigger is not None:
-            try:
-                result = self.trigger(**kwargs)
-            except KeyError as exc:
-                key = exc.args[0] if exc.args else None
-                if isinstance(key, str) and key in NEEDS_KEYS:
-                    raise KeyError(
-                        f"{key!r} is not available in event '{self.name}' trigger kwargs. "
-                        f"Add it to the event's needs parameter: Event(..., needs=[{key!r}])"
-                    ) from exc
-                raise
-            if not result:
-                self._log(triggered=False, kwargs=kwargs)
+            if not self.trigger(context):
+                self._log(triggered=False, context=context)
                 return False
         return True
 
-    def _call_exact_time(self, **kwargs):
-        if self.exact_time_function is not None:
-            try:
-                exact_time_result = self._compute_exact_time(**kwargs)
-            except (ValueError, RuntimeError) as e:
-                # Raise warning, and show error
-                warnings.warn(
-                    f"Event '{self.name}' trigger condition met, but exact-time "
-                    "solving failed. Event trigger time will be approximated as "
-                    "current step time."
-                )
-                warnings.warn(f"Exact-time solving error: {e}", UserWarning)
-                exact_time_result = None
-            if exact_time_result is not None:
-                # Store original sampled time/state for callback access if needed
-                kwargs["sampled_time"] = kwargs.get("time")
-                kwargs["sampled_state"] = kwargs.get("state")
-                # Update time and state in kwargs to exact values for callback
-                kwargs["time"] = exact_time_result["event_time"]
-                kwargs["state"] = exact_time_result["event_state"]
-        return kwargs
-
-    def _compute_exact_time(self, **kwargs):
-        """Compute the exact trigger time and corresponding state if
-        exact_time_function is set."""
-        flight = kwargs.get("flight")
-        phase = kwargs.get("phase")
-        if len(flight.solution) < 2:
-            self._log(
-                triggered=True,
-                kwargs=kwargs,
-                callback_executed=False,
-                skip_reason=(
-                    "Trigger condition met, but callback was not executed "
-                    "because exact-time solving requires at least two "
-                    "solution points."
-                ),
+    def _call_exact_time(self, context):
+        """Return the context at the exact event time, or ``context`` unchanged
+        if there is no exact-time function or no crossing was found."""
+        if self.exact_time_function is None:
+            return context
+        try:
+            return self._compute_exact_time(context)
+        except (ValueError, RuntimeError) as error:
+            warnings.warn(
+                f"Event '{self.name}': the exact moment it happened could not be "
+                f"found, so it fires at t = {context['time']:.6g} s, when its "
+                f"trigger was checked.\n{error}",
+                UserWarning,
             )
-            return None
+            return context
 
-        exact_time_result = self.exact_time_solver(
-            previous_state=flight.solution[-2],
-            current_state=flight.solution[-1],
-            interpolator=phase.solver.dense_output(),
-            event_function=self.exact_time_function,
-            no_root_error_message=(
-                "No valid roots found when solving exact event time for "
-                f"event {self.name}"
-            ),
-            **self.exact_time_config,
-            **kwargs,
-        )
+    def _compute_exact_time(self, context):
+        """Search the last solver step for the exact event time.
 
-        self.commands.exact_time = exact_time_result["event_time"]
-        self.commands.exact_state = exact_time_result["event_state"]
+        The step runs from the second-to-last stored row to the last one. At
+        every candidate time the whole context is worked out again, so the
+        exact-time function sees ``state``, ``height_agl``, ``phase_state`` and
+        the rest as they were at that moment.
 
-        return exact_time_result
+        Returns
+        -------
+        EventContext
+            A copy of ``context`` at the event time, which the callback is given.
+            ``context`` itself is shared with the other events of this step and
+            is left as it is.
+        """
+        flight = context["flight"]
+        solution = flight.solution
+        if len(solution) < 2:
+            raise ValueError(
+                "It fired before the first solver step, so there is no solver "
+                "step to search."
+            )
 
-    def _call_disable_on(self, **kwargs):
+        t0, *state0 = solution.raw_row(-2)
+        t1, *state1 = solution.raw_row(-1)
+        # The ends of the step were stored, so they are read rather than
+        # estimated. The start row belongs to the phase before when this is the
+        # first step of a phase, and its states may not match this phase's.
+        stored = {t1: state1}
+        if len(solution) - 2 >= solution.phases[-1].start:
+            stored[t0] = state0
+        dense_output = context["phase"].solver.dense_output()
+
+        # A solver may ask for the value and its rate at the same moment, so the
+        # last context built is kept.
+        cached = {}
+
+        def context_at(t):
+            if t not in cached:
+                raw_state = stored[t] if t in stored else dense_output(t)
+                cached.clear()
+                cached[t] = context.at(t, raw_state)
+            return cached[t]
+
+        options = dict(self.exact_time_config)
+        solver_name = options.pop("solver", "brentq")
+        solver = SOLVERS[solver_name][0]
+        target = options.pop("target", 0.0)
+        function = self.exact_time_function
+        derivative = options.pop("derivative_function", None)
+        if derivative is not None:
+            options["rate_at"] = lambda t: derivative(context_at(t))
+
+        try:
+            event_time = solver(
+                lambda t: function(context_at(t)) - target, t0, t1, **options
+            )
+        except (ValueError, RuntimeError) as error:
+            # The solver only says what went wrong. Add where, with which
+            # values, and what the user can do about it.
+            start = float(function(context_at(t0)))
+            end = float(function(context_at(t1)))
+            if min(start, end) <= target <= max(start, end):
+                hint = (
+                    "A smaller max_time_step on the Flight makes the solver steps "
+                    "shorter, which usually avoids this."
+                )
+            else:
+                hint = (
+                    "The trigger fired in a step where exact_time_function did "
+                    "not cross its target: check that the trigger and "
+                    "exact_time_function describe the same condition."
+                )
+            raise ValueError(
+                f"Over the solver step from t = {t0:.6g} s to {t1:.6g} s, "
+                f"exact_time_function went from {start:.6g} to {end:.6g}; its "
+                f"target is {target:.6g}. The {solver_name!r} solver reports: "
+                f"{error}.\n{hint}"
+            ) from error
+
+        exact_context = context_at(event_time)
+        self.commands.exact_time = event_time
+        self.commands.exact_state = exact_context["raw_state"]
+        return exact_context
+
+    def _call_disable_on(self, context):
         if self.disable_on is not None:
             try:
-                if self.disable_on(**kwargs):
+                if self.disable_on(context):
                     self.commands.disable()
             except Exception as e:  # pylint: disable=W0718
                 warnings.warn(
@@ -475,14 +518,14 @@ class Event:
     def _log(
         self,
         triggered,
-        kwargs,
+        context,
         callback_executed=None,
         skip_reason=None,
     ):
         if self.verbose:
             self.verbose_log.append(
                 {
-                    "time": kwargs.get("time"),
+                    "time": context.get("time"),
                     "triggered": triggered,
                     "callback_executed": callback_executed,
                     "skip_reason": skip_reason,
@@ -491,7 +534,7 @@ class Event:
         logger.debug(
             "Event '%s' at t=%s: triggered=%s, callback_executed=%s, skip_reason=%s",
             self.name,
-            kwargs.get("time"),
+            context.get("time"),
             triggered,
             callback_executed,
             skip_reason,
@@ -507,22 +550,14 @@ class Event:
             return PRESETS[trigger]
 
         if isinstance(trigger, Real) and not isinstance(trigger, bool):
-            return lambda **kwargs: kwargs.get("time") >= float(trigger)
+            return lambda context: context["time"] >= float(trigger)
 
         if not callable(trigger):
             raise ValueError("Trigger must be a callable, preset string, or number.")
 
-        signature = inspect.signature(trigger)
-        accepts_var_kwargs = any(
-            parameter.kind == inspect.Parameter.VAR_KEYWORD
-            for parameter in signature.parameters.values()
-        )
-        if not accepts_var_kwargs:
-            raise ValueError(
-                "Trigger function must accept arbitrary keyword arguments (**kwargs)."
-            )
+        trigger = self.__validate_context_function(trigger, "Trigger function")
 
-        return_annotation = signature.return_annotation
+        return_annotation = inspect.signature(trigger).return_annotation
         if return_annotation not in (inspect.Signature.empty, bool, "bool"):
             raise ValueError(
                 "Trigger function return annotation must be bool when provided."
@@ -534,17 +569,9 @@ class Event:
         if not callable(callback):
             raise ValueError("Callback must be a callable.")
 
-        signature = inspect.signature(callback)
-        accepts_var_kwargs = any(
-            parameter.kind == inspect.Parameter.VAR_KEYWORD
-            for parameter in signature.parameters.values()
-        )
-        if not accepts_var_kwargs:
-            raise ValueError(
-                "Callback function must accept arbitrary keyword arguments (**kwargs)."
-            )
+        callback = self.__validate_context_function(callback, "Callback function")
 
-        return_annotation = signature.return_annotation
+        return_annotation = inspect.signature(callback).return_annotation
         valid_return_annotations = (
             inspect.Signature.empty,
             type(None),
@@ -572,44 +599,50 @@ class Event:
                 )
             return PRESETS[condition]
         if isinstance(condition, Real) and not isinstance(condition, bool):
-            return lambda **kwargs: kwargs.get("time") >= float(condition)
+            return lambda context: context["time"] >= float(condition)
         if callable(condition):
-            return condition
+            return self.__validate_context_function(condition, parameter_name)
         raise TypeError(
             f"{parameter_name} must be None, a string preset, a number, or a callable"
         )
 
-    def __validate_exact_time_function(self, exact_time_function):
-        if exact_time_function is None:
-            return None
-
-        if not callable(exact_time_function):
-            raise ValueError("exact_time_function must be callable or None.")
-
-        signature = inspect.signature(exact_time_function)
-        parameters = list(signature.parameters.values())
-        if not parameters:
+    def __validate_context_function(self, function, parameter_name):
+        """Check that ``function`` is callable and takes the context as its one
+        positional argument."""
+        if not callable(function):
+            raise ValueError(f"{parameter_name} must be callable or None.")
+        try:
+            inspect.signature(function).bind(None)
+        except TypeError as error:
             raise ValueError(
-                "exact_time_function must accept a mandatory 'state' argument and "
-                "arbitrary keyword arguments (**kwargs)."
-            )
+                f"{parameter_name} must take the event context as its single "
+                f"positional argument, like `def f(context): ...`."
+            ) from error
+        return function
 
-        first_parameter = parameters[0]
-        accepts_var_kwargs = any(
-            parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in parameters
-        )
-
-        if first_parameter.name != "state" or first_parameter.kind not in (
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        ):
+    def __validate_exact_time_config(self, config):
+        """Check the solver name and that every key belongs to that solver."""
+        solver_name = config.get("solver", "brentq")
+        if solver_name not in SOLVERS:
             raise ValueError(
-                "exact_time_function must accept 'state' as its first argument."
+                f"Unknown exact-time solver: {solver_name!r}. "
+                f"Supported solvers: {sorted(SOLVERS)!r}."
             )
-
-        if not accepts_var_kwargs:
+        _, accepted, required = SOLVERS[solver_name]
+        unknown = set(config) - accepted - {"solver", "target"}
+        if unknown:
             raise ValueError(
-                "exact_time_function must accept arbitrary keyword arguments (**kwargs)."
+                f"Unknown exact_time_config keys for the {solver_name!r} solver: "
+                f"{sorted(unknown)!r}. Accepted keys: "
+                f"{sorted(accepted | {'solver', 'target'})!r}."
             )
-
-        return exact_time_function
+        missing = required - set(config)
+        if missing:
+            raise ValueError(
+                f"The {solver_name!r} exact-time solver requires "
+                f"{sorted(missing)!r} in exact_time_config."
+            )
+        if "derivative_function" in config:
+            self.__validate_context_function(
+                config["derivative_function"], "derivative_function"
+            )

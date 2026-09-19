@@ -9,6 +9,7 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.plots.flight_plots import _FlightPlots
 from rocketpy.prints.flight_prints import _FlightPrints
+from rocketpy.simulation.solution import Solution
 
 
 class RocketPyEncoder(json.JSONEncoder):
@@ -57,6 +58,11 @@ class RocketPyEncoder(json.JSONEncoder):
             return o.tolist()
         elif isinstance(o, datetime):
             return [o.year, o.month, o.day, o.hour]
+        elif isinstance(o, Solution):
+            # A Solution is iterable, so it has to be encoded from its own
+            # to_dict before the generic iterable branch below would flatten it
+            # into bare rows and lose which states each flight phase integrated.
+            return self._encode_by_to_dict(o)
         elif hasattr(o, "__iter__") and not isinstance(o, str):
             return list(o)
         elif isinstance(o, Function):
@@ -71,16 +77,7 @@ class RocketPyEncoder(json.JSONEncoder):
                 encoding["signature"] = get_class_signature(o)
                 return encoding
         elif hasattr(o, "to_dict"):
-            encoding = o.to_dict(
-                include_outputs=self.include_outputs,
-                discretize=self.discretize,
-                allow_pickle=self.allow_pickle,
-            )
-            encoding = remove_circular_references(encoding)
-
-            encoding["signature"] = get_class_signature(o)
-
-            return encoding
+            return self._encode_by_to_dict(o)
 
         elif hasattr(o, "__dict__"):
             encoding = remove_circular_references(o.__dict__)
@@ -91,6 +88,22 @@ class RocketPyEncoder(json.JSONEncoder):
             return encoding
         else:
             return super().default(o)
+
+    def _encode_by_to_dict(self, o):
+        """Encode an object from its ``to_dict``, stamped with its class.
+
+        The stamp is what lets :class:`RocketPyDecoder` find the class again
+        and rebuild the object through its ``from_dict``.
+        """
+        encoding = o.to_dict(
+            include_outputs=self.include_outputs,
+            discretize=self.discretize,
+            allow_pickle=self.allow_pickle,
+        )
+        encoding = remove_circular_references(encoding)
+        encoding["signature"] = get_class_signature(o)
+
+        return encoding
 
 
 class RocketPyDecoder(json.JSONDecoder):
@@ -155,7 +168,6 @@ def set_minimal_flight_attributes(flight, obj):
         "atol",
         "time_overshoot",
         "name",
-        "solution",
         "out_of_rail_time",
         "apogee_time",
         "apogee",
@@ -183,14 +195,30 @@ def set_minimal_flight_attributes(flight, obj):
         "net_thrust",
     )
 
+    # A solution saved by this version has already been rebuilt by the decoder;
+    # older saved flights hold a flat list of canonical rows instead. It is
+    # restored before the attributes above because the fallbacks below read
+    # flight outputs, which are all computed from the solution.
+    raw_solution = obj["solution"]
+    flight.solution = (
+        raw_solution
+        if isinstance(raw_solution, Solution)
+        else Solution.from_legacy_list(raw_solution)
+    )
+
     for attribute in attributes:
         try:
             setattr(flight, attribute, obj[attribute])
         except KeyError:
             # Manual resolution of new attributes
             if attribute == "net_thrust":
-                flight.net_thrust = obj["rocket"].motor.thrust
-                flight.net_thrust.set_discrete_based_on_model(flight.speed)
+                # Resample the thrust curve onto the flight's time grid without
+                # mutating the motor's own thrust Function.
+                flight.net_thrust = obj[
+                    "rocket"
+                ].motor.thrust.set_discrete_based_on_model(
+                    flight.speed, mutate_self=False
+                )
 
     flight.t_initial = flight.initial_solution[0]
 

@@ -4,8 +4,8 @@ from ..._logging import logger
 
 
 class _FlightPhases:
-    """Class to handle flight phases. It is used to store the derivatives
-    and events for each flight phase. It is also used to handle the
+    """Class to handle flight phases. It is used to store the equations of
+    motion and events for each flight phase. It is also used to handle the
     insertion of flight phases in the correct order, according to their
     initial time.
 
@@ -18,7 +18,7 @@ class _FlightPhases:
     def __init__(
         self,
         t_initial,
-        initial_derivative,
+        initial_dynamics,
         max_time,
         verbose=False,
     ):
@@ -26,7 +26,7 @@ class _FlightPhases:
 
         self.add_phase(
             t_initial,
-            initial_derivative,
+            initial_dynamics,
             name="initial_phase",
             clear=True,
         )
@@ -247,11 +247,11 @@ class _FlightPhases:
     def add_phase(
         self,
         t,
-        derivatives=None,
+        dynamics=None,
         event=None,
         index=None,
         name=None,
-        **kwargs,
+        clear=False,
     ):
         """Add a new flight phase to the list, with the specified
         characteristics. This method creates a new _FlightPhase instance and
@@ -263,9 +263,11 @@ class _FlightPhases:
         ----------
         t : float
             The initial time of the new flight phase.
-        derivatives : function, optional
-            A function representing the derivatives of the flight phase.
-            Default is None.
+        dynamics : bound _PhaseDynamics, optional
+            The equations of motion for the phase and the states it integrates,
+            already attached to a flight. Callable as ``(t, u)``, which is what
+            the solver needs. Default is None, meaning the phase is opened
+            without equations and gets them later.
         event : list of functions, optional
             A list of events to be executed during the flight
             phase. Default is None. You can also pass an empty list.
@@ -276,9 +278,9 @@ class _FlightPhases:
         name : str, optional
             A descriptive name to identify the phase in logs and
             debug output. Default is None.
-        **kwargs
-            Additional keyword arguments forwarded to the ``_FlightPhase``
-            constructor (e.g. ``parachute``).
+        clear : bool, optional
+            If True, clear events from the first time node of this phase.
+            Default is False.
 
         Returns
         -------
@@ -287,10 +289,10 @@ class _FlightPhases:
         self.add(
             _FlightPhase(
                 t,
-                derivative=derivatives,
+                dynamics=dynamics,
                 events=event,
                 name=name,
-                **kwargs,
+                clear=clear,
             ),
             index,
         )
@@ -315,7 +317,7 @@ class _FlightPhases:
 
 
 class _FlightPhase:
-    """Store a single flight phase with its time, derivatives, and events.
+    """Store a single flight phase with its equations of motion and events.
 
     This class encapsulates one discrete interval in the flight timeline.
     The `time_bound` is managed by _FlightPhases and marks the end time
@@ -325,26 +327,24 @@ class _FlightPhase:
     ----------
     t : float
         Start time (in seconds) of this flight phase.
-    derivative : callable, optional
-        Function computing state derivatives during this phase.
+    dynamics : bound _PhaseDynamics, optional
+        The equations of motion for this phase and the states it integrates,
+        already attached to a flight. Callable as ``(t, u)``.
     events : list of callable, optional
         Events to be evaluated or triggered during this phase.
     name : str, optional
         Descriptive label for logging and debug output.
     time_bound : float, optional
         Upper time boundary of this phase (managed by _FlightPhases).
-    parachute : optional
-        Parachute reference used only in post-processing.
     """
 
     def __init__(
         self,
         t,
-        derivative=None,
+        dynamics=None,
         events=None,
         name=None,
         clear=False,
-        **kwargs,
     ):
         """Initialize a flight phase.
 
@@ -352,8 +352,9 @@ class _FlightPhase:
         ----------
         t : float
             Start time of the phase.
-        derivative : callable, optional
-            State derivative function for this phase.
+        dynamics : bound _PhaseDynamics, optional
+            The equations of motion for this phase and the states it
+            integrates, already attached to a flight. Callable as ``(t, u)``.
         events : list of callable, optional
             Event hooks to evaluate during this phase.
         name : str, optional
@@ -362,27 +363,24 @@ class _FlightPhase:
             If True, clear events from the first time node of this phase.
             Useful for avoiding event checks at t=0 when state is incomplete.
             Default is False.
-        **kwargs
-            Additional attributes (e.g., parachute) used in post-processing.
         """
         self.t = t
-        self.derivative = derivative
+        self.dynamics = dynamics
         self.events = events
         self.name = name
         self.clear = clear
         self.time_bound = None
-        self.parachute = kwargs.get("parachute", None)
 
     def __repr__(self):
         """Return compact machine-readable representation."""
-        derivative_name = getattr(
-            self.derivative, "__name__", self.derivative.__class__.__name__
+        dynamics_name = getattr(
+            self.dynamics, "__name__", self.dynamics.__class__.__name__
         )
         return (
             "_FlightPhase("
             f"t={self.t!r}, "
             f"name={self.name!r}, "
-            f"derivative={derivative_name!r}, "
+            f"dynamics={dynamics_name!r}, "
             f"time_bound={self.time_bound!r}"
             ")"
         )
@@ -634,6 +632,20 @@ class _TimeNodes:
             Nodes at index+1 and beyond are removed.
         """
         del self.list[index + 1 :]
+
+    def truncate(self, t_bound):
+        """Cut the schedule so that it ends at ``t_bound``.
+
+        Used when the phase's end moves earlier while it is being flown:
+        nodes past the new end are dropped, and the last node is the new end.
+
+        Parameters
+        ----------
+        t_bound : float
+            The phase's new end time, in seconds.
+        """
+        self.list = [node for node in self.list if node.t < t_bound]
+        self.add_node(t_bound, [])
 
 
 class _TimeNode:

@@ -342,9 +342,9 @@ deployed and ``False`` otherwise. Internally, the parachute is wrapped in an
 :class:`rocketpy.Event`, so the trigger receives the same information available
 to any event trigger.
 
-The trigger must be defined as a function that accepts ``**kwargs``. This allows
-you to access the values you need from it. This is the same set of keyword 
-arguments described in :ref:`eventusage`, and includes (among others):
+The trigger must be defined as a function taking one argument, ``context``, a
+dictionary from which you read the values you need. It holds the same values
+described in :ref:`eventusage`, and includes (among others):
 
 **Simulation time and state:**
 
@@ -360,7 +360,8 @@ arguments described in :ref:`eventusage`, and includes (among others):
 - ``pressure`` (float): current atmospheric pressure in Pa at the rocket's
   altitude.
 - ``height_agl`` (float): height above ground level in meters.
-- ``step_size`` (float, optional): most recent solver step size in seconds.
+- ``step_size`` (float): how long the simulation has been inside the solver
+  step being evaluated, in seconds.
 
 **Simulation objects:**
 
@@ -372,9 +373,10 @@ arguments described in :ref:`eventusage`, and includes (among others):
 
 **Sensor and Event data:**
 
-- ``sensors`` (dict): dictionary mapping sensor names (or class names) to sensor
-  instances, each exposing its most recent ``measurement``. If several sensors
-  share a name, the value is a list.
+- ``sensors`` (list): the sensors attached to the rocket, each exposing its
+  most recent ``measurement``.
+- ``sensors_by_name`` (dict): the same sensors keyed by name (or class name).
+  If several sensors share a name, the value is a list.
 - ``sampling_rate`` (float or None): the sampling rate of the parachute trigger
   in Hz (or ``None`` for a continuous trigger).
 - ``event`` (:class:`rocketpy.Event`): a reference to the wrapping Event object,
@@ -388,17 +390,17 @@ The following example shows how to define trigger functions that will
 deploy the parachute when the vertical velocity is negative
 (post-apogee) and the height above ground level is less than 800 meters:
 
-Because ``**kwargs`` exposes the full event context, you can combine any of the
+Because ``context`` exposes the full event context, you can combine any of the
 available values. For example, you can use the acceleration components from
 ``state_dot`` (and the simulation time) to gate deployment:
 
 .. jupyter-input::
 
-    def main_trigger(**kwargs):
-        vz = kwargs["state"][5]  # vertical velocity
-        az = kwargs["state_dot"][5]  # vertical acceleration
-        h = kwargs["height_agl"]
-        time = kwargs["time"]
+    def main_trigger(context):
+        vz = context["state"][5]  # vertical velocity
+        az = context["state_dot"][5]  # vertical acceleration
+        h = context["height_agl"]
+        time = context["time"]
 
         # activate main when descending (vz < 0) and decelerating (az > 0),
         # below 800 m, and at least 5 s into the flight
@@ -413,20 +415,21 @@ Legacy positional trigger signature
 """"""""""""""""""""""""""""""""""""
 
 Older trigger functions declared the following positional arguments instead of
-reading them from ``**kwargs``:
+reading them from ``context``:
 
 - ``p`` (float): pressure in Pa **considering the parachute noise signal**.
 - ``h`` (float): height above ground level in meters, **considering the
   parachute noise signal**.
-- ``y`` (list of float): the state vector (same content as the ``state`` kwarg).
-- ``sensors`` (dict, optional fourth argument): the same dictionary as the
-  ``sensors`` kwarg.
+- ``y`` (list of float): the state vector (same content as
+  ``context["state"]``).
+- ``sensors`` (list, optional fourth argument): the same list as
+  ``context["sensors"]``.
 
 .. note::
     The legacy positional ``p`` and ``h`` carry the parachute noise signal,
-    whereas the ``pressure`` and ``height_agl`` keyword arguments
-    are the clean, noise-free values. For of pressure/height signals with noise,
-    use Sensor objects instead.
+    whereas ``context["pressure"]`` and ``context["height_agl"]`` are the
+    clean, noise-free values. For pressure or height signals with noise, use
+    Sensor objects instead.
 
 A legacy trigger therefore looked like this:
 

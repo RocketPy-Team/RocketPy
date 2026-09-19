@@ -139,23 +139,23 @@ order:
    - ``w_z``: The z component of the angular velocity of the rocket, in
      radians per second.
 
-4. ``state_history`` (list): A record of the rocket's state at each
-   step throughout the simulation. The state_history is organized as
-   a list of lists, with each sublist containing a state vector. The
-   last item in the list always corresponds to the previous state
-   vector, providing a chronological sequence of the rocket's
-   evolving states.
-5. ``observed_variables`` (list): A list containing the variables that
+4. ``observed_variables`` (list): A list containing the variables that
    the controller function returns. The return of each controller
    function call is appended to the observed_variables list. The
    initial value in the first step of the simulation of this list is
    provided by the ``initial_observed_variables`` argument.
-6. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
+5. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
 
 Our example ``controller_function`` will deploy the air brakes when the rocket
 reaches 1500 meters above the ground. The deployment level will be function of the
 vertical velocity at the current time step and of the vertical velocity at the
 previous time step.
+
+To read the vertical velocity from the previous controller call, use
+``context["previous_state"]``. That is the state from the previous run of
+*this controller*, so it is always exactly one control step back. Reading the
+flight solution instead would give you the last stored trajectory point, which
+advances on the solver's schedule rather than the controller's.
 
 Also, the controller function will check for the burnout of the rocket's motor
 and only deploy the air brakes if the rocket has reached burnout.
@@ -168,16 +168,16 @@ Lets define the controller function:
 
 .. jupyter-execute::
 
-    def controller_function(**kwargs):
+    def controller_function(context):
         # state = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
-        time = kwargs["time"]
-        state = kwargs["state"]
-        sampling_rate = kwargs["sampling_rate"]
-        motor = kwargs["rocket"].motor
-        environment = kwargs["environment"]
-        air_brakes = kwargs["air_brakes"]
+        time = context["time"]
+        state = context["state"]
+        sampling_rate = context["sampling_rate"]
+        motor = context["rocket"].motor
+        environment = context["environment"]
+        air_brakes = context["air_brakes"]
         altitude_ASL = state[2]
-        altitude_AGL = kwargs["height_agl"]
+        altitude_AGL = context["height_agl"]
         vx, vy, vz = state[3], state[4], state[5]
 
         # Get winds in x and y directions
@@ -189,9 +189,9 @@ Lets define the controller function:
         ) ** 0.5
         mach_number = free_stream_speed / environment.speed_of_sound(altitude_ASL)
 
-        # Get previous state from state_history
-        previous_state = kwargs["state_history"][-1]
-        previous_vz = previous_state[5]
+        # Get the state from the previous controller call
+        previous_state = context["previous_state"]
+        previous_vz = previous_state[5] if previous_state is not None else vz
 
         # If we wanted to we could get the returned values from observed_variables:
         # returned_time, deployment_level, drag_coefficient = observed_variables[-1]
@@ -230,14 +230,14 @@ Lets define the controller function:
 
 .. note::
 
-    - The ``controller_function`` accepts 6, 7, or 8 parameters for backward
+    - The ``controller_function`` accepts 5, 6, or 7 parameters for backward
       compatibility:
 
-      * **6 parameters** (original): ``time``, ``sampling_rate``, ``state``,
-        ``state_history``, ``observed_variables``, ``air_brakes``
-      * **7 parameters** (with sensors): adds ``sensors`` as the 7th parameter
-      * **8 parameters** (with environment): adds ``sensors`` and ``environment``
-        as the 7th and 8th parameters
+      * **5 parameters** (original): ``time``, ``sampling_rate``, ``state``,
+        ``observed_variables``, ``air_brakes``
+      * **6 parameters** (with sensors): adds ``sensors`` as the 6th parameter
+      * **7 parameters** (with environment): adds ``sensors`` and ``environment``
+        as the 6th and 7th parameters
 
     - The **environment parameter** provides access to atmospheric conditions
       (wind, temperature, pressure, elevation) without relying on global variables.
@@ -362,7 +362,6 @@ controller function. If you want to disable this feature, set ``clamp`` to
         initial_observed_variables=[0, 0, 0],
         override_rocket_drag=False,
         name="Air Brakes",
-        controller_needs=["state_history"],
     )
 
     air_brakes.all_info()

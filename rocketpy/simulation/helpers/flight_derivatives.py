@@ -129,19 +129,21 @@ def udot_rail1(flight, t, u, post_processing=False):
     Parameters
     ----------
     flight : Flight
-        Flight object containing the environment, rocket, and post-processing state.
+        Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, updates the flight post-processing buffer. Default is ``False``.
+        If ``True``, return this phase's post-process variables instead of the
+        state derivative. Default is ``False``.
 
     Returns
     -------
-    list
+    list or dict
         State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
-        alpha1, alpha2, alpha3]``.
+        alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
+        post-process variables as a variable name to value map.
     """
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, _, _, _ = u
@@ -196,10 +198,9 @@ def udot_rail1(flight, t, u, post_processing=False):
         ax, ay, az = 0, 0, 0
 
     if post_processing:
-        # Use u_dot post processing code for forces, moments and env data
-        flight.u_dot_generalized(t, u, post_processing=True)
-        # Save feasible accelerations
-        flight._Flight__post_processed_variables[-1][1:7] = [ax, ay, az, 0, 0, 0]
+        values = list(flight.u_dot_generalized.post_process_at(t, u))
+        values[:6] = [ax, ay, az, 0.0, 0.0, 0.0]
+        return values
 
     return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -213,21 +214,24 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
     Parameters
     ----------
     flight : Flight
-        Flight object containing the environment, rocket, and post-processing state.
+        Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, updates the flight post-processing buffer. Default is ``False``.
+        If ``True``, return this phase's post-process variables instead of the
+        state derivative. Default is ``False``.
 
     Returns
     -------
-    list
-        State derivative returned by :func:`u_dot_generalized`.
+    list or dict
+        Whatever :func:`u_dot_generalized` returns for the same arguments.
     """
     # Hey! We will finish this function later, now we just can use u_dot
-    return flight.u_dot_generalized(t, u, post_processing=post_processing)
+    if post_processing:
+        return flight.u_dot_generalized.post_process_at(t, u)
+    return flight.u_dot_generalized(t, u)
 
 
 def u_dot(flight, t, u, post_processing=False):
@@ -240,25 +244,26 @@ def u_dot(flight, t, u, post_processing=False):
     Parameters
     ----------
     flight : Flight
-        Flight object containing the environment, rocket, and post-processing state.
+        Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, updates the flight post-processing buffer. Default is ``False``.
+        If ``True``, return this phase's post-process variables instead of the
+        state derivative. Default is ``False``.
 
     Returns
     -------
     list
         State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
-        alpha1, alpha2, alpha3]``.
+        alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
+        post-process variables in its declared order.
     """
 
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
     # Determine lift force and moment
-    omega1, omega2, omega3 = 0, 0, 0
     R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
     # Thrust correction parameters
     pressure = flight.env.pressure.get_value_opt(z)
@@ -519,24 +524,21 @@ def u_dot(flight, t, u, post_processing=False):
     ]
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
-            [
-                t,
-                ax,
-                ay,
-                az,
-                alpha1,
-                alpha2,
-                alpha3,
-                R1,
-                R2,
-                R3,
-                M1,
-                M2,
-                M3,
-                net_thrust,
-            ]
-        )
+        return [
+            ax,
+            ay,
+            az,
+            alpha1,
+            alpha2,
+            alpha3,
+            R1,
+            R2,
+            R3,
+            M1,
+            M2,
+            M3,
+            net_thrust,
+        ]
     return u_dot
 
 
@@ -550,19 +552,21 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     Parameters
     ----------
     flight : Flight
-        Flight object containing the environment, rocket, and post-processing state.
+        Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, updates the flight post-processing buffer. Default is ``False``.
+        If ``True``, return this phase's post-process variables instead of the
+        state derivative. Default is ``False``.
 
     Returns
     -------
     list
         State derivative ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot,
-        alpha1, alpha2, alpha3]``.
+        alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
+        post-process variables in its declared order.
     """
     # Unpack state
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
@@ -747,9 +751,9 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
-            [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0, net_thrust]
-        )
+        # A 3-DOF phase models no aerodynamic moments, so M1, M2 and M3 are
+        # reported as zero.
+        return [*v_dot, *w_dot, R1, R2, R3, 0.0, 0.0, 0.0, net_thrust]
 
     return u_dot
 
@@ -764,19 +768,21 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     Parameters
     ----------
     flight : Flight
-        Flight object containing the environment, rocket, and post-processing state.
+        Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
     post_processing : bool, optional
-        If ``True``, updates the flight post-processing buffer. Default is ``False``.
+        If ``True``, return this phase's post-process variables instead of the
+        state derivative. Default is ``False``.
 
     Returns
     -------
     list
         State derivative ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot,
-        alpha1, alpha2, alpha3]``.
+        alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
+        post-process variables in its declared order.
     """
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
@@ -954,35 +960,43 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
-            [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust]
-        )
+        return [*v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust]
 
     return u_dot
 
 
-def u_dot_parachute(flight, t, u, post_processing=False):
+def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):
     """Compute the parachute descent derivative.
 
-    The parachute model is a 3DOF translational approximation with drag and added-mass
-    effects. Angular motion is not integrated.
+    Only position and velocity actually move under a parachute. The attitude and
+    angular rates are held fixed at their values when the parachute deployed, so
+    their derivatives are zero, but they are still part of this phase's state,
+    so that the descent reports the full canonical state.
 
     Parameters
     ----------
     flight : Flight
-        Flight object containing the environment, rocket, and active parachute.
+        Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
     u : list
-        State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+        State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``. Only
+        the position and velocity are read; the attitude and angular rates come
+        along unchanged.
     post_processing : bool, optional
-        If ``True``, updates the flight post-processing buffer. Default is ``False``.
+        If ``True``, return this phase's post-process variables instead of the
+        state derivative. Default is ``False``.
+    parachute : Parachute
+        The parachute descending during this phase, supplying the drag area,
+        radius, height and added-mass coefficient. Fixed onto this function
+        when the descent phase begins.
 
     Returns
     -------
     list
-        State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
-        alpha1, alpha2, alpha3]``.
+        State derivative ``[vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]``. With
+        ``post_processing``, this phase's post-process variables in its declared
+        order.
     """
     # Get relevant state data
     z, vx, vy, vz = u[2:6]
@@ -1006,12 +1020,12 @@ def u_dot_parachute(flight, t, u, post_processing=False):
 
     # Calculate added mass
     ma = (
-        flight._active_parachute.added_mass_coefficient
+        parachute.added_mass_coefficient
         * rho
         * (2 / 3)
         * np.pi
-        * flight._active_parachute.radius**2
-        * flight._active_parachute.height
+        * parachute.radius**2
+        * parachute.height
     )
 
     # Calculate freestream speed
@@ -1021,7 +1035,7 @@ def u_dot_parachute(flight, t, u, post_processing=False):
     free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
 
     # Determine drag force
-    pseudo_drag = -0.5 * rho * flight._active_parachute.cd_s * free_stream_speed
+    pseudo_drag = -0.5 * rho * parachute.cd_s * free_stream_speed
     # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
     Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
     Dy = pseudo_drag * freestream_y
@@ -1037,8 +1051,6 @@ def u_dot_parachute(flight, t, u, post_processing=False):
     az -= 2 * (-vx * w_earth_y)
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
-            [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
-        )
+        return [ax, ay, az, Dx, Dy, Dz]
 
-    return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+    return [vx, vy, vz, ax, ay, az, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

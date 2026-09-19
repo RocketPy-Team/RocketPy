@@ -303,7 +303,7 @@ class _FlightPrints:
             print(f"Sensor Event: {event_name}")
             print(f"\tEnabled at end of simulation: {event.enabled}")
             parent_sensor = (
-                event.context.get("sensor") if isinstance(event.context, dict) else None
+                event.memory.get("sensor") if isinstance(event.memory, dict) else None
             )
             parent_name = (
                 parent_sensor.name if parent_sensor is not None else event_name
@@ -331,8 +331,8 @@ class _FlightPrints:
             if len(event.callback_log) > 0:
                 print(f"\tCallback Log Entries: {len(event.callback_log)}")
 
-            if isinstance(event.context, dict):
-                print(f"\tContext Keys: {list(event.context.keys())}")
+            if isinstance(event.memory, dict):
+                print(f"\tMemory Keys: {list(event.memory.keys())}")
             print()
 
     def custom_events(self):
@@ -378,8 +378,8 @@ class _FlightPrints:
             if len(event.callback_log) > 0:
                 print(f"\tCallback Log Entries: {len(event.callback_log)}")
 
-            if isinstance(event.context, dict):
-                print(f"\tContext Keys: {list(event.context.keys())}")
+            if isinstance(event.memory, dict):
+                print(f"\tMemory Keys: {list(event.memory.keys())}")
             print()
 
     def controllers(self):
