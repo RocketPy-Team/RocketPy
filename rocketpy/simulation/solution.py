@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 
 from .helpers.dynamics import (
+    BUILT_IN_DYNAMICS,
     CANONICAL_INDEX,
     CANONICAL_STATE_NAMES,
     SIX_DOF_DYNAMICS,
@@ -258,12 +259,18 @@ class _PhaseSolution:
             the dynamics to a flight needs a running simulation, so the phase
             cannot be post-processed again.
         """
-        return cls(
-            # A derivative is code and cannot be saved, so the phase keeps its
-            # name and states but cannot be flown or post-processed again.
-            _PhaseDynamics(
+        # The dynamics is code, so it was saved by name. A built-in one is
+        # used again, so the canonical states it rebuilds are rebuilt here too.
+        dynamics = BUILT_IN_DYNAMICS.get(data.get("dynamics"))
+        if dynamics is None or list(dynamics.states) != data["state_names"]:
+            # Unknown, or changed since the flight was saved: its own states
+            # can still be read by name, and every other canonical state is
+            # held at its start-of-phase value.
+            dynamics = _PhaseDynamics(
                 data.get("dynamics") or "unknown", None, data["state_names"]
-            ),
+            )
+        return cls(
+            dynamics,
             data.get("start_canonical"),
             t_start=data.get("t_start"),
             name=data.get("name"),

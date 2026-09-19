@@ -456,3 +456,16 @@ PARACHUTE_DYNAMICS = _PhaseDynamics(
     CANONICAL_STATE_NAMES,
     PARACHUTE_POST_PROCESS_VARS,
 )
+
+# Every kind of phase RocketPy ships, by name, so a saved flight gets back the
+# dynamics each of its phases was flown with. Add new dynamics here.
+BUILT_IN_DYNAMICS = {
+    dynamics.name: dynamics
+    for dynamics in (
+        RAIL_DYNAMICS,
+        SOLID_PROPULSION_DYNAMICS,
+        SIX_DOF_DYNAMICS,
+        THREE_DOF_DYNAMICS,
+        PARACHUTE_DYNAMICS,
+    )
+}
