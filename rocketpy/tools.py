@@ -220,8 +220,18 @@ def find_roots_cubic_function(a, b, c, d):
             if c == 0:
                 return no_root, no_root, no_root
             return complex(-d / c), no_root, no_root
+        # The textbook formula subtracts two nearly equal numbers when b is
+        # tiny next to c, which ruins the root near -d / c. Adding terms of
+        # the same sign instead keeps both roots accurate.
         discriminant = complex(c**2 - 4 * b * d) ** 0.5
-        return (-c + discriminant) / (2 * b), (-c - discriminant) / (2 * b), no_root
+        if c * discriminant.real >= 0:
+            q = -(c + discriminant) / 2
+        else:
+            q = -(c - discriminant) / 2
+        if q == 0:
+            # c and d are both zero: b * x**2 has a double root at zero
+            return complex(0), complex(0), no_root
+        return q / b, d / q, no_root
 
     delta_0 = b**2 - 3 * a * c
     delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
