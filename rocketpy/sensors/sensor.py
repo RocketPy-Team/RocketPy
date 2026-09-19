@@ -446,7 +446,7 @@ class InertialSensor(Sensor):
         temperature drift.
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         sampling_rate,
         orientation=(0, 0, 0),

@@ -797,7 +797,9 @@ class _InterruptingMonteCarlo(MonteCarlo):
 
     Only the attributes ``simulate`` and ``__run_in_serial`` touch are set, so no
     stochastic object graph or real flight is needed. The name-mangled overrides
-    stand in for the members ``MonteCarlo`` calls on itself.
+    stand in for the members ``MonteCarlo`` calls on itself, seeding included:
+    there are no models here to reseed, and what a seeded run draws is pinned
+    by ``tests/unit/simulation/test_monte_carlo_seeding.py``.
     """
 
     # pylint: disable=super-init-not-called,invalid-name,unused-argument
@@ -814,6 +816,9 @@ class _InterruptingMonteCarlo(MonteCarlo):
         self.interrupt_after = interrupt_after
         self.completed = 0
 
+    def _MonteCarlo__seed_this_simulation(self, sim_idx):
+        pass
+
     def _MonteCarlo__run_single_simulation(self):
         if self.completed >= self.interrupt_after:
             raise KeyboardInterrupt("ctrl-c")
@@ -821,10 +826,36 @@ class _InterruptingMonteCarlo(MonteCarlo):
         return object()
 
     def _MonteCarlo__evaluate_flight_inputs(self, index):
-        return json.dumps({"index": index}) + "\n"
+        # The root goes in because an append reads it back to check the rows
+        # it is continuing were drawn by the same stream; a row without it is
+        # what a study written before that check looks like, and is refused.
+        return (
+            json.dumps(
+                {
+                    "index": index,
+                    mc_module._SIMULATION_ROOT_KEY: (
+                        mc_module._root_written_into_a_row(self._MonteCarlo__root_state)
+                    ),
+                }
+            )
+            + "\n"
+        )
 
     def _MonteCarlo__evaluate_flight_outputs(self, flight, index):
-        return json.dumps({"index": index, "apogee": 1000.0 + index}) + "\n"
+        # The outputs rows name the same root by its digest, which is what
+        # an append checks them against.
+        return (
+            json.dumps(
+                {
+                    "index": index,
+                    "apogee": 1000.0 + index,
+                    mc_module._SIMULATION_ROOT_KEY: mc_module._root_digest(
+                        mc_module._root_written_into_a_row(self._MonteCarlo__root_state)
+                    ),
+                }
+            )
+            + "\n"
+        )
 
 
 def test_interrupted_serial_run_reaches_the_caller(tmp_path):
@@ -871,7 +902,7 @@ def test_interrupted_serial_run_still_reloads_the_logs(tmp_path):
     assert mc.num_of_loaded_sims == 2
     assert len(mc.inputs_log) == 2
     assert len(mc.outputs_log) == 2
-    assert mc.results["apogee"] == pytest.approx([1001.0, 1002.0])
+    assert mc.results["apogee"] == pytest.approx([1000.0, 1001.0])
 
 
 def test_an_interrupted_run_can_be_continued_with_append(tmp_path):
@@ -892,7 +923,7 @@ def test_an_interrupted_run_can_be_continued_with_append(tmp_path):
     mc.simulate(number_of_simulations=10, append=True, parallel=False)
 
     rows = pathlib.Path(stem + ".outputs.txt").read_text(encoding="utf-8").splitlines()
-    assert [json.loads(row)["index"] for row in rows] == list(range(1, 11))
+    assert [json.loads(row)["index"] for row in rows] == list(range(10))
 
 
 def test_ctrl_c_before_the_first_simulation_is_still_the_interrupt(
@@ -900,7 +931,7 @@ def test_ctrl_c_before_the_first_simulation_is_still_the_interrupt(
 ):
     """The handler appends ``inputs_json``, which used to be unbound this early.
 
-    Ctrl-C during the first ``keep_simulating()`` call reached the handler
+    Ctrl-C during the first ``claim_next_index()`` call reached the handler
     before the loop body had bound the name, so the run died with
     ``UnboundLocalError`` from inside the cleanup instead of with the interrupt.
     """
@@ -908,7 +939,7 @@ def test_ctrl_c_before_the_first_simulation_is_still_the_interrupt(
     def interrupt(self):
         raise KeyboardInterrupt("ctrl-c before the first simulation")
 
-    monkeypatch.setattr(mc_module._SimMonitor, "keep_simulating", interrupt)
+    monkeypatch.setattr(mc_module._SimMonitor, "claim_next_index", interrupt)
     mc = _InterruptingMonteCarlo(str(tmp_path / "run"), interrupt_after=0)
 
     with pytest.raises(KeyboardInterrupt):
@@ -1131,7 +1162,7 @@ def test_ctrl_c_between_the_two_appends_rolls_the_inputs_row_back(tmp_path):
     ]
     # The simulation that was cut short is recorded where errors go, so the
     # rolled-back row is preserved rather than lost.
-    assert [json.loads(row)["index"] for row in errors] == [3]
+    assert [json.loads(row)["index"] for row in errors] == [2]
     assert mc.num_of_loaded_sims == 2
 
 
@@ -1141,7 +1172,7 @@ def test_ctrl_c_in_the_progress_print_leaves_the_error_file_empty(tmp_path):
     After ``_append_simulation_record`` returns, the pair is on disk. The
     handler used to write ``inputs_json`` to the error file anyway when the
     interrupt landed in ``print_update_status()`` — or in the next
-    ``keep_simulating()`` call — because the name still held the committed row.
+    ``claim_next_index()`` call — because the name still held the committed row.
     """
     stem = str(tmp_path / "run")
     mc = _InterruptingMonteCarlo(stem, interrupt_after=10)
@@ -1226,5 +1257,5 @@ def test_a_torn_outputs_write_rolls_both_files_back(tmp_path):
     assert len(outputs) == 2, "the torn outputs row was not rolled back"
     for row in inputs + outputs:
         json.loads(row)  # every surviving row must still parse
-    assert [json.loads(row)["index"] for row in errors] == [3]
+    assert [json.loads(row)["index"] for row in errors] == [2]
     assert mc.num_of_loaded_sims == 2

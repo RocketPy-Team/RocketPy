@@ -1,5 +1,6 @@
 import pytest
 
+from rocketpy.simulation import monte_carlo as mc_module
 from rocketpy.simulation.monte_carlo import _join_the_workers
 
 
@@ -169,11 +170,18 @@ def test_a_worker_that_ignores_terminate_is_killed():
     assert stubborn.killed
 
 
-def test_the_fleet_comes_down_on_one_deadline_not_one_each():
+def test_the_fleet_comes_down_on_one_deadline_not_one_each(monkeypatch):
     """A stage gives the fleet one grace period between them, not each."""
     # Observed through what each worker is offered: with a deadline of its own
     # every worker is given the whole grace, so a fleet of thirty takes thirty
     # times as long to give up on.
+    #
+    # The clock ticks by hand. These stand-ins return at once, so a real one
+    # need not move between setting the deadline and reading it back, and
+    # Windows measured (t + 0.05) - t as 0.0500000000001819 rather than less.
+    ticking = iter(index * 0.001 for index in range(100_000))
+    monkeypatch.setattr(mc_module, "monotonic", lambda: next(ticking))
+
     died = _Worker(exitcode=-9, alive_for=1)
     stuck = [_Worker(never=True) for _ in range(4)]
 
@@ -182,3 +190,9 @@ def test_the_fleet_comes_down_on_one_deadline_not_one_each():
     offered = [t for t in stuck[-1].timeouts if t is not None]
     assert offered
     assert min(offered) < 0.05
+
+    # The shape of it: inside one stage the fleet shares what is left, so what
+    # each worker is offered shrinks along the loop. One deadline each would
+    # offer every one of them the whole grace.
+    first, last = died.timeouts[-1], stuck[-1].timeouts[-1]
+    assert last < first
