@@ -7,7 +7,9 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation.flight import Flight
+from rocketpy.simulation.helpers import dynamics as dynamics_module
 from rocketpy.simulation.helpers.dynamics import (
+    BUILT_IN_DYNAMICS,
     CANONICAL_STATE_NAMES,
     FULL_POST_PROCESS_VARS,
     PARACHUTE_DYNAMICS,
@@ -80,6 +82,16 @@ def test_dynamics_names_and_states():
     assert PARACHUTE_DYNAMICS.width == 13
     # It still reports only the variables a descent has.
     assert PARACHUTE_DYNAMICS.post_process_vars == ("ax", "ay", "az", "R1", "R2", "R3")
+
+
+def test_every_shipped_dynamics_is_found_by_name():
+    """A saved flight finds its dynamics by name, so none may be left out."""
+    shipped = [
+        value
+        for value in vars(dynamics_module).values()
+        if isinstance(value, _PhaseDynamics)
+    ]
+    assert {dynamics.name: dynamics for dynamics in shipped} == BUILT_IN_DYNAMICS
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +275,13 @@ def test_non_canonical_states_use_the_largest_atol():
     )
     atol = 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-2]
     assert heading.select_atol(atol) == [1e-3] * 6 + [1e-2]
+
+
+def test_a_canonical_atol_is_matched_by_name_for_13_other_states():
+    """Thirteen states of its own do not take the canonical atol by position."""
+    other = _PhaseDynamics("other", stub_derivative, [f"s{i}" for i in range(13)])
+    atol = 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-2]
+    assert other.select_atol(atol) == [1e-2] * 13
 
 
 def test_bad_atol_length_raises():

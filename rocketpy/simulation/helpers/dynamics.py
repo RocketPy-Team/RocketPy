@@ -81,14 +81,12 @@ class _PhaseDynamics:
         Parameters
         ----------
         name : str
-            Name of this kind of phase, such as ``"parachute"``. It is written
-            out with the phase when a flight is saved.
+            Name of this kind of phase, such as ``"parachute"``.
         derivative : callable or None
             The function ``f(flight, t, u)`` giving the time derivative of each
             state in ``states``, in that same order. ``u`` is the phase's own
-            state. ``None`` for a phase read back from a saved flight: its
-            stored states can still be read by name, but it cannot be flown or
-            post-processed again, since a derivative is code and is not saved.
+            state. With ``None`` the phase's states can still be read by name,
+            but the phase cannot be flown or post-processed.
 
             A phase that reports post-process variables writes
             ``f(flight, t, u, post_processing=False)`` instead, and when the
@@ -307,8 +305,9 @@ class _PhaseDynamics:
         -------
         float or list of float
             A single number is returned unchanged. A 13-value canonical vector is
-            reduced to this phase's states (states that are not canonical use the
-            largest supplied tolerance).
+            matched to this phase's states by name (states that are not
+            canonical use the largest supplied tolerance), even when the phase
+            also integrates 13 states.
 
         Raises
         ------
@@ -319,7 +318,7 @@ class _PhaseDynamics:
         if not np.iterable(atol):
             return atol
         atol = list(atol)
-        if self.is_canonical or len(atol) == self.width:
+        if self.is_canonical:
             return atol
         if len(atol) == len(CANONICAL_STATE_NAMES):
             fallback = max(atol)
@@ -327,6 +326,8 @@ class _PhaseDynamics:
                 atol[CANONICAL_INDEX[name]] if name in CANONICAL_INDEX else fallback
                 for name in self.states
             ]
+        if len(atol) == self.width:
+            return atol
         raise ValueError(
             f"atol vector has length {len(atol)}, which matches neither the "
             f"canonical state (13) nor this flight phase ({self.width})."
@@ -456,3 +457,16 @@ PARACHUTE_DYNAMICS = _PhaseDynamics(
     CANONICAL_STATE_NAMES,
     PARACHUTE_POST_PROCESS_VARS,
 )
+
+# Every kind of phase RocketPy ships, by name, so a saved flight gets back the
+# dynamics each of its phases was flown with. Add new dynamics here.
+BUILT_IN_DYNAMICS = {
+    dynamics.name: dynamics
+    for dynamics in (
+        RAIL_DYNAMICS,
+        SOLID_PROPULSION_DYNAMICS,
+        SIX_DOF_DYNAMICS,
+        THREE_DOF_DYNAMICS,
+        PARACHUTE_DYNAMICS,
+    )
+}

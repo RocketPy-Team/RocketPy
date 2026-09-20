@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation.helpers.dynamics import (
+    BUILT_IN_DYNAMICS,
     CANONICAL_INDEX,
     CANONICAL_STATE_NAMES,
     FULL_POST_PROCESS_VARS,
@@ -512,6 +513,43 @@ def test_from_dict_unknown_dynamics_name_tolerated():
     assert phase.bound_dynamics is None
     assert len(restored) == 1
     assert restored["vz"][:, 1].tolist() == [0.0]
+
+
+def test_from_dict_finds_built_in_dynamics_by_name():
+    solution = build_mixed_solution()
+    restored = Solution.from_dict(solution.to_dict())
+    assert restored.phases[0].dynamics is SIX_DOF_DYNAMICS
+
+
+def test_from_dict_ignores_a_built_in_whose_states_changed():
+    """A built-in phase saved with other states than it has now is not used."""
+    data = build_mixed_solution().to_dict()
+    data["phases"][1]["dynamics"] = "six_dof"
+    restored = Solution.from_dict(data)
+    assert restored.phases[1].dynamics is not SIX_DOF_DYNAMICS
+    assert restored.phases[1].dynamics.states == DESCENT_DYNAMICS.states
+
+
+def test_rebuilt_canonical_states_survive_save_and_load(monkeypatch):
+    """A phase with states of its own rebuilds the canonical ones after loading."""
+
+    def to_canonical(values):
+        values["z"], values["vz"] = values["h"], values["v"]
+        return [values[name] for name in CANONICAL_STATE_NAMES]
+
+    altitude = _PhaseDynamics(
+        "altitude", stub_derivative, ("h", "v"), to_canonical=to_canonical
+    )
+    monkeypatch.setitem(BUILT_IN_DYNAMICS, "altitude", altitude)
+    solution = Solution()
+    solution._start_phase(altitude, start_canonical=tuple([0.0] * 13))
+    solution._append([0.0, 100.0, 50.0])
+    solution._append([1.0, 150.0, 40.0])
+
+    restored = Solution.from_dict(solution.to_dict())
+    assert restored.phases[0].dynamics is altitude
+    assert restored["z"][:, 1].tolist() == [100.0, 150.0]
+    assert np.array_equal(restored.canonical_array, solution.canonical_array)
 
 
 def test_phase_starts_that_disagree_with_the_rows_are_rejected():
