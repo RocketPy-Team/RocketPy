@@ -68,6 +68,56 @@ class TestConversionFactor:
 class TestConvertUnits:
     """Tests for the convert_units function."""
 
+    @pytest.mark.parametrize(
+        "unit, base_unit, value_in_base",
+        [
+            ("mm", "m", 1e-3),
+            ("cm", "m", 1e-2),
+            ("dm", "m", 1e-1),
+            ("dam", "m", 1e1),
+            ("hm", "m", 1e2),
+            ("km", "m", 1e3),
+            ("ft", "m", 0.3048),
+            ("in", "m", 0.0254),
+            ("mi", "m", 1609.344),
+            ("nmi", "m", 1852),
+            ("yd", "m", 0.9144),
+            ("km/h", "m/s", 1 / 3.6),
+            ("knot", "m/s", 1852 / 3600),
+            ("mph", "m/s", 1609.344 / 3600),
+            ("ft/s", "m/s", 0.3048),
+            ("gs", "m/s^2", 9.80665),
+            ("ft/s^2", "m/s^2", 0.3048),
+            ("hPa", "Pa", 1e2),
+            ("kPa", "Pa", 1e3),
+            ("MPa", "Pa", 1e6),
+            ("bar", "Pa", 1e5),
+            ("atm", "Pa", 101325),
+            ("mmHg", "Pa", 133.322387415),
+            ("inHg", "Pa", 3386.389),
+            ("min", "s", 60),
+            ("h", "s", 3600),
+            ("d", "s", 86400),
+            ("mg", "kg", 1e-6),
+            ("g", "kg", 1e-3),
+            ("lb", "kg", 0.45359237),
+            ("deg", "rad", np.pi / 180),
+            ("grad", "rad", np.pi / 200),
+        ],
+    )
+    def test_convert_units_matches_unit_definitions(
+        self, unit, base_unit, value_in_base
+    ):
+        """One of each unit should convert to its defined value in the base
+        unit, and back. The references are the exact SI definitions, so the
+        tolerance only allows for the rounded pound and mercury constants."""
+        assert convert_units(1, unit, base_unit) == pytest.approx(
+            value_in_base, rel=1e-5
+        )
+        assert convert_units(value_in_base, base_unit, unit) == pytest.approx(
+            1, rel=1e-5
+        )
+
     def test_convert_units_same_unit(self):
         assert convert_units(300, "K", "K") == 300
         assert convert_units(27, "degC", "degC") == 27
