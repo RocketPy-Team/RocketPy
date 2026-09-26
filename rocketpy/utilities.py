@@ -304,8 +304,8 @@ def fin_flutter_analysis(
     filename=None,
 ):
     """Calculate and plot the Fin Flutter velocity using the pressure profile
-    provided by the selected atmospheric model. It considers the Flutter
-    Boundary Equation that published in NACA Technical Paper 4197.
+    provided by the selected atmospheric model. It uses the flutter boundary
+    equation of Martin, published in NACA Technical Note 4197 (1958).
     These results are only estimates of a real problem and may not be useful for
     fins made from non-isotropic materials.
     Currently, this function works if only a single set of fins is added,
@@ -390,8 +390,11 @@ def fin_flutter_analysis(
 def _flutter_mach_number(
     fin_thickness, shear_modulus, flight, root_chord, aspect_ratio, lambda_
 ):
+    # Martin: (Vf / a)^2 = G / (39.3 A^3 / ((t/c)^3 (A + 2)) * (lambda + 1) / 2
+    # * p / p0), with 39.3 in psi and p0 = 14.696 psi. 1.337 is 39.3 / p0 / 2,
+    # so Martin's factor of 1/2 is already included in it.
     flutter_mach = (
-        (shear_modulus * 2 * (aspect_ratio + 2) * (fin_thickness / root_chord) ** 3)
+        (shear_modulus * (aspect_ratio + 2) * (fin_thickness / root_chord) ** 3)
         / (1.337 * (aspect_ratio**3) * (lambda_ + 1) * flight.pressure)
     ) ** 0.5
     flutter_mach.set_title("Fin Flutter Mach Number")
