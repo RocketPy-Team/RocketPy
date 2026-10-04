@@ -139,6 +139,8 @@ class GenericSurface:
     # Force-coefficient names in each frame. Moments (cm/cn/cl) are frame-shared.
     _WIND_FORCE_NAMES = ("cL", "cQ", "cD")
     _BODY_FORCE_NAMES = ("cN", "cY", "cA")
+    # Rate derivatives, such as ``cm_q``: the reduced rate each suffix multiplies
+    _RATE_DERIVATIVES = {"p": "roll_rate", "q": "pitch_rate", "r": "yaw_rate"}
 
     def __init__(
         self,
@@ -171,32 +173,17 @@ class GenericSurface:
         coefficients : dict
             The force and moment coefficients, by name. Any you leave out are 0.
 
-            - ``cN``: normal force coefficient (body frame).
-            - ``cY``: side force coefficient (body frame).
-            - ``cA``: axial force coefficient (body frame).
-            - ``cm``: pitch moment coefficient.
-            - ``cn``: yaw moment coefficient.
-            - ``cl``: roll moment coefficient.
-
-            The wind-frame ``cL`` (lift), ``cQ`` (side force) and ``cD`` (drag)
-            can be given instead of ``cN``, ``cY`` and ``cA`` (see
-            ``force_convention``). The moments are taken about
-            ``center_of_pressure``.
-
-            Most wind-tunnel reports and aerodynamics programs give the data
-            against the total angle of attack. Name the variable
-            ``alpha_total`` and that is all, for example
-            ``lambda alpha_total, mach: ...``. A normal force ``cN``, a lift
-            ``cL`` or a pitch moment ``cm`` given that way acts in the plane
-            that holds the rocket's axis and the wind, and is split between the
-            pitch and yaw planes for you. Three rules apply to it:
-
-            - It must be zero at zero total angle, where the air has no
-              direction across the rocket, so a table must start at 0 degrees.
-            - Leave out ``cY``, ``cQ`` and ``cn``: the part in the other plane
-              comes from the split.
-            - If it also depends on ``phi``, it is used as given: write the
-              split yourself (``cN = f * sin(phi)``, ``cY = -f * cos(phi)``).
+            - ``cN``, ``cY``, ``cA``: normal, side and axial force coefficients,
+              in the body frame. The wind-frame ``cL`` (lift), ``cQ`` (side
+              force) and ``cD`` (drag) can be given instead (see
+              ``force_convention``).
+            - ``cm``, ``cn``, ``cl``: pitch, yaw and roll moment coefficients,
+              taken about ``center_of_pressure``.
+            - A rate derivative, to add damping: a body-frame coefficient's name
+              followed by ``_p``, ``_q`` or ``_r`` (roll, pitch or yaw rate),
+              such as ``cm_q``. It is multiplied by the reduced rate and added
+              to the coefficient, so damping is a negative number (see
+              :ref:`generic_surface_damping`).
 
             Each coefficient can depend on these variables:
 
@@ -205,6 +192,9 @@ class GenericSurface:
             - ``alpha_total``, ``phi``: total angle of attack (the angle
               between the rocket's axis and the air) and roll angle of the
               wind, in radians, or ``alpha_total_deg``, ``phi_deg`` in degrees.
+              A ``cN``, ``cL`` or ``cm`` given against ``alpha_total`` alone is
+              split between the pitch and yaw planes for you, and must be zero
+              at zero angle (see :ref:`totalangle`).
             - ``mach``: Mach number.
             - ``reynolds``: Reynolds number (see ``reynolds_length``).
             - ``pitch_rate``, ``yaw_rate``, ``roll_rate``: angular rates in
@@ -831,7 +821,10 @@ class GenericSurface:
         )
         # Kept as given, so saving the surface needs no pickling
         self._input_coefficients = {
-            name: self._as_coefficient(value, name)
+            # A rate derivative given as an unnamed curve is against Mach
+            name: self._as_coefficient(
+                value, name, "mach" if self._rate_of(name) else None
+            )
             for name, value in coefficients.items()
         }
         # Input in the plane of the wind, then in the wind frame, becomes
@@ -853,10 +846,47 @@ class GenericSurface:
         if self._xcp is not None:
             self._carry_moments_to_center_of_pressure()
 
+    def _rate_of(self, name):
+        """The reduced rate a rate derivative such as ``cm_q`` multiplies, or
+        ``None`` when ``name`` is not a rate derivative."""
+        coefficient, _, suffix = name.partition("_")
+        if coefficient in GenericSurface._get_default_coefficients():
+            return self._RATE_DERIVATIVES.get(suffix)
+        return None
+
     def _complete_body_coefficients(self, coefficients):
-        """Last step before the body-frame coefficients are stored. Nothing to
-        do here; the linear surface fills in its yaw plane."""
+        """Last step before the body-frame coefficients are stored: add each
+        rate derivative to its coefficient, ``cm + cm_q * pitch_rate``. (The
+        linear surface keeps its derivatives and fills in its yaw plane.)"""
+        coefficients = dict(coefficients)
+        for name in [name for name in coefficients if self._rate_of(name)]:
+            target, rate = name.partition("_")[0], self._rate_of(name)
+            derivative = coefficients.pop(name)
+            base = self._as_coefficient(coefficients.get(target, 0), target)
+            if rate in base.depends_on:
+                raise ValueError(
+                    f"{target} already depends on {rate}, so {name} cannot be "
+                    "given too. Give the rate dependence in one place."
+                )
+            used = [
+                var
+                for var in self.independent_vars
+                if var == rate or var in base.depends_on or var in derivative.depends_on
+            ]
+            coefficients[target] = self._with_rate_term(base, derivative, rate, used)
         return coefficients
+
+    @staticmethod
+    def _with_rate_term(base, derivative, rate, used):
+        """``base + derivative * rate`` as a Function of the variables
+        ``used``."""
+        read_base, read_derivative = base.evaluator(used), derivative.evaluator(used)
+        at = used.index(rate)
+        return _as_function(
+            lambda *args: read_base(*args) + read_derivative(*args) * args[at],
+            used,
+            base.name,
+        )
 
     def _carry_moments_to_center_of_pressure(self):
         """With a center of pressure that varies with Mach the force is applied

@@ -1381,3 +1381,75 @@ def test_roll_angle_of_the_wind_is_zero_flying_exactly_tail_first():
     from rocketpy.rocket.aero_surface._helpers import total_angle_and_roll
 
     assert total_angle_and_roll(np.pi, np.pi) == pytest.approx((np.pi, 0.0))
+
+
+def test_rate_derivatives_add_damping_to_a_table():
+    """A rate derivative given next to a coefficient is multiplied by its
+    reduced rate and added to it: the same result as a linear surface with the
+    same slopes, also after saving and loading."""
+    table = [
+        [alpha, mach, -3 * alpha * (1 + 0.1 * mach)]
+        for alpha in np.linspace(-0.3, 0.3, 7)
+        for mach in (0.0, 1.0)
+    ]
+    surface = GenericSurface(
+        1.0,
+        1.0,
+        {
+            "cm": (table, ["alpha", "mach"]),
+            "cm_q": -800,
+            "cN": lambda alpha: 2 * alpha,
+            "cN_q": [[0, 40], [1, 50]],  # an unnamed curve is against Mach
+            "cl_p": -9,
+        },
+    )
+    linear = LinearGenericSurface(
+        1.0,
+        1.0,
+        {"cm_alpha": -3.15, "cm_q": -800, "cN_alpha": 2, "cN_q": 45, "cl_p": -9},
+    )
+    state = (0.1, 0.0, 0.5, 0, 0.01, 0.0, 0.002)
+    for name in ("cN", "cm", "cl"):
+        assert getattr(surface, name)(*state) == pytest.approx(
+            getattr(linear, name)(*state), abs=1e-12
+        )
+    # Without rotation the table is read as it is, and so is its slope
+    assert surface.cm(0.1, 0, 0.5, 0, 0, 0, 0) == pytest.approx(-0.315)
+    assert surface.cm_alpha(0, 0, 0.5, 0, 0, 0, 0) == pytest.approx(-3.15)
+    assert surface.cm.depends_on == ("alpha", "mach", "pitch_rate")
+
+    loaded = json.loads(json.dumps(surface, cls=RocketPyEncoder), cls=RocketPyDecoder)
+    assert "cm_q" in loaded.to_dict()["coefficients"]
+    assert loaded.cm(*state) == surface.cm(*state)
+
+
+def test_rate_derivatives_work_with_the_other_input_forms():
+    """Damping can be added to wind-frame coefficients and to data against the
+    total angle of attack, where each plane takes its own derivative."""
+    wind = GenericSurface(
+        1.0, 1.0, {"cL": lambda alpha: 2 * alpha, "cD": 0.4, "cm_q": -800}
+    )
+    assert wind.force_convention == "wind"
+    assert wind.cm(0, 0, 0.5, 0, 0.01, 0, 0) == pytest.approx(-8.0)
+
+    total = GenericSurface(
+        1.0,
+        1.0,
+        {"cm": lambda alpha_total: -20 * alpha_total, "cm_q": -800, "cn_r": -800},
+    )
+    assert total.cm(0.1, 0, 0, 0, 0.01, 0, 0) == pytest.approx(-2.0 - 8.0, rel=1e-3)
+    assert total.cn(0, 0.1, 0, 0, 0, 0.01, 0) == pytest.approx(2.0 - 8.0, rel=1e-3)
+
+
+def test_rate_derivative_names_are_checked():
+    """Only the rate derivatives of the body-frame coefficients are taken, and a
+    coefficient gets its rate dependence from one place."""
+    with pytest.raises(ValueError, match="cm already depends on pitch_rate"):
+        GenericSurface(
+            1.0,
+            1.0,
+            {"cm": lambda alpha, pitch_rate: -3 * alpha - 5 * pitch_rate, "cm_q": -8},
+        )
+    for name in ("cm_alpha", "cN_0", "cL_q"):
+        with pytest.raises(ValueError, match="Invalid coefficient name"):
+            GenericSurface(1.0, 1.0, {name: 1.0})

@@ -305,6 +305,9 @@ are converted using the relations in `Relating the two frames`_ above.
 Only one coefficient is required, and any combination can be provided; the ones
 you omit are treated as zero.
 
+Damping can be added to any of them with a rate derivative such as ``cm_q``
+(see :ref:`generic_surface_damping`).
+
 .. _coefficient_variables:
 
 Each coefficient is a function of the same seven independent variables. When
@@ -665,6 +668,67 @@ A file written by another program has its own column names. Translate them with
    pitch moment coefficient. With :math:`x_{cp}` measured from the point the
    surface is placed at, positive toward the nose, the moment coefficient about
    that point is :math:`C_m = C_N \, x_{cp} / L_{ref}`.
+
+.. _generic_surface_damping:
+
+Adding damping to tabulated coefficients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Aerodynamic data often comes in two parts: the coefficients as tables against
+the angle of attack and the Mach number, and the damping as a few separate
+numbers, such as the pitch damping :math:`C_{m_q}`. To use both, give the
+damping as a **rate derivative** next to the coefficient it belongs to:
+
+.. code-block:: python
+
+   surface = GenericSurface(
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+      coefficients={
+         "cN": "cN.csv",            # header: alpha_deg, mach, cN
+         "cm": "cm.csv",            # header: alpha_deg, mach, cm
+         "cm_q": -800,              # pitch damping
+         "cn_r": -800,              # yaw damping
+         "cl_p": "cl_p_vs_mach.csv" # roll damping against Mach
+      },
+   )
+
+The name of a rate derivative is the name of the coefficient followed by the
+rate it multiplies:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Suffix
+     - Rate
+   * - ``_p``
+     - Roll rate, as in ``cl_p``.
+   * - ``_q``
+     - Pitch rate, as in ``cm_q`` and ``cN_q``.
+   * - ``_r``
+     - Yaw rate, as in ``cn_r`` and ``cY_r``.
+
+Each derivative is multiplied by its reduced rate and added to the coefficient,
+for example :math:`C_m = C_m(\alpha, Ma) + C_{m_q}\, q^{*}`. Some rules:
+
+- A derivative that opposes the motion, as damping does, is a **negative**
+  number.
+- The rates are the reduced rates (see the note in `Coefficients`_), so the
+  derivatives are per unit of :math:`q L_{ref} / (2V)`, not per rad/s.
+- A derivative can be a number or depend on any variable, most often the Mach
+  number. A table with one unnamed column is read against Mach.
+- The derivatives are in the body frame: ``cN_q``, ``cY_r`` and ``cA_q`` exist,
+  ``cL_q`` does not. The moment derivatives are the same in both frames, so
+  ``cm_q`` can be used with ``cL`` and ``cD``.
+- Each plane takes its own derivative. For a rocket that behaves the same in
+  every plane, give ``cn_r`` equal to ``cm_q`` (and ``cY_r`` equal to
+  ``cN_q``). This also holds for data against ``alpha_total``.
+- A coefficient that already depends on a rate, through a ``pitch_rate`` column
+  for example, cannot take the derivative for that rate too.
+
+Only the rate derivatives are accepted. A slope against the angle, such as
+``cm_alpha``, belongs to a :class:`rocketpy.LinearGenericSurface`.
 
 Adding the surface to the rocket
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
