@@ -595,12 +595,17 @@ The stability margin over the flight:
 
     test_flight.plots.stability_margin_data()
 
-The dynamic-stability quantities (natural frequency, damping ratio and the
-attitude frequency response):
+The dynamic-stability quantities (natural frequency and damping ratio):
 
 .. jupyter-execute::
 
     test_flight.plots.dynamic_stability_data()
+
+And the four of them together, next to the angles of attack they are read at:
+
+.. jupyter-execute::
+
+    test_flight.plots.stability_summary()
 
 
 Visualizing the Trajectory in Google Earth

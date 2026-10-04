@@ -115,8 +115,8 @@ pressure**:
 - **Center of pressure (CP).** The point at which the net aerodynamic force can
   be considered to act. At a small angle to the airflow, a sideways ("normal")
   force is generated, and the CP is its effective point of application. In
-  RocketPy this quantity is ``Rocket.cp_position``, an alias of
-  ``Rocket.aerodynamic_center``.
+  RocketPy this quantity is ``Rocket.cp_position``, a function of Mach number
+  (see :ref:`cp_ac_np` below for its exact meaning).
 
 The relative position of these two points determines stability:
 
@@ -129,13 +129,61 @@ The relative position of these two points determines stability:
    If the center of pressure is located ahead of the center of mass the rocket
    is unstable.
 
-.. figure:: ../../static/rocket/stable-unstable.png
+.. figure:: ../static/rocket/stable-unstable.png
    :align: center
    :width: 80%
 
    The aerodynamic force acting at the CP creates a torque about the CM.
    When the CP is aft of the CM the torque is restoring (left); when the CP
    is forward of the CM the torque grows the disturbance (right).
+
+.. _cp_ac_np:
+
+Center of pressure, aerodynamic center and neutral point
+---------------------------------------------------------
+
+Rocketry speaks of the center of pressure, and for most rockets that is all
+that is needed. Strictly, three points are involved, and RocketPy names each
+one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 44 34
+
+   * - Point
+     - What it is
+     - RocketPy
+   * - **Center of pressure**
+     - Where the total aerodynamic force acts: the pitch moment divided by the
+       normal force, :math:`C_m / C_N`.
+     - ``Rocket.center_of_pressure(alpha, mach)``
+   * - **Aerodynamic center**
+     - Where the *change* of the force acts when the angle of attack changes a
+       little, starting from zero angle:
+       :math:`C_{m,\alpha} / C_{N,\alpha}`.
+     - ``Rocket.aerodynamic_center``, also available as ``Rocket.cp_position``
+       (functions of Mach number)
+   * - **Neutral point**
+     - The same as the aerodynamic center, but starting from the angle of
+       attack the rocket is actually flying at.
+     - ``Rocket.neutral_point(alpha, mach)``
+
+Stability depends on how the force *changes* with the angle, so the point that
+decides it is the aerodynamic center (or the neutral point, at an angle). In
+practice:
+
+- **Most rockets**, built from nose cones, fins, tails or a
+  ``LinearGenericSurface``: the three points are the same, so "center of
+  pressure" is exact.
+- **Lift that is not proportional to the angle**, such as a body-lift term: the
+  points agree at zero angle and separate as the angle grows. The stability
+  margin uses the neutral point.
+- **A force at zero angle**, such as a deflected control surface or a canted
+  single fin: the center of pressure is meaningless here, so use
+  ``Rocket.aerodynamic_center``.
+
+The rest of this page says "center of pressure" where the first case is meant
+or the difference does not matter, and uses the precise name where it does.
 
 .. Role of the fins
 .. -----------------
@@ -238,7 +286,7 @@ rocket's overall length** rather than in calibers:
        \frac{(\text{CP position}) - (\text{CM position})}{\text{body length}}
        \times 100
 
-.. figure:: ../../static/rocket/cal-per-length.png
+.. figure:: ../static/rocket/cal-per-length.png
    :align: center
    :width: 80%
 
@@ -251,7 +299,11 @@ normalized by the total length instead of the diameter, as illustrated
 above. RocketPy exposes the overall length as
 :attr:`rocketpy.Rocket.length`, defined as the axial span from the nose tip
 to the aft-most point of the rocket, whether that is an aerodynamic surface
-or the motor nozzle if it extends further aft.
+or the motor nozzle if it extends further aft. Measuring it needs a nose cone
+and at least one of a tail, a fin set or a motor. For a rocket without them,
+such as one described only by a :class:`rocketpy.GenericSurface`, give the
+``length`` argument when creating the ``Rocket``; otherwise the percentage is
+left out of the prints and plots.
 
 For Calisto (from :ref:`firstsimulation`), with a length of **2.53 m** and a 
 fineness ratio of approximately 20, the two conventions yield:
@@ -304,25 +356,28 @@ distance, in the same calibers, but with the center of pressure taken at the
 rocket's **actual flight condition**, its Mach number and angle of attack, 
 rather than at rest.
 
-Writing :math:`z_\text{cm}(t)` for the center of mass, :math:`2R` for the body
-diameter (one caliber), the two margins have the same form and differ only in 
-the center-of-pressure reference they subtract:
+Writing :math:`z_\text{cm}(t)` for the center of mass, with positions measured
+along the rocket toward the nose, and :math:`2R` for the body diameter (one
+caliber), the two margins have the same form and differ only in the
+center-of-pressure reference they subtract:
 
 .. math::
 
-   \text{static margin}(t) = c\,\frac{z_\text{cm}(t) - x_\text{AC}(0)}{2R},
-   \qquad
-   \text{stability margin}(\alpha, M, t)
-       = c\,\frac{z_\text{cm}(t) - x_\text{NP}(\alpha, M)}{2R}.
+   \text{static margin}(t) &= \frac{z_\text{cm}(t) - z_\text{AC}(M = 0)}{2R}, \\
+   \text{stability margin}(\alpha, M, t) &= \frac{z_\text{cm}(t) - z_\text{NP}(\alpha, M)}{2R}.
 
-- The static margin uses the **aerodynamic center** :math:`x_\text{AC}(0)`: the
-  center of pressure linearized about zero angle of attack and evaluated at zero
-  airspeed (:math:`M = 0`). It is a fixed reference, so the static margin varies
-  only through the center of mass, that is, with time.
-- The stability margin uses the **neutral point** :math:`x_\text{NP}(\alpha, M)`,
-  the local center of pressure at the actual Mach number and angle of attack.
+- The static margin uses the **aerodynamic center** at zero airspeed,
+  :math:`z_\text{AC}(M = 0)`: the center of pressure of the rocket at a small
+  angle of attack. It is a fixed reference, so the static margin varies only
+  through the center of mass, that is, with time.
+- The stability margin uses the **neutral point** :math:`z_\text{NP}(\alpha, M)`:
+  the aerodynamic center taken at the actual Mach number and angle of attack.
   Because that reference moves with the flow, the stability margin depends on
   angle of attack and Mach number as well as time.
+
+For a rocket built from the pre-set surfaces both are simply the center of
+pressure (:ref:`cp_ac_np`). Both margins are positive when the center of
+pressure is behind the center of mass.
 
 The static margin and the stability margin are the same underlying
 quantity, evaluated under different
@@ -346,7 +401,8 @@ conditions:
      - Stability at any chosen flow state
    * - RocketPy
      - ``Rocket.static_margin`` (function of ``t``)
-     - ``Rocket.stability_margin`` (function of ``alpha, M, t``)
+     - ``Rocket.stability_margin`` (function of ``M, t``, at zero angle of
+       attack); at another angle, from ``Rocket.neutral_point(alpha, mach)``
 
 The margin varies for up to three independent reasons:
 
@@ -369,8 +425,9 @@ coefficient, for example a Galejs body-lift term.
 The flight stability margin
 ----------------------------
 
-``Flight.stability_margin`` samples the rocket's ``stability_margin`` map at
-the angle of attack, Mach number and time realized during the simulated flight:
+``Flight.stability_margin`` computes the stability margin at the angle of
+attack, Mach number and time of each instant of the simulated flight.
+The angle only matters for a rocket with a surface that is nonlinear in it.
 
 .. jupyter-execute::
 
@@ -418,7 +475,7 @@ described by **dynamic stability**.
        (negative) lowers it. The lateral moment of inertia is adjustable
        separately, which changes the dynamic response without changing the
        static margin. The dry mass (in kilograms) and the motor can also be
-       swapped, for the mass and thrust studies later in this document.
+       swapped.
        Everything else, including the aerodynamics, is fixed.
        """
        rocket = Rocket(
@@ -463,14 +520,34 @@ spring-mass oscillator:
 with three governing parameters:
 
 - :math:`C_1`, the **corrective (restoring) moment coefficient**, analogous
-  to a spring constant. It is proportional to the static margin:
-  :math:`C_1 = \bar q\, A\, C_{N,\alpha}\, (z_\text{cm} - x_\text{cp})`, where
-  :math:`\bar q` is the dynamic pressure. A larger margin or higher airspeed
-  produces a stiffer restoring moment.
+  to a spring constant. It is proportional to the stability margin:
+
+  .. math::
+
+     C_1 = \bar q\, A\, C_{N,\alpha}\, (z_\text{cm} - z_\text{NP})
+
+  where :math:`\bar q` is the dynamic pressure and :math:`z_\text{NP}` the
+  neutral point of :ref:`Part 3 <stability_margin_part>`. A larger margin or
+  higher airspeed produces a stiffer restoring moment.
 - :math:`C_2`, the **damping moment coefficient**, analogous to a damping
-  coefficient. It arises from aerodynamic resistance of the fins to rotation,
-  together with **jet damping** resulting from mass ejection through the
-  nozzle.
+  coefficient. It has an aerodynamic part and a jet-damping part from the
+  motor:
+
+  .. math::
+
+     C_2 &= C_{2,\text{aero}} + C_{2,\text{jet}}, \\
+     C_{2,\text{aero}} &= \tfrac12 \rho V A \sum_i \frac{A_i}{A}\,
+         C_{N,\alpha,i}\, (z_i - z_\text{cm})^2, \\
+     C_{2,\text{jet}} &= |\dot m|\, (z_\text{n} - z_\text{cm})^2 + \dot I_L.
+
+  The aerodynamic part comes from every surface resisting the rotation, with
+  :math:`z_i` the position of surface :math:`i`; a surface with a negative
+  slope, such as a boat tail, takes damping away. The jet part comes from the
+  exhaust, which leaves the nozzle (at :math:`z_\text{n}`) moving sideways
+  with the rocket and carries angular momentum away, while the lateral inertia
+  lost with the consumed propellant gives part of it back
+  (:math:`\dot I_L < 0`). Jet damping matters at rail exit, where the airspeed
+  is low; by burnout the aerodynamic part dominates.
 - :math:`I_L`, the **lateral moment of inertia** about the center of mass,
   representing the rotational inertia opposing angular acceleration.
 
@@ -492,7 +569,7 @@ response:
   decays. Rockets are normally *underdamped* (:math:`\zeta < 1`), oscillating
   with the amplitude shrinking over several cycles.
 
-.. figure:: ../../static/rocket/damped-oscillation.png
+.. figure:: ../static/rocket/damped-oscillation.png
    :align: center
    :width: 90%
 
@@ -505,9 +582,11 @@ RocketPy exposes each of these quantities on the ``Flight`` object:
 ``corrective_moment_coefficient`` (:math:`C_1`),
 ``damping_moment_coefficient`` (:math:`C_2`),
 ``pitch_natural_frequency``, ``pitch_damping_ratio``, and the corresponding
-``yaw_*`` quantities. ``Flight.prints.dynamic_stability()`` summarizes them at
-the key ascent instants, rail departure and burnout, together with the roll
-rate at burnout:
+``yaw_*`` quantities. While the rocket is on the rail it cannot swing, so the
+natural frequency and damping ratio are zero up to rail departure. They are
+also zero whenever there is no restoring moment (:math:`C_1 \le 0`).
+``Flight.prints.dynamic_stability()`` summarizes them at the key ascent
+instants, rail departure and burnout, together with the roll rate at burnout:
 
 .. jupyter-execute::
 
@@ -519,6 +598,86 @@ ratio as functions of time, with roll rate overlaid.
 .. jupyter-execute::
 
    test_flight.plots.dynamic_stability_data()
+
+Response to a disturbance
+-------------------------
+
+The natural frequency and damping ratio are easier to judge as a curve.
+``disturbance_response`` tilts the rocket by a small angle (5 degrees by
+default), releases it, and returns the angle over time as it swings back. It
+exists in two forms:
+
+- ``Rocket.disturbance_response`` needs no flight simulation. You choose the
+  flight condition:
+
+  - ``speed``: the airspeed, in m/s.
+  - ``time``: the time since ignition, in seconds, which sets the mass, the
+    inertia and whether the motor is burning. Default is 0.
+  - ``density``: the air density, in kg/m³. Default is 1.225 (sea level).
+  - ``speed_of_sound``: in m/s, used to find the Mach number. Default is
+    340.29 (sea level).
+
+- ``Flight.disturbance_response`` reads the airspeed, the air density and the
+  angle of attack from the flight. You only choose the instant:
+
+  - ``time``: the instant of the flight, in seconds. It must be after the
+    rocket leaves the rail.
+
+Both forms also accept:
+
+- ``disturbance``: the angle the rocket is tilted by, in degrees. Default is 5.
+- ``plane``: ``"pitch"`` or ``"yaw"``. The two only differ for a rocket that is
+  not axisymmetric. Default is ``"pitch"``.
+- ``duration``: how long to follow the response, in seconds. By default, long
+  enough for the oscillation to settle.
+
+Some uses:
+
+- **Check the response to a gust at rail exit**, where the rocket is slowest
+  and a crosswind disturbs it most.
+- **Compare designs before flying them**: larger fins, nose ballast or a
+  different motor change how fast the rocket swings back and how long it keeps
+  swinging.
+- **See what a damping ratio means**: count the swings before the curve
+  settles.
+
+The response of the reference flight at rail exit:
+
+.. jupyter-execute::
+
+   response = test_flight.disturbance_response(
+       time=test_flight.out_of_rail_time,
+       disturbance=3,  # degrees
+   )
+   response.plot()
+
+The same question without a flight, comparing a low and a high airspeed just
+after ignition:
+
+.. jupyter-execute::
+
+   from rocketpy import Function
+
+   slow = rocket.disturbance_response(speed=25, time=0.4, disturbance=3)
+   fast = rocket.disturbance_response(speed=60, time=0.4, disturbance=3)
+   print("25 m/s:", slow.title)
+   print("60 m/s:", fast.title)
+   Function.compare_plots(
+       [(slow, "25 m/s"), (fast, "60 m/s")],
+       lower=0,
+       upper=20,
+       title="Response to a 3° disturbance",
+       xlabel="Time after the disturbance (s)",
+       ylabel="Angle (°)",
+   )
+
+.. note::
+
+   The response holds the airspeed, the air and the rocket's mass fixed, so it
+   is a snapshot of one instant. During the motor burn the airspeed changes
+   while the rocket swings, so the real motion differs. To see it, fly the
+   rocket in a crosswind (:ref:`Part 5 <stability_in_flight>`). The response is
+   also only valid for small angles.
 
 .. _stability_in_flight:
 
@@ -571,7 +730,7 @@ force keeps growing without limit:
    shown = aoa_deg <= 15
    axL.plot(aoa_deg[shown], cl[shown], "-o", color="#c0392b", lw=2, ms=4)
    axL.annotate("stall", xy=(aoa_deg[peak], cl[peak]),
-                xytext=(aoa_deg[peak] + 1.5, cl[peak] + 0.03),
+                xytext=(aoa_deg[peak] + 1.5, cl[peak] + 0.005),
                 fontsize=11, fontweight="bold", color="#c0392b",
                 arrowprops=dict(arrowstyle="->", color="#c0392b"))
    axL.set_title("Real airfoil (NACA 0012 data)", fontweight="bold")
@@ -599,11 +758,8 @@ initial slope forever**.
 
 So **a high computed rail-exit angle of attack marks a failure, not a
 survivable condition.** The simulation shows the rocket swinging back into
-line even past the angle where a real fin would have stalled. Keep the
-out-of-rail velocity high relative to the wind and the rocket stays below the
-stall range; the recovery the simulation shows past it **would not happen in
-reality**. In the sweeps below, read a large computed angle of attack as a
-warning sign, not a number the simulation can be trusted to reproduce.
+line even past the angle where a real fin would have stalled. In the examples
+below, a large angle of attack is a warning sign.
 
 To actually simulate stall, or any other measured nonlinear aerodynamics,
 provide the coefficients directly with a generic surface (see
@@ -672,19 +828,13 @@ wind, and the swing dying away:
    ax.grid(True)
    plt.show()
 
+\\
 Every stability quantity from earlier parts shows up here. The rocket returns
 toward zero at all because its **stability margin**
 (:ref:`stability_margin_part`) is positive. The center of pressure sits
 behind the center of mass, so the aerodynamic force restores rather than
 diverges. The *rate* of the wobble is the **natural frequency**. The *speed*
 it settles at is the **damping ratio** (:ref:`part_dynamic`).
-``windy_flight.prints.dynamic_stability()`` reports both for this flight. A
-positive margin only guarantees the curve trends back to zero. It says
-nothing about how fast or how smoothly, which is exactly the distinction
-Part 4 draws. Here the angle of attack swings through several cycles before it
-settles, a sign that this rocket is only lightly damped. It recovers either
-way, but for a cleaner flight, one that settles after an overshoot or two, it
-could do with more damping.
 
 Stability across a launch day
 -----------------------------
@@ -826,121 +976,6 @@ another look before flying.
    :ref:`stochastic_usage` for the class walkthrough, and :ref:`MRS` for
    weighting a finished sample toward measured launch-day conditions.
 
-Part 6: How much does the static margin matter?
-===============================================
-
-The dispersion above shows a Calisto-class rocket that is comfortably stable,
-and yet a great deal of design effort in rocketry goes into chasing static
-margin. The simulation lets us weigh that margin against the other things a
-builder can change, and see **how much it really decides**, following
-Thomas Fetter's flight-data study *How Far Does a Rocket Turn Into the
-Wind?* (NARCON-2024).
-
-A rocket launched straight up into a crosswind turns as it climbs, and by the
-time the motor burns out its flight path has tilted some degrees away from
-vertical. This tilt is the *turn*, and because the launch was vertical it is
-**entirely the rocket's response to the wind**, the weathercocking that
-stability is meant to hold in check. Sweeping each design parameter on its own across a
-realistic range, with the others left at their nominal values, shows how much
-each one moves the turn:
-
-.. jupyter-execute::
-
-   def turn_at_burnout(flight):
-       """Flight-path tilt away from vertical at motor burnout, in degrees."""
-       return 90 - flight.path_angle(flight.rocket.motor.burn_out_time)
-
-   def vertical_flight(rocket, wind, rail=5.2):
-       return Flight(
-           rocket=rocket, environment=windy_site(wind),
-           rail_length=rail, inclination=90, heading=0, terminate_on_apogee=True,
-       )
-
-   def sweep(values, make_flight):
-       flights = [make_flight(v) for v in values]
-       return np.array([turn_at_burnout(f) for f in flights]), flights
-
-   # Each lever swept alone across a realistic range; others nominal, 5 m/s wind.
-   winds = np.linspace(0, 14, 9)              # crosswind, m/s
-   rails = np.linspace(1.2, 9.0, 8)           # rail length sets the exit velocity
-   cgs = np.linspace(-0.25, 0.9, 10)          # sets the static margin
-   masses = np.linspace(9, 30, 8)             # dry mass, kg
-
-   turn_wind, _ = sweep(winds, lambda w: vertical_flight(build_rocket(), w))
-   turn_rail, rail_f = sweep(rails, lambda r: vertical_flight(build_rocket(), 5, rail=r))
-   turn_cg, cg_f = sweep(cgs, lambda c: vertical_flight(build_rocket(c), 5))
-   turn_mass, _ = sweep(masses, lambda m: vertical_flight(build_rocket(mass=m), 5))
-
-   exit_v = np.array([f.out_of_rail_velocity for f in rail_f])
-   margins = np.array([f.rocket.static_margin(0) for f in cg_f])
-
-   panels = [
-       (winds,   turn_wind, "crosswind (m/s)",     "wind speed",                 "#c0392b"),
-       (exit_v,  turn_rail, "exit velocity (m/s)", "exit velocity (rail length)", "#e67e22"),
-       (margins, turn_cg,   "static margin (cal)", "static margin",              "#2980b9"),
-       (masses,  turn_mass, "dry mass (kg)",       "mass",                       "#27ae60"),
-   ]
-   ymax = max(y.max() for _, y, *_ in panels)
-
-   fig, axs = plt.subplots(2, 2, figsize=(9.5, 7), sharey=True)
-   for ax, (x, y, xlabel, title, color) in zip(axs.flat, panels):
-       ax.fill_between(x, 0, y, color=color, alpha=0.12)
-       ax.plot(x, y, "-o", color=color, lw=2.4, ms=6, mfc=color, mec="white", mew=0.8)
-       ax.annotate(f"swing {y[-1] - y[0]:+.1f}°",   # signed: low end -> high end
-                   xy=(0.04, 0.92), xycoords="axes fraction", ha="left", va="top",
-                   fontsize=11, fontweight="bold", color=color)
-       ax.set_title(title, fontweight="bold")
-       ax.set_xlabel(xlabel)
-       ax.grid(True, alpha=0.3)
-       ax.set_ylim(0, ymax * 1.12)
-   axs[0, 0].set_ylabel("turn at burnout (deg)")
-   axs[1, 0].set_ylabel("turn at burnout (deg)")
-   fig.suptitle("What moves the turn into the wind?  (each lever alone; others nominal, "
-                "5 m/s wind)", fontsize=12, fontweight="bold")
-   fig.tight_layout()
-   plt.show()
-
-Each panel is labeled with its *swing*, meaning how many degrees the turn
-changes as that parameter goes from the low end of its range to the high end.
-
-The wind dominates, mass comes next, and a higher exit velocity has a
-moderate effect the other way, lowering the turn. 
-
-**The static margin is the weakest of the four**: across a change in margin
-the turn barely moves, and it levels off at high margins, holding steady well
-past the over-stable range. For a Calisto-class rocket the margin is simply
-not what decides how far it weathercocks. A rocket that turns hard into the
-wind is easy to **misjudge as over- or super-stable**.
-
-What static margin it does instead is *correction*.
-Keeping the center of pressure behind the center of mass is what lets a
-disturbance correct itself at all (:ref:`stability_margin_part` and
-:ref:`part_dynamic`), and the rail-exit angle of attack still has to stay
-below the stall range. Beyond that, **a larger margin does little for a
-flight like this one**.
-
-Part 7: Pitch and yaw planes
-============================
-
-A rocket with evenly spaced fins, like Calisto, is **axisymmetric**. Its
-geometry does not change under rotation about the body axis, so its
-stability is the same in every plane, and a single margin describes it
-fully. For these rockets, ``Rocket.is_axisymmetric`` returns ``True``, and
-the rest of this section does not apply.
-
-Some configurations are **not** axisymmetric: canards on a single axis,
-off-center payloads, fins arranged asymmetrically. For these, stability
-differs between the **pitch** plane and the **yaw** plane, and RocketPy
-computes each one independently:
-
-- pitch: ``aerodynamic_center``, ``static_margin``, ``stability_margin``;
-- yaw: ``aerodynamic_center_yaw``, ``static_margin_yaw``, ``stability_margin_yaw``.
-
-For an axisymmetric rocket, the two planes coincide. When they do not,
-RocketPy issues a warning, because the unqualified ``static_margin`` then
-describes the pitch plane only. In that case, the plotting and print
-methods report both planes.
-
 Helper code
 ===========
 
@@ -1026,7 +1061,7 @@ small factories:
        (negative) lowers it. The lateral moment of inertia is adjustable
        separately, which changes the dynamic response without changing the
        static margin. The dry mass (in kilograms) and the motor can also be
-       swapped, for the mass and thrust studies later in this document.
+       swapped.
        Everything else, including the aerodynamics, is fixed.
        """
        rocket = Rocket(
@@ -1057,8 +1092,3 @@ small factories:
            type="custom_atmosphere", wind_u=wind_speed, wind_v=0
        )
        return site
-
-The three helpers that measure the turn and sweep one parameter at a time
-(``turn_at_burnout``, ``vertical_flight`` and ``sweep``) are shown inline where
-they are used, in Part 6 above.
-

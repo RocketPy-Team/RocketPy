@@ -75,36 +75,52 @@ drag :math:`D` and the (wind-frame) side force :math:`Q`:
 Relating the two frames
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two are the same force, related by the angle-of-attack/sideslip rotation
-:math:`\mathbf{M}_{BW}`, which transforms the wind frame into the body frame:
+The two are the same force, written along different axes. Let
+:math:`\hat{\mathbf{u}} = (u_x, u_y, u_z)` be the direction of the rocket's
+velocity relative to the air, in the body frame, and
+:math:`h = \sqrt{u_y^2 + u_z^2}`. The three wind-frame forces act along:
+
+- **drag**, against the velocity: :math:`-\hat{\mathbf{u}}`;
+- **lift**, perpendicular to the velocity and lying in the body
+  :math:`y_B z_B` plane: :math:`(0,\ -u_z,\ u_y)/h`;
+- **side force**, perpendicular to both:
+  :math:`(h,\ -u_x u_y/h,\ -u_x u_z/h)`.
+
+The velocity direction follows from the angle of attack and the sideslip angle
+(defined in `Angles of attack and sideslip`_ below):
 
 .. math::
-   \vec{\mathbf{F}}_B=\mathbf{M}_{BW}\cdot\begin{bmatrix}Q\\-L\\-D\end{bmatrix}_W
+   \hat{\mathbf{u}} \parallel
+   \begin{bmatrix}
+      \sin\beta\cos\alpha \\ \sin\alpha\cos\beta \\ \cos\alpha\cos\beta
+   \end{bmatrix}
 
-where
+with the sign of :math:`\cos\alpha`, so that it also holds when the rocket flies
+tail first.
 
-.. math::
-   \mathbf{M}_{BW} = \begin{bmatrix}
-      1 & 0 & 0 \\
-      0 & \cos(\alpha) & \sin(\alpha) \\
-      0 & -\sin(\alpha) & \cos(\alpha)
-      \end{bmatrix}
-      \begin{bmatrix}
-      \cos(\beta) & 0 & \sin(\beta) \\
-      0 & 1 & 0 \\
-      -\sin(\beta) & 0 & \cos(\beta)
-      \end{bmatrix}
-
-The force coefficients follow the same rotation. In the wind frame they are the
+The force coefficients follow the same relation. In the wind frame they are the
 lift :math:`C_L`, side :math:`C_Q` and drag :math:`C_D`; in the body frame the
 normal :math:`C_N`, side :math:`C_Y` and axial :math:`C_A`:
 
 .. math::
    \begin{aligned}
-      C_N &= \cos\alpha\, C_L + \sin\alpha\,(\sin\beta\, C_Q + \cos\beta\, C_D) \\
-      C_Y &= \cos\beta\, C_Q - \sin\beta\, C_D \\
-      C_A &= -\sin\alpha\, C_L + \cos\alpha\,(\sin\beta\, C_Q + \cos\beta\, C_D)
+      C_N &= \frac{u_z}{h}\, C_L + \frac{u_x u_y}{h}\, C_Q + u_y\, C_D \\
+      C_Y &= h\, C_Q - u_x\, C_D \\
+      C_A &= -\frac{u_y}{h}\, C_L + \frac{u_x u_z}{h}\, C_Q + u_z\, C_D
    \end{aligned}
+
+With no sideslip (:math:`\beta = 0`) these are the familiar
+:math:`C_N = \cos\alpha\, C_L + \sin\alpha\, C_D` and
+:math:`C_A = -\sin\alpha\, C_L + \cos\alpha\, C_D`; with no angle of attack
+(:math:`\alpha = 0`), :math:`C_Y = \cos\beta\, C_Q - \sin\beta\, C_D` and
+:math:`C_A = \sin\beta\, C_Q + \cos\beta\, C_D`.
+
+.. note::
+   The angle of attack and the sideslip angle used by RocketPy are each measured
+   in one body plane. They are not the two angles of a rotation sequence, so the
+   conversion is built from the velocity direction rather than by chaining a
+   rotation by :math:`\alpha` and a rotation by :math:`\beta`, which would only
+   be exact with one of the two angles at zero.
 
 At small angles these reduce to :math:`C_N \approx C_L`, :math:`C_Y \approx C_Q`
 and :math:`C_A \approx C_D`.
@@ -116,13 +132,11 @@ coefficients the force is obtained directly, with no rotation:
 .. math::
    \vec{\mathbf{F}}_B =\begin{bmatrix}Y\\-N\\-A\end{bmatrix}_B= \overline{q}\cdot A_{ref}\cdot\begin{bmatrix}C_Y\\-C_N\\-C_A\end{bmatrix}_B
 
-while **wind-frame** coefficients are rotated into the body frame first:
-
-.. math::
-   \vec{\mathbf{F}}_B =\mathbf{M}_{BW}\cdot\overline{q}\cdot A_{ref}\cdot\begin{bmatrix}C_Q\\-C_L\\-C_D\end{bmatrix}_W
-
 where :math:`\bar{q}` is the dynamic pressure and :math:`A_{ref}` the reference
 area (commonly the rocket's cross-sectional area).
+
+**Wind-frame** coefficients are first converted to the body-frame ones
+with the relations above.
 
 Moments
 ~~~~~~~
@@ -161,6 +175,21 @@ and the total angle of attack is
 
 .. math::
    \alpha_{\text{tot}} = \arccos\left(\frac{\mathbf{\vec{V}}\cdot\mathbf{z_B}}{||\mathbf{\vec{V}}||\cdot||\mathbf{z_B}||}\right)
+
+The direction the crossflow comes from, around the rocket's axis, is the **roll
+angle of the wind**:
+
+.. math::
+   \phi = \operatorname{atan2}\left(V_y,\ V_x\right)
+
+The pair :math:`(\alpha, \beta)` and the pair
+:math:`(\alpha_{\text{tot}}, \phi)` describe the same flow direction, like
+the two coordinates of a point on a map given as east/north or as
+distance/bearing:
+
+.. math::
+   \tan\alpha = \tan\alpha_{\text{tot}}\,\sin\phi, \qquad
+   \tan\beta = \tan\alpha_{\text{tot}}\,\cos\phi
 
 .. note::
    When the simulation is done, the total angle of attack is accessed through
@@ -223,19 +252,22 @@ Constructor parameters
   Commonly the rocket's diameter.
 - ``coefficients`` (dict): the force and moment coefficients, by name (detailed
   in `Coefficients`_ below).
-- ``center_of_pressure`` (tuple, optional): the point where the surface's forces
-  and moments are applied, in the surface's local frame. Default ``(0, 0, 0)``.
-  See `Moment reference point`_.
+- ``center_of_pressure`` (tuple or list, optional): the point where the
+  surface's forces and moments are applied, as ``(x, y, z)`` in meters. It is
+  measured from the position the surface is added to the rocket at, with ``z``
+  along the rocket's centerline, positive toward the nose. Default
+  ``(0, 0, 0)``. See `Moment reference point`_.
 - ``name`` (str, optional): a name for the surface. Default
   ``"Generic Surface"``.
 - ``reynolds_length`` (int or float, optional): length scale, in meters, of the
   Reynolds number fed to the coefficients. Default ``None`` (uses
   ``reference_length``).
 - ``interpolation`` (str or dict, optional): how tabulated coefficients are
-  interpolated between their data points. Default ``None``. See
-  :ref:`generic_surface_interpolation`.
+  interpolated between their data points. Default ``None``, which uses
+  ``"linear"``. See :ref:`generic_surface_interpolation`.
 - ``extrapolation`` (str or dict, optional): how tabulated coefficients behave
-  outside their tabulated range. Default ``None``. See
+  outside their tabulated range. Default ``None``, which holds the value at
+  the nearest end of the table (``"constant"``). See
   :ref:`generic_surface_interpolation`.
 - ``force_convention`` (str, optional): the frame the force coefficients are
   given in, ``"body"`` or ``"wind"``. Default ``None`` (inferred from the
@@ -257,27 +289,75 @@ its value. The body-frame coefficient names are:
 - ``cn``: Yawing moment coefficient.
 - ``cl``: Rolling moment coefficient.
 
-Alternatively, you can supply the force coefficients in the **wind frame** as
-``cL`` (lift), ``cQ`` (side) and ``cD`` (drag) in place of ``cN``/``cY``/``cA``
-(the moment coefficients ``cm``/``cn``/``cl`` are shared by both frames). By
-default the frame is inferred from the names you pass; set ``force_convention``
-(``"body"`` or ``"wind"``) to state it explicitly. Whichever frame you choose,
-all nine coefficients remain available as attributes (``surface.cN``,
-``surface.cL``, ...), converted on demand from the ones you provided using the
-rotation described in `Relating the two frames`_ above.
+Alternatively, you can supply the force coefficients in the **wind frame**:
+
+- ``cL`` (lift), ``cQ`` (side) and ``cD`` (drag) take the place of ``cN``,
+  ``cY`` and ``cA``.
+- The moment coefficients ``cm``, ``cn`` and ``cl`` are the same in both frames.
+
+By default the frame is inferred from the names you pass. Set
+``force_convention`` to ``"body"`` or ``"wind"`` to state it explicitly.
+
+Whichever frame you choose, all nine coefficients are available as attributes
+afterwards (``surface.cN``, ``surface.cL``, ...). The ones you did not provide
+are converted using the relations in `Relating the two frames`_ above.
 
 Only one coefficient is required, and any combination can be provided; the ones
 you omit are treated as zero.
 
-Each coefficient is a function of the same seven independent variables:
+.. _coefficient_variables:
 
-- Angle of attack (:math:`\alpha`) in radians.
-- Side slip angle (:math:`\beta`) in radians.
-- Mach number (:math:`Ma`).
-- Reynolds number (:math:`Re`).
-- Pitch rate (:math:`q^{*}`), non-dimensional (reduced).
-- Yaw rate (:math:`r^{*}`), non-dimensional (reduced).
-- Roll rate (:math:`p^{*}`), non-dimensional (reduced).
+Each coefficient is a function of the same seven independent variables. When
+you give a coefficient, you name the variables it uses with these names:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Name
+     - Variable
+   * - ``alpha``
+     - Angle of attack (:math:`\alpha`), in radians.
+   * - ``beta``
+     - Side slip angle (:math:`\beta`), in radians.
+   * - ``mach``
+     - Mach number (:math:`Ma`).
+   * - ``reynolds``
+     - Reynolds number (:math:`Re`).
+   * - ``pitch_rate``
+     - Pitch rate (:math:`q^{*}`), non-dimensional (reduced).
+   * - ``yaw_rate``
+     - Yaw rate (:math:`r^{*}`), non-dimensional (reduced).
+   * - ``roll_rate``
+     - Roll rate (:math:`p^{*}`), non-dimensional (reduced).
+
+The angles can also be given in other forms. RocketPy converts them for you:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Name
+     - Variable
+   * - ``alpha_deg``
+     - Angle of attack, in degrees.
+   * - ``beta_deg``
+     - Side slip angle, in degrees.
+   * - ``alpha_total``
+     - Total angle of attack (:math:`\alpha_{\text{tot}}`), in radians: the
+       angle between the rocket's axis and the air. See :ref:`totalangle`.
+   * - ``alpha_total_deg``
+     - Total angle of attack, in degrees.
+   * - ``phi``
+     - Roll angle of the wind (:math:`\phi`), in radians: the direction around
+       the body the air comes from. See :ref:`totalangle`.
+   * - ``phi_deg``
+     - Roll angle of the wind, in degrees.
+
+These are all the accepted names. A coefficient cannot use the same angle under
+two names, such as ``alpha`` and ``alpha_deg`` together. A
+:class:`rocketpy.ControllableGenericSurface` adds the names of its own control
+variables.
 
 .. important::
    The angular rates are the conventional **non-dimensional reduced rates**, not
@@ -295,17 +375,96 @@ Each coefficient is a function of the same seven independent variables:
 
 Once evaluated, the coefficients are turned into body-frame forces and moments
 exactly as described in `Wind Frame and Body Frame`_ above (wind-frame inputs
-are rotated into the body frame first).
+are converted to the body frame first).
 
-Each coefficient value can be given three ways: a single number for a constant,
-a callable function of the seven variables, or a path to a ``.csv`` file of
-tabulated data.
+Each coefficient value can be given in any of these forms:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Form
+     - Example
+   * - a number (constant)
+     - ``"cA": 0.4``
+   * - a function
+     - ``"cN": lambda alpha, mach: 2 * alpha``
+   * - a ``.csv`` file with a header
+     - ``"cN": "cN.csv"``
+   * - a list or numpy array of data points
+     - ``"cA": ([[0, 0.4], [1, 0.6]], ["mach"])``
+   * - values on a regular grid
+     - ``"cN": ({"alpha": alphas, "mach": machs}, values)``
+   * - a :class:`rocketpy.Function`
+     - ``"cA": Function(points, "mach", "cA")``
+   * - one file for several coefficients
+     - ``GenericSurface.from_csv("aero.csv", area, length)``
+   * - any of the above with its variables named
+     - ``"cN": (source, ["alpha", "mach"])``
+
+Every coefficient must say which of the seven variables it uses. A function says
+it through the names of its arguments, a ``.csv`` file through its header and a
+:class:`rocketpy.Function` through the names of its inputs. When the source does
+not carry names (a list of points, a ``.csv`` file without a header, a function
+whose arguments are named otherwise), give the coefficient as a pair: the source,
+then the list of its variables in order, as in the last two rows above.
+
+Angles in degrees
+^^^^^^^^^^^^^^^^^
+
+The angles are in radians. If your data is in degrees, as most wind tunnel
+reports and aerodynamics programs give it, add ``_deg`` to the name of the
+variable: ``alpha_deg``, ``beta_deg``, ``alpha_total_deg`` or ``phi_deg``. This
+works wherever a variable is named: the header of a ``.csv`` file, the list of
+variables given with a table, the grid form, the input of a
+:class:`rocketpy.Function` and the argument of a function:
+
+.. code-block:: python
+
+   coefficients = {
+       "cN": "cN_rasaero.csv",  # header: alpha_deg, mach, cN
+       "cm": (moment_points, ["alpha_deg", "mach"]),
+       "cA": lambda alpha_deg, mach: 0.4 + 0.002 * alpha_deg**2,
+   }
+
+RocketPy converts the angle before reading the source, so nothing else changes.
+A table whose values of an angle given in radians go beyond what such an angle
+can be (about 3.14) raises a warning, since it almost surely is in degrees.
+
+.. note::
+   This is about the angle a table is tabulated against. A *slope* given per
+   degree, such as a ``cN_alpha`` of a :class:`rocketpy.LinearGenericSurface` in
+   1/deg, must be multiplied by ``180 / pi`` to give it per radian.
+
+.. important::
+   RocketPy never guesses the variable of a table. A one-column table given
+   without a name raises an error, so that a drag curve tabulated against Mach
+   can never be read against the angle of attack by mistake.
 
 Defining a coefficient as a callable
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A coefficient can be any callable that takes the seven independent variables and
-returns the value:
+A coefficient can be any function that returns its value. Name its arguments
+after the variables it uses, in any order, and leave out the ones it does not
+use:
+
+.. code-block:: python
+
+   def normal_force_coefficient(alpha, mach):
+      return (2 + 0.5 * mach) * alpha
+
+The accepted argument names are all the ones listed in
+:ref:`the tables above <coefficient_variables>`, including the angles in
+degrees and the total angle of attack:
+
+.. code-block:: python
+
+   def axial_force_coefficient(alpha_total_deg, mach):
+      return 0.4 + 0.1 * mach + 0.002 * alpha_total_deg**2
+
+A function that takes the seven main variables (``alpha``, ``beta``, ``mach``,
+``reynolds``, ``pitch_rate``, ``yaw_rate`` and ``roll_rate``), in that order,
+may name its arguments freely:
 
 .. code-block:: python
 
@@ -313,29 +472,41 @@ returns the value:
       ...
       return value
 
-Any algorithm can be implemented inside to compute the coefficient.
+Any algorithm can be implemented inside to compute the coefficient. Arguments
+with a default value are not counted as variables, so a function can carry the
+constants of your model, and ``functools.partial`` can set them:
+
+.. code-block:: python
+
+   def normal_force_coefficient(alpha, mach, slope=2.0):
+      return (slope + 0.5 * mach) * alpha
+
+   coefficients = {"cN": functools.partial(normal_force_coefficient, slope=2.4)}
 
 Defining a coefficient from a CSV file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A coefficient can also be tabulated in a ``.csv`` file. The file must have a
 header naming its columns. The independent-variable columns are optional, but
-those present must use these exact names:
+those present must be named after the variables:
 
-- ``alpha``: Angle of attack.
-- ``beta``: Side slip angle.
+- ``alpha``: Angle of attack (``alpha_deg`` for degrees).
+- ``beta``: Side slip angle (``beta_deg`` for degrees).
+- ``alpha_total`` and ``phi``: total angle of attack and roll angle of the
+  wind (``alpha_total_deg``, ``phi_deg`` for degrees), see :ref:`totalangle`.
 - ``mach``: Mach number.
 - ``reynolds``: Reynolds number.
-- ``pitch_rate``: Pitch rate.
-- ``yaw_rate``: Yaw rate.
-- ``roll_rate``: Roll rate.
+- ``pitch_rate``: Pitch rate (reduced).
+- ``yaw_rate``: Yaw rate (reduced).
+- ``roll_rate``: Roll rate (reduced).
 
 The **last** column holds the coefficient value; it **must** have a header, but
-the header name can be anything.
+the header name can be anything. Spaces after the commas and quotes around the
+names are fine.
 
 .. important::
    Not all independent-variable columns need to be present, but the columns that
-   are present must be named exactly as above. They can be in any order.
+   are present must be named as above. They can be in any order.
 
 An example ``.csv`` file, tabulated against angle of attack and Mach:
 
@@ -362,6 +533,138 @@ An example ``.csv`` file, tabulated against angle of attack and Mach:
    your table uses a different length, pass it as ``reynolds_length`` when
    creating the surface so the Reynolds number the simulation feeds your table
    matches the one it was built against.
+
+.. _totalangle:
+
+Coefficients against the total angle of attack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most aerodynamic data for rockets (wind tunnel reports, CFD sweeps, programs
+such as RASAero) gives the normal force, the axial force and
+the pitch moment against the Mach number and the **total** angle of attack, which
+is never negative. To use such data as it is, name its variable ``alpha_total``
+(or ``alpha_total_deg``). No other option is needed:
+
+.. code-block:: python
+
+   surface = GenericSurface(
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+      coefficients={
+         "cN": "cN_vs_total_angle.csv",   # header: alpha_total_deg, mach, cN
+         "cm": "cm_vs_total_angle.csv",   # header: alpha_total_deg, mach, cm
+         "cA": lambda alpha_total, mach: 0.4 + 0.1 * mach + alpha_total**2,
+      },
+   )
+
+What a coefficient given against ``alpha_total`` means depends on the
+coefficient:
+
+- ``cN`` (normal force) and ``cm`` (pitch moment) act in the plane that holds
+  the rocket's axis and the wind. RocketPy splits them between the pitch and the
+  yaw plane, :math:`C_N\sin\phi` and :math:`-C_N\cos\phi` (and the same for
+  the moment), so the force always pushes along the crossflow whatever direction
+  the wind comes from.
+- ``cL`` (lift) works the same way, in the wind frame. With the drag ``cD`` it
+  gives the normal force in that plane and the axial force.
+- ``cA`` (axial force), ``cD`` (drag) and ``cl`` (roll moment) have no direction
+  across the axis and are used as they are. This also holds for the rocket's
+  ``power_off_drag`` and ``power_on_drag``.
+
+Three rules apply to a ``cN``, ``cL`` or ``cm`` given against ``alpha_total``:
+
+- It must be zero at zero total angle (see the note below).
+- Leave out ``cY``, ``cQ`` and ``cn``. The part in the other plane comes from
+  the split, and there is no side force or yaw moment in the plane of the wind.
+- It cannot also depend on ``alpha`` or ``beta``.
+
+A coefficient that depends on the direction the wind comes from around the
+body can take the roll angle of the wind ``phi`` as well. It is then used as
+given, so write the split yourself:
+
+.. code-block:: python
+
+   def strength(alpha_total, phi):
+      return 2 * alpha_total * (1 + 0.1 * np.cos(4 * phi))
+
+   coefficients = {
+      "cN": lambda alpha_total, phi: strength(alpha_total, phi) * np.sin(phi),
+      "cY": lambda alpha_total, phi: -strength(alpha_total, phi) * np.cos(phi),
+   }
+
+Data against the total angle of attack is known in the literature as the
+*aeroballistic* frame. The built-in nose cone, tail and fin sets work this way
+internally.
+
+.. note::
+   At zero total angle of attack there is no crossflow and its direction is not
+   defined, so ``cN``, ``cL`` and ``cm`` must be zero there, as they are for any rocket
+   with rotational symmetry. RocketPy checks this when the surface is built and
+   raises an error otherwise. A table must therefore start at 0 degrees: a table
+   whose first row is at 2 degrees holds that value all the way down to zero,
+   which would make the force flip sign across zero angle and the stability
+   slope meaningless.
+
+Several coefficients from one file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Aerodynamic data usually comes as one table with a column per variable and a
+column per coefficient:
+
+.. code-block::
+
+   alpha_deg, mach, cN,     cA,   cm
+   -2,        0.3,  -0.085, 0.42,  0.260
+   0,         0.3,   0.000, 0.42,  0.000
+   2,         0.3,   0.085, 0.42, -0.260
+
+:meth:`rocketpy.GenericSurface.from_csv` builds the surface from such a file in
+one step. Every coefficient is read against all the variable columns:
+
+.. code-block:: python
+
+   surface = GenericSurface.from_csv(
+      "aero.csv",
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+   )
+
+Any other argument of the class (``center_of_pressure``, ``name``,
+``active_during``, ...) can be passed along. The same method exists on
+:class:`rocketpy.LinearGenericSurface`, with derivative columns such as
+``cN_alpha`` and ``cm_q``, and on :class:`rocketpy.ControllableGenericSurface`,
+where a control can be one of the variable columns.
+
+A file written by another program has its own column names. Translate them with
+``columns``; the columns you do not list are ignored:
+
+.. code-block:: python
+
+   power_off = GenericSurface.from_csv(
+      "export.csv",
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+      columns={
+         "Mach": "mach",
+         "Alpha": "alpha_deg",
+         "CN": "cN",
+         "CA Power-Off": "cA",
+      },
+      active_during="power_off",
+   )
+
+.. warning::
+   RocketPy's ``alpha`` is measured in one plane and takes both signs. Many
+   programs tabulate against the *total* angle of attack, which is never
+   negative. Name that column ``alpha_total`` (or ``alpha_total_deg``), see
+   `Coefficients against the total angle of attack`_. Read as ``alpha``, such a table would give no restoring force when
+   the rocket pitches the other way; RocketPy warns when a table looks like this.
+
+.. note::
+   Programs often report the center of pressure as a position instead of a
+   pitch moment coefficient. With :math:`x_{cp}` measured from the point the
+   surface is placed at, positive toward the nose, the moment coefficient about
+   that point is :math:`C_m = C_N \, x_{cp} / L_{ref}`.
 
 Adding the surface to the rocket
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -430,68 +733,82 @@ data rather than full tables: the surface builds each coefficient by summing its
 derivatives times the independent variables.
 
 For every one of the six coefficients (``cN``, ``cY``, ``cA``, ``cm``, ``cn``,
-``cl``), you provide a constant term and one derivative per independent variable:
+``cl``), you provide a constant term and one derivative per angle and per
+rotation rate:
 
-- :math:`C_{0}`: the coefficient value at the reference condition.
+- :math:`C_{0}`: the coefficient value at zero angle of attack, zero sideslip
+  and zero rates.
 - :math:`C_{\alpha}=\frac{dC}{d\alpha}`: derivative with respect to angle of attack.
 - :math:`C_{\beta}=\frac{dC}{d\beta}`: derivative with respect to side slip angle.
-- :math:`C_{Ma}=\frac{dC}{dMa}`: derivative with respect to Mach number.
-- :math:`C_{Re}=\frac{dC}{dRe}`: derivative with respect to Reynolds number.
 - :math:`C_{q}=\frac{dC}{dq}`: derivative with respect to pitch rate.
 - :math:`C_{r}=\frac{dC}{dr}`: derivative with respect to yaw rate.
 - :math:`C_{p}=\frac{dC}{dp}`: derivative with respect to roll rate.
 
-Just like the plain generic surface, each of these terms is itself a function of
-all seven independent variables, and may be a constant, a callable, or a
-tabulated ``.csv`` file.
+Just like the plain generic surface, each of these terms may itself depend on
+the Mach number, the Reynolds number or any other of the seven independent
+variables, and may be a constant, a callable, or a tabulated ``.csv`` file.
+There is no separate Mach or Reynolds derivative: a normal-force slope that
+changes with Mach is given as ``cN_alpha`` tabulated against Mach.
 
 How the coefficients are assembled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The derivatives are first combined into **forcing** coefficients, which depend on
-the steady flow state (angles, Mach, Reynolds):
+Each coefficient is the sum of a **forcing** part, which follows the angle of
+attack and the sideslip angle:
 
 .. math::
    \begin{aligned}
-      C_{Nf} &= C_{N0} + C_{N\alpha}\cdot\alpha + C_{N\beta}\cdot\beta + C_{NMa}\cdot Ma + C_{NRe}\cdot Re \\
-      C_{Yf} &= C_{Y0} + C_{Y\alpha}\cdot\alpha + C_{Y\beta}\cdot\beta + C_{YMa}\cdot Ma + C_{YRe}\cdot Re \\
-      C_{Af} &= C_{A0} + C_{A\alpha}\cdot\alpha + C_{A\beta}\cdot\beta + C_{AMa}\cdot Ma + C_{ARe}\cdot Re \\
-      C_{mf} &= C_{m0} + C_{m\alpha}\cdot\alpha + C_{m\beta}\cdot\beta + C_{mMa}\cdot Ma + C_{mRe}\cdot Re \\
-      C_{nf} &= C_{n0} + C_{n\alpha}\cdot\alpha + C_{n\beta}\cdot\beta + C_{nMa}\cdot Ma + C_{nRe}\cdot Re \\
-      C_{lf} &= C_{l0} + C_{l\alpha}\cdot\alpha + C_{l\beta}\cdot\beta + C_{lMa}\cdot Ma + C_{lRe}\cdot Re
+      C_{Nf} &= C_{N0} + C_{N\alpha}\cdot\alpha + C_{N\beta}\cdot\beta \\
+      C_{Yf} &= C_{Y0} + C_{Y\alpha}\cdot\alpha + C_{Y\beta}\cdot\beta \\
+      C_{Af} &= C_{A0} + C_{A\alpha}\cdot\alpha + C_{A\beta}\cdot\beta \\
+      C_{mf} &= C_{m0} + C_{m\alpha}\cdot\alpha + C_{m\beta}\cdot\beta \\
+      C_{nf} &= C_{n0} + C_{n\alpha}\cdot\alpha + C_{n\beta}\cdot\beta \\
+      C_{lf} &= C_{l0} + C_{l\alpha}\cdot\alpha + C_{l\beta}\cdot\beta
    \end{aligned}
 
-and **damping** coefficients, which depend on the rotation rates:
+and a **damping** part, which follows the non-dimensional rotation rates
+:math:`p^{*}` (roll), :math:`q^{*}` (pitch) and :math:`r^{*}` (yaw) defined in
+`Coefficients`_ above:
 
 .. math::
    \begin{aligned}
-      C_{Nd} &= C_{N_{q}}\cdot q + C_{N_{r}}\cdot r + C_{N_{p}}\cdot p \\
-      C_{Yd} &= C_{Y_{q}}\cdot q + C_{Y_{r}}\cdot r + C_{Y_{p}}\cdot p \\
-      C_{Ad} &= C_{A_{q}}\cdot q + C_{A_{r}}\cdot r + C_{A_{p}}\cdot p \\
-      C_{md} &= C_{m_{q}}\cdot q + C_{m_{r}}\cdot r + C_{m_{p}}\cdot p \\
-      C_{nd} &= C_{n_{q}}\cdot q + C_{n_{r}}\cdot r + C_{n_{p}}\cdot p \\
-      C_{ld} &= C_{l_{q}}\cdot q + C_{l_{r}}\cdot r + C_{l_{p}}\cdot p
+      C_{Nd} &= C_{N_{p}}\cdot p^{*} + C_{N_{q}}\cdot q^{*} + C_{N_{r}}\cdot r^{*} \\
+      C_{Yd} &= C_{Y_{p}}\cdot p^{*} + C_{Y_{q}}\cdot q^{*} + C_{Y_{r}}\cdot r^{*} \\
+      C_{Ad} &= C_{A_{p}}\cdot p^{*} + C_{A_{q}}\cdot q^{*} + C_{A_{r}}\cdot r^{*} \\
+      C_{md} &= C_{m_{p}}\cdot p^{*} + C_{m_{q}}\cdot q^{*} + C_{m_{r}}\cdot r^{*} \\
+      C_{nd} &= C_{n_{p}}\cdot p^{*} + C_{n_{q}}\cdot q^{*} + C_{n_{r}}\cdot r^{*} \\
+      C_{ld} &= C_{l_{p}}\cdot p^{*} + C_{l_{q}}\cdot q^{*} + C_{l_{r}}\cdot r^{*}
    \end{aligned}
 
-The body-frame forces and moments then follow, the damping terms scaled by the
-reduced-rate factor :math:`\frac{L_{ref}}{2V}`:
+so that, for example, :math:`C_m = C_{mf} + C_{md}`. The two parts are added: a
+derivative that opposes the motion, such as the pitch damping :math:`C_{m_q}` of
+a stable rocket, is a negative number.
+
+Every derivative may itself vary with the Mach number, the Reynolds number or any
+other of the seven variables, exactly like the coefficients of a
+:class:`rocketpy.GenericSurface`.
+
+The body-frame forces and moments then follow as for any generic surface:
 
 .. math::
    \begin{aligned}
-      N &= \overline{q}\cdot A_{ref}\cdot C_{Nf} + \overline{q}\cdot A_{ref}\cdot \frac{L_{ref}}{2V} C_{Nd} \\
-      Y &= \overline{q}\cdot A_{ref}\cdot C_{Yf} + \overline{q}\cdot A_{ref}\cdot \frac{L_{ref}}{2V} C_{Yd} \\
-      A &= \overline{q}\cdot A_{ref}\cdot C_{Af} + \overline{q}\cdot A_{ref}\cdot \frac{L_{ref}}{2V} C_{Ad} \\
-      M_{m} &= \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot C_{mf} + \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot \frac{L_{ref}}{2V} C_{md} \\
-      M_{n} &= \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot C_{nf} + \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot \frac{L_{ref}}{2V} C_{nd} \\
-      M_{l} &= \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot C_{lf} + \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot \frac{L_{ref}}{2V} C_{ld}
+      N &= \overline{q}\cdot A_{ref}\cdot C_N &\qquad M_m &= \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot C_m \\
+      Y &= \overline{q}\cdot A_{ref}\cdot C_Y &\qquad M_n &= \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot C_n \\
+      A &= \overline{q}\cdot A_{ref}\cdot C_A &\qquad M_l &= \overline{q}\cdot A_{ref}\cdot L_{ref}\cdot C_l
    \end{aligned}
+
+After the surface is created, the whole coefficients are available as
+``surface.cN``, ``surface.cm`` and so on, and the two parts as ``surface.cNf`` and
+``surface.cNd``, ``surface.cmf`` and ``surface.cmd`` and so on. All of them are
+functions of the seven variables.
 
 Defining a linear generic surface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A linear generic surface takes the **same parameters** as
-:class:`rocketpy.GenericSurface`, only the
-``coefficients`` dictionary is different. Each key follows the pattern
+:class:`rocketpy.GenericSurface`, plus ``axisymmetric`` (see
+:ref:`lineargenericsurface_axisymmetric`). Only the ``coefficients`` dictionary
+is different. Each key follows the pattern
 ``<coefficient>_<variable>``. For example ``cN_alpha`` is
 :math:`C_{N\alpha}`, ``cm_q`` is :math:`C_{m_q}`, and ``cN_0`` is the constant
 term :math:`C_{N0}`. Any term you omit is zero.
@@ -518,54 +835,132 @@ An example defining **all** the coefficient derivatives:
             "cN_0": "cN_0.csv",
             "cN_alpha": "cN_alpha.csv",
             "cN_beta": "cN_beta.csv",
-            "cN_Ma": "cN_Ma.csv",
-            "cN_Re": "cN_Re.csv",
             "cN_q": "cN_q.csv",
             "cN_r": "cN_r.csv",
             "cN_p": "cN_p.csv",
             "cY_0": "cY_0.csv",
             "cY_alpha": "cY_alpha.csv",
             "cY_beta": "cY_beta.csv",
-            "cY_Ma": "cY_Ma.csv",
-            "cY_Re": "cY_Re.csv",
             "cY_q": "cY_q.csv",
             "cY_r": "cY_r.csv",
             "cY_p": "cY_p.csv",
             "cA_0": "cA_0.csv",
             "cA_alpha": "cA_alpha.csv",
             "cA_beta": "cA_beta.csv",
-            "cA_Ma": "cA_Ma.csv",
-            "cA_Re": "cA_Re.csv",
             "cA_q": "cA_q.csv",
             "cA_r": "cA_r.csv",
             "cA_p": "cA_p.csv",
             "cm_0": "cm_0.csv",
             "cm_alpha": "cm_alpha.csv",
             "cm_beta": "cm_beta.csv",
-            "cm_Ma": "cm_Ma.csv",
-            "cm_Re": "cm_Re.csv",
             "cm_q": "cm_q.csv",
             "cm_r": "cm_r.csv",
             "cm_p": "cm_p.csv",
             "cn_0": "cn_0.csv",
             "cn_alpha": "cn_alpha.csv",
             "cn_beta": "cn_beta.csv",
-            "cn_Ma": "cn_Ma.csv",
-            "cn_Re": "cn_Re.csv",
             "cn_q": "cn_q.csv",
             "cn_r": "cn_r.csv",
             "cn_p": "cn_p.csv",
             "cl_0": "cl_0.csv",
             "cl_alpha": "cl_alpha.csv",
             "cl_beta": "cl_beta.csv",
-            "cl_Ma": "cl_Ma.csv",
-            "cl_Re": "cl_Re.csv",
             "cl_q": "cl_q.csv",
             "cl_r": "cl_r.csv",
             "cl_p": "cl_p.csv",
          },
       )
       rocket.add_surfaces(linear_generic_surface, position=(0,0,0))
+
+.. _lineargenericsurface_axisymmetric:
+
+Writing an axisymmetric rocket with derivatives
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+   This section is only about :class:`rocketpy.LinearGenericSurface`, where
+   each plane has its own derivatives. A :class:`rocketpy.GenericSurface` whose
+   ``cN`` and ``cm`` are given against ``alpha_total`` is already axisymmetric:
+   the same data is used in every plane, with nothing more to write (see
+   :ref:`totalangle`).
+
+Stability derivatives are usually reported for one plane only: the normal
+force slope :math:`C_{N\alpha}`, the pitch moment slope :math:`C_{m\alpha}`
+and the pitch damping :math:`C_{m_q}`. A linear generic surface has separate
+derivatives for the yaw plane, and a plane without derivatives produces no
+force.
+
+For a rocket that behaves the same in every plane (evenly spaced fins, no
+canards on a single axis), give the pitch-plane derivatives and pass
+``axisymmetric=True``. The yaw-plane ones are filled in for you:
+
+.. code-block:: python
+
+   rocket_aero = LinearGenericSurface(
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+      coefficients={
+         "cA_0": 0.5,
+         "cN_alpha": 12.0,
+         "cm_alpha": -30.0,
+         "cN_q": 40.0,
+         "cm_q": -800.0,
+         "cl_p": -9.0,
+      },
+      axisymmetric=True,
+   )
+   rocket.add_full_body_aerodynamics(rocket_aero)
+   assert rocket.is_axisymmetric
+
+With ``axisymmetric=True``:
+
+- Do not give any yaw-plane derivative (``cY_*``, ``cQ_*`` or ``cn_*``).
+- Do not give a sideways force or moment at zero angle (``cN_0``, ``cm_0``,
+  ``cN_p``, ``cm_p``): it would point in one direction.
+- A pitch-plane derivative may depend on ``mach``, ``reynolds``, the rates and
+  ``alpha_total``, but not on ``alpha``, ``beta`` or ``phi``, which single out
+  one plane.
+- The axial and roll derivatives are used as given.
+
+Writing both planes yourself
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Without ``axisymmetric=True`` you give both planes. For an axisymmetric rocket,
+the yaw derivatives are the pitch ones with two sign changes, which come from
+the directions of the body axes:
+
+.. math::
+   \begin{aligned}
+      C_{Y\beta} &= -C_{N\alpha} &\qquad C_{Y_r} &= C_{N_q} \\
+      C_{n\beta} &= -C_{m\alpha} &\qquad C_{n_r} &= C_{m_q}
+   \end{aligned}
+
+The same rocket as above, written for both planes:
+
+.. code-block:: python
+
+   rocket_aero = LinearGenericSurface(
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+      coefficients={
+         "cA_0": 0.5,
+         "cN_alpha": 12.0, "cY_beta": -12.0,
+         "cm_alpha": -30.0, "cn_beta": 30.0,
+         "cN_q": 40.0, "cY_r": 40.0,
+         "cm_q": -800.0, "cn_r": -800.0,
+         "cl_p": -9.0,
+      },
+   )
+
+``rocket.is_axisymmetric`` tells you whether the signs are right: it is
+``False`` for a rocket written with ``cY_beta = +12``.
+
+.. note::
+   A linear surface treats the angle of attack and the sideslip angle
+   separately, so with both at once it differs slightly from a rocket that
+   responds to the total angle of attack (under a tenth of a percent at 3
+   degrees in each plane). For data against the total angle of attack, use a
+   :class:`rocketpy.GenericSurface` (see :ref:`totalangle`).
 
 
 .. _generic_surface_interpolation:
@@ -634,13 +1029,12 @@ A practical rule of thumb: use ``"linear"`` against Mach (transonic kinks) and
 about smooth derivatives.
 
 .. note::
-   Multi-dimensional CSV tables that form a strict Cartesian grid are read with
-   a :class:`scipy.interpolate.RegularGridInterpolator`. The ``interpolation``
-   argument still applies: it is mapped onto the interpolator's method, with
-   ``"spline"`` becoming ``"cubic"`` and ``"akima"`` becoming the
-   shape-preserving ``"pchip"`` (``"linear"`` stays linear). Smooth methods need
-   enough samples per axis (``"cubic"`` needs at least 4), otherwise SciPy
-   raises.
+   A table over two or more variables that holds every combination of their
+   values (in a file, a list or an array) is interpolated on that regular
+   grid. The ``interpolation`` argument still applies: ``"spline"`` becomes the
+   grid method ``"cubic"`` and ``"akima"`` the shape-preserving ``"pchip"``
+   (``"linear"`` stays linear). The smooth methods need at least 4 values of
+   each variable; with fewer, ``"linear"`` is used and a warning says so.
 
 Choosing an extrapolation method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -706,6 +1100,13 @@ This is also how a full-vehicle model captures the powered/coasting drag
 difference: build one ``"power_on"`` and one ``"power_off"`` surface and add them
 together (see :ref:`fullbodyaerodynamics`).
 
+The flight switches such surfaces on and off by time. The stability analysis
+(``aerodynamic_center``, the margins, the dynamic stability numbers) describes
+one phase at a time: the coasting rocket by default, or the powered one after
+``rocket.stability_phase = "power_on"``. A warning says so whenever a surface is
+left out. :meth:`rocketpy.Rocket.to_coefficients` lumps each phase with its own
+surfaces regardless of that setting.
+
 
 .. _fullbodyaerodynamics:
 
@@ -751,12 +1152,33 @@ You can also collapses an assembled rocket into a single
 stability-derivative model about its center of dry mass:
 
 - :meth:`rocketpy.Rocket.to_coefficients` returns the coefficient curves as a
-  dict split into ``"power_off"`` and ``"power_on"`` sets (only the drag differs
-  between them), each mapping a coefficient name to a :class:`rocketpy.Function`
-  of Mach.
+  dict split into ``"power_off"`` and ``"power_on"`` sets, each mapping a
+  coefficient name to a :class:`rocketpy.Function` of Mach. Every one of the 36
+  derivatives of the linear model that is not zero is kept, so canted fins keep
+  their roll forcing ``cl_0`` and a rocket that is not axisymmetric keeps the
+  terms that couple its pitch and yaw planes.
 - :meth:`rocketpy.Rocket.to_surface` wraps those into a ready-to-use pair of
   :class:`rocketpy.LinearGenericSurface` objects, one gated to each motor phase --
   the inverse of :meth:`~rocketpy.Rocket.add_full_body_aerodynamics`.
+
+.. note::
+   The slopes a generic surface reports for the stability analysis (its
+   ``cN_alpha``, ``cm_alpha``, ``cY_beta``, ``cn_beta`` and the center of
+   pressure built from them) are taken at zero angle of attack and sideslip,
+   zero rotation rates, Reynolds number 0 and, for a controllable surface,
+   zero control. A table that changes with the Reynolds number is therefore
+   linearized at its low-Reynolds edge; the flight itself always reads the
+   table at the actual Reynolds number.
+
+Both take ``model="table"`` to keep the curves instead of the slopes: the six
+coefficients are then read on a grid of angle of attack, sideslip and Mach
+(``angles`` and ``machs`` set the grid, by default every 2 degrees up to 30 and
+every 0.05 up to Mach 3) and the surfaces are :class:`rocketpy.GenericSurface`
+objects. A rocket that behaves the same in every plane is swept over the total
+angle of attack only, which is exact for the built-in surfaces at any angle.
+The damping is carried by the same rate terms as the linear model, read at
+zero angle; pass ``rates=False`` to leave it out and get the rocket as a wind
+tunnel sees it, held still.
 
 .. code-block:: python
 
@@ -767,10 +1189,44 @@ stability-derivative model about its center of dry mass:
    bare.add_full_body_aerodynamics(surfaces, overwrite=True)
 
 .. important::
-   The extracted model is a **linear summary tabulated only against Mach**: the
-   derivatives are taken at zero angle of attack, zero sideslip and zero rates,
-   so incidence/rate nonlinearity, Reynolds dependence and control-surface
-   dependence are dropped. These are exactly the assumptions of the built-in
-   Barrowman surfaces (nose cones, fins, and tails), so a rocket built only from
-   those is reproduced exactly.
+   By default the extracted model is a **linear summary tabulated only against
+   Mach**: the derivatives are taken at zero angle of attack, zero sideslip and
+   zero rates, at zero Reynolds number and with every control held where it is.
+   These are exactly the assumptions of the built-in Barrowman surfaces (nose
+   cones, fins, and tails), so a rocket built only from those is reproduced
+   exactly.
    See :ref:`aero_cp_stability` for the extraction math and its limitations.
+
+For a rocket carrying a generic surface that depends on more than that, three
+optional arguments of both methods keep the dependence:
+
+.. code-block:: python
+
+   import numpy as np
+
+   coefficients = rocket.to_coefficients(
+       model="table",
+       # read the coefficients at these Reynolds numbers (based on the
+       # rocket's diameter); they gain "reynolds" as an input
+       reynolds=[1e5, 1e6, 1e7],
+       # keep a control of a ControllableGenericSurface as an input
+       controls={"deflection": np.radians([-10, 0, 10])},
+       # read the damping at every angle of the table, not only at zero
+       rates="at_each_angle",
+   )
+   cN = coefficients["power_off"]["cN"]
+   cN(0.05, 0.0, 0.6, 1e6, 0.1)   # alpha, beta, mach, reynolds, deflection
+
+- ``reynolds`` also takes a single number, which sets the Reynolds number the
+  coefficients are read at without adding an input. It works with both models.
+- ``controls`` works with both models in ``to_coefficients``. In
+  ``to_surface`` it needs ``model="table"``, and the surfaces returned are
+  :class:`rocketpy.ControllableGenericSurface` objects with those controls.
+  When two surfaces of the rocket use the same control name, each is kept as
+  its own input, named ``<surface name>_<control name>``.
+- ``rates="at_each_angle"`` needs ``model="table"``.
+
+Each value listed multiplies the number of points computed, and
+``controls`` and ``rates="at_each_angle"`` make an axisymmetric rocket be
+swept over both angles, so keep the lists short and pass a coarser ``angles``
+when it takes too long.

@@ -72,18 +72,33 @@ gases, the drag coefficient is lower than when the motor is off.
     If you do not have a drag curve for when the motor is on, you can use the
     same drag curve for both cases.
 
-These curves are used to calculate the drag coefficient of the rocket at any
-given time.
+These curves give the rocket's drag coefficient when it flies straight into
+the air, with zero angle of attack. When the rocket flies at an angle to the
+air, the simulation applies this drag along the rocket's centerline and scales
+it by the cosine of the angle of attack. The force therefore fades to zero when
+the rocket is sideways to the air and brakes the rocket when it moves tail
+first. The extra drag at an angle comes from the forces on the nose cone, fins
+and tail, which push the rocket sideways and partly against the air. In a 3-DOF
+simulation, which does not model the rocket's attitude, the drag acts against
+the velocity instead.
 
-The drag curves can be defined in two ways:
+.. note::
+    The same scaling applies to a drag coefficient that changes with the angle
+    of attack: the value you give at each angle is multiplied by the cosine of
+    that angle and applied along the centerline.
 
-1. Passing in the path to the drag curve CSV file as a string;
-2. Passing in a function that returns the drag coefficient given the Mach
-   number.
+A drag curve can be given as:
 
-Curves defined in CSV files must have the first column as the Mach number
-and the second column as the drag coefficient.
-Here is an example of a drag curve file:
+1. a number, for a constant drag coefficient;
+2. the path to a CSV file as a string;
+3. a list of points, ``[[mach, cd], ...]``;
+4. a function that returns the drag coefficient given the Mach number, such
+   as ``lambda mach: ...``;
+5. a :class:`rocketpy.Function`.
+
+CSV files and lists of points must have the Mach number in the first column
+and the drag coefficient in the second. Here is an example of a drag curve
+file:
 
 .. code-block::
 
@@ -98,6 +113,26 @@ Here is an example of a drag curve file:
     0.8, 0.40110651
     0.9, 0.45696342
     1.0, 0.62744566
+
+.. note::
+    A drag curve may also depend on more than the Mach number. A function can
+    take any of ``alpha``, ``beta``, ``mach``, ``reynolds``, ``pitch_rate``,
+    ``yaw_rate`` and ``roll_rate`` as arguments (for example
+    ``lambda alpha, mach: ...``), and a CSV file can have a header naming its
+    columns after them, with the drag coefficient in the last column. The angles
+    are in radians, the Reynolds number is based on the rocket's diameter, and
+    the three rates are non-dimensional: the rotation rate in rad/s times the
+    rocket's diameter, divided by twice the airspeed. These are the same
+    variables used by :ref:`generic surfaces <genericsurfaces>`.
+
+    For a drag that grows with the angle between the rocket and the air, whatever
+    side the wind comes from, use the total angle of attack ``alpha_total`` (or
+    ``alpha_total_deg``), for example ``lambda alpha_total, mach: ...``. ``alpha``
+    alone is the angle in one plane only and misses a sideslip.
+
+    If what you have are the coefficients of the whole rocket (such as lift,
+    drag and pitch moment against angle of attack), use
+    :meth:`rocketpy.Rocket.add_full_body_aerodynamics` instead.
 
 .. tip::
     Getting a drag curve can be a challenging task. To get really accurate
@@ -181,9 +216,15 @@ With the motor defined, you can add it to the rocket:
 3. Adding Aerodynamic Surfaces
 ------------------------------
 
-The third step is to add aerodynamic surfaces (i.e. nose cone, fins and tail)
-to the rocket. These surfaces are used to calculate the rocket's aerodynamic
-forces and moments.
+The third step is to add aerodynamic surfaces to the rocket. These surfaces are
+used to calculate the rocket's aerodynamic forces and moments. They can be the
+rocket's parts, described by their geometry (nose cone, fins and tail, whose
+coefficients RocketPy computes), or surfaces described directly by their
+aerodynamic coefficients: a :class:`rocketpy.GenericSurface` (coefficient
+tables or functions) or a :class:`rocketpy.LinearGenericSurface` (coefficient
+slopes). Coefficients for the whole rocket, for example from a wind tunnel or
+another program, go in through :meth:`rocketpy.Rocket.add_full_body_aerodynamics`;
+see :ref:`genericsurfaces` for the details.
 
 Differently from the motor, the aerodynamic surfaces do not need to be
 defined before being added to the rocket. They can be defined and added
@@ -218,10 +259,13 @@ to the rocket in one step:
 
     For more information on adding aerodynamic surfaces, see:
 
-    - :class:`rocketpy.Rocket.add_nose`
-    - :class:`rocketpy.Rocket.add_trapezoidal_fins`
-    - :class:`rocketpy.Rocket.add_elliptical_fins`
-    - :class:`rocketpy.Rocket.add_tail`
+    - :meth:`rocketpy.Rocket.add_nose`
+    - :meth:`rocketpy.Rocket.add_trapezoidal_fins`
+    - :meth:`rocketpy.Rocket.add_elliptical_fins`
+    - :meth:`rocketpy.Rocket.add_free_form_fins`
+    - :meth:`rocketpy.Rocket.add_tail`
+    - :meth:`rocketpy.Rocket.add_surfaces` (any surface, including generic ones)
+    - :meth:`rocketpy.Rocket.add_full_body_aerodynamics`
 
 Now we can see a representation of the rocket, this will guarantee that the
 rocket has been constructed correctly:
@@ -492,6 +536,10 @@ First, lets guarantee that the rocket is stable, by plotting the static margin:
 
     If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
+
+The stability margin at a given Mach number and time is read from
+``calisto.stability_margin(mach, time)``. It is the margin with the rocket
+flying straight into the air, at zero angle of attack.
 
 The lets check all the information available about the rocket:
 
