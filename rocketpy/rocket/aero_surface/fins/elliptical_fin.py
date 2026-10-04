@@ -76,11 +76,42 @@ class EllipticalFin(Fin):
     EllipticalFin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    EllipticalFin.cl : Function
-        Roll-moment coefficient, inherited from the generic-surface model
-        (a function of the flow variables). Zero for a nose cone or tail; for a
-        fin set it carries the cant forcing and roll damping. The lift-curve
-        slope is ``clalpha``.
+    EllipticalFin.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    EllipticalFin.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    EllipticalFin.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    EllipticalFin.cm : AeroCoefficient
+        Pitching moment coefficient.
+    EllipticalFin.cn : AeroCoefficient
+        Yawing moment coefficient.
+    EllipticalFin.cl : AeroCoefficient
+        Roll moment coefficient, from the roll damping only. A canted fin
+        rolls the rocket through its side force.
+    EllipticalFin.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    EllipticalFin.cD : Function
+        Drag coefficient, the force along the airflow.
+    EllipticalFin.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    EllipticalFin.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    EllipticalFin.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    EllipticalFin.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    EllipticalFin.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    EllipticalFin.cl_0 : AeroCoefficient
+        Roll moment coefficient at zero roll rate, as a function of Mach.
+    EllipticalFin.cl_p : AeroCoefficient
+        Slope of ``cl`` with the reduced roll rate (roll damping), as a
+        function of Mach.
     EllipticalFin.clalpha : float
         Normal-force coefficient slope. Has units of 1/rad.
     """
@@ -112,6 +143,8 @@ class EllipticalFin(Fin):
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            A positive cant angle gives a negative roll moment about the
+            rocket's axis (see :ref:`individual_fins`).
         sweep_length : int, float, optional
             Fins sweep length in meters. By sweep length, understand the axial
             distance between the fin root leading edge and the fin tip leading
@@ -159,7 +192,7 @@ class EllipticalFin(Fin):
         )
 
         self.geometry = _EllipticalGeometry(self)
-        self._update_geometry_chain()
+        self._build_surface()
         self.evaluate_shape()
 
         self.prints = _EllipticalFinPrints(self)
@@ -171,10 +204,7 @@ class EllipticalFin(Fin):
         tuple."""
         # Barrowman elliptical-fin center of pressure location.
         cpz = 0.288 * self.root_chord
-        self.cpx = 0
-        self.cpy = self.Yma
-        self.cpz = cpz
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        self._set_center_of_pressure((0, self.Yma, cpz))
 
     def to_dict(self, include_outputs=False, **kwargs):
         data = super().to_dict(include_outputs=include_outputs, **kwargs)

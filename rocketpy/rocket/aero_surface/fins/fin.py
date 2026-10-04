@@ -2,8 +2,8 @@ import math
 
 import numpy as np
 
-from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.rocket.aero_surface._helpers import _wind_axes
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
@@ -80,16 +80,48 @@ class Fin(_BaseFin):
     Fin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    Fin.cl : Function
-        Roll-moment coefficient, inherited from the generic-surface model
-        (a function of the flow variables). Zero for a nose cone or tail; for a
-        fin set it carries the cant forcing and roll damping. The lift-curve
-        slope is ``clalpha``.
+    Fin.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    Fin.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    Fin.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    Fin.cm : AeroCoefficient
+        Pitching moment coefficient.
+    Fin.cn : AeroCoefficient
+        Yawing moment coefficient.
+    Fin.cl : AeroCoefficient
+        Roll moment coefficient, from the roll damping only. A canted fin
+        rolls the rocket through its side force.
+    Fin.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    Fin.cD : Function
+        Drag coefficient, the force along the airflow.
+    Fin.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    Fin.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Fin.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    Fin.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Fin.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    Fin.cl_0 : AeroCoefficient
+        Roll moment coefficient at zero roll rate, as a function of Mach.
+    Fin.cl_p : AeroCoefficient
+        Slope of ``cl`` with the reduced roll rate (roll damping), as a
+        function of Mach.
     Fin.clalpha : float
         Normal-force coefficient slope. Has units of 1/rad.
     Fin.roll_parameters : list
-        List containing the roll moment lift coefficient, the roll moment
-        damping coefficient and the cant angle in radians.
+        List containing the roll moment forcing coefficient, the roll moment
+        damping coefficient (both for the fin at zero cant) and the cant angle
+        in radians.
     """
 
     # A single fin contributes unequally to the pitch and yaw planes, so it is
@@ -124,6 +156,8 @@ class Fin(_BaseFin):
         cant_angle : int, float, optional
             Fin cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            A positive cant angle gives a negative roll moment about the
+            rocket's axis (see :ref:`individual_fins`).
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -154,33 +188,22 @@ class Fin(_BaseFin):
         self._angular_position = angular_position
         self._angular_position_rad = math.radians(angular_position)
 
-    def _update_geometry_chain(self):
-        """Run the base geometry/coefficient chain, then (re)build the body to
-        fin rotation matrices."""
-        super()._update_geometry_chain()
+    def _evaluate_geometry(self):
+        """Compute the fin's parameters and its rotation relative to the rocket
+        body."""
+        super()._evaluate_geometry()
         self.evaluate_rotation_matrix()
 
-    @property
-    def cant_angle(self):
-        return self._cant_angle
-
-    @cant_angle.setter
-    def cant_angle(self, value):
-        self._cant_angle = value
-        self.cant_angle_rad = math.radians(value)
-
-    @property
-    def cant_angle_rad(self):
-        return self._cant_angle_rad
-
-    @cant_angle_rad.setter
-    def cant_angle_rad(self, value):
-        self._cant_angle_rad = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+    def _cant_changed(self):
+        """Update the fin after its cant angle changes, turning its frame with
+        the new cant angle."""
         self.evaluate_rotation_matrix()
+        super()._cant_changed()
+
+    def _default_surface_rotation(self):
+        """A fin's frame is turned by its angular position and its cant angle,
+        see :meth:`evaluate_rotation_matrix`."""
+        return self._rotation_fin_to_body
 
     @property
     def angular_position(self):
@@ -198,7 +221,7 @@ class Fin(_BaseFin):
     @angular_position_rad.setter
     def angular_position_rad(self, value):
         self._angular_position_rad = value
-        self.evaluate_rotation_matrix()
+        self._update_geometry_chain()
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns the fin set's lift coefficient.
@@ -239,11 +262,12 @@ class Fin(_BaseFin):
         clf_delta.set_title(
             "Roll moment forcing coefficient derivative vs. Mach number"
         )
+        # Damping of the fin at zero cant; the cos(cant) factor is applied
+        # when the moment is evaluated, so a new cant angle needs no rebuild
         cld_omega = -(
             2
             * self.roll_damping_interference_factor
             * self.clalpha_single_fin
-            * np.cos(self.cant_angle_rad)
             * self.roll_geometrical_constant
             / (self.reference_area * self.reference_length**2)
         )  # Function of mach number
@@ -252,7 +276,7 @@ class Fin(_BaseFin):
         cld_omega.set_title(
             "Roll moment damping coefficient derivative vs. Mach number"
         )
-        self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
+        self._clf_delta, self._cld_omega = clf_delta, cld_omega
         return self.roll_parameters
 
     def evaluate_rotation_matrix(self):
@@ -335,21 +359,69 @@ class Fin(_BaseFin):
         return Vector([self.cpx, self.cpy, self.cpz])
 
     def evaluate_coefficients(self):
-        """Evaluate the fin's normal-force slope coefficients.
+        """Evaluate the fin's coefficients from its geometry.
 
         Sets ``cN_alpha`` (pitch plane) and ``cY_beta`` (yaw plane) from the
         fin's normal-force slope projected onto each plane by its angular
-        position. Moment coefficients are left at zero since the moment is
-        transported geometrically in :meth:`compute_forces_and_moments`.
+        position and reduced by the cosine of its cant angle, and the force
+        coefficients ``cN``, ``cY`` and ``cA`` as the force computed in
+        :meth:`compute_forces_and_moments` written as functions
+        of the angle of attack, the sideslip angle and Mach. Moment coefficients
+        are left at zero since the moment is transported geometrically, except
+        for the roll damping ``cl_p``. The roll moment a canted fin produces
+        comes from its force acting at its center of pressure, so there is no
+        ``cl_0``.
         """
+        super().evaluate_coefficients()
         clalpha = self.clalpha
-        sin_sq = math.sin(self.angular_position_rad) ** 2
-        cos_sq = math.cos(self.angular_position_rad) ** 2
+        # The cant tilts the fin's force: only cos(cant) of it acts across the
+        # rocket's axis, the rest acts along it. The cant angle is read when
+        # the coefficient is evaluated, so a controller may change it freely.
+        pitch_share = math.sin(self.angular_position_rad) ** 2
+        yaw_share = math.cos(self.angular_position_rad) ** 2
         self.cN_alpha = self._mach_coefficient(
-            lambda mach: clalpha.get_value_opt(mach) * sin_sq
+            lambda mach: (
+                clalpha.get_value_opt(mach)
+                * pitch_share
+                * math.cos(self.cant_angle_rad)
+            ),
+            "cN_alpha",
         )
         self.cY_beta = self._mach_coefficient(
-            lambda mach: -clalpha.get_value_opt(mach) * cos_sq
+            lambda mach: (
+                -clalpha.get_value_opt(mach) * yaw_share * math.cos(self.cant_angle_rad)
+            ),
+            "cY_beta",
+        )
+
+        def force(alpha, beta, mach):
+            # Same steps as compute_forces_and_moments, from the flow direction
+            u_x, u_y, u_z, _ = _wind_axes(alpha, beta)
+            stream_f = self._rotation_body_to_fin @ Vector([-u_x, -u_y, -u_z])
+            attack_angle = math.atan2(stream_f[0], stream_f[2])
+            return self._rotation_fin_to_body @ Vector(
+                [clalpha.get_value_opt(mach) * attack_angle, 0, 0]
+            )
+
+        self.cY = self._as_coefficient(
+            lambda alpha, beta, mach: force(alpha, beta, mach)[0], "cY"
+        )
+        self.cN = self._as_coefficient(
+            lambda alpha, beta, mach: -force(alpha, beta, mach)[1], "cN"
+        )
+        self.cA = self._as_coefficient(
+            lambda alpha, beta, mach: -force(alpha, beta, mach)[2], "cA"
+        )
+
+        cld_omega = self._cld_omega
+        self.cl_0 = self._mach_coefficient(lambda mach: 0.0, "cl_0")
+        self.cl = self._as_coefficient(
+            lambda mach, roll_rate: (
+                cld_omega.get_value_opt(mach)
+                * math.cos(self.cant_angle_rad)
+                * roll_rate
+            ),
+            "cl",
         )
 
     def compute_forces_and_moments(
@@ -386,8 +458,9 @@ class Fin(_BaseFin):
         Returns
         -------
         tuple of float
-            The aerodynamic forces (lift, side_force, drag) and moments
-            (pitch, yaw, roll) in the body frame.
+            The aerodynamic force components ``(R1, R2, R3)`` along the body
+            x, y and z axes and the moments ``(M1, M2, M3)`` about them, taken
+            about the rocket's center of dry mass.
         """
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
 
@@ -412,12 +485,12 @@ class Fin(_BaseFin):
         M3 *= self.roll_forcing_interference_factor / self.lift_interference_factor
 
         # Roll damping
-        _, cld_omega, _ = self.roll_parameters
         M3_damping = (
             (1 / 2 * rho * stream_speed)
             * self.reference_area
             * (self.reference_length) ** 2
-            * cld_omega.get_value_opt(stream_mach)
+            * self._cld_omega.get_value_opt(stream_mach)
+            * math.cos(self.cant_angle_rad)
             * omega[2]  # omega3
             / 2
         )
@@ -462,30 +535,9 @@ class Fin(_BaseFin):
         position += p
         return position
 
-    def to_dict(self, include_outputs=False):
-        data = {
-            "angular_position": self.angular_position,
-            "root_chord": self.root_chord,
-            "span": self.span,
-            "rocket_radius": self.rocket_radius,
-            "cant_angle": self.cant_angle,
-            "airfoil": self.airfoil,
-            "name": self.name,
-        }
-
-        if include_outputs:
-            data.update(
-                {
-                    "cp": self.cp,
-                    "clalpha": self.clalpha,
-                    "roll_parameters": self.roll_parameters,
-                    "rocket_diameter": self.rocket_diameter,
-                    "diameter": self.rocket_diameter,
-                    "d": self.rocket_diameter,
-                    "reference_area": self.reference_area,
-                    "ref_area": self.reference_area,
-                }
-            )
+    def to_dict(self, include_outputs=False, **kwargs):
+        data = super().to_dict(include_outputs=include_outputs, **kwargs)
+        data["angular_position"] = self.angular_position
         return data
 
     def draw(self, *, filename=None):

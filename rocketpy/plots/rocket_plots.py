@@ -3,7 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
@@ -65,9 +64,15 @@ class _RocketPlots:
         differ only by the constant factor ``2 * radius / length`` (times 100 for
         a percentage), so the length-percentage scale is a plain rescaling of the
         caliber scale and can be drawn as a secondary axis. See
-        :attr:`rocketpy.Rocket.length`.
+        :attr:`rocketpy.Rocket.length`. ``None`` when the rocket has no
+        length (its two ends are not known and no ``length`` was given), so
+        the secondary axis is skipped.
         """
-        factor = 2 * self.rocket.radius / self.rocket.length * 100
+        rocket = self.rocket
+        length = rocket.length
+        if not length:
+            return None
+        factor = 2 * rocket.radius / length * 100
         return (lambda calibers: calibers * factor, lambda percent: percent / factor)
 
     def static_margin(self, *, filename=None):
@@ -105,16 +110,15 @@ class _RocketPlots:
         ax.set_title(title)
         ax.grid(True)
 
-        secondary_axis = ax.secondary_yaxis(
-            "right", functions=self._caliber_to_length_percent()
-        )
-        secondary_axis.set_ylabel("Static Margin (% of length)")
+        if (functions := self._caliber_to_length_percent()) is not None:
+            secondary_axis = ax.secondary_yaxis("right", functions=functions)
+            secondary_axis.set_ylabel("Static Margin (% of length)")
 
         show_or_save_fig(fig, filename)
 
     def stability_margin(self, *, filename=None):
         """Plots the stability margin of the rocket as a function of Mach number
-        and time, at zero angle of attack (the design surface).
+        and time, at zero angle of attack.
 
         Parameters
         ----------
@@ -126,7 +130,7 @@ class _RocketPlots:
         -------
         None
         """
-        self._design_stability_margin(self.rocket.stability_margin).plot_2d(
+        self.rocket.stability_margin.plot_2d(
             lower=0,
             upper=[2, self.rocket.motor.burn_out_time],  # Mach 2 and burnout
             samples=[20, 20],
@@ -174,23 +178,13 @@ class _RocketPlots:
         -------
         None
         """
-        self._design_stability_margin(self.rocket.stability_margin_yaw).plot_2d(
+        self.rocket.stability_margin_yaw.plot_2d(
             lower=0,
             upper=[2, self.rocket.motor.burn_out_time],  # Mach 2 and burnout
             samples=[20, 20],
             disp_type="surface",
             alpha=1,
             filename=filename,
-        )
-
-    @staticmethod
-    def _design_stability_margin(margin):
-        """The zero-incidence (Mach, time) slice of an angle-of-attack-aware
-        stability margin, as a 2-D Function for surface plotting."""
-        return Function(
-            lambda mach, time: margin.get_value_opt(0.0, mach, time),
-            inputs=["Mach", "Time (s)"],
-            outputs=margin.__outputs__[0],
         )
 
     # pylint: disable=too-many-statements
@@ -480,6 +474,8 @@ class _RocketPlots:
 
     def _draw_fin(self, ax, surface, position, drawn_surfaces, vis_args, plane):
         """Draws individual fins."""
+        # The fin's own frame sits at its root leading edge, cant applied
+        position = self.rocket._surface_origin(surface, position)
 
         # Get shape vec
         xs = surface.shape_vec[0]

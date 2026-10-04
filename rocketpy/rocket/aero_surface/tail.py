@@ -40,11 +40,36 @@ class Tail(_BarrowmanSurface):
         z local coordinate of the center of pressure of the tail.
     Tail.cp : tuple
         Tuple containing the coordinates of the center of pressure of the tail.
-    Tail.cl : Function
-        Roll-moment coefficient, inherited from the generic-surface model
-        (a function of the flow variables). Zero for a nose cone or tail; for a
-        fin set it carries the cant forcing and roll damping. The lift-curve
-        slope is ``clalpha``.
+    Tail.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    Tail.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    Tail.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    Tail.cm : AeroCoefficient
+        Pitching moment coefficient.
+    Tail.cn : AeroCoefficient
+        Yawing moment coefficient.
+    Tail.cl : AeroCoefficient
+        Roll moment coefficient. Always zero for a tail.
+    Tail.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    Tail.cD : Function
+        Drag coefficient, the force along the airflow.
+    Tail.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    Tail.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Tail.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    Tail.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Tail.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
     Tail.clalpha : float
         Normal-force coefficient slope. Has the unit of 1/rad.
     Tail.slant_length : float
@@ -91,8 +116,8 @@ class Tail(_BarrowmanSurface):
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
 
-        # Translate the Barrowman geometry into the linear generic-surface
-        # coefficient model and build the shared compute path.
+        # Translate the Barrowman geometry (clalpha, cpz) into generic-surface
+        # coefficients.
         super().__init__(
             reference_area=self.reference_area,
             reference_length=self.reference_length,
@@ -114,6 +139,7 @@ class Tail(_BarrowmanSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self._geometry_changed()
 
     @property
     def bottom_radius(self):
@@ -125,6 +151,7 @@ class Tail(_BarrowmanSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self._geometry_changed()
 
     @property
     def length(self):
@@ -135,6 +162,7 @@ class Tail(_BarrowmanSurface):
         self._length = value
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
+        self._geometry_changed()
 
     @property
     def rocket_radius(self):
@@ -143,7 +171,10 @@ class Tail(_BarrowmanSurface):
     @rocket_radius.setter
     def rocket_radius(self, value):
         self._rocket_radius = value
+        self.reference_area = np.pi * value**2
+        self.reference_length = 2 * value
         self.evaluate_lift_coefficient()
+        self._geometry_changed()
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves tail's slant length and surface area.
@@ -203,10 +234,7 @@ class Tail(_BarrowmanSurface):
         cpz = (self.length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Store values as class attributes
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = cpz
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        self._set_center_of_pressure((0, 0, cpz))
 
     def info(self):
         self.prints.geometry()
@@ -228,7 +256,7 @@ class Tail(_BarrowmanSurface):
         if kwargs.get("include_outputs", False):
             clalpha = self.clalpha
             if kwargs.get("discretize", False):
-                clalpha = clalpha.set_discrete(0, 4, 50)
+                clalpha = clalpha.set_discrete(0, 4, 50, mutate_self=False)
 
             data.update(
                 {

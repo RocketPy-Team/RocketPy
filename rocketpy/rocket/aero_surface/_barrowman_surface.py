@@ -1,45 +1,51 @@
+import math
+
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.rocket.aero_surface.aero_coefficient import AeroCoefficient
-from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSurface
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
-class _BarrowmanSurface(LinearGenericSurface):
-    """Intermediate base for Barrowman-defined aerodynamic surfaces
-    such as nose cones, tails/transitions and fin sets.
+class _BarrowmanSurface(GenericSurface):
+    """Base class for the surfaces modeled with the Barrowman method: nose
+    cones, tails/transitions and fins.
 
-    These surfaces expose a lift-curve slope ``clalpha`` (a ``Function`` of
-    Mach), a geometric center of pressure ``cpz`` and, for fins, a pair of roll
-    forcing/damping coefficients.
+    The normal force is ``clalpha(Mach)`` times the total angle of attack and
+    acts at the geometric center of pressure ``cpz``. Fins add a roll moment
+    from their cant angle and their roll damping.
 
-    The in-flight normal force and its moment are computed with the classic
-    Barrowman method (see :meth:`compute_forces_and_moments`): the normal force
-    uses the true total angle of attack and acts at the geometric center of
-    pressure, and its moment about the center of dry mass is the geometric
-    transport (``cp ^ force``). This reproduces the formulation used in
-    RocketPy's flight-test validation. The resultant force is therefore reported
-    at the geometric center of pressure (:attr:`force_application_point`), which
-    the surface-local frame maps to the body frame through
-    :meth:`_default_surface_rotation`.
+    The coefficients ``cN``, ``cY`` and ``cl`` describe that same force, so
+    what is read or plotted is what flies.
+    :meth:`compute_forces_and_moments` computes it in a faster way, and a unit
+    test keeps the two in agreement. The slopes ``cN_alpha`` and ``cY_beta``
+    are used for the stability margin and the center of pressure.
 
-    The class also derives the linear normal-force slopes ``cN_alpha`` (pitch
-    plane) and ``cY_beta`` (yaw plane), which feed the stability and
-    center-of-pressure diagnostics; the geometric cp is carried by the force
-    application point, so the moment slopes ``cm_alpha`` / ``cn_beta`` are zero.
-    Fin roll uses the coefficient model: ``cl_0`` (cant forcing) and ``cl_p``
-    (roll damping).
-
-    Subclasses must compute ``self.clalpha`` (Function of Mach) and the geometric
-    center of pressure before calling ``super().__init__`` (which passes the
-    geometric cp through ``center_of_pressure``), and, for fins, set
-    ``self.roll_parameters = [clf_delta, cld_omega, cant_angle_rad]``.
+    Subclasses must set ``self.clalpha`` (a Function of Mach) and the geometric
+    center of pressure before calling ``super().__init__``. Fins must also
+    provide ``roll_parameters``, ``[clf_delta, cld_omega, cant_angle_rad]``,
+    with the two coefficients taken at zero cant.
     """
 
     # Geometry-defined Barrowman surfaces are axisymmetric by construction
     # (``cY_beta = -cN_alpha``, etc.), so they contribute identically to the
     # pitch and yaw planes. The individual ``Fin`` overrides this back to False.
     is_axisymmetric = True
+
+    def _geometry_changed(self):
+        """Rebuild the coefficients after a change to the geometry, and count
+        the change so the rockets using this surface update too."""
+        if not hasattr(self, "cN_alpha"):
+            return  # Still being built: the constructor builds the coefficients
+        self.evaluate_coefficients()
+        self._evaluate_stability_derivatives()
+        self._version += 1
+
+    def _evaluate_stability_derivatives(self):
+        """The slopes are set from the geometry (see
+        :meth:`evaluate_coefficients`), so there is nothing to differentiate:
+        only the center-of-pressure accessors are built."""
+        self._set_stability_accessors()
 
     @staticmethod
     def _beta(mach):
@@ -80,16 +86,14 @@ class _BarrowmanSurface(LinearGenericSurface):
         return Matrix([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
 
     def evaluate_coefficients(self):
-        """Populate the coefficient slopes used by the stability diagnostics
-        from the surface geometry. Called by ``GenericSurface.__init__`` and
-        again whenever the geometry changes.
+        """Populate the coefficients from the surface geometry. Called by
+        ``GenericSurface.__init__`` and again whenever the geometry changes.
 
-        Sets the normal-force slopes ``cN_alpha`` (pitch) and ``cY_beta`` (yaw)
-        and the fin roll coefficients when present. The geometric center of
+        Sets the normal-force slopes ``cN_alpha`` (pitch) and ``cY_beta`` (yaw),
+        the force coefficients ``cN`` and ``cY`` and, for fins, the roll
+        coefficients ``cl_0``, ``cl_p`` and ``cl``. The geometric center of
         pressure is carried by the force application point (not the moment
-        coefficients), so ``cm_alpha`` / ``cn_beta`` are zero. The in-flight
-        force and moment are computed geometrically in
-        :meth:`compute_forces_and_moments`.
+        coefficients), so ``cm_alpha`` / ``cn_beta`` are zero.
         """
         clalpha = self.clalpha  # normal-force-curve slope, a Function of Mach
 
@@ -102,19 +106,46 @@ class _BarrowmanSurface(LinearGenericSurface):
         )
 
         # The center of pressure is carried by the force application point, so
-        # the moment slopes add no further offset (the diagnostic recovers the
-        # geometric cp from the application point alone).
+        # the moment slopes add no further offset
         self.cm_alpha = self._mach_coefficient(lambda mach: 0.0, "cm_alpha")
         self.cn_beta = self._mach_coefficient(lambda mach: 0.0, "cn_beta")
 
-        # Fin roll forcing (cant) and damping, when present.
+        # The classic normal force (see compute_forces_and_moments) written as
+        # coefficients: ``clalpha * total angle of attack`` in the plane of the
+        # wind, split between the pitch and yaw planes along the crossflow.
+        total_normal = self._as_coefficient(
+            lambda alpha_total, mach: clalpha.get_value_opt(mach) * alpha_total,
+            "cN",
+        )
+        c_normal, c_side = self._split_along_crossflow(total_normal, ("cN", "cY"))
+        self.cN = self._as_coefficient(c_normal, "cN")
+        self.cY = self._as_coefficient(c_side, "cY")
+
+        # Fin roll forcing (cant) and damping, when present. The cant angle is
+        # read when the coefficient is evaluated, so a controller may change it
+        # without the coefficients being rebuilt.
         roll_parameters = getattr(self, "roll_parameters", None)
         if roll_parameters is not None:
-            clf_delta, cld_omega, cant_angle_rad = roll_parameters
+            clf_delta, cld_omega, _ = roll_parameters
             self.cl_0 = self._mach_coefficient(
-                lambda mach: clf_delta.get_value_opt(mach) * cant_angle_rad, "cl_0"
+                lambda mach: clf_delta.get_value_opt(mach) * self._roll_cant_angle_rad,
+                "cl_0",
             )
-            self.cl_p = self._mach_coefficient(cld_omega.get_value_opt, "cl_p")
+            self.cl_p = self._mach_coefficient(
+                lambda mach: (
+                    cld_omega.get_value_opt(mach) * math.cos(self.cant_angle_rad)
+                ),
+                "cl_p",
+            )
+            self.cl = self._as_coefficient(
+                lambda mach, roll_rate: (
+                    clf_delta.get_value_opt(mach) * self._roll_cant_angle_rad
+                    + cld_omega.get_value_opt(mach)
+                    * math.cos(self.cant_angle_rad)
+                    * roll_rate
+                ),
+                "cl",
+            )
 
     def compute_forces_and_moments(
         self,
@@ -132,10 +163,10 @@ class _BarrowmanSurface(LinearGenericSurface):
         The normal force uses the true total angle of attack between the flow
         and the body axis, ``attack_angle = arccos(-v_z / |v|)``, giving
         ``0.5 * rho * V**2 * A_ref * clalpha(Mach) * attack_angle``. It is
-        applied perpendicular to the body axis (along the transverse flow) at the
-        geometric center of pressure, and its moment about the rocket's center of
-        dry mass is the geometric transport ``cp ^ force``. Fin sets add their
-        roll moment on top.
+        applied perpendicular to the body axis (along the transverse flow) at
+        the geometric center of pressure, and its moment about the rocket's
+        center of dry mass is the geometric transport ``cp ^ force``.
+        Fin sets add their roll moment on top.
 
         Parameters
         ----------
@@ -195,6 +226,8 @@ class _BarrowmanSurface(LinearGenericSurface):
         reduced-rate damping. Returns 0 for surfaces without fins, whose roll
         coefficients are identically zero.
         """
+        if self.cl.is_zero:
+            return 0.0
         reduced_roll_rate = (
             omega[2] * self.reference_length / (2 * stream_speed)
             if stream_speed > 0
@@ -202,7 +235,7 @@ class _BarrowmanSurface(LinearGenericSurface):
         )
         # The Barrowman roll coefficients depend only on Mach and the roll rate.
         args = (0.0, 0.0, mach, 0.0, 0.0, 0.0, reduced_roll_rate)
-        cl = self.clf.get_value_opt(*args) + self.cld.get_value_opt(*args)
+        cl = self.cl.get_value_opt(*args)
         return (
             0.5
             * rho

@@ -50,6 +50,9 @@ def apply_event_commands(
     apply_disable_commands(
         flight, event_results, node_index, event, phase, time=t_apply
     )
+    if event.changes_dynamics:
+        # The callback may have changed a surface
+        flight.rocket._refresh_aerodynamics()
 
 
 def apply_rollback_command(flight, time, state):

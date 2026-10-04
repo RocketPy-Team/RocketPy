@@ -1,5 +1,6 @@
 import json
 import os
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import matplotlib as plt
@@ -8,6 +9,7 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Components, Flight, Function, LinearGenericSurface, Rocket
+from rocketpy.rocket._helpers import aerodynamic_damping
 from rocketpy.simulation.helpers.flight_derivatives import u_dot, u_dot_generalized
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -132,17 +134,19 @@ def test_get_solution_at_time(flight_calisto):
         rtol=1e-05,
         atol=1e-08,
     )
+    # This rocket has no aerodynamic surfaces, so nothing turns it: it keeps its
+    # launch attitude and falls tail first, with the drag braking the fall.
     assert np.allclose(
         flight_calisto.get_solution_at_time(flight_calisto.t_final),
         np.array(
             [
-                48.43719482805657,
-                -14.836008075478597,
-                985.9858934483618,
-                -3.4415459237894554e-05,
-                0.0007572309307800201,
-                11.21695000766671,
-                -341.1460775169661,
+                52.61962020640597,
+                -15.5982732,
+                1165.22136,
+                -2.68709202e-06,
+                0.000755621118,
+                27.5202515,
+                -195.691415,
                 0.9990482215818578,
                 -0.043619387365336,
                 0.0,
@@ -242,7 +246,7 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     [
         ("t_initial", (0.25886, -0.649623, 0)),
         ("out_of_rail_time", (0.792028, -1.987634, 0)),
-        ("apogee_time", (-0.509420, -0.732933, -2.089120e-14)),
+        ("apogee_time", (-0.652631, -0.734179, 2.701482e-16)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -279,9 +283,9 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
 @pytest.mark.parametrize(
     "flight_time, expected_values",
     [
-        ("t_initial", (1.654150, 0.659142, -0.067103)),
-        ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
-        ("apogee_time", (2.321838, -1.613641, -0.962108)),
+        ("t_initial", (1.654150, 0.659142, 0.002172)),
+        ("out_of_rail_time", (5.052628, 2.013361, -1.716290)),
+        ("apogee_time", (2.266519, -2.014795, -0.792216)),
         ("t_final", (-0.019802, 0.012030, 159.051604)),
     ],
 )
@@ -322,7 +326,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-14.826350, 15.670022, -0.000264),
+            (-11.635005, 16.697127, -0.000000),
         ),
         ("t_final", (5, 2, -5.660155)),
     ],
@@ -361,7 +365,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 7.8067, 89.2315)),
-        ("apogee_time", (0.07649, -0.053530, -9.620037)),
+        ("apogee_time", (0.072063, -0.061586, -9.613866)),
         ("t_final", (0, 0, 0.0019548)),
     ],
 )
@@ -832,3 +836,262 @@ def test_solid_propulsion_and_generalized_equations_agree_when_rotating(
     generalized = u_dot_generalized(flight, t, pitching)
     assert solid[10] == pytest.approx(generalized[10], rel=0.1)
     assert solid[3:6] == pytest.approx(generalized[3:6], rel=0.05)
+
+
+def test_static_margin_yaw_is_the_one_of_the_rocket():
+    """The flight gives both planes of the static margin, as it does for the
+    stability margin. No simulation is needed to check it."""
+    rocket = SimpleNamespace(static_margin="pitch", static_margin_yaw="yaw")
+    flight = SimpleNamespace(rocket=rocket)
+    assert Flight.static_margin.func(flight) == "pitch"
+    assert Flight.static_margin_yaw.func(flight) == "yaw"
+
+
+def test_yaw_stability_margin_values_follow_the_yaw_curve():
+    """The single yaw-plane margins (initial, at rail exit, largest, smallest)
+    are read from ``stability_margin_yaw``, as the pitch ones are read from
+    ``stability_margin``. No simulation is needed to check it."""
+    curve = Function([[0.0, 2.0], [1.0, 3.5], [2.0, 1.2], [3.0, 2.4]], "t", "margin")
+    flight = SimpleNamespace(
+        stability_margin_yaw=curve, time=[0.0, 1.0, 2.0, 3.0], out_of_rail_time=1.0
+    )
+    assert Flight.initial_stability_margin_yaw.fget(flight) == pytest.approx(2.0)
+    assert Flight.out_of_rail_stability_margin_yaw.fget(flight) == pytest.approx(3.5)
+
+    flight.max_stability_margin_yaw_time = Flight.max_stability_margin_yaw_time.func(
+        flight
+    )
+    flight.min_stability_margin_yaw_time = Flight.min_stability_margin_yaw_time.func(
+        flight
+    )
+    assert flight.max_stability_margin_yaw_time == pytest.approx(1.0)
+    assert flight.min_stability_margin_yaw_time == pytest.approx(2.0)
+    assert Flight.max_stability_margin_yaw.func(flight) == pytest.approx(3.5)
+    assert Flight.min_stability_margin_yaw.func(flight) == pytest.approx(1.2)
+
+
+# Moments about the center of mass while the motor burns
+
+
+def _rigid_burning_calisto(
+    calisto_motorless, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
+):
+    """Calisto with a full grain whose motor gives a milli-newton of thrust and
+    a negligible mass flow: a rigid body whose center of mass sits well behind
+    the center of dry mass."""
+    from rocketpy import SolidMotor  # pylint: disable=import-outside-toplevel
+
+    motor = SolidMotor(
+        thrust_source=1e-3,
+        burn_time=1000.0,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        nozzle_radius=33 / 1000,
+        grain_number=5,
+        grain_density=1815,
+        grain_outer_radius=33 / 1000,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        grain_separation=5 / 1000,
+        grains_center_of_mass_position=0.397,
+        center_of_dry_mass_position=0.317,
+        nozzle_position=0,
+        throat_radius=11 / 1000,
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    )
+    rocket = calisto_motorless
+    rocket.add_motor(motor, position=-1.255)
+    rocket.add_surfaces(calisto_nose_cone, 1.160)
+    rocket.add_surfaces(calisto_trapezoidal_fins, -1.168)
+    rocket.add_surfaces(calisto_tail, -1.313)
+    return rocket
+
+
+def _center_of_mass_inertia(rocket, t):
+    """Position of the center of mass relative to the center of dry mass in
+    the body frame, and the inertia tensor about it."""
+    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
+
+    r_cm = Vector([0, 0, -rocket.com_to_cdm_function.get_value_opt(t)])
+    mass = rocket.total_mass.get_value_opt(t)
+    inertia = (
+        rocket.get_inertia_tensor_at_time(t)
+        - (r_cm.cross_matrix @ -r_cm.cross_matrix) * mass
+    )
+    return r_cm, inertia
+
+
+@pytest.mark.parametrize(
+    "derivative, tolerance", [(u_dot_generalized, 1e-6), (u_dot, 0.02)]
+)
+def test_dynamics_take_moments_about_the_center_of_mass(
+    calisto_motorless,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    example_plain_env,
+    derivative,
+    tolerance,
+):
+    """With the center of mass behind the center of dry mass, a lateral force
+    turns the rocket about the center of mass: ``I_cm w_dot`` must equal the
+    aerodynamic moment about the center of dry mass transferred there,
+    ``M + R x r_cm``, not the untransferred moment (legacy) nor the transfer
+    the other way (generalized, before the fix).
+    """
+    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
+
+    rocket = _rigid_burning_calisto(
+        calisto_motorless, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
+    )
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=90,
+        heading=0,
+        max_time=0.05,
+    )
+    t = 1.0
+    r_cm, inertia_cm = _center_of_mass_inertia(rocket, t)
+    assert r_cm[2] < -0.1  # the full grain pulls the center of mass aft
+
+    # Vertical, 100 m/s up with 10 m/s sideways: sideslip, no rotation
+    state = [0, 0, 1500, 10.0, 0, 100.0, 1, 0, 0, 0, 0, 0, 0]
+    out = derivative(flight, t, state, post_processing=True)
+    w_dot, forces, moments = Vector(out[3:6]), Vector(out[6:9]), Vector(out[9:12])
+    assert abs(moments[1]) > 10  # the fins push back
+    about_center_of_mass = moments + (forces ^ r_cm)
+    assert list(inertia_cm @ w_dot) == pytest.approx(
+        list(about_center_of_mass), rel=tolerance, abs=1e-9
+    )
+    assert abs(about_center_of_mass[1]) < 0.8 * abs(moments[1])
+
+
+def test_generalized_dynamics_match_a_rigid_body_when_rotating(
+    calisto_motorless,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    example_plain_env,
+):
+    """Rotating about all three axes with the center of mass off the center of
+    dry mass, the angular acceleration is that of a rigid body about its
+    center of mass, ``I_cm w_dot = M_cm - w x (I_cm w)``, and the acceleration
+    of the center of dry mass follows from the center of mass' one,
+    ``a_O = F / m - w_dot x r_cm - w x (w x r_cm)``."""
+    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
+
+    rocket = _rigid_burning_calisto(
+        calisto_motorless, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
+    )
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=90,
+        heading=0,
+        max_time=0.05,
+    )
+    t = 1.0
+    r_cm, inertia_cm = _center_of_mass_inertia(rocket, t)
+    mass = rocket.total_mass.get_value_opt(t)
+    w = Vector([0.4, -0.3, 2.0])
+    state = [0, 0, 1500, 10.0, -5.0, 100.0, 1, 0, 0, 0, *w]
+    out = u_dot_generalized(flight, t, state, post_processing=True)
+    a_cdm, w_dot = Vector(out[:3]), Vector(out[3:6])
+    forces, moments, thrust = Vector(out[6:9]), Vector(out[9:12]), out[12]
+
+    gravity = Vector([0, 0, -mass * example_plain_env.gravity.get_value_opt(1500)])
+    total_force = forces + gravity + Vector([0, 0, thrust])
+    moment_cm = moments + (forces ^ r_cm)  # gravity and thrust give none
+    expected_w_dot = inertia_cm.inverse @ (moment_cm - (w ^ (inertia_cm @ w)))
+    # The milli-newton motor still has a whisper of mass flow, hence the slack
+    assert list(w_dot) == pytest.approx(list(expected_w_dot), rel=2e-3, abs=1e-4)
+
+    # The attitude is the identity, so body and inertial components coincide;
+    # the integrator also adds the Earth-rotation Coriolis acceleration
+    earth = Vector(example_plain_env.earth_rotation_vector)
+    expected_a_cdm = (
+        total_force / mass
+        - (expected_w_dot ^ r_cm)
+        - (w ^ (w ^ r_cm))
+        - 2 * (earth ^ Vector(state[3:6]))
+    )
+    assert list(a_cdm) == pytest.approx(list(expected_a_cdm), rel=1e-3, abs=1e-4)
+
+
+def test_integrator_damping_matches_the_oscillator(flight_calisto_robust):
+    """During the burn, the moment the equations of motion set against a pitch
+    rate equals the oscillator's ``C2`` (aerodynamic plus jet damping in
+    Thomson's form), once the rate is taken about the same point: the state
+    rotates about the center of dry mass, ``a`` ahead of the center of mass,
+    which adds ``C1 a / V`` of angle-of-attack coupling."""
+    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
+
+    flight = flight_calisto_robust
+    rocket = flight.rocket
+    # A solution time about one second into the burn
+    index = int(np.argmin(np.abs(flight.time - 1.0)))
+    t = flight.time[index]
+    r_cm, inertia_cm = _center_of_mass_inertia(rocket, t)
+    speed = 100.0
+    state = [0, 0, 1500, 0, 0, speed, 1, 0, 0, 0, 0, 0, 0]
+
+    def pitch_acceleration(rate):
+        out = u_dot_generalized(flight, t, [*state[:10], rate, 0, 0])
+        return (inertia_cm @ Vector(out[10:13]))[0]
+
+    step = 1e-3
+    integrator = -(pitch_acceleration(step) - pitch_acceleration(-step)) / (2 * step)
+
+    density = flight.env.density.get_value_opt(1500)
+    mach = speed / flight.env.speed_of_sound.get_value_opt(1500)
+    aero = density * speed * aerodynamic_damping(rocket, 0.0, 0.0, mach, t, "pitch")
+    inertia, inertia_rate = flight._lateral_inertia(rocket.I_11)
+    jet = (
+        abs(rocket.total_mass_flow_rate.get_value_opt(t))
+        * (rocket.nozzle_position - rocket.center_of_mass.get_value_opt(t)) ** 2
+        + inertia_rate[index]
+    )
+    assert inertia[index] == pytest.approx(inertia_cm[0][0], rel=1e-6)
+    assert (
+        0
+        < jet
+        < 0.7
+        * abs(rocket.total_mass_flow_rate.get_value_opt(t))
+        * (rocket.nozzle_position - rocket.center_of_mass.get_value_opt(t)) ** 2
+    )
+    # Rotating about the center of dry mass gives every surface an extra
+    # angle of attack a w / V, felt through the restoring moment C1
+    slope = rocket.total_lift_coeff_der.get_value_opt(mach)
+    margin = rocket.stability_margin.get_value_opt(mach, t)
+    dynamic_pressure = 0.5 * density * speed**2
+    corrective = dynamic_pressure * rocket.area * slope * margin * 2 * rocket.radius
+    coupling = corrective * abs(r_cm[2]) / speed
+    assert integrator == pytest.approx(aero + jet + coupling, rel=0.01)
+
+
+def test_disturbance_response_matches_the_rocket_at_the_flight_condition(
+    flight_calisto_robust,
+):
+    """The response at an instant of the flight is the rocket's own response at
+    that instant's airspeed, density and Mach number; on the rail there is
+    none."""
+    flight = flight_calisto_robust
+    t = 4.0  # just after burnout
+    response = flight.disturbance_response(t)
+    speed = flight.free_stream_speed.get_value_opt(t)
+    expected = flight.rocket.disturbance_response(
+        speed,
+        time=t,
+        density=flight.density.get_value_opt(t),
+        speed_of_sound=speed / flight.mach_number.get_value_opt(t),
+        duration=response.x_array[-1],
+    )
+    assert response.y_array[0] == pytest.approx(5.0)
+    # The flight reads the coefficients at its own angle of attack and between
+    # its time steps, so the two agree closely, not exactly
+    assert response.y_array == pytest.approx(expected.y_array, abs=0.05)
+    with pytest.raises(ValueError, match="rail"):
+        flight.disturbance_response(0.0)

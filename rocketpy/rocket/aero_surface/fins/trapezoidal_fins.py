@@ -48,9 +48,12 @@ class TrapezoidalFins(Fins):
         Fins sweep length in meters. By sweep length, understand the axial
         distance between the fin root leading edge and the fin tip leading edge
         measured parallel to the rocket centerline.
-    TrapezoidalFins.sweep_angle : float
+    TrapezoidalFins.sweep_angle : float or None
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
+        ``None`` when the sweep is given as a length. Setting ``sweep_length``
+        replaces the angle, and a fin swept by an angle keeps that angle when
+        its span changes.
     TrapezoidalFins.rocket_diameter : float
         Reference diameter of the rocket, in meters.
     TrapezoidalFins.reference_area : float
@@ -81,11 +84,41 @@ class TrapezoidalFins(Fins):
     TrapezoidalFins.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    TrapezoidalFins.cl : Function
-        Roll-moment coefficient, inherited from the generic-surface model
-        (a function of the flow variables). Zero for a nose cone or tail; for a
-        fin set it carries the cant forcing and roll damping. The lift-curve
-        slope is ``clalpha``.
+    TrapezoidalFins.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    TrapezoidalFins.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    TrapezoidalFins.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    TrapezoidalFins.cm : AeroCoefficient
+        Pitching moment coefficient.
+    TrapezoidalFins.cn : AeroCoefficient
+        Yawing moment coefficient.
+    TrapezoidalFins.cl : AeroCoefficient
+        Roll moment coefficient, from the cant angle and the roll damping.
+    TrapezoidalFins.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    TrapezoidalFins.cD : Function
+        Drag coefficient, the force along the airflow.
+    TrapezoidalFins.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    TrapezoidalFins.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    TrapezoidalFins.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    TrapezoidalFins.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    TrapezoidalFins.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    TrapezoidalFins.cl_0 : AeroCoefficient
+        Roll moment coefficient at zero roll rate, as a function of Mach.
+    TrapezoidalFins.cl_p : AeroCoefficient
+        Slope of ``cl`` with the reduced roll rate (roll damping), as a
+        function of Mach.
     TrapezoidalFins.clalpha : float
         Normal-force coefficient slope. Has units of 1/rad.
     """
@@ -120,6 +153,8 @@ class TrapezoidalFins(Fins):
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            A positive cant angle gives a negative roll moment about the
+            rocket's axis (see :ref:`individual_fins`).
         sweep_length : int, float, optional
             Fins sweep length in meters. By sweep length, understand the axial
             distance between the fin root leading edge and the fin tip leading
@@ -172,7 +207,7 @@ class TrapezoidalFins(Fins):
             sweep_length=sweep_length,
             sweep_angle=sweep_angle,
         )
-        self._update_geometry_chain()
+        self._build_surface()
         self.evaluate_shape()
 
         self.prints = _TrapezoidalFinsPrints(self)
@@ -225,10 +260,7 @@ class TrapezoidalFins(Fins):
             + self.tip_chord
             - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
         )
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = cpz
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        self._set_center_of_pressure((0, 0, cpz))
 
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
@@ -239,6 +271,13 @@ class TrapezoidalFins(Fins):
 
     @classmethod
     def from_dict(cls, data):
+        # The sweep is given back the way the user gave it, as an angle or a
+        # length; the constructor takes only one of the two
+        sweep = (
+            {"sweep_angle": data["sweep_angle"]}
+            if data.get("sweep_angle") is not None
+            else {"sweep_length": data.get("sweep_length")}
+        )
         return cls(
             n=data["n"],
             root_chord=data["root_chord"],
@@ -248,5 +287,5 @@ class TrapezoidalFins(Fins):
             cant_angle=data["cant_angle"],
             airfoil=data["airfoil"],
             name=data["name"],
-            sweep_length=data.get("sweep_length"),
+            **sweep,
         )

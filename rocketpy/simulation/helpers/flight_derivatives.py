@@ -4,58 +4,27 @@ import numpy as np
 from ...mathutils import Matrix, Vector
 
 
-def _compute_drag_7d_inputs(
+def _compute_drag_area(
     flight,
+    time,
     stream_velocity_body,
     stream_speed,
-    stream_mach,
+    mach,
     density,
     dynamic_viscosity,
+    omega,
 ):
-    """Compute drag-model inputs in the order expected by RocketPy drag functions.
-
-    Parameters
-    ----------
-    flight : Flight
-        Flight object providing rocket geometry.
-    stream_velocity_body : Vector
-        Freestream velocity expressed in the body frame.
-    stream_speed : float
-        Freestream speed magnitude in m/s.
-    stream_mach : float
-        Freestream Mach number.
-    density : float
-        Atmospheric density in kg/m^3.
-    dynamic_viscosity : float
-        Atmospheric dynamic viscosity in Pa·s.
-
-    Returns
-    -------
-    tuple of float
-        ``(alpha, beta, mach, reynolds)`` where ``alpha`` and ``beta`` are the
-        aerodynamic angles, ``mach`` is the supplied Mach number, and ``reynolds``
-        is the Reynolds number based on rocket diameter.
-    """
-    aerodynamic_stream_velocity = -stream_velocity_body
-    alpha = np.arctan2(aerodynamic_stream_velocity[1], aerodynamic_stream_velocity[2])
-    beta = np.arctan2(aerodynamic_stream_velocity[0], aerodynamic_stream_velocity[2])
-    reynolds = (
-        density * stream_speed * (2 * flight.rocket.radius) / dynamic_viscosity
-        if dynamic_viscosity > 0
-        else 0
-    )
-    return alpha, beta, stream_mach, reynolds
-
-
-def _aerodynamic_drag_force(
-    flight, time, rho, stream_speed, alpha, beta, mach, reynolds, omega
-):
-    """Total rocket axial aerodynamic (drag) force, including air brakes.
+    """Drag coefficient times reference area of the rocket, air brakes included,
+    in squared meters.
 
     Selects the power-on/power-off drag curve based on the motor burn state, and
     then adds (or, when ``override_rocket_drag`` is set, substitutes) the drag of
-    any deployed air brakes, evaluated through the generic-surface coefficient
-    machinery.
+    any deployed air brakes. The force follows from it as
+    ``0.5 * rho * stream_speed * drag_area`` times the velocity of the air
+    relative to the rocket: its component along the rocket's axis in a 6-DOF
+    phase, the whole vector in a 3-DOF one. The rocket's drag curve is its axial
+    force coefficient: at an angle to the air, the normal force of the nose cone,
+    fins and tail carries the rest of the drag.
 
     Parameters
     ----------
@@ -63,43 +32,59 @@ def _aerodynamic_drag_force(
         Flight object providing the rocket.
     time : float
         Simulation time, used to select the power-on vs power-off drag curve.
-    rho : float
-        Air density.
+    stream_velocity_body : Vector
+        Velocity of the air relative to the rocket, in the body frame, in m/s.
+        The angle of attack and the sideslip angle are read from it.
     stream_speed : float
-        Freestream speed magnitude.
-    alpha, beta, mach, reynolds : float
-        Standard aerodynamic coefficient inputs at the current state.
+        Freestream speed magnitude, in m/s.
+    mach : float
+        Freestream Mach number.
+    density : float
+        Atmospheric density, in kg/m^3.
+    dynamic_viscosity : float
+        Atmospheric dynamic viscosity, in Pa·s. With the density it gives the
+        Reynolds number, based on the rocket diameter.
     omega : tuple of float
-        Body angular rates ``(omega1, omega2, omega3)``.
+        Body angular rates ``(omega1, omega2, omega3)``, in rad/s. They are
+        passed to the coefficients as the non-dimensional reduced rates
+        ``omega * L_ref / (2 * V)``.
 
     Returns
     -------
     float
-        The axial (body z) aerodynamic drag force.
+        The drag coefficient times the reference area.
     """
     rocket = flight.rocket
-    if time < rocket.motor.burn_out_time:
-        drag_coefficient = rocket.power_on_drag_7d(
-            alpha, beta, mach, reynolds, omega[0], omega[1], omega[2]
-        )
-    else:
-        drag_coefficient = rocket.power_off_drag_7d(
-            alpha, beta, mach, reynolds, omega[0], omega[1], omega[2]
-        )
-    drag_force = -0.5 * rho * stream_speed**2 * rocket.area * drag_coefficient
+    # The inputs of the drag coefficients, in the order they expect them
+    alpha = np.arctan2(-stream_velocity_body[1], -stream_velocity_body[2])
+    beta = np.arctan2(-stream_velocity_body[0], -stream_velocity_body[2])
+    reynolds = (
+        density * stream_speed * (2 * rocket.radius) / dynamic_viscosity
+        if dynamic_viscosity > 0
+        else 0
+    )
+    reduced_per_length = 1 / (2 * stream_speed) if stream_speed > 0 else 0.0
+    reduced = 2 * rocket.radius * reduced_per_length
+    drag_7d = (
+        rocket.power_on_drag_7d
+        if time < rocket.motor.burn_out_time
+        else rocket.power_off_drag_7d
+    )
+    drag_area = rocket.area * drag_7d(
+        alpha,
+        beta,
+        mach,
+        reynolds,
+        omega[0] * reduced,
+        omega[1] * reduced,
+        omega[2] * reduced,
+    )
 
     # Air brakes are drag-only and may override the rocket drag.
     for air_brakes in rocket.air_brakes:
         if air_brakes.deployment_level > 0:
-            # Air brakes are a (controllable) generic surface, so feed the
-            # coefficient the non-dimensional reduced rates, like every other
-            # generic surface (see GenericSurface.compute_forces_and_moments).
-            reduced = (
-                air_brakes.reference_length / (2 * stream_speed)
-                if stream_speed > 0
-                else 0.0
-            )
-            air_brakes_cd = air_brakes.cD.get_value_opt(
+            reduced = air_brakes.reference_length * reduced_per_length
+            air_brakes_area = air_brakes.reference_area * air_brakes.cA.get_value_opt(
                 *air_brakes._coefficient_arguments(
                     alpha,
                     beta,
@@ -110,14 +95,11 @@ def _aerodynamic_drag_force(
                     omega[2] * reduced,
                 )
             )
-            air_brakes_force = (
-                -0.5 * rho * stream_speed**2 * air_brakes.reference_area * air_brakes_cd
-            )
             if air_brakes.override_rocket_drag:
-                drag_force = air_brakes_force  # Substitutes rocket drag
+                drag_area = air_brakes_area  # Substitutes rocket drag
             else:
-                drag_force += air_brakes_force
-    return drag_force
+                drag_area += air_brakes_area
+    return drag_area
 
 
 def udot_rail1(flight, t, u, post_processing=False):
@@ -167,15 +149,16 @@ def udot_rail1(flight, t, u, post_processing=False):
         Matrix.transformation([e0, e1, e2, e3]).transpose @ free_stream_velocity
     )
     dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
-    alpha, beta, mach, reynolds = _compute_drag_7d_inputs(
+    drag_area = _compute_drag_area(
         flight,
+        t,
         stream_velocity_body,
         free_stream_speed,
         free_stream_mach,
         rho,
         dynamic_viscosity,
+        (0, 0, 0),
     )
-    drag_coeff = flight.rocket.power_on_drag_7d(alpha, beta, mach, reynolds, 0, 0, 0)
 
     # Calculate Forces
     pressure = flight.env.pressure.get_value_opt(z)
@@ -184,7 +167,7 @@ def udot_rail1(flight, t, u, post_processing=False):
         + flight.rocket.motor.pressure_thrust(pressure),
         0,
     )
-    R3 = -0.5 * rho * (free_stream_speed**2) * flight.rocket.area * (drag_coeff)
+    R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
 
     # Calculate Linear acceleration
     a3 = (R3 + net_thrust) / total_mass_at_t - (
@@ -352,25 +335,19 @@ def u_dot(flight, t, u, post_processing=False):
     # Determine Drag Force
     rho = flight.env.density.get_value_opt(z)
     dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
-    alpha, beta, mach, reynolds = _compute_drag_7d_inputs(
+    drag_area = _compute_drag_area(
         flight,
+        t,
         stream_velocity_body,
         free_stream_speed,
         free_stream_mach,
         rho,
         dynamic_viscosity,
-    )
-    R3 = _aerodynamic_drag_force(
-        flight,
-        t,
-        rho,
-        free_stream_speed,
-        alpha,
-        beta,
-        mach,
-        reynolds,
         (omega1, omega2, omega3),
     )
+    # The drag curve is the axial force coefficient, so the drag follows the
+    # air moving along the rocket's axis: zero sideways, reversed tail first
+    R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
     # Off center moment
     M1 += flight.rocket.cp_eccentricity_y * R3
     M2 -= flight.rocket.cp_eccentricity_x * R3
@@ -418,10 +395,20 @@ def u_dot(flight, t, u, post_processing=False):
     # Off center moment
     M3 += flight.rocket.cp_eccentricity_x * R2 - flight.rocket.cp_eccentricity_y * R1
 
+    # The aerodynamic moments are taken about the center of dry mass, but the
+    # angular equations below hold about the system's center of mass, which
+    # sits ``a`` behind it (toward the propellant) while there is propellant.
+    # Transfer the lateral forces' moment to that point: M_cm = M_cdm + a z x R.
+    # The reported M1, M2 stay about the center of dry mass, as in the
+    # generalized equations.
+    a = b * mu / rocket_dry_mass  # = b * m_prop / m_total
+    M1_cm = M1 - a * R2
+    M2_cm = M2 + a * R1
+
     # Calculate derivatives
     # Angular acceleration
     alpha1 = (
-        M1
+        M1_cm
         - (
             omega2
             * omega3
@@ -437,7 +424,7 @@ def u_dot(flight, t, u, post_processing=False):
                 (
                     motor_I_11_derivative_at_t
                     + mass_flow_rate_at_t
-                    * (rocket_dry_mass - 1)
+                    * rocket_dry_mass**2
                     * (b / total_mass_at_t) ** 2
                 )
                 - mass_flow_rate_at_t
@@ -446,7 +433,7 @@ def u_dot(flight, t, u, post_processing=False):
         )
     ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
     alpha2 = (
-        M2
+        M2_cm
         - (
             omega1
             * omega3
@@ -462,7 +449,7 @@ def u_dot(flight, t, u, post_processing=False):
                 (
                     motor_I_11_derivative_at_t
                     + mass_flow_rate_at_t
-                    * (rocket_dry_mass - 1)
+                    * rocket_dry_mass**2
                     * (b / total_mass_at_t) ** 2
                 )
                 - mass_flow_rate_at_t
@@ -593,28 +580,21 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     mach = free_stream_speed / speed_of_sound
     stream_velocity_body = Kt @ free_stream_velocity
     dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
-    alpha, beta, mach, reynolds = _compute_drag_7d_inputs(
+
+    # Drag (rocket body drag + air brakes). A 3-DOF phase does not model the
+    # rocket's attitude, so the drag acts against the velocity of the rocket
+    # relative to the air instead of along the body axis.
+    drag_area = _compute_drag_area(
         flight,
+        t,
         stream_velocity_body,
         free_stream_speed,
         mach,
         rho,
         dynamic_viscosity,
-    )
-
-    # Drag computation (rocket body drag + air brakes)
-    R1, R2 = 0, 0
-    R3 = _aerodynamic_drag_force(
-        flight,
-        t,
-        rho,
-        free_stream_speed,
-        alpha,
-        beta,
-        mach,
-        reynolds,
         (omega1, omega2, omega3),
     )
+    R1, R2, R3 = stream_velocity_body * (0.5 * rho * free_stream_speed * drag_area)
 
     # Velocity in body frame
     vb_body = Kt @ v
@@ -798,14 +778,20 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     total_mass = flight.rocket.total_mass.get_value_opt(t)
     total_mass_dot = flight.rocket.total_mass_flow_rate.get_value_opt(t)
     total_mass_ddot = flight.rocket.total_mass_flow_rate.differentiate_complex_step(t)
-    ## CM position vector and time derivatives relative to CDM in body frame
+    ## CM position vector and time derivatives relative to CDM in body frame.
+    ## ``com_to_cdm_function`` runs from the center of mass to the center of
+    ## dry mass, so the position of the center of mass is its negative. Every
+    ## term linear in r_CM below (the transfer of the forces' moment to the
+    ## center of mass, the gravity moment, the mass-flow Coriolis terms) needs
+    ## the position itself.
     r_CM_z = flight.rocket.com_to_cdm_function
-    r_CM_t = r_CM_z.get_value_opt(t)
+    r_CM_t = -r_CM_z.get_value_opt(t)
     r_CM = Vector([0, 0, r_CM_t])
-    r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
-    r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
-    ## Nozzle position vector
-    r_NOZ = Vector([0, 0, flight.rocket.nozzle_to_cdm])
+    r_CM_dot = Vector([0, 0, -r_CM_z.differentiate_complex_step(t)])
+    r_CM_ddot = Vector([0, 0, -r_CM_z.differentiate(t, order=2)])
+    ## Nozzle exit position vector relative to CDM in body frame
+    ## (``nozzle_to_cdm`` runs from the nozzle exit to the center of dry mass)
+    r_NOZ = Vector([0, 0, -flight.rocket.nozzle_to_cdm])
     ## Nozzle gyration tensor
     S_nozzle = flight.rocket.nozzle_gyration_tensor
     ## Inertia tensor
@@ -835,14 +821,6 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     free_stream_mach = free_stream_speed / speed_of_sound
     stream_velocity_body = Kt @ free_stream_velocity
     dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
-    alpha, beta, mach, reynolds = _compute_drag_7d_inputs(
-        flight,
-        stream_velocity_body,
-        free_stream_speed,
-        free_stream_mach,
-        rho,
-        dynamic_viscosity,
-    )
 
     if flight.rocket.motor.burn_start_time < t < flight.rocket.motor.burn_out_time:
         pressure = flight.env.pressure.get_value_opt(z)
@@ -853,17 +831,19 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         )
     else:
         net_thrust = 0
-    R3 = _aerodynamic_drag_force(
+    drag_area = _compute_drag_area(
         flight,
         t,
-        rho,
+        stream_velocity_body,
         free_stream_speed,
-        alpha,
-        beta,
-        mach,
-        reynolds,
+        free_stream_mach,
+        rho,
+        dynamic_viscosity,
         (omega1, omega2, omega3),
     )
+    # The drag curve is the axial force coefficient, so the drag follows the
+    # air moving along the rocket's axis: zero sideways, reversed tail first
+    R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
     # Get rocket velocity in body frame
     velocity_in_body_frame = Kt @ v
     # Calculate lift and moment for each component of the rocket
@@ -949,9 +929,12 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2),
     ]
 
-    # Velocity vector derivative + Coriolis acceleration
+    # Velocity vector derivative + Coriolis acceleration. T20 / m is the
+    # acceleration of the center of dry mass plus w_dot x r_CM, the part of the
+    # center of mass' acceleration the angular acceleration gives it about
+    # the center of dry mass.
     w_earth = Vector(flight.env.earth_rotation_vector)
-    v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
+    v_dot = K @ (T20 / total_mass + (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
     # Position vector derivative
     r_dot = [vx, vy, vz]

@@ -285,7 +285,7 @@ class _Controller:
     def __verify_controlled_objects_name(self):
         """Validate controlled_objects_name and build callback bindings."""
         if self.controlled_objects_name is None:
-            return None
+            return {}  # nothing to bind by name
 
         single_name = isinstance(self.controlled_objects_name, str)
         list_names = isinstance(self.controlled_objects_name, (list, tuple))

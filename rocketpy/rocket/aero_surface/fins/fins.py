@@ -1,6 +1,5 @@
 import numpy as np
 
-from rocketpy.mathutils.function import Function
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
@@ -79,16 +78,47 @@ class Fins(_BaseFin):
     Fins.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    Fins.cl : Function
-        Roll-moment coefficient, inherited from the generic-surface model
-        (a function of the flow variables). Zero for a nose cone or tail; for a
-        fin set it carries the cant forcing and roll damping. The lift-curve
-        slope is ``clalpha``.
+    Fins.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    Fins.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    Fins.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    Fins.cm : AeroCoefficient
+        Pitching moment coefficient.
+    Fins.cn : AeroCoefficient
+        Yawing moment coefficient.
+    Fins.cl : AeroCoefficient
+        Roll moment coefficient, from the cant angle and the roll damping.
+    Fins.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    Fins.cD : Function
+        Drag coefficient, the force along the airflow.
+    Fins.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    Fins.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Fins.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    Fins.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Fins.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    Fins.cl_0 : AeroCoefficient
+        Roll moment coefficient at zero roll rate, as a function of Mach.
+    Fins.cl_p : AeroCoefficient
+        Slope of ``cl`` with the reduced roll rate (roll damping), as a
+        function of Mach.
     Fins.clalpha : float
         Normal-force coefficient slope. Has units of 1/rad.
     Fins.roll_parameters : list
-        List containing the roll moment lift coefficient, the roll moment
-        damping coefficient and the cant angle in radians.
+        List containing the roll moment forcing coefficient, the roll moment
+        damping coefficient (both for the fins at zero cant) and the cant angle
+        in radians.
     """
 
     def __init__(
@@ -116,6 +146,8 @@ class Fins(_BaseFin):
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            A positive cant angle gives a negative roll moment about the
+            rocket's axis (see :ref:`individual_fins`).
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -139,7 +171,7 @@ class Fins(_BaseFin):
             root_chord=root_chord,
             span=span,
             airfoil=airfoil,
-            cant_angle=-cant_angle,
+            cant_angle=cant_angle,
         )
 
         # Store values
@@ -149,13 +181,28 @@ class Fins(_BaseFin):
     def n(self):
         return self._n
 
+    @property
+    def _roll_cant_angle_rad(self):
+        """Cant angle, in radians, with the sign used by the roll coefficients
+        ``cl_0`` and ``cl``.
+
+        The roll forcing of a fin set uses the opposite sign convention to the
+        individual fins, whose roll moment comes from the force at their center
+        of pressure, so the cant angle is flipped here. The angle the user gave
+        is kept unchanged as ``cant_angle``, so it reads back, saves and loads
+        as given.
+
+        Returns
+        -------
+        float
+            Cant angle in radians, with its sign flipped.
+        """
+        return -self.cant_angle_rad
+
     @n.setter
     def n(self, value):
         self._n = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self._update_geometry_chain()
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns the fin set's lift coefficient.
@@ -192,6 +239,8 @@ class Fins(_BaseFin):
             roll moment damping coefficient and the cant angle in
             radians
         """
+        # Scaled by n, not fin_num_correction(n): every canted fin adds the same
+        # roll moment, while their normal forces partly cancel in pitch and yaw
         clf_delta = (
             self.roll_forcing_interference_factor
             * self.n
@@ -199,24 +248,18 @@ class Fins(_BaseFin):
             * self.clalpha_single_fin
             / self.reference_length
         )  # Function of mach number
-        # NOTE: roll forcing scales with the full fin count ``n`` -- every
-        # identically-canted fin contributes the same roll moment, with no
-        # cancellation. This differs from the normal-force slope, which uses the
-        # ``fin_num_correction(n)`` (~n/2) multiple-fin factor because fins at
-        # different roll angles partially cancel in pitch/yaw. Using
-        # ``fin_num_correction(n)`` here previously halved the roll forcing (and
-        # the roll rate) of a fin set relative to the equivalent individual fins.
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
         clf_delta.set_title(
             "Roll moment forcing coefficient derivative vs. Mach number"
         )
+        # Damping of the fins at zero cant; the cos(cant) factor is applied
+        # when the moment is evaluated, so a new cant angle needs no rebuild
         cld_omega = -(
             2
             * self.roll_damping_interference_factor
             * self.n
             * self.clalpha_single_fin
-            * np.cos(self.cant_angle_rad)
             * self.roll_geometrical_constant
             / (self.reference_area * self.reference_length**2)
         )  # Function of mach number
@@ -225,7 +268,7 @@ class Fins(_BaseFin):
         cld_omega.set_title(
             "Roll moment damping coefficient derivative vs. Mach number"
         )
-        self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
+        self._clf_delta, self._cld_omega = clf_delta, cld_omega
         return self.roll_parameters
 
     @staticmethod
@@ -252,47 +295,9 @@ class Fins(_BaseFin):
         else:
             return n / 2
 
-    def to_dict(self, **kwargs):
-        if self.airfoil:
-            if kwargs.get("discretize", False):
-                lower = -np.pi / 6 if self.airfoil[1] == "radians" else -30
-                upper = np.pi / 6 if self.airfoil[1] == "radians" else 30
-                airfoil = (
-                    self.airfoil_cl.set_discrete(lower, upper, 50, mutate_self=False),
-                    self.airfoil[1],
-                )
-            else:
-                airfoil = (self.airfoil_cl, self.airfoil[1]) if self.airfoil else None
-        else:
-            airfoil = None
-        data = {
-            "n": self.n,
-            "root_chord": self.root_chord,
-            "span": self.span,
-            "rocket_radius": self.rocket_radius,
-            "cant_angle": self.cant_angle,
-            "airfoil": airfoil,
-            "name": self.name,
-        }
-
-        if kwargs.get("include_outputs", False):
-            clalpha = self.clalpha
-            if kwargs.get("discretize", False):
-                clalpha = clalpha.set_discrete(0, 4, 50)
-
-            data.update(
-                {
-                    "cp": self.cp,
-                    "clalpha": clalpha,
-                    "roll_parameters": self.roll_parameters,
-                    "rocket_diameter": self.rocket_diameter,
-                    "diameter": self.rocket_diameter,
-                    "d": self.rocket_diameter,
-                    "reference_area": self.reference_area,
-                    "ref_area": self.reference_area,
-                }
-            )
-
+    def to_dict(self, include_outputs=False, **kwargs):
+        data = super().to_dict(include_outputs=include_outputs, **kwargs)
+        data["n"] = self.n
         return data
 
     def draw(self, *, filename=None):

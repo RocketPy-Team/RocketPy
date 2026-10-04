@@ -138,3 +138,44 @@ def test_active_during_callable_dropped_when_pickling_disabled():
         active_during=lambda t, flight: t < 1.0,
     )
     assert surface.to_dict(allow_pickle=False)["active_during"] == "always"
+
+
+def test_controls_and_coefficients_round_trip_through_dict():
+    """Saving and loading keeps the control names and the coefficient values,
+    including for coefficients given in the wind frame."""
+    surface = ControllableGenericSurface(
+        reference_area=0.01,
+        reference_length=0.1,
+        coefficients={
+            "cL": lambda alpha, canard: 2 * alpha + 0.5 * canard,
+            "cD": 0.3,
+        },
+        controls=("canard", "elevon"),
+        force_convention="wind",
+    )
+    surface.set_control("canard", 0.2)
+
+    restored = ControllableGenericSurface.from_dict(surface.to_dict())
+    restored.set_control("canard", 0.2)
+
+    assert restored.control_variables == ["canard", "elevon"]
+    args = (0.05, 0.02, 0.3, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0)
+    for name in ("cN", "cY", "cA"):
+        assert getattr(restored, name)(*args) == pytest.approx(
+            getattr(surface, name)(*args)
+        )
+
+
+def test_controllable_surface_from_csv_reads_the_control_column(tmp_path):
+    csv_file = tmp_path / "canard.csv"
+    rows = [f"{d},{m},{1.5 * d * (1 + m)}" for d in (-0.2, 0.0, 0.2) for m in (0, 1, 2)]
+    csv_file.write_text("canard,mach,cN\n" + "\n".join(rows) + "\n")
+
+    surface = ControllableGenericSurface.from_csv(
+        str(csv_file), 1.0, 1.0, controls=("canard",)
+    )
+    surface.set_control("canard", 0.1)
+
+    assert surface.cN.depends_on == ("canard", "mach")
+    args = surface._coefficient_arguments(0.0, 0.0, 1.0, 0, 0, 0, 0)
+    assert surface.cN(*args) == pytest.approx(0.3)

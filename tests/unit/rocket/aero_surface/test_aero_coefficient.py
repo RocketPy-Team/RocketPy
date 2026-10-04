@@ -1,5 +1,7 @@
 """Unit tests for the AeroCoefficient minimal-dimension coefficient store."""
 
+import functools
+
 import pytest
 
 from rocketpy import Function
@@ -17,7 +19,6 @@ IV = ["alpha", "beta", "mach", "reynolds", "pitch_rate", "yaw_rate", "roll_rate"
 def test_constant_coefficient_is_zero_flagged():
     zero = AeroCoefficient(0, (), name="cD")
     assert zero.is_zero is True
-    assert zero.is_zero_coefficient is True
     assert zero(0.1, 0.2, 0.3, 0, 0, 0, 0) == 0.0
 
     const = AeroCoefficient(0.7, (), name="cD")
@@ -59,11 +60,6 @@ def test_depends_on_preserves_source_argument_order():
 def test_unknown_dependency_raises():
     with pytest.raises(ValueError, match="unknown variable"):
         AeroCoefficient(lambda x: x, ("bogus",), name="cL")
-
-
-def test_dom_dim_matches_full_arity():
-    coeff = AeroCoefficient(0, (), name="cD")
-    assert coeff.__dom_dim__ == len(IV)
 
 
 def test_repr_constant_and_function():
@@ -120,7 +116,7 @@ def test_from_input_named_subset_callable():
 
 
 def test_from_input_rejects_unmappable_callable():
-    with pytest.raises(ValueError, match="callable must accept"):
+    with pytest.raises(ValueError, match="Cannot tell which variables"):
         AeroCoefficient(lambda x, y, z: x, name="cL")
 
 
@@ -142,9 +138,24 @@ def test_from_input_1d_function_infers_mach():
 
 
 def test_from_input_function_with_bad_dimension_raises():
-    f = Function(lambda a, b: a + b, ["alpha", "beta"], "cL")
+    f = Function(lambda a, b: a + b, ["x", "y"], "cL")
     with pytest.raises(ValueError, match="must have 7 input arguments"):
         AeroCoefficient(f, name="cL")
+
+
+def test_from_input_function_with_named_inputs():
+    """A Function whose inputs are named after the variables depends on them."""
+    f = Function(lambda m, a: 10 * m + a, ["mach", "alpha"], "cL")
+    coeff = AeroCoefficient(f, name="cL")
+    assert coeff.depends_on == ("mach", "alpha")
+    assert coeff(0.2, 0, 0.5, 0, 0, 0, 0) == pytest.approx(5.2)
+
+
+def test_evaluator_takes_only_the_given_variables():
+    coeff = AeroCoefficient(lambda mach, alpha: 10 * mach + alpha, name="cL")
+    evaluate = coeff.evaluator(["alpha", "beta", "mach"])
+    assert evaluate(0.2, 99, 0.5) == pytest.approx(5.2)
+    assert AeroCoefficient(0.3).evaluator(["alpha"])(99) == 0.3
 
 
 # -- constructor inference: CSV path -----------------------------------------------------
@@ -201,13 +212,97 @@ def test_to_dict_from_dict_preserves_axes():
 # -- _infer_single_var fallbacks ----------------------------------------------
 
 
-def test_infer_single_var_unmatched_label_defaults_to_first():
+def test_infer_single_var_unmatched_label_gives_none():
     f = Function(lambda gamma: gamma, "gamma", "cD")
-    assert AeroCoefficient._infer_single_var(f, IV) == IV[0]
+    assert AeroCoefficient._infer_single_var(f, IV) is None
 
 
-def test_infer_single_var_missing_inputs_defaults_to_first():
+def test_infer_single_var_missing_inputs_gives_none():
     class NoInputs:
         pass
 
-    assert AeroCoefficient._infer_single_var(NoInputs(), IV) == IV[0]
+    assert AeroCoefficient._infer_single_var(NoInputs(), IV) is None
+
+
+@pytest.mark.parametrize(
+    "label, expected",
+    [
+        ("mach", "mach"),
+        ("Mach Number", "mach"),
+        ("Pitch Rate", "pitch_rate"),
+        ("Angle of attack alpha (rad)", "alpha"),
+        ("Alphabet soup", None),
+        ("machine", None),
+        ("time (s)", None),
+    ],
+)
+def test_infer_single_var_matches_whole_words_only(label, expected):
+    f = Function([[0, 0.4], [1, 0.6]], label, "cD")
+    assert AeroCoefficient._infer_single_var(f, IV) == expected
+
+
+def _model_with_a_constant(alpha, mach, slope=2.0):
+    return slope * alpha * (1 + mach)
+
+
+def _seven_arguments_and_a_constant(a, b, m, re, q, r, p, gain=1.0):  # pylint: disable=unused-argument
+    return gain * (a + m)
+
+
+@pytest.mark.parametrize(
+    "function, depends_on, expected",
+    [
+        (_model_with_a_constant, ("alpha", "mach"), 0.4),
+        (functools.partial(_model_with_a_constant, slope=3.0), ("alpha", "mach"), 0.6),
+        (lambda alpha, *, slope=2.0: slope * alpha, ("alpha",), 0.2),
+        (lambda alpha, **options: 2 * alpha, ("alpha",), 0.2),
+        (_seven_arguments_and_a_constant, tuple(IV), 1.1),
+        (
+            (lambda x, y, slope=2.0: slope * x * (1 + y), ["alpha", "mach"]),
+            ("alpha", "mach"),
+            0.4,
+        ),
+    ],
+)
+def test_function_arguments_with_a_default_are_not_variables(
+    function, depends_on, expected
+):
+    """A function may carry constants of its own as arguments with a default
+    value; only the arguments it must be given count as variables."""
+    coeff = AeroCoefficient(function, name="cN")
+    assert coeff.depends_on == depends_on
+    assert coeff(0.1, 0, 1.0, 0, 0, 0, 0) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("function", [lambda *args: 2 * args[0], lambda M: 0.5])
+def test_function_that_names_no_variable_explains_what_to_do(function):
+    with pytest.raises(ValueError, match="Cannot tell which variables"):
+        AeroCoefficient(function, name="cN")
+
+
+def test_slope_matches_the_analytic_derivative():
+    coefficient = AeroCoefficient(lambda alpha, mach: 2 * alpha * (1 + mach) + alpha**3)
+    slope = coefficient.slope("alpha", "mach", at={"alpha": 0.1})
+    assert slope(0.5) == pytest.approx(2 * 1.5 + 3 * 0.1**2, rel=1e-6)
+    assert coefficient.slope("alpha").get_value_opt(0) == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.slope("alfa", "mach"),
+        lambda c: c.slope("alpha", "mahc"),
+        lambda c: c.slope("alpha", "mach", at={"bta": 1.0}),
+        lambda c: c.slice("alpha", at={"bta": 1.0}),
+    ],
+)
+def test_slice_and_slope_reject_unknown_names_when_built(call):
+    coefficient = AeroCoefficient(lambda alpha, mach: alpha * mach)
+    with pytest.raises(ValueError, match="no independent variable"):
+        call(coefficient)
+
+
+def test_slice_rejects_a_repeated_name():
+    coefficient = AeroCoefficient(lambda alpha, mach: alpha * mach)
+    with pytest.raises(ValueError, match="more than once"):
+        coefficient.slice("alpha", "alpha")

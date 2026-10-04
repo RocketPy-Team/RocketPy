@@ -2,10 +2,11 @@
 
 After the refactor, every aerodynamic surface (Barrowman or generic) exposes
 the coefficient derivatives ``cN_alpha``/``cY_beta`` and the
-``center_of_pressure_z`` accessor used by the rocket's center-of-pressure /
-stability-margin computation. (Barrowman surfaces still compute their flight
-forces with the classic geometric method; the derivatives feed only the
-stability diagnostics.) These tests pin the properties the refactor guarantees.
+``aerodynamic_center`` accessor used by the rocket's center-of-pressure /
+stability-margin computation. Barrowman surfaces compute their flight forces
+with the classic geometric method, and their public ``cN``/``cY``/``cA``/``cl``
+coefficients are that same method written as coefficients. These tests pin the
+properties the refactor guarantees.
 """
 
 import warnings
@@ -13,12 +14,21 @@ import warnings
 import numpy as np
 import pytest
 
-from rocketpy import LinearGenericSurface, NoseCone, Tail, TrapezoidalFins
+from rocketpy import (
+    LinearGenericSurface,
+    NoseCone,
+    Tail,
+    TrapezoidalFin,
+    TrapezoidalFins,
+)
+from rocketpy.mathutils import Vector
 
 
 def test_barrowman_derived_cp_matches_geometric_cp():
-    """The derived ``center_of_pressure_z`` diagnostic must reproduce the
-    geometric cp of each Barrowman surface."""
+    """The derived ``aerodynamic_center`` diagnostic must reproduce the
+    geometric cp of each Barrowman surface. It is given along the body z-axis
+    (positive toward the nose), while ``cpz`` is measured from the nose toward
+    the tail, hence the sign."""
     nose = NoseCone(
         length=0.55829, kind="vonkarman", base_radius=0.0635, rocket_radius=0.0635
     )
@@ -33,9 +43,9 @@ def test_barrowman_derived_cp_matches_geometric_cp():
         for mach in (0.0, 0.5, 0.9):
             assert (
                 pytest.approx(
-                    surface.center_of_pressure_z.get_value_opt(mach), rel=1e-6, abs=1e-9
+                    surface.aerodynamic_center.get_value_opt(mach), rel=1e-6, abs=1e-9
                 )
-                == surface.cpz
+                == -surface.cpz
             )
         # The normal-force slope derivative must equal the Barrowman clalpha.
         assert pytest.approx(
@@ -162,3 +172,87 @@ def test_barrowman_surface_uses_geometric_compute_path():
         nose.compute_forces_and_moments.__func__
         is _BarrowmanSurface.compute_forces_and_moments
     )
+
+
+# Airflow relative to the surface, in the body frame (m/s): small and large
+# angles, both planes at once, no crossflow and tail-first flow.
+_STREAM_VELOCITIES = [
+    (3.0, -2.0, -100.0),
+    (20.0, 35.0, -80.0),
+    (-50.0, 10.0, -60.0),
+    (5.0, 0.0, -100.0),
+    (0.0, 0.0, -100.0),
+    (30.0, 30.0, 40.0),
+]
+
+
+def _barrowman_surfaces():
+    return [
+        NoseCone(
+            length=0.55829, kind="vonkarman", base_radius=0.0635, rocket_radius=0.0635
+        ),
+        Tail(
+            top_radius=0.0635, bottom_radius=0.0435, length=0.060, rocket_radius=0.0635
+        ),
+        TrapezoidalFins(
+            n=4,
+            span=0.100,
+            root_chord=0.120,
+            tip_chord=0.040,
+            rocket_radius=0.0635,
+            cant_angle=1.0,
+        ),
+        TrapezoidalFin(
+            angular_position=30,
+            span=0.100,
+            root_chord=0.120,
+            tip_chord=0.040,
+            rocket_radius=0.0635,
+            cant_angle=2.0,
+        ),
+    ]
+
+
+@pytest.mark.parametrize("stream_velocity", _STREAM_VELOCITIES)
+def test_public_coefficients_are_what_flies(stream_velocity):
+    """The forces used in the simulation (the fast classic Barrowman computation)
+    must equal the surface's public ``cN``, ``cY`` and ``cA`` coefficients times
+    the dynamic pressure and the reference area, so that what a user reads or
+    plots is what flies."""
+    rho, mach = 1.2, 0.3
+    stream = Vector(stream_velocity)
+    speed = abs(stream)
+    # The coefficients take the angles of the rocket's velocity relative to the air
+    alpha = np.arctan2(-stream[1], -stream[2])
+    beta = np.arctan2(-stream[0], -stream[2])
+    args = (alpha, beta, mach, 0.0, 0.0, 0.0, 0.0)
+
+    for surface in _barrowman_surfaces():
+        r1, r2, r3, *_ = surface.compute_forces_and_moments(
+            stream, speed, mach, rho, Vector([0, 0, 0]), (0, 0, 0)
+        )
+        scale = 0.5 * rho * speed**2 * surface.reference_area
+        assert r1 == pytest.approx(scale * surface.cY(*args), rel=1e-12, abs=1e-9)
+        assert r2 == pytest.approx(-scale * surface.cN(*args), rel=1e-12, abs=1e-9)
+        assert r3 == pytest.approx(-scale * surface.cA(*args), rel=1e-12, abs=1e-9)
+
+
+def test_public_roll_coefficient_is_what_flies():
+    """A fin set's roll moment in the simulation must equal its public ``cl``
+    (cant forcing plus roll damping) times the dynamic pressure, the reference
+    area and the reference length; an individual fin's ``cl`` is its roll
+    damping."""
+    rho, mach, speed, roll = 1.2, 0.3, 100.0, 6.0
+    stream = Vector([0.0, 0.0, -speed])  # no crossflow: only the roll moment is left
+    nose, _, fins, fin = _barrowman_surfaces()
+
+    for surface in (nose, fins, fin):
+        moment = surface.compute_forces_and_moments(
+            stream, speed, mach, rho, Vector([0, 0, 0]), (0, 0, roll)
+        )[5]
+        reduced_roll = roll * surface.reference_length / (2 * speed)
+        scale = 0.5 * rho * speed**2 * surface.reference_area * surface.reference_length
+        expected = scale * surface.cl(0.0, 0.0, mach, 0.0, 0.0, 0.0, reduced_roll)
+        assert moment == pytest.approx(expected, rel=1e-12, abs=1e-12)
+    assert nose.cl.is_zero
+    assert fins.cl_0(0, 0, mach, 0, 0, 0, 0) != 0

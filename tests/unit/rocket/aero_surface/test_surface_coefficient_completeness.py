@@ -142,7 +142,7 @@ def test_center_of_pressure_accessors(name):
     """Every surface exposes the pitch and yaw center-of-pressure accessors used
     by the rocket's aerodynamic-center computation."""
     surface = SURFACES[name]
-    for attr in ("center_of_pressure_z", "center_of_pressure_z_yaw"):
+    for attr in ("aerodynamic_center", "aerodynamic_center_yaw"):
         accessor = getattr(surface, attr, None)
         assert accessor is not None, f"{name} is missing {attr}"
         assert np.isfinite(accessor.get_value_opt(0.5))

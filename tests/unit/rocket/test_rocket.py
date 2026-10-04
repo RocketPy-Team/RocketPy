@@ -1,3 +1,4 @@
+import json
 import warnings
 from itertools import product
 from unittest.mock import patch
@@ -5,8 +6,18 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, Rocket, SolidMotor
+from rocketpy import (
+    Function,
+    GenericSurface,
+    LinearGenericSurface,
+    NoseCone,
+    Rocket,
+    SolidMotor,
+    TrapezoidalFin,
+)
+from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.rocket._helpers import summed_force_and_moment
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import Motor
 
@@ -35,6 +46,225 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     ) == pytest.approx(rocket.static_margin(burn_time[1]), 1e-8)
     assert pytest.approx(rocket.total_lift_coeff_der(0), 1e-8) == pytest.approx(0, 1e-8)
     assert pytest.approx(rocket.aerodynamic_center(0), 1e-8) == pytest.approx(0, 1e-8)
+
+
+def test_static_margin_lazy_until_accessed(calisto_motorless):
+    """Static margin must not be discretized until first access."""
+    rocket = calisto_motorless
+
+    with patch.object(
+        rocket._static_margin,
+        "set_discrete",
+        wraps=rocket._static_margin.set_discrete,
+    ) as mock_set_discrete:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_set_discrete.assert_not_called()
+
+        static_margin = rocket.static_margin
+        assert mock_set_discrete.call_count == 1
+        assert isinstance(static_margin, Function)
+
+        # Second access must reuse the cached Function.
+        _ = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+
+def test_static_margin_rebuilds_after_adding_surface(calisto):
+    """Adding an aero surface invalidates SM; access rebuilds it once."""
+    rocket = calisto
+    margin_before = rocket.static_margin(0)
+
+    with patch.object(
+        rocket._static_margin,
+        "set_discrete",
+        wraps=rocket._static_margin.set_discrete,
+    ) as mock_set_discrete:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_set_discrete.assert_not_called()
+
+        margin_after = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+        _ = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+    assert margin_after != pytest.approx(margin_before, abs=1e-6)
+
+
+def test_aerodynamic_center_lazy_until_accessed(calisto):
+    """The center of pressure is only rebuilt when read, and only once."""
+    rocket = calisto
+    _ = rocket.aerodynamic_center(0)
+
+    with patch.object(
+        rocket,
+        "evaluate_center_of_pressure",
+        wraps=rocket.evaluate_center_of_pressure,
+    ) as mock_evaluate:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_evaluate.assert_not_called()
+
+        _ = rocket.aerodynamic_center(0)
+        _ = rocket.aerodynamic_center(0)
+        assert mock_evaluate.call_count == 1
+
+
+def test_add_motor_rebuilds_only_the_margins(calisto_motorless, cesaroni_m1670):
+    """A motor moves the center of mass, not the center of pressure."""
+    rocket = calisto_motorless
+    rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+    margin_before = rocket.static_margin(0)
+
+    with patch.object(
+        rocket,
+        "evaluate_center_of_pressure",
+        wraps=rocket.evaluate_center_of_pressure,
+    ) as mock_evaluate:
+        rocket.add_motor(cesaroni_m1670, position=-1.373)
+        margin_after = rocket.static_margin(0)
+        mock_evaluate.assert_not_called()
+
+    assert margin_after != pytest.approx(margin_before, abs=1e-6)
+
+
+def test_a_kept_static_margin_follows_a_new_surface(calisto):
+    """The margin is rebuilt in place, so a kept reference stays current."""
+    static_margin = calisto.static_margin
+    static_margin_yaw = calisto.static_margin_yaw
+    margin_before = static_margin(0)
+
+    calisto.add_nose(length=0.55829, kind="ogive", position=1.160)
+
+    assert calisto.static_margin is static_margin
+    assert calisto.static_margin_yaw is static_margin_yaw
+    assert static_margin(0) != pytest.approx(margin_before, abs=1e-6)
+
+
+def test_a_failed_margin_rebuild_is_tried_again(calisto):
+    """A rebuild that raises leaves the margins outdated, not half-built."""
+    margin_before = calisto.static_margin(0)
+    calisto.add_nose(length=0.55829, kind="ogive", position=1.160)
+    with patch.object(
+        calisto, "evaluate_static_margin", side_effect=RuntimeError("failed")
+    ):
+        with pytest.raises(RuntimeError):
+            _ = calisto.static_margin
+    # The next read builds them again, this time with the new surface
+    assert calisto.static_margin(0) != pytest.approx(margin_before, abs=1e-6)
+
+
+def test_evaluate_center_of_pressure_updates_the_margins(
+    calisto_robust, calisto_trapezoidal_fins
+):
+    """Re-evaluating the center of pressure brings the margins up to date."""
+    margin_before = calisto_robust.static_margin(0)
+    calisto_trapezoidal_fins.tip_chord = 0.080  # changes the fin set in place
+    calisto_robust.evaluate_center_of_pressure()
+    assert calisto_robust.static_margin(0) != pytest.approx(margin_before, abs=1e-6)
+
+
+def test_rocket_follows_a_surface_changed_in_place(
+    calisto_robust, calisto_trapezoidal_fins
+):
+    """No evaluate call is needed after changing a surface already added."""
+    rocket, fins = calisto_robust, calisto_trapezoidal_fins
+    center_before = rocket.aerodynamic_center(0)
+    margin_before = rocket.static_margin(0)
+    cp_to_cdm_before = [*rocket.surfaces_cp_to_cdm[fins]]
+
+    fins.tip_chord = 0.080
+
+    assert rocket.aerodynamic_center(0) != pytest.approx(center_before)
+    assert rocket.static_margin(0) != pytest.approx(margin_before)
+    assert [*rocket.surfaces_cp_to_cdm[fins]] != pytest.approx(cp_to_cdm_before)
+
+
+def test_a_shared_surface_updates_every_rocket(
+    calisto, calisto_nose_to_tail, calisto_nose_cone
+):
+    """A surface added to two rockets updates both when it changes."""
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto_nose_to_tail.add_surfaces(calisto_nose_cone, -1.160)
+    centers_before = [
+        calisto.aerodynamic_center(0),
+        calisto_nose_to_tail.aerodynamic_center(0),
+    ]
+
+    calisto_nose_cone.length = 0.8
+
+    centers_after = [
+        calisto.aerodynamic_center(0),
+        calisto_nose_to_tail.aerodynamic_center(0),
+    ]
+    assert centers_after[0] != pytest.approx(centers_before[0])
+    assert centers_after[1] != pytest.approx(centers_before[1])
+
+
+def test_cm_eccentricity_moves_the_surfaces_already_added(calisto_robust):
+    """Setting the center of mass eccentricity after the surfaces were added must
+    give the same surface lever arms as setting it before."""
+    rocket = calisto_robust
+    before = {
+        s: [*rocket.surfaces_cp_to_cdm[s]] for s, _ in rocket.aerodynamic_surfaces
+    }
+
+    rocket.add_cm_eccentricity(0.01, -0.02)
+
+    for surface, _ in rocket.aerodynamic_surfaces:
+        x, y, z = rocket.surfaces_cp_to_cdm[surface]
+        assert x == pytest.approx(before[surface][0] - 0.01 * rocket._csys)
+        assert y == pytest.approx(before[surface][1] + 0.02)
+        assert z == pytest.approx(before[surface][2])
+
+
+def test_asymmetry_warning_is_shown_once_per_configuration(calisto):
+    """A rocket that is not axisymmetric warns when its aerodynamic center is
+    built, and not again until its surfaces change."""
+    surface = GenericSurface(
+        calisto.area, 2 * calisto.radius, {"cN": lambda alpha: 2 * alpha}
+    )
+    calisto.add_surfaces(surface, -1.0)
+    with pytest.warns(UserWarning, match="not axisymmetric"):
+        _ = calisto.aerodynamic_center(0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _ = calisto.aerodynamic_center(0)
+        _ = calisto.static_margin(0)
+
+
+def test_a_canted_fin_moves_its_leading_edge(calisto):
+    """Canting a fin already on the rocket places it as if it were added canted:
+    the position the user gave is kept, the lever arm follows the cant."""
+    import copy
+
+    geometry = {"root_chord": 0.12, "tip_chord": 0.04, "span": 0.1}
+    fin = TrapezoidalFin(0, rocket_radius=0.0635, **geometry)
+    canted = TrapezoidalFin(0, rocket_radius=0.0635, cant_angle=5, **geometry)
+    reference = copy.deepcopy(calisto)
+    reference.add_surfaces(canted, -1.0)
+    calisto.add_surfaces(fin, -1.0)
+    cp_to_cdm_before = [*calisto.surfaces_cp_to_cdm[fin]]
+
+    fin.cant_angle = 5
+    _ = calisto.aerodynamic_center(0)
+
+    position = next(p for s, p in calisto.aerodynamic_surfaces if s is fin)
+    assert [*position] == pytest.approx([0.0, 0.0, -1.0])
+    assert [*calisto.surfaces_cp_to_cdm[fin]] != pytest.approx(cp_to_cdm_before)
+    assert [*calisto.surfaces_cp_to_cdm[fin]] == pytest.approx(
+        [*reference.surfaces_cp_to_cdm[canted]]
+    )
+
+
+def test_a_canted_fin_keeps_its_position_through_save_and_load(calisto):
+    fin = TrapezoidalFin(
+        0, root_chord=0.12, tip_chord=0.04, span=0.1, rocket_radius=0.0635, cant_angle=5
+    )
+    calisto.add_surfaces(fin, -1.0)
+    loaded = json.loads(json.dumps(calisto, cls=RocketPyEncoder), cls=RocketPyDecoder)
+    assert [*loaded.aerodynamic_surfaces[-1].position] == pytest.approx(
+        [*calisto.aerodynamic_surfaces[-1].position]
+    )
 
 
 @pytest.mark.parametrize(
@@ -465,7 +695,7 @@ def test_evaluate_nozzle_to_cdm(calisto):
 
 def test_evaluate_nozzle_gyration_tensor(calisto):
     expected_gyration_tensor = np.array(
-        [[0.3940207, 0, 0], [0, 0.3940207, 0], [0, 0, 0.0005445]]
+        [[1.5752660, 0, 0], [0, 1.5752660, 0], [0, 0, 0.0005445]]
     )
     atol = 1e-3 * 1e-2 * 1e-2  # Equivalent to 1g * 1cm^2
     assert np.allclose(
@@ -746,8 +976,8 @@ def test_drag_csv_header_order_independent_for_multivariable_input(tmp_path):
     assert drag_swapped == pytest.approx(drag_ordered)
     assert set(rocket_ordered.power_off_drag_7d.depends_on) == {"mach", "reynolds"}
     assert set(rocket_swapped.power_off_drag_7d.depends_on) == {"mach", "reynolds"}
-    assert ordered_csv_function.get_interpolation_method() == "regular_grid"
-    assert swapped_csv_function.get_interpolation_method() == "regular_grid"
+    assert ordered_csv_function.is_regular_grid
+    assert swapped_csv_function.is_regular_grid
 
 
 def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
@@ -833,3 +1063,154 @@ def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
 
         assert rocket.power_off_drag_7d(*query_point) == pytest.approx(expected)
         assert rocket.power_on_drag_7d(*query_point) == pytest.approx(expected)
+
+
+# Review of 2026-09-26: drag inputs, full-body helpers, positions, length
+
+
+def _bare_rocket(**kwargs):
+    kwargs.setdefault("power_off_drag", 0.5)
+    kwargs.setdefault("power_on_drag", 0.5)
+    return Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        center_of_mass_without_motor=0,
+        **kwargs,
+    )
+
+
+def test_a_one_argument_drag_function_is_read_by_its_name():
+    rocket = _bare_rocket(power_off_drag=lambda alpha: 0.4 + alpha**2)
+    assert rocket.power_off_drag_7d.depends_on == ("alpha",)
+    assert rocket.power_off_drag_7d(0.5, 0, 0.3, 0, 0, 0, 0) == pytest.approx(0.65)
+    assert _bare_rocket(
+        power_off_drag=lambda m: 0.4 + m
+    ).power_off_drag_7d.depends_on == ("mach",)
+
+
+def test_drag_can_be_assigned_after_construction():
+    rocket = _bare_rocket()
+    rocket.power_off_drag = lambda mach: 0.9 + mach
+    assert rocket.power_off_drag_7d(0, 0, 0.5, 0, 0, 0, 0) == pytest.approx(1.4)
+    assert rocket.power_off_drag(0.5) == pytest.approx(1.4)
+
+
+def test_length_can_be_given(calisto_robust):
+    rocket = _bare_rocket(length=3.0)
+    assert rocket.length == 3.0
+    loaded = json.loads(json.dumps(rocket, cls=RocketPyEncoder), cls=RocketPyDecoder)
+    assert loaded.length == 3.0
+    assert calisto_robust.length == pytest.approx(2.533, abs=1e-3)
+
+
+def test_prints_list_the_lift_slope_of_every_surface(calisto_robust, capsys):
+    calisto_robust.prints.all()
+    out = capsys.readouterr().out
+    section = out[out.index("Lift Coefficient Derivatives") :][:400]
+    for surface, _ in calisto_robust.aerodynamic_surfaces:
+        assert f"{surface.name} Lift Coefficient Derivative" in section
+
+
+def test_plots_survive_a_rocket_without_a_length():
+    """No surfaces yet, or a point-like full-body model: the percent-of-length
+    axis is skipped instead of crashing."""
+    _bare_rocket().plots.static_margin()
+    rocket = _bare_rocket()
+    surface = LinearGenericSurface(
+        rocket.area, 2 * rocket.radius, {"cN_alpha": 2, "cY_beta": -2}
+    )
+    rocket.add_full_body_aerodynamics(surface, position=0.0)
+    rocket.plots.static_margin()
+
+
+def test_the_same_fin_added_twice_keeps_both_positions():
+    rocket = _bare_rocket()
+    rocket.add_nose(length=0.55829, kind="vonkarman", position=1.278)
+    fin = TrapezoidalFin(0, 0.12, 0.04, 0.1, 0.0635)
+    rocket.add_surfaces([fin, fin], [-1.168, -0.5])
+    rocket._refresh_aerodynamics()
+    assert [p.z for s, p in rocket.aerodynamic_surfaces if s is fin] == [-1.168, -0.5]
+
+
+def test_set_position_accepts_a_number(calisto_robust):
+    surface = calisto_robust.aerodynamic_surfaces[0][0]
+    calisto_robust.aerodynamic_surfaces.set_position(surface, 1.0)
+    calisto_robust.aerodynamic_center(0.3)
+    assert calisto_robust.aerodynamic_surfaces.get_positions()[0].z == 1.0
+
+
+def test_axisymmetric_linear_surface_fills_in_the_yaw_plane():
+    """Pitch-only derivatives with ``axisymmetric=True`` give the same rocket
+    in yaw, also from wind-frame derivatives and after saving and loading;
+    without it a warning says the rocket has no side force."""
+    rocket = _bare_rocket()
+    area, diameter = rocket.area, 2 * rocket.radius
+    pitch_only = {"cN_alpha": 3.0, "cm_alpha": -1.0, "cN_q": 4.0, "cm_q": -50.0}
+    linear = LinearGenericSurface(area, diameter, pitch_only, axisymmetric=True)
+    by_hand = LinearGenericSurface(
+        area,
+        diameter,
+        {**pitch_only, "cY_beta": -3.0, "cn_beta": 1.0, "cY_r": 4.0, "cn_r": -50.0},
+    )
+    state = (0.07, -0.04, 0.5, 0, 0.01, 0.02, 0.003)
+    for name in ("cN", "cY", "cm", "cn"):
+        assert getattr(linear, name)(*state) == getattr(by_hand, name)(*state)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        rocket.add_full_body_aerodynamics(linear, position=0.0)
+    assert rocket.aerodynamic_center(0.3) == pytest.approx(
+        rocket.aerodynamic_center_yaw(0.3)
+    )
+    assert rocket.is_axisymmetric
+
+    wind = LinearGenericSurface(
+        area, diameter, {"cL_alpha": 2.5, "cD_0": 0.5}, axisymmetric=True
+    )
+    at_zero = (0.0, 0.0, 0.5, 0, 0, 0, 0)
+    assert wind.cN_alpha(*at_zero) == pytest.approx(3.0)
+    assert wind.cY_beta(*at_zero) == pytest.approx(-3.0)
+
+    loaded = json.loads(json.dumps(linear, cls=RocketPyEncoder), cls=RocketPyDecoder)
+    assert sorted(loaded.to_dict()["coefficients"]) == sorted(pitch_only)
+    assert loaded.cY(*state) == linear.cY(*state)
+
+    with pytest.warns(UserWarning, match="side force"):
+        _bare_rocket().add_full_body_aerodynamics(
+            LinearGenericSurface(area, diameter, {"cN_alpha": 3.0}), position=0.0
+        )
+
+
+def test_axisymmetric_linear_surface_refuses_what_singles_out_a_plane():
+    """With ``axisymmetric=True`` the yaw plane comes from the pitch plane, so
+    a yaw derivative, or a pitch derivative that reads the angle of one plane,
+    is refused; the total angle of attack is the same in every plane."""
+    with pytest.raises(ValueError, match="cY_beta cannot be given"):
+        LinearGenericSurface(
+            1.0, 1.0, {"cN_alpha": 2.0, "cY_beta": -2.0}, axisymmetric=True
+        )
+    with pytest.raises(ValueError, match="cQ_beta cannot be given"):
+        LinearGenericSurface(
+            1.0, 1.0, {"cL_alpha": 2.0, "cQ_beta": -2.0}, axisymmetric=True
+        )
+    for name in ("cN_0", "cm_0", "cN_p", "cm_p"):
+        with pytest.raises(ValueError, match=f"{name} cannot be given"):
+            LinearGenericSurface(
+                1.0, 1.0, {"cN_alpha": 2.0, name: 0.1}, axisymmetric=True
+            )
+    for angle, slope in (
+        ("alpha", lambda alpha: 2.0 - alpha**2),
+        ("beta", lambda beta: 2.0 - beta**2),
+    ):
+        with pytest.raises(ValueError, match=f"cN_alpha depends on {angle}"):
+            LinearGenericSurface(1.0, 1.0, {"cN_alpha": slope}, axisymmetric=True)
+
+    surface = LinearGenericSurface(
+        1.0,
+        1.0,
+        {"cN_alpha": lambda alpha_total: 9 - 40 * alpha_total**2},
+        axisymmetric=True,
+    )
+    assert surface.cN(0.2, 0, 0, 0, 0, 0, 0) == pytest.approx(1.48)
+    assert surface.cY(0, 0.2, 0, 0, 0, 0, 0) == pytest.approx(-1.48)

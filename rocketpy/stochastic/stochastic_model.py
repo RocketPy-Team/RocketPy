@@ -414,7 +414,7 @@ class StochasticModel:
         if input_value is not None:
             error_msg = (
                 f"`{input_name}` must be a list of path strings, lists "
-                "with shape (n,2), or Functions."
+                "with shape (n,2), Functions, AeroCoefficients or functions."
             )
 
             if not isinstance(input_value, list):
@@ -424,7 +424,7 @@ class StochasticModel:
                 if isinstance(member, list):
                     if len(np.shape(member)) != 2 or np.shape(member)[1] != 2:
                         raise AssertionError(error_msg)
-                elif not isinstance(member, (str, Function)):
+                elif not (isinstance(member, str) or callable(member)):
                     raise AssertionError(error_msg)
 
     def _validate_positive_int_list(self, input_name, input_value):

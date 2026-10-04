@@ -17,6 +17,7 @@ from rocketpy.rocket.aero_surface import (
     TrapezoidalFin,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.aero_coefficient import AeroCoefficient
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.rocket.point_mass_rocket import PointMassRocket

@@ -624,7 +624,7 @@ class _FlightPrints:
         # a defined overall length, also as a percentage of that length (the
         # convention often used in hobby rocketry). See Rocket.length.
         rocket = self.flight.rocket
-        length = rocket.length if rocket.aerodynamic_surfaces else 0
+        length = rocket.length or 0
         to_percent = 2 * rocket.radius / length * 100 if length > 0 else None
 
         def _margin(value):
@@ -653,23 +653,19 @@ class _FlightPrints:
             f"at {self.flight.min_stability_margin_time:.2f} s"
         )
 
-        out_of_rail_time = self.flight.out_of_rail_time
-        # The margins above describe the pitch plane. For a non-axisymmetric
-        # rocket, also report the yaw-plane margin at rail departure.
-        if not self.flight.rocket.is_axisymmetric:
-            print(
-                "Out of Rail Stability Margin - yaw: "
-                f"{_margin(self.flight.stability_margin_yaw.get_value_opt(out_of_rail_time))}"
-            )
+        # The margins above describe the pitch plane
+        print(
+            "Out of Rail Stability Margin - yaw: "
+            f"{_margin(self.flight.out_of_rail_stability_margin_yaw)}"
+        )
 
     def dynamic_stability(self):
         """Prints the rocket's dynamic-stability quantities at the key instants
         of the ascent.
 
         For rail departure and motor burnout it reports the attitude
-        oscillation's natural frequency and damping ratio (pitch, and yaw as
-        well for a non-axisymmetric rocket), and it reports the roll rate at
-        burnout. Companion summary to ``Flight.plots.dynamic_stability_data``.
+        oscillation's natural frequency and damping ratio in the pitch and yaw
+        planes, and it reports the roll rate at burnout. Companion summary to ``Flight.plots.dynamic_stability_data``.
 
         Notes
         -----
@@ -682,27 +678,22 @@ class _FlightPrints:
         """
         two_pi = 6.283185307179586
         flight = self.flight
-        asymmetric = not flight.rocket.is_axisymmetric
 
         def report(label, time):
             natural_frequency = (
                 flight.pitch_natural_frequency.get_value_opt(time) / two_pi
             )
             damping_ratio = flight.pitch_damping_ratio.get_value_opt(time)
-            plane = "Pitch " if asymmetric else ""
             print(
-                f"{label} (t = {time:.2f} s): {plane}natural frequency = "
+                f"{label} (t = {time:.2f} s): Pitch natural frequency = "
                 f"{natural_frequency:.2f} Hz, damping ratio = {damping_ratio:.3f}"
             )
-            if asymmetric:
-                yaw_frequency = (
-                    flight.yaw_natural_frequency.get_value_opt(time) / two_pi
-                )
-                yaw_damping = flight.yaw_damping_ratio.get_value_opt(time)
-                print(
-                    f"    Yaw natural frequency = {yaw_frequency:.2f} Hz, "
-                    f"damping ratio = {yaw_damping:.3f}"
-                )
+            yaw_frequency = flight.yaw_natural_frequency.get_value_opt(time) / two_pi
+            yaw_damping = flight.yaw_damping_ratio.get_value_opt(time)
+            print(
+                f"    Yaw natural frequency = {yaw_frequency:.2f} Hz, "
+                f"damping ratio = {yaw_damping:.3f}"
+            )
 
         burn_out_time = flight.rocket.motor.burn_out_time
 

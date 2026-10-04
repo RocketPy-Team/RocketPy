@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from rocketpy import Function, GenericSurface, LinearGenericSurface
@@ -17,7 +19,6 @@ _ARGS = (0.0, 0.0, 0.5, 1e6, 0.0, 0.0, 0.0)
         {"invalid_name": 0},
         {"cN_0": "inexistent_file.csv"},
         {"cN_0": Function(lambda x1, x2, x3, x4, x5, x6: 0)},
-        {"cN_0": lambda x1: 0},
         {"cN_0": {}},
     ],
 )
@@ -31,6 +32,15 @@ def test_invalid_initialization(coefficients):
             reference_length=REFERENCE_LENGTH,
             coefficients=coefficients,
         )
+
+
+def test_a_one_input_derivative_is_against_mach():
+    """A derivative name already fixes the angle or rate, so a one-argument
+    function or one-column table is read against Mach."""
+    surface = LinearGenericSurface(
+        REFERENCE_AREA, REFERENCE_LENGTH, {"cN_alpha": lambda x1: 2 + x1}
+    )
+    assert surface.cN_alpha(0, 0, 0.5, 0, 0, 0, 0) == pytest.approx(2.5)
 
 
 def test_invalid_initialization_from_csv(filename_invalid_coeff_linear_generic_surface):
@@ -229,3 +239,78 @@ def test_wind_linear_matches_generic_surface_to_first_order():
             assert getattr(linear, coeff).get_value_opt(*args) == pytest.approx(
                 getattr(generic, coeff).get_value_opt(*args), abs=1e-5
             )
+
+
+def test_public_coefficient_includes_the_damping_terms():
+    """``surface.cm`` is the whole coefficient, so it follows the rotation rates
+    as well as the angles; ``cmf`` and ``cmd`` are its two parts."""
+    surface = LinearGenericSurface(
+        reference_area=1.3,
+        reference_length=0.7,
+        coefficients={"cm_alpha": -3.0, "cm_q": -50.0, "cm_p": lambda mach: mach},
+    )
+    alpha, mach, pitch_rate, roll_rate = 0.1, 0.5, 0.02, 0.03
+    args = (alpha, 0.0, mach, 0.0, pitch_rate, 0.0, roll_rate)
+
+    forcing = -3.0 * alpha
+    damping = -50.0 * pitch_rate + mach * roll_rate
+    assert surface.cmf(*args) == pytest.approx(forcing)
+    assert surface.cmd(*args) == pytest.approx(damping)
+    assert surface.cm(*args) == pytest.approx(forcing + damping)
+    # A coefficient with no derivatives given is zero
+    assert surface.cn(*args) == 0.0
+
+
+def test_public_coefficients_give_the_simulated_forces_and_moments():
+    """The forces and moments used in the simulation are the public coefficients
+    times the dynamic pressure, the reference area and the reference length."""
+    names = [
+        f"{coefficient}_{suffix}"
+        for coefficient in ("cN", "cY", "cA", "cm", "cn", "cl")
+        for suffix in ("0", "alpha", "beta", "p", "q", "r")
+    ]
+    surface = LinearGenericSurface(
+        reference_area=1.3,
+        reference_length=0.7,
+        coefficients={name: 0.05 * i - 0.4 for i, name in enumerate(names)},
+    )
+    rho, speed, mach = 1.1, 80.0, 0.4
+    alpha, beta, rates = 0.05, -0.02, (0.01, -0.02, 0.03)
+    args = (alpha, beta, mach, 0, *rates)
+    force_scale = 0.5 * rho * speed**2 * 1.3
+    moment_scale = force_scale * 0.7
+    # The flow and the body rates that give these angles and reduced rates
+    direction = Vector([math.tan(beta), math.tan(alpha), 1.0])
+    stream_velocity = direction * (-speed / abs(direction))
+    omega = [rate * 2 * speed / 0.7 for rate in rates]
+
+    r1, r2, r3, pitch, yaw, roll = surface.compute_forces_and_moments(
+        stream_velocity,
+        speed,
+        mach,
+        rho,
+        Vector([0, 0, 0]),
+        omega,
+        Function(1.2),
+        Function(1.8e-5),
+        0.0,
+    )
+
+    assert r1 == pytest.approx(force_scale * surface.cY(*args))
+    assert r2 == pytest.approx(-force_scale * surface.cN(*args))
+    assert r3 == pytest.approx(-force_scale * surface.cA(*args))
+    assert pitch == pytest.approx(moment_scale * surface.cm(*args))
+    assert yaw == pytest.approx(moment_scale * surface.cn(*args))
+    assert roll == pytest.approx(moment_scale * surface.cl(*args))
+
+
+def test_linear_surface_from_csv(tmp_path):
+    """The coefficient derivatives of a linear surface load from one file."""
+    csv_file = tmp_path / "derivatives.csv"
+    csv_file.write_text(
+        "mach,cN_alpha,cm_alpha,cm_q\n0,2,-3,-50\n1,3,-4,-50\n2,4,-5,-50\n"
+    )
+    surface = LinearGenericSurface.from_csv(str(csv_file), 1.0, 1.0)
+    assert surface.cN_alpha.depends_on == ("mach",)
+    assert surface.cN(0.1, 0.0, 1.0, 0, 0, 0, 0) == pytest.approx(0.3)
+    assert surface.cm(0.1, 0.0, 1.0, 0, 0.01, 0, 0) == pytest.approx(-0.4 - 0.5)

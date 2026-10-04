@@ -21,6 +21,9 @@ class AirBrakes(ControllableGenericSurface):
     AirBrakes.drag_coefficient_curve : int, float, callable, array, string, Function
         Curve that defines the drag coefficient as a function of deployment level
         and Mach number.  Used as the source of `AirBrakes.drag_coefficient`.
+        It is stored as the surface's axial force coefficient ``cA``, read at
+        the current deployment level in flight; the wind-frame ``cD`` is a view
+        derived from it.
     AirBrakes.deployment_level : float
         Current deployment level, ranging from 0 to 1. Deployment level is the
         fraction of the total airbrake area that is deployed.
@@ -115,19 +118,12 @@ class AirBrakes(ControllableGenericSurface):
             interpolation="linear",
         )
 
-        # Multivariable drag coefficient over the generic-surface inputs plus the
-        # ``deployment_level`` control axis. The deployment-0 ⇒ Cd 0 rule applies
-        # only when the air brakes add to (rather than override) the rocket drag.
-        def drag_coefficient_function(
-            alpha,
-            beta,
-            mach,
-            reynolds,
-            pitch_rate,
-            yaw_rate,
-            roll_rate,
-            deployment_level,
-        ):  # pylint: disable=unused-argument
+        # The drag force acts along the rocket's centerline (see
+        # flight_derivatives._compute_drag_area), so the curve is given to
+        # the surface as its axial coefficient, over only the two variables it
+        # uses. The deployment-0 => Cd 0 rule applies only when the air brakes
+        # add to (rather than override) the rocket drag.
+        def drag_coefficient_function(mach, deployment_level):
             if deployment_level == 0 and not self.override_rocket_drag:
                 return 0.0
             return self.drag_coefficient.get_value_opt(deployment_level, mach)
@@ -135,7 +131,7 @@ class AirBrakes(ControllableGenericSurface):
         super().__init__(
             reference_area=reference_area,
             reference_length=2 * (reference_area / np.pi) ** 0.5,
-            coefficients={"cD": drag_coefficient_function},
+            coefficients={"cA": drag_coefficient_function},
             center_of_pressure=(0, 0, 0),
             name=name,
             controls=("deployment_level",),

@@ -85,15 +85,18 @@ def test_trapezoidal_fin_setters_update_geometry(calisto_trapezoidal_fin):
     # Arrange
     fin = calisto_trapezoidal_fin
 
-    # Act
+    # Act and assert
     fin.tip_chord = 0.05
-    fin.sweep_angle = 12.0
-    fin.sweep_length = 0.03
-
-    # Assert
     np.testing.assert_allclose(fin.tip_chord, 0.05)
+
+    fin.sweep_angle = 12.0
     np.testing.assert_allclose(fin.sweep_angle, 12.0)
+    np.testing.assert_allclose(fin.sweep_length, np.tan(np.radians(12.0)) * fin.span)
+
+    # A length replaces the angle, which no longer describes the fin
+    fin.sweep_length = 0.03
     np.testing.assert_allclose(fin.sweep_length, 0.03)
+    assert fin.sweep_angle is None
 
 
 def test_individual_fin_rocket_diameter_aliases_are_kept_in_sync(
@@ -532,3 +535,139 @@ def test_add_individual_fin_accepts_full_3d_position(position_input):
 
     # Assert
     assert stored_position == Vector([0.02, -0.01, -1.2])
+
+
+@pytest.mark.parametrize("cant_angle", [0.0, 2.0, 10.0])
+@pytest.mark.parametrize("angular_position", [0.0, 30.0, 90.0, 200.0])
+def test_fin_stability_slopes_are_the_slopes_of_what_flies(
+    cant_angle, angular_position
+):
+    """The slopes a fin gives the rocket for its aerodynamic center and static
+    margin must be the slopes of the force it produces in flight, which a cant
+    angle reduces by its cosine."""
+    fin = TrapezoidalFin(
+        angular_position=angular_position,
+        span=0.1,
+        root_chord=0.12,
+        tip_chord=0.04,
+        rocket_radius=0.0635,
+        cant_angle=cant_angle,
+    )
+    mach = 0.3
+    at_zero = (0.0, 0.0, mach, 0.0, 0.0, 0.0, 0.0)
+
+    assert fin.cN_alpha(*at_zero) == pytest.approx(
+        fin.cN.slope("alpha", "mach")(mach), rel=1e-6, abs=1e-9
+    )
+    assert fin.cY_beta(*at_zero) == pytest.approx(
+        fin.cY.slope("beta", "mach")(mach), rel=1e-6, abs=1e-9
+    )
+
+
+def test_fin_slopes_follow_a_change_of_cant_angle():
+    fin = TrapezoidalFin(
+        angular_position=90,
+        span=0.1,
+        root_chord=0.12,
+        tip_chord=0.04,
+        rocket_radius=0.0635,
+    )
+    at_zero = (0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0)
+    straight = fin.cN_alpha(*at_zero)
+    fin.cant_angle = 10
+    assert fin.cN_alpha(*at_zero) == pytest.approx(straight * np.cos(np.radians(10)))
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "calisto_trapezoidal_fins",
+        "calisto_trapezoidal_fin",
+        "calisto_free_form_fins",
+        "calisto_free_form_fin",
+        "calisto_elliptical_fin",
+    ],
+)
+def test_changing_the_geometry_of_a_built_fin_updates_it_once(request, fixture_name):
+    """A fin is built once by its constructor and updated by its setters: a
+    wider span must give a larger normal-force slope, and count as one change
+    for the rockets that hold the fin."""
+    fin = request.getfixturevalue(fixture_name)
+    # The fin's own lift slope: an individual fin at 0 degrees around the body
+    # has no share of it in the pitch plane, so cN_alpha would not show it
+    slope_before = fin.clalpha(0.3)
+    version_before = fin._version
+
+    fin.span = 1.5 * fin.span
+
+    assert fin.clalpha(0.3) > slope_before
+    assert fin._version == version_before + 1
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["calisto_trapezoidal_fin", "calisto_free_form_fin", "calisto_elliptical_fin"],
+)
+def test_individual_fin_keeps_its_rotation_when_built_and_updated(
+    request, fixture_name
+):
+    """The frame of an individual fin is turned by its angular position. That
+    rotation must be the one the surface uses, both right after the fin is
+    built and after its angular position changes."""
+    fin = request.getfixturevalue(fixture_name)
+    assert fin._rotation_surface_to_body == fin._rotation_fin_to_body
+
+    fin.angular_position = fin.angular_position + 90
+
+    assert fin._rotation_surface_to_body == fin._rotation_fin_to_body
+    assert fin._rotation_fin_to_body == fin._rotation_body_to_fin.transpose
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "calisto_trapezoidal_fins",
+        "calisto_trapezoidal_fin",
+        "calisto_free_form_fins",
+        "calisto_free_form_fin",
+        "calisto_elliptical_fin",
+    ],
+)
+def test_a_fin_canted_later_flies_like_one_built_canted(request, fixture_name):
+    """A controller may change the cant angle at every step, so the change is
+    made cheap: nothing is rebuilt, the coefficients read the angle when they
+    are evaluated. The forces, moments and coefficients must then be exactly
+    those of a fin built with that cant angle from the start."""
+    fin = request.getfixturevalue(fixture_name)
+    built_canted = type(fin).from_dict(
+        {**fin.to_dict(), "cant_angle": fin.to_dict()["cant_angle"] + 3.0}
+    )
+    version_before = fin._version
+
+    fin.cant_angle += 3.0
+
+    assert fin._version == version_before + 1
+    stream = Vector([-4.0, 6.0, -70.0])
+    call = (stream, abs(stream), 0.2, 1.1, Vector([0.0, 0.0, -1.1]), (0.3, -0.2, 5.0))
+    assert fin.compute_forces_and_moments(*call) == pytest.approx(
+        built_canted.compute_forces_and_moments(*call), rel=1e-12, abs=1e-15
+    )
+    state = (0.05, -0.02, 0.6, 0.0, 0.0, 0.0, 0.1)
+    for name in ("cN", "cY", "cA", "cl", "cN_alpha", "cY_beta", "cl_0", "cl_p"):
+        assert getattr(fin, name)(*state) == pytest.approx(
+            getattr(built_canted, name)(*state), rel=1e-12, abs=1e-15
+        )
+    assert fin.roll_parameters[2] == pytest.approx(built_canted.roll_parameters[2])
+    if hasattr(fin, "_rotation_fin_to_body"):
+        assert fin._rotation_surface_to_body == built_canted._rotation_surface_to_body
+
+
+def test_changing_the_cant_angle_rebuilds_nothing(calisto_trapezoidal_fin):
+    """The cant angle is a control input: setting it must not run the
+    geometry chain, which is far too slow for a controller step."""
+    fin = calisto_trapezoidal_fin
+    with patch.object(
+        type(fin), "_update_geometry_chain", side_effect=AssertionError("rebuilt")
+    ):
+        fin.cant_angle = 2.0
+    assert fin.cant_angle == 2.0

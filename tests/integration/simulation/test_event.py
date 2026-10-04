@@ -6,7 +6,6 @@ import pytest
 
 from rocketpy import Environment, Event, Flight, Rocket, SolidMotor
 from rocketpy.simulation.events import Commands, exact_time_solvers
-from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS, _PhaseDynamics
 from rocketpy.simulation.events.event_builders import (
     apogee_callback,
     apogee_event_exact_time_function,
@@ -26,6 +25,7 @@ from rocketpy.simulation.events.exact_time_solvers import (
     solve_cubic_hermite,
     solve_linear,
 )
+from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS, _PhaseDynamics
 
 
 def _callback_return_time(context):

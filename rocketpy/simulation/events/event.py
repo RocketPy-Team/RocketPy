@@ -17,7 +17,7 @@ PRESETS = {
 
 
 class Event:
-    """A rule that runs an action during a flight when a condition is met.
+    """Event helper with trigger/callback execution and exact-time support.
 
     An ``Event`` is the main way RocketPy reacts to conditions during a
     flight. It pairs a ``trigger`` predicate with a ``callback`` action: at

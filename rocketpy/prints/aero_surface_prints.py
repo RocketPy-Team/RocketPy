@@ -1,12 +1,6 @@
 import numpy as np
 
 
-# The print classes mirror the aerodynamic-surface class hierarchy:
-#   GenericSurface          -> _GenericSurfacePrints       (root)
-#   LinearGenericSurface    -> _LinearGenericSurfacePrints
-#   _BarrowmanSurface       -> _BarrowmanSurfacePrints     (adds clalpha/CP lift)
-#     NoseCone / Tail / Fins/Fin -> the leaf print classes below
-#   ControllableGenericSurface / AirBrakes / RailButtons -> generic-rooted leaves
 # TODO: this file could be separated into different, smaller files.
 class _GenericSurfacePrints:
     """Base prints for a generic aerodynamic surface."""
@@ -15,12 +9,13 @@ class _GenericSurfacePrints:
         self.aero_surface = aero_surface
 
     def coefficients(self):
-        """Prints a summary of the surface's main aerodynamic coefficients.
+        """Prints the surface's aerodynamic coefficients.
 
-        For every non-zero coefficient (``cL, cQ, cD, cm, cn``) reports its
-        value at a reference condition (5° angle of attack and sideslip, Mach
-        0.3) and, when available, the variables it depends on. Works across all
-        surface types that expose the uniform coefficient accessors.
+        Reports the six body-frame coefficients the surface holds (``cN``,
+        ``cY``, ``cA``, ``cm``, ``cn``, ``cl``) at a reference condition (5°
+        angle of attack and sideslip, Mach 0.3) with the variables each one
+        depends on, marking the ones that are zero. A surface given in the wind
+        frame also reports ``cL``, ``cQ`` and ``cD``.
         """
         surface = self.aero_surface
         independent_vars = getattr(surface, "independent_vars", None)
@@ -39,18 +34,19 @@ class _GenericSurfacePrints:
             args[index["alpha"]] = np.deg2rad(5)
         if "beta" in index:
             args[index["beta"]] = np.deg2rad(5)
-        printed = False
-        for name in ("cL", "cQ", "cD", "cm", "cn"):
+        names = ["cN", "cY", "cA", "cm", "cn", "cl"]
+        if getattr(surface, "force_convention", "body") == "wind":
+            names += ["cL", "cQ", "cD"]
+        for name in names:
             coeff = getattr(surface, name, None)
-            if coeff is None or getattr(coeff, "is_zero", False):
+            if coeff is None:
                 continue
-            value = coeff(*args)
+            if getattr(coeff, "is_zero", False):
+                print(f"  {name} = 0 (zero)")
+                continue
             depends = getattr(coeff, "depends_on", None)
             suffix = f" [depends on {', '.join(depends)}]" if depends else ""
-            print(f"  {name} = {value:.4f}{suffix}")
-            printed = True
-        if not printed:
-            print("  (all zero)")
+            print(f"  {name} = {coeff(*args):.4f}{suffix}")
         print()
 
     def identity(self):
@@ -89,7 +85,7 @@ class _LinearGenericSurfacePrints(_GenericSurfacePrints):
     base."""
 
 
-class _BarrowmanSurfacePrints(_LinearGenericSurfacePrints):
+class _BarrowmanSurfacePrints(_GenericSurfacePrints):
     """Prints shared by the geometry-defined (Barrowman) surfaces: adds the
     center-of-pressure / lift-curve-slope report on top of the generic base."""
 

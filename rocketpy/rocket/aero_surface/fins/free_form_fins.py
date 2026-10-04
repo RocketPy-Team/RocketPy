@@ -72,11 +72,41 @@ class FreeFormFins(Fins):
     FreeFormFins.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    FreeFormFins.cl : Function
-        Roll-moment coefficient, inherited from the generic-surface model
-        (a function of the flow variables). Zero for a nose cone or tail; for a
-        fin set it carries the cant forcing and roll damping. The lift-curve
-        slope is ``clalpha``.
+    FreeFormFins.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    FreeFormFins.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    FreeFormFins.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    FreeFormFins.cm : AeroCoefficient
+        Pitching moment coefficient.
+    FreeFormFins.cn : AeroCoefficient
+        Yawing moment coefficient.
+    FreeFormFins.cl : AeroCoefficient
+        Roll moment coefficient, from the cant angle and the roll damping.
+    FreeFormFins.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    FreeFormFins.cD : Function
+        Drag coefficient, the force along the airflow.
+    FreeFormFins.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    FreeFormFins.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    FreeFormFins.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    FreeFormFins.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    FreeFormFins.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    FreeFormFins.cl_0 : AeroCoefficient
+        Roll moment coefficient at zero roll rate, as a function of Mach.
+    FreeFormFins.cl_p : AeroCoefficient
+        Slope of ``cl`` with the reduced roll rate (roll damping), as a
+        function of Mach.
     FreeFormFins.clalpha : float
         Normal-force coefficient slope. Has units of 1/rad.
     FreeFormFins.mac_length : float
@@ -112,6 +142,8 @@ class FreeFormFins(Fins):
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            A positive cant angle gives a negative roll moment about the
+            rocket's axis (see :ref:`individual_fins`).
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -146,7 +178,7 @@ class FreeFormFins(Fins):
         )
 
         self.geometry = _FreeFormGeometry(self, shape_points)
-        self._update_geometry_chain()
+        self._build_surface()
         self.evaluate_shape()
 
         self.prints = _FreeFormFinsPrints(self)
@@ -163,10 +195,7 @@ class FreeFormFins(Fins):
         """
         # Center of pressure position in local coordinates
         cpz = self.mac_lead + 0.25 * self.mac_length
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = cpz
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        self._set_center_of_pressure((0, 0, cpz))
 
     @property
     def shape_points(self):

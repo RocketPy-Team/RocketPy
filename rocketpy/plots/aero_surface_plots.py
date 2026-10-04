@@ -26,35 +26,114 @@ class _GenericSurfacePlots:
     def draw(self, *, filename=None):
         """A plain generic surface has no geometry to draw."""
 
-    # Coefficients swept against their most relevant incidence angle: pitch-plane
-    # coefficients vs. angle of attack, yaw-plane ones vs. sideslip.
-    _COEFFICIENT_SWEEP = [
-        ("cL", "alpha"),
-        ("cQ", "beta"),
-        ("cD", "alpha"),
-        ("cm", "alpha"),
-        ("cn", "beta"),
-    ]
+    # For each body-frame coefficient, the inputs worth sweeping, most relevant
+    # first: its own plane's incidence angle, the other angle, then the angular
+    # rate that damps its motion. A coefficient is swept against the first
+    # input on its list that it depends on.
+    _COEFFICIENT_SWEEP = {
+        "cN": ("alpha", "beta", "pitch_rate"),
+        "cY": ("beta", "alpha", "yaw_rate"),
+        "cA": ("alpha", "beta"),
+        "cm": ("alpha", "beta", "pitch_rate"),
+        "cn": ("beta", "alpha", "yaw_rate"),
+        "cl": ("roll_rate", "alpha", "beta"),
+    }
+    _AXIS_LABELS = {
+        "alpha": "Angle of attack (°)",
+        "beta": "Sideslip angle (°)",
+        "pitch_rate": "Reduced pitch rate q·L/(2V)",
+        "yaw_rate": "Reduced yaw rate r·L/(2V)",
+        "roll_rate": "Reduced roll rate p·L/(2V)",
+        "mach": "Mach number",
+    }
 
-    def coefficients(self, *, mach=0.3, angle_range_deg=15.0, filename=None):
-        """Plot the surface's main aerodynamic coefficients.
+    @staticmethod
+    def _depends_on(coeff, index, mach):
+        """Find the inputs a coefficient changes with.
 
-        Each available, non-zero coefficient (``cL, cQ, cD, cm, cn``) is swept
-        against its most relevant incidence angle (pitch-plane coefficients vs.
-        angle of attack, yaw-plane vs. sideslip) at a representative Mach,
-        skipping coefficients that are identically zero or flat. Works
-        uniformly across surface types because every generic, linear and
-        Barrowman surface now exposes these coefficients as callables over the
-        standard argument tuple.
+        Read from ``depends_on`` when the coefficient has it. Otherwise each
+        input is moved away from a reference state, and the coefficient depends
+        on it if its value changes.
 
         Parameters
         ----------
-        mach : float, optional
-            Mach number at which to sample the coefficients. Default 0.3.
+        coeff : callable
+            The coefficient, taking the surface's full list of inputs.
+        index : dict
+            Position of each input name in that list.
+        mach : float
+            Mach number of the reference state.
+
+        Returns
+        -------
+        set of str
+            Names of the inputs the coefficient depends on.
+        """
+        depends = getattr(coeff, "depends_on", None)
+        if depends is not None:
+            return set(depends)
+        nudges = {
+            "alpha": np.deg2rad(5),
+            "beta": np.deg2rad(5),
+            "mach": mach + 0.3,
+            "reynolds": 1e6,
+            "pitch_rate": 0.05,
+            "yaw_rate": 0.05,
+            "roll_rate": 0.05,
+        }
+        base = [0.0] * len(index)
+        base[index["mach"]] = mach
+        reference = coeff(*base)
+        found = set()
+        for name, value in nudges.items():
+            if name not in index:
+                continue
+            args = list(base)
+            args[index[name]] = value
+            if not np.isclose(coeff(*args), reference):
+                found.add(name)
+        return found
+
+    def coefficients(
+        self,
+        *,
+        mach=(0.1, 0.3, 0.6, 0.9),
+        angle_range_deg=15.0,
+        rate_range=0.1,
+        filename=None,
+    ):
+        """Plots the surface's body-frame aerodynamic coefficients.
+
+        Each coefficient (``cN, cY, cA, cm, cn, cl``) that is not zero gets its
+        own plot, against the input it depends on most: the angle of attack for
+        the pitch-plane ones (``cN``, ``cA``, ``cm``), the sideslip angle for
+        the yaw-plane ones (``cY``, ``cn``) and the roll rate for the roll
+        moment ``cl``. A coefficient that does not use that input is plotted
+        against the next one it does use (the other angle, then an angular
+        rate), or against Mach if Mach is all it depends on. When a coefficient
+        changes with Mach, one curve is drawn for each Mach number in ``mach``.
+        Every input that is not plotted is held at zero.
+
+        Parameters
+        ----------
+        mach : float or sequence of float, optional
+            Mach number or numbers at which to draw each coefficient. Default
+            ``(0.1, 0.3, 0.6, 0.9)``.
         angle_range_deg : float, optional
-            Half-range of the incidence sweep, in degrees. Default 15.
+            The angles are plotted from ``-angle_range_deg`` to
+            ``+angle_range_deg``, in degrees. Default 15.
+        rate_range : float, optional
+            The angular rates are plotted from ``-rate_range`` to
+            ``+rate_range``. They are reduced rates, the rate times the
+            reference length divided by twice the airspeed (for example
+            ``p * L / (2 * V)`` for roll), so they have no units. Default 0.1.
         filename : str | None, optional
-            Path to save the figure; if None the figure is shown.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
+
+        Returns
+        -------
+        None
         """
         surface = self.aero_surface
         independent_vars = getattr(surface, "independent_vars", None)
@@ -63,40 +142,61 @@ class _GenericSurfacePlots:
         index = {name: i for i, name in enumerate(independent_vars)}
         if "mach" not in index:
             return
+        machs = np.atleast_1d(np.asarray(mach, dtype=float))
         n_args = len(independent_vars)
 
-        angles = np.linspace(
-            np.deg2rad(-angle_range_deg), np.deg2rad(angle_range_deg), 61
-        )
         entries = []
-        for name, var in self._COEFFICIENT_SWEEP:
+        for name, candidates in self._COEFFICIENT_SWEEP.items():
             coeff = getattr(surface, name, None)
             if coeff is None or getattr(coeff, "is_zero", False):
                 continue
-            if var not in index:
+            depends = self._depends_on(coeff, index, machs[0])
+            var = next((v for v in candidates if v in depends and v in index), None)
+            if var is None:
+                var = "mach" if "mach" in depends else candidates[0]
+            if var == "mach":
+                x = np.linspace(0.0, machs.max(), 61)
+                curve_machs = [None]
+            else:
+                limit = (
+                    np.deg2rad(angle_range_deg)
+                    if var in ("alpha", "beta")
+                    else rate_range
+                )
+                x = np.linspace(-limit, limit, 61)
+                curve_machs = machs if "mach" in depends else [None]
+            curves = []
+            for curve_mach in curve_machs:
+                values = np.empty_like(x)
+                for i, value in enumerate(x):
+                    args = [0.0] * n_args
+                    args[index["mach"]] = machs[0] if curve_mach is None else curve_mach
+                    args[index[var]] = value
+                    values[i] = coeff(*args)
+                curves.append((curve_mach, values))
+            if all(np.allclose(values, 0.0) for _, values in curves):
                 continue
-            values = np.empty_like(angles)
-            for i, angle in enumerate(angles):
-                args = [0.0] * n_args
-                args[index["mach"]] = mach
-                args[index[var]] = angle
-                values[i] = coeff(*args)
-            if np.allclose(values, 0.0):
-                continue
-            entries.append((name, var, values))
+            entries.append((name, var, x, curves))
 
         if not entries:
             return
 
         fig, axes = plt.subplots(
-            len(entries), 1, figsize=(7, 2.3 * len(entries)), squeeze=False
+            len(entries), 1, figsize=(7, 2.5 * len(entries)), squeeze=False
         )
-        for ax, (name, var, values) in zip(axes[:, 0], entries):
-            ax.plot(np.rad2deg(angles), values)
-            ax.set_xlabel(f"{var.replace('_', ' ').title()} (°)")
+        for ax, (name, var, x, curves) in zip(axes[:, 0], entries):
+            x_plot = np.rad2deg(x) if var in ("alpha", "beta") else x
+            for curve_mach, values in curves:
+                label = None if len(curves) == 1 else f"Mach {curve_mach:g}"
+                ax.plot(x_plot, values, label=label)
+            if len(curves) == 1 and curves[0][0] is not None:
+                ax.set_title(f"{name} at Mach {curves[0][0]:g}", fontsize=9)
+            elif len(curves) > 1:
+                ax.legend(fontsize=8)
+            ax.set_xlabel(self._AXIS_LABELS[var])
             ax.set_ylabel(name)
             ax.grid(True)
-        axes[0, 0].set_title(f"{surface.name} coefficients (Mach {mach})")
+        fig.suptitle(f"{surface.name} coefficients")
         plt.tight_layout()
         show_or_save_plot(filename)
 
@@ -109,7 +209,7 @@ class _LinearGenericSurfacePlots(_GenericSurfacePlots):
     """Plots for a linear generic surface; same plots as the generic base."""
 
 
-class _BarrowmanSurfacePlots(_LinearGenericSurfacePlots):
+class _BarrowmanSurfacePlots(_GenericSurfacePlots):
     """Plots shared by the geometry-defined (Barrowman) surfaces: adds the
     geometry drawing and the lift-coefficient surface plot."""
 
