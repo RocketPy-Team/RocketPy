@@ -268,9 +268,7 @@ within a target range also does not by itself guarantee good flight behavior.
    turns into the wind and drifts further downwind ("weathercocking"). Aim for
    enough margin to keep the rocket reliably stable, rather than the largest
    margin achievable. The flight studies in :ref:`stability_in_flight` examine
-   how much this actually affects a real flight, and the
-   :ref:`practical studies <mass_vs_turn>` show that the altitude usually
-   blamed on over-stability is really the cost of the added nose weight.
+   how much this actually affects a real flight.
 
 .. _percent_of_length:
 
