@@ -101,13 +101,14 @@ class LinearGenericSurface(GenericSurface):
         coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Linear Surface",
+        *,
         reynolds_length=None,
         interpolation=None,
         extrapolation=None,
         force_convention=None,
         active_during="always",
-        axisymmetric=False,
         active=True,
+        axisymmetric=False,
     ):
         """Create a linear aerodynamic surface from its coefficient derivatives.
 
@@ -247,6 +248,13 @@ class LinearGenericSurface(GenericSurface):
 
             To switch a surface on or off at any other moment, such as apogee,
             use an event: see ``active`` below.
+        active : bool, optional
+            Whether the surface starts each flight switched on. Default is
+            ``True``. Use ``False`` for a surface that only appears later in
+            the flight, and switch it on from an event with
+            ``context.event.commands.activate_surface(surface)``. A surface
+            that is on from the start is switched off the same way, with
+            ``deactivate_surface``.
         axisymmetric : bool, optional
             Set it to ``True`` when the data describes a rocket (or a part) that
             behaves the same in every plane through its axis, such as a rocket
@@ -265,13 +273,6 @@ class LinearGenericSurface(GenericSurface):
 
             Default is ``False``: the two planes are used as given, and a plane
             without derivatives produces no force.
-        active : bool, optional
-            Whether the surface starts each flight switched on. Default is
-            ``True``. Use ``False`` for a surface that only appears later in
-            the flight, and switch it on from an event with
-            ``context.event.commands.activate_surface(surface)``. A surface
-            that is on from the start is switched off the same way, with
-            ``deactivate_surface``.
 
         Raises
         ------

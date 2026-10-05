@@ -137,13 +137,14 @@ class ControllableGenericSurface(GenericSurface):
         coefficients,
         center_of_pressure=(0, 0, 0),
         name="Controllable Generic Surface",
-        controls=("deflection",),
+        *,
         reynolds_length=None,
-        extrapolation=None,
         interpolation=None,
-        active_during="always",
+        extrapolation=None,
         force_convention=None,
+        active_during="always",
         active=True,
+        controls=("deflection",),
     ):
         """Create an aerodynamic surface whose coefficients also depend on
         controls, such as a canard deflection.
@@ -190,24 +191,11 @@ class ControllableGenericSurface(GenericSurface):
             the moment coefficients. Default ``(0, 0, 0)``.
         name : str, optional
             Name of the surface. Default ``"Controllable Generic Surface"``.
-        controls : iterable of str, optional
-            Names of the controls, such as a canard deflection angle. Each name
-            becomes an extra input to every coefficient, after the seven flow
-            variables and in this order, and a key in :attr:`control_state`. The
-            values start at 0 and are set with :meth:`set_control`. Default
-            ``("deflection",)``.
         reynolds_length : int, float, optional
             Length scale, in meters, of the Reynolds number passed to the
             coefficients. Set it to the length your Reynolds-dependent data was
             tabulated against (for example the rocket's body length). ``None``
             (the default) uses ``reference_length`` (the diameter).
-        extrapolation : str or dict, optional
-            What tabulated coefficients do outside their data range:
-            ``"constant"`` holds the nearest edge value, ``"natural"`` keeps
-            following the curve, ``"zero"`` returns 0. Give one string for all
-            coefficients or a dict keyed by coefficient name. ``None`` (the
-            default) uses ``"constant"`` for tables built here and leaves a
-            pre-built :class:`Function` unchanged.
         interpolation : str or dict, optional
             How tabulated coefficients read values between points: a 1-D table
             accepts ``"linear"``, ``"akima"``, ``"spline"`` and ``"polynomial"``;
@@ -218,15 +206,22 @@ class ControllableGenericSurface(GenericSurface):
             or a dict keyed by coefficient name. ``None`` (the default) uses
             ``"linear"`` for tables built here and leaves a pre-built
             :class:`Function` unchanged.
+        extrapolation : str or dict, optional
+            What tabulated coefficients do outside their data range:
+            ``"constant"`` holds the nearest edge value, ``"natural"`` keeps
+            following the curve, ``"zero"`` returns 0. Give one string for all
+            coefficients or a dict keyed by coefficient name. ``None`` (the
+            default) uses ``"constant"`` for tables built here and leaves a
+            pre-built :class:`Function` unchanged.
+        force_convention : str, optional
+            The frame the force coefficients are given in: ``"body"`` for
+            ``cN``/``cY``/``cA`` or ``"wind"`` for ``cL``/``cQ``/``cD``. ``None``
+            (the default) works it out from the names.
         active_during : str, optional
             The motor phase this surface produces force in: ``"always"``
             (default), ``"power_on"`` (only while the motor burns, e.g. jet
             vanes) or ``"power_off"`` (only after burnout). To switch a surface
             on or off at any other moment, use an event: see ``active`` below.
-        force_convention : str, optional
-            The frame the force coefficients are given in: ``"body"`` for
-            ``cN``/``cY``/``cA`` or ``"wind"`` for ``cL``/``cQ``/``cD``. ``None``
-            (the default) works it out from the names.
         active : bool, optional
             Whether the surface starts each flight switched on. Default is
             ``True``. Use ``False`` for a surface that only appears later in
@@ -234,6 +229,12 @@ class ControllableGenericSurface(GenericSurface):
             ``context.event.commands.activate_surface(surface)``. A surface
             that is on from the start is switched off the same way, with
             ``deactivate_surface``.
+        controls : iterable of str, optional
+            Names of the controls, such as a canard deflection angle. Each name
+            becomes an extra input to every coefficient, after the seven flow
+            variables and in this order, and a key in :attr:`control_state`. The
+            values start at 0 and are set with :meth:`set_control`. Default
+            ``("deflection",)``.
 
         Raises
         ------

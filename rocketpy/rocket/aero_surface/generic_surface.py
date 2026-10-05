@@ -147,6 +147,7 @@ class GenericSurface:
         coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
+        *,
         reynolds_length=None,
         interpolation=None,
         extrapolation=None,
