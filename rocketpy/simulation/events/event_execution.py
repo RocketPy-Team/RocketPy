@@ -1,7 +1,97 @@
 import warnings
 
-from ..events import Event
-from .dynamics import _BoundDynamics
+from ..helpers.dynamics import _BoundDynamics
+from .event import Event
+from .event_context import build_event_kwargs
+
+
+def process_overshootable_event(
+    flight,
+    event,
+    event_kwargs,
+    phase,
+    phase_index,
+    node_index,
+    rolled_back,
+):
+    """Evaluate one overshootable event and apply its side effects."""
+    trigger_result = event(event_kwargs, trigger_only=True)
+
+    if not trigger_result:
+        event._trigger_checked = False
+        return rolled_back, False
+
+    event._trigger_checked = True
+
+    if not event.changes_dynamics:
+        event(event_kwargs, callback_only=True, reset=False)
+        # If the callback queued commands that change the post-trigger
+        # trajectory (a new flight phase, a new derivative, or termination),
+        # the overshoot step-end state is no longer valid. Roll the flight
+        # state back to the interpolated trigger crossing first, so every
+        # queued command is applied on a consistent state and effects start
+        # exactly at the crossing rather than at the overshoot step-end.
+        # This lets any event (e.g. parachutes, or user-defined events that
+        # add a phase / terminate) work without declaring changes_dynamics.
+        # The rollback writes into the solution, so it must use the raw
+        # phase-layout state, not the reconstructed canonical one.
+        changed = event.commands.changes_trajectory
+        if changed:
+            apply_rollback_command(
+                flight, event_kwargs["time"], event_kwargs["raw_state"]
+            )
+        apply_event_commands(
+            flight=flight,
+            event=event,
+            event_results=event.commands,
+            phase=phase,
+            phase_index=phase_index,
+            node_index=node_index,
+            command_time=event_kwargs["time"],
+        )
+        event._trigger_checked = False
+        # A rollback means the rest of the step no longer happened: later
+        # sampling times in it are not checked, and the solver is restarted
+        # from the crossing if the phase goes on (a new phase after a lag).
+        return rolled_back or changed, False
+
+    if not rolled_back:
+        apply_rollback_command(flight, event_kwargs["time"], event_kwargs["raw_state"])
+        return True, True
+
+    return rolled_back, False
+
+
+def call_events(
+    flight,
+    events,
+    phase,
+    phase_index,
+    node_index,
+    time,
+    state,
+):
+    event_kwargs = build_event_kwargs(
+        flight=flight, time=time, state=state, phase=phase
+    )
+
+    trajectory_changed = False
+    for event in events:
+        trigger_result = event._trigger_checked
+        trigger_result = event(event_kwargs, callback_only=trigger_result)
+        if trigger_result:
+            trajectory_changed |= event.commands.changes_trajectory
+            apply_event_commands(
+                flight=flight,
+                event=event,
+                event_results=event.commands,
+                phase=phase,
+                phase_index=phase_index,
+                node_index=node_index,
+                command_time=event_kwargs["time"],
+            )
+        event._trigger_checked = False
+    return trajectory_changed
 
 
 def apply_event_commands(

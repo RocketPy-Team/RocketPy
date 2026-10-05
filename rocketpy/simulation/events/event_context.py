@@ -1,5 +1,5 @@
-from ..solution import CANONICAL_INDEX
-from .event_commands import apply_event_commands, apply_rollback_command
+from ..helpers.dynamics import CANONICAL_INDEX
+from .state import _State, _StateDot
 
 # Altitude's slot in the canonical state. Reading it by position avoids a
 # by-name lookup on every event check.
@@ -9,40 +9,48 @@ _Z_SLOT = CANONICAL_INDEX["z"]
 # the time being evaluated, so they are dropped whenever the context is moved
 # to another time inside the step, and worked out again if read there.
 _LAZY_CONTEXT_KEYS = (
+    "state",
     "state_dot",
-    "phase_state_dot",
+    "canonical_state_dot",
+    "raw_state_dot",
     "pressure",
-    "phase_state",
     "step_size",
 )
 
 # Keys answered from the event being evaluated, never stored in the context.
-_PREVIOUS_KEYS = frozenset({"previous_state", "previous_time", "previous_phase_state"})
+_PREVIOUS_KEYS = frozenset({"previous_state", "previous_time"})
 
 
 class EventContext(dict):
     """The values an event's trigger and callback are given.
 
     One of these is built per solver step and shared by every event checked in
-    that step, so the values describing the step are written once. It is a
-    dictionary, read with ``context["time"]``, ``context["state"]`` and so on.
+    that step, so the values describing the step are written once. Read a
+    value as an attribute: ``context.time``, ``context.state.vz``,
+    ``context.height_agl`` and so on. See :ref:`eventusage` for what each one
+    holds.
 
-    Some values are only worked out when they are first read: the time
-    derivatives ``state_dot`` and ``phase_state_dot`` (one evaluation of the
-    equations of motion serves both), ``pressure``, ``phase_state`` and
-    ``step_size``. Once read they are kept for the rest of the step, so a second
-    event reading the same value in the same step pays nothing. A value no
-    function reads costs nothing at all.
+    Some values are only worked out when they are first read: ``state``,
+    ``state_dot``, ``pressure`` and ``step_size``. Once read they are kept for
+    the rest of the step, so a second event reading the same value in the same
+    step pays nothing. A value no function reads costs nothing at all.
 
-    ``previous_state``, ``previous_time`` and ``previous_phase_state`` describe
-    the previous check of the event being evaluated, so they are answered from
-    that event and never stored here.
+    ``previous_state`` and ``previous_time`` describe the previous check of the
+    event being evaluated, so they are answered from that event and never
+    stored here.
 
     A context is shared and rewritten as the step is worked through, so nothing
-    may hold on to it, and a function should not add keys to it: whatever it
+    may hold on to it, and a function should not add values to it: whatever it
     writes is seen by the other events of the step. Keep an event's own data in
-    ``context["event"].memory``.
+    ``context.event.memory``.
     """
+
+    # The values are stored as dictionary items, which is what RocketPy's own
+    # code reads (``context["canonical_state"]``), since an item read is faster
+    # than a property. ``canonical_state`` and ``raw_state`` are the plain
+    # arrays behind ``state``: the 13 canonical values and the values the
+    # current phase integrates, which ``phase_names`` names in order. The
+    # properties below are the documented way in.
 
     __slots__ = ("_owned",)
 
@@ -57,28 +65,32 @@ class EventContext(dict):
         if key in _PREVIOUS_KEYS:
             # Belongs to one event, so it is answered rather than stored.
             event = self["event"]
-            if key != "previous_phase_state":
-                return getattr(event, "_" + key)
-            if event._previous_raw_state is None:
+            if key == "previous_time":
+                return event._previous_time
+            if event._previous_state is None:
                 return None
-            return dict(
-                zip(
-                    self["flight"].solution.phases[-1].dynamics.states,
-                    event._previous_raw_state,
-                )
+            # The phase's own states are named after the phase they were
+            # taken in, which may no longer be the current one.
+            return _State(
+                event._previous_state,
+                event._previous_phase_names,
+                event._previous_raw_state,
             )
-        if key in ("state_dot", "phase_state_dot"):
+        if key == "state":
+            self["state"] = _State(
+                self["canonical_state"], self["phase_names"], self["raw_state"]
+            )
+        elif key == "state_dot":
+            self["state_dot"] = _StateDot(
+                self["canonical_state_dot"],
+                self["phase_names"],
+                self["raw_state_dot"],
+            )
+        elif key in ("canonical_state_dot", "raw_state_dot"):
             self._compute_derivatives()
         elif key == "pressure":
             self["pressure"] = self["environment"].pressure.get_value_opt(
-                self["state"][_Z_SLOT]
-            )
-        elif key == "phase_state":
-            self["phase_state"] = dict(
-                zip(
-                    self["flight"].solution.phases[-1].dynamics.states,
-                    self["raw_state"],
-                )
+                self["canonical_state"][_Z_SLOT]
             )
         elif key == "step_size":
             self["step_size"] = infer_step_size(self["flight"], self["time"])
@@ -98,8 +110,10 @@ class EventContext(dict):
         current = self["flight"].solution.phases[-1]
         raw_state = self["raw_state"]
         raw_state_dot = self["phase"].dynamics(self["time"], raw_state)
-        self["phase_state_dot"] = dict(zip(current.dynamics.states, raw_state_dot))
-        self["state_dot"] = current.canonical_derivative(raw_state_dot, raw_state)
+        self["raw_state_dot"] = raw_state_dot
+        self["canonical_state_dot"] = current.canonical_derivative(
+            raw_state_dot, raw_state
+        )
 
     def bind(self, event):
         """Point this context at the event about to be evaluated.
@@ -147,6 +161,96 @@ class EventContext(dict):
         moved._owned = self._owned
         return refresh_event_kwargs(self["flight"], moved, time, raw_state)
 
+    @property
+    def time(self):
+        """Current simulation time, in s."""
+        return self["time"]
+
+    @property
+    def state(self):
+        """The rocket's states, read by name as ``state.vz``."""
+        return self["state"]
+
+    @property
+    def state_dot(self):
+        """Time derivative of each state, read as ``state_dot.az``."""
+        return self["state_dot"]
+
+    @property
+    def previous_state(self):
+        """The ``state`` at this event's previous check, or ``None``."""
+        return self["previous_state"]
+
+    @property
+    def previous_time(self):
+        """The ``time`` of this event's previous check, in s, or ``None``."""
+        return self["previous_time"]
+
+    @property
+    def height_agl(self):
+        """Height of the rocket above ground level, in m."""
+        return self["height_agl"]
+
+    @property
+    def pressure(self):
+        """Atmospheric pressure at the rocket's altitude, in Pa."""
+        return self["pressure"]
+
+    @property
+    def step_size(self):
+        """How long the simulation has been inside this solver step, in s."""
+        return self["step_size"]
+
+    @property
+    def sampling_rate(self):
+        """How often the event being checked is sampled, in Hz, or ``None``."""
+        return self["sampling_rate"]
+
+    @property
+    def event(self):
+        """The event being checked."""
+        return self["event"]
+
+    @property
+    def flight(self):
+        """The flight being simulated."""
+        return self["flight"]
+
+    @property
+    def rocket(self):
+        """The rocket being flown."""
+        return self["rocket"]
+
+    @property
+    def environment(self):
+        """The environment the rocket flies in."""
+        return self["environment"]
+
+    @property
+    def phase(self):
+        """The current flight phase."""
+        return self["phase"]
+
+    @property
+    def sensors(self):
+        """The rocket's sensors, in the order they were added."""
+        return self["sensors"]
+
+    @property
+    def sensors_by_name(self):
+        """The rocket's sensors, by name."""
+        return self["sensors_by_name"]
+
+    @property
+    def controller(self):
+        """The controller being run, or ``None`` outside a controller."""
+        return self.get("controller")
+
+    @property
+    def controlled(self):
+        """The objects the controller drives, or ``None`` outside one."""
+        return self.get("controlled")
+
 
 def infer_step_size(flight, time):
     """Return how long the simulation has been inside the current solver step.
@@ -156,7 +260,7 @@ def infer_step_size(flight, time):
     that is the whole step the solver just took; at a point interpolated inside
     a step it is the part of the step up to that point.
 
-    It reaches user callbacks as ``context["step_size"]``. It is not the
+    It reaches user callbacks as ``context.step_size``. It is not the
     interval between checks of any one callback, and not ``1 / sampling_rate``:
     a sampled callback is checked on its own schedule, which has nothing to do
     with where the solver put its step boundaries.
@@ -175,10 +279,11 @@ def build_event_kwargs(flight, time, state, phase):
     """Build the context shared by the event triggers and callbacks of a step.
 
     ``state`` is the raw state of the current flight phase, which may not be the
-    full canonical state. Triggers and callbacks are given the reconstructed
-    canonical state (``state``) so that user-written and built-in hooks always
-    see the familiar 13-variable layout, while the raw state is also provided
-    (``raw_state``) for internal use such as rolling the solver back.
+    full canonical state. The reconstructed canonical state is stored as
+    ``canonical_state``, so that built-in hooks always see the familiar
+    13-variable layout, and the raw state as ``raw_state``, for internal use
+    such as rolling the solver back. User-written hooks read ``state``, a
+    ``_State`` over both that is only built when it is read.
 
     Only what nearly every event reads is worked out here; the rest is worked
     out by the context itself when first read.
@@ -192,8 +297,9 @@ def build_event_kwargs(flight, time, state, phase):
     return EventContext(
         {
             "time": time,
-            "state": canonical,
+            "canonical_state": canonical,
             "raw_state": state,
+            "phase_names": current.dynamics.states,
             "sensors": flight.sensors,
             "sensors_by_name": flight.sensors_by_name,
             "environment": flight.env,
@@ -225,98 +331,9 @@ def refresh_event_kwargs(flight, event_kwargs, interpolated_time, interpolated_s
     else:
         canonical = current.canonical_state(interpolated_state)
     event_kwargs["time"] = interpolated_time
-    event_kwargs["state"] = canonical
+    event_kwargs["canonical_state"] = canonical
     event_kwargs["raw_state"] = interpolated_state
     event_kwargs["height_agl"] = canonical[_Z_SLOT] - flight.env.elevation
     for key in _LAZY_CONTEXT_KEYS:
         event_kwargs.pop(key, None)
     return event_kwargs
-
-
-def process_overshootable_event(
-    flight,
-    event,
-    event_kwargs,
-    phase,
-    phase_index,
-    node_index,
-    rolled_back,
-):
-    """Evaluate one overshootable event and apply its side effects."""
-    trigger_result = event(event_kwargs, trigger_only=True)
-
-    if not trigger_result:
-        event._trigger_checked = False
-        return rolled_back, False
-
-    event._trigger_checked = True
-
-    if not event.changes_dynamics:
-        event(event_kwargs, callback_only=True, reset=False)
-        # If the callback queued commands that change the post-trigger
-        # trajectory (a new flight phase, a new derivative, or termination),
-        # the overshoot step-end state is no longer valid. Roll the flight
-        # state back to the interpolated trigger crossing first, so every
-        # queued command is applied on a consistent state and effects start
-        # exactly at the crossing rather than at the overshoot step-end.
-        # This lets any event (e.g. parachutes, or user-defined events that
-        # add a phase / terminate) work without declaring changes_dynamics.
-        # The rollback writes into the solution, so it must use the raw
-        # phase-layout state, not the reconstructed canonical one.
-        changed = event.commands.changes_trajectory
-        if changed:
-            apply_rollback_command(
-                flight, event_kwargs["time"], event_kwargs["raw_state"]
-            )
-        apply_event_commands(
-            flight=flight,
-            event=event,
-            event_results=event.commands,
-            phase=phase,
-            phase_index=phase_index,
-            node_index=node_index,
-            command_time=event_kwargs["time"],
-        )
-        event._trigger_checked = False
-        # A rollback means the rest of the step no longer happened: later
-        # sampling times in it are not checked, and the solver is restarted
-        # from the crossing if the phase goes on (a new phase after a lag).
-        return rolled_back or changed, False
-
-    if not rolled_back:
-        apply_rollback_command(flight, event_kwargs["time"], event_kwargs["raw_state"])
-        return True, True
-
-    return rolled_back, False
-
-
-def call_events(
-    flight,
-    events,
-    phase,
-    phase_index,
-    node_index,
-    time,
-    state,
-):
-    event_kwargs = build_event_kwargs(
-        flight=flight, time=time, state=state, phase=phase
-    )
-
-    trajectory_changed = False
-    for event in events:
-        trigger_result = event._trigger_checked
-        trigger_result = event(event_kwargs, callback_only=trigger_result)
-        if trigger_result:
-            trajectory_changed |= event.commands.changes_trajectory
-            apply_event_commands(
-                flight=flight,
-                event=event,
-                event_results=event.commands,
-                phase=phase,
-                phase_index=phase_index,
-                node_index=node_index,
-                command_time=event_kwargs["time"],
-            )
-        event._trigger_checked = False
-    return trajectory_changed

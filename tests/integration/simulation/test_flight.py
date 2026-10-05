@@ -1161,16 +1161,16 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
     """
 
     def controller_function(context):
-        time = context["time"]
-        sampling_rate = context["sampling_rate"]
-        state = context["state"]
-        previous_state = context["previous_state"]
-        air_brakes = context["air_brakes"]
-        environment = context["environment"]
+        time = context.time
+        sampling_rate = context.sampling_rate
+        state = context.state
+        previous_state = context.previous_state
+        air_brakes = context.controlled.air_brakes
+        environment = context.environment
 
-        altitude_agl = context["height_agl"]
-        altitude_asl = state[2]
-        vx, vy, vz = state[3], state[4], state[5]
+        altitude_agl = context.height_agl
+        altitude_asl = state.z
+        vx, vy, vz = state.vx, state.vy, state.vz
 
         wind_x = environment.wind_velocity_x(altitude_asl)
         wind_y = environment.wind_velocity_y(altitude_asl)
@@ -1180,7 +1180,7 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
         if time < 3.9:
             return None
 
-        previous_vz = previous_state[5] if previous_state is not None else vz
+        previous_vz = previous_state.vz if previous_state is not None else vz
         if altitude_agl < 1500:
             air_brakes.deployment_level = 0
         else:

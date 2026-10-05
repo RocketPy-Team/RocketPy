@@ -173,7 +173,7 @@ trigger is redone.
 Applying commands
 -----------------
 
-``apply_event_commands`` (``helpers/event_commands.py``) reads the commands an
+``apply_event_commands`` (``events/event_execution.py``) reads the commands an
 event queued and applies them, in this order:
 
 1. **Exact time.** If the event solved its exact time, the exact row is written
@@ -224,10 +224,14 @@ Where to look
 - ``Flight.__simulate``, ``__simulate_phase``, ``__simulate_phase_nodes``,
   ``__run_node_solver_loop``, ``__process_events``,
   ``__process_overshootable_nodes``, ``__restart_phase_solver``.
-- ``helpers/event_calling.py``: ``EventContext``, ``build_event_kwargs``,
-  ``call_events``, ``process_overshootable_event``.
-- ``helpers/event_commands.py``: ``apply_event_commands`` and the
-  ``apply_*`` functions it calls.
+- ``events/event_context.py``: ``EventContext``, the values a trigger and
+  callback are given, and ``build_event_kwargs``, which builds one.
+  ``events/state.py``: the private ``_State`` and ``_StateDot``, what
+  ``context.state`` and ``context.state_dot`` are.
+- ``events/event_execution.py``: ``call_events`` and
+  ``process_overshootable_event``, which run an event, and
+  ``apply_event_commands`` with the ``apply_*`` functions it calls, which
+  carry out what the event asked for.
 - ``helpers/flight_phase.py``: ``_FlightPhases``, ``_FlightPhase``,
   ``_TimeNodes``.
 - ``helpers/dynamics.py``: ``_PhaseDynamics`` and the built-in phases.

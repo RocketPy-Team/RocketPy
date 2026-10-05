@@ -342,21 +342,22 @@ deployed and ``False`` otherwise. Internally, the parachute is wrapped in an
 :class:`rocketpy.Event`, so the trigger receives the same information available
 to any event trigger.
 
-The trigger must be defined as a function taking one argument, ``context``, a
-dictionary from which you read the values you need. It holds the same values
-described in :ref:`eventusage`, and includes (among others):
+The trigger must be defined as a function taking one argument, ``context``,
+from which you read the values you need, such as ``context.height_agl``. The
+most used ones are listed below. For the complete list, with every value
+``context`` holds, see :ref:`eventcontext`.
 
 **Simulation time and state:**
 
 - ``time`` (float): current simulation time in seconds.
-- ``state`` (list of float): state vector
-  ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]`` where ``(x, y, z)`` is
-  position, ``(vx, vy, vz)`` is velocity, ``(e0, e1, e2, e3)`` are the
-  quaternion orientation components, and ``(w1, w2, w3)`` is angular velocity.
-- ``state_dot`` (list of float): time derivative of the state vector,
-  ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, w1_dot, w2_dot, w3_dot]``.
-  In particular, ``(ax, ay, az)`` at indices 3, 4 and 5 are the acceleration
-  components, so ``state_dot[5]`` is the vertical acceleration.
+- ``state``: the rocket's states, read by name. ``context.state.x``, ``.y``
+  and ``.z`` are the position in meters (``z`` is the altitude above sea
+  level), ``.vx``, ``.vy`` and ``.vz`` are the velocity in m/s, ``.e0`` to
+  ``.e3`` are the quaternion orientation components, and ``.w1``, ``.w2`` and
+  ``.w3`` are the angular velocity in rad/s.
+- ``state_dot``: the derivative of each state with respect to time.
+  ``context.state_dot.ax``, ``.ay`` and ``.az`` are the acceleration components
+  in m/s², so ``context.state_dot.az`` is the vertical acceleration.
 - ``pressure`` (float): current atmospheric pressure in Pa at the rocket's
   altitude.
 - ``height_agl`` (float): height above ground level in meters.
@@ -397,10 +398,10 @@ available values. For example, you can use the acceleration components from
 .. jupyter-input::
 
     def main_trigger(context):
-        vz = context["state"][5]  # vertical velocity
-        az = context["state_dot"][5]  # vertical acceleration
-        h = context["height_agl"]
-        time = context["time"]
+        vz = context.state.vz  # vertical velocity
+        az = context.state_dot.az  # vertical acceleration
+        h = context.height_agl
+        time = context.time
 
         # activate main when descending (vz < 0) and decelerating (az > 0),
         # below 800 m, and at least 5 s into the flight
@@ -420,14 +421,14 @@ reading them from ``context``:
 - ``p`` (float): pressure in Pa **considering the parachute noise signal**.
 - ``h`` (float): height above ground level in meters, **considering the
   parachute noise signal**.
-- ``y`` (list of float): the state vector (same content as
-  ``context["state"]``).
+- ``y`` (list of float): the state vector (the same thirteen values as
+  ``context.state``, in the same order).
 - ``sensors`` (list, optional fourth argument): the same list as
-  ``context["sensors"]``.
+  ``context.sensors``.
 
 .. note::
     The legacy positional ``p`` and ``h`` carry the parachute noise signal,
-    whereas ``context["pressure"]`` and ``context["height_agl"]`` are the
+    whereas ``context.pressure`` and ``context.height_agl`` are the
     clean, noise-free values. For pressure or height signals with noise, use
     Sensor objects instead.
 

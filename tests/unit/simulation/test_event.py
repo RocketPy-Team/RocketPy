@@ -5,16 +5,13 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation.events import Event
+from rocketpy.simulation.events.event_context import EventContext, build_event_kwargs
+from rocketpy.simulation.events.event_execution import apply_event_list_updates
 from rocketpy.simulation.helpers.dynamics import (
     CANONICAL_STATE_NAMES,
     SIX_DOF_DYNAMICS,
     _PhaseDynamics,
 )
-from rocketpy.simulation.helpers.event_calling import (
-    EventContext,
-    build_event_kwargs,
-)
-from rocketpy.simulation.helpers.event_commands import apply_event_list_updates
 from rocketpy.simulation.solution import Solution
 
 
@@ -30,7 +27,20 @@ def _canonical_solution(*rows):
 
 
 def _context(**values):
-    """Build the context an event is called with, from plain keyword values."""
+    """Build the context an event is called with, from plain keyword values.
+
+    ``state`` is the 13 canonical values, stored the way the simulation stores
+    them, so that ``context.state`` is built from them when it is read.
+    """
+    if "state" in values:
+        values["canonical_state"] = values.pop("state")
+        values.setdefault("raw_state", values["canonical_state"])
+    if "phase_names" not in values:
+        try:
+            dynamics = values["flight"].solution.phases[-1].dynamics
+            values["phase_names"] = dynamics.states
+        except (KeyError, AttributeError):
+            values["phase_names"] = CANONICAL_STATE_NAMES
     return EventContext(values)
 
 
@@ -720,8 +730,9 @@ def _build_event_call_kwargs(time, state):
     """Minimal kwargs for calling an Event directly, without a Flight."""
     return {
         "time": time,
-        "state": state,
+        "canonical_state": state,
         "raw_state": state,
+        "phase_names": CANONICAL_STATE_NAMES,
         "flight": SimpleNamespace(),
         "rocket": SimpleNamespace(),
         "environment": SimpleNamespace(),
@@ -760,7 +771,8 @@ def test_previous_state_tracks_the_previous_evaluation():
     event(EventContext(_build_event_call_kwargs(2.0, second)))
 
     assert seen[0] == (None, None)
-    assert seen[1] == (1.0, first)
+    assert seen[1][0] == 1.0
+    assert list(seen[1][1]) == first
 
 
 def test_previous_state_records_even_when_trigger_is_false():
@@ -831,7 +843,9 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
     genuinely coincides with a check.
     """
     # imported here only to keep Flight out of this module's import graph
-    from rocketpy.simulation.flight import Flight  # pylint: disable=import-outside-toplevel
+    from rocketpy.simulation.flight import (
+        Flight,  # pylint: disable=import-outside-toplevel
+    )
 
     checked = []
 
@@ -984,8 +998,8 @@ def test_adding_an_ordinary_event_does_not_warn():
 # ---------------------------------------------------------------------------
 
 
-def test_phase_state_reports_the_states_the_phase_integrates():
-    """A canonical phase reports the same thirteen, by name."""
+def test_state_is_read_by_name_or_by_position():
+    """A canonical phase reports the thirteen, by name and by position."""
     solution = _canonical_solution([0.0, *range(13)], [1.0, *range(1, 14)])
     flight = SimpleNamespace(
         solution=solution,
@@ -997,15 +1011,23 @@ def test_phase_state_reports_the_states_the_phase_integrates():
     phase = SimpleNamespace(dynamics=lambda t, u: [2.0] * 13)
     context = build_event_kwargs(flight, 1.0, list(range(1, 14)), phase)
 
-    assert context["phase_state"]["vz"] == 6.0
-    assert set(context["phase_state"]) == set(CANONICAL_STATE_NAMES)
-    assert context["phase_state_dot"]["vz"] == 2.0
-    # the canonical view is unchanged and still a plain sequence
-    assert list(context["state"]) == list(range(1, 14))
+    assert context.state.vz == 6.0
+    assert context.state[5] == 6.0
+    assert context.state.names == CANONICAL_STATE_NAMES
+    assert context.state_dot.az == 2.0
+    # it still behaves like the plain sequence it wraps
+    assert list(context.state) == list(range(1, 14))
+    assert len(context.state) == 13
+    assert np.linalg.norm(context.state[3:6]) == pytest.approx(np.sqrt(77.0))
+    assert (context.state.values * 2)[5] == 12.0
+    # brackets and attributes read the same context value
+    assert context["state"] is context.state
+    assert context.time == 1.0
+    assert context.height_agl == 3.0
 
 
-def test_phase_state_carries_a_state_the_canonical_view_cannot_hold():
-    """A parafoil heading reaches the callback even though ``state`` has no slot."""
+def test_state_carries_a_state_the_canonical_thirteen_cannot_hold():
+    """A parafoil heading is read by name even though it has no position."""
     parafoil = _PhaseDynamics(
         "parafoil",
         lambda _flight, _t, u, post_processing=False: [0.0] * 6 + [0.5],
@@ -1026,15 +1048,53 @@ def test_phase_state_carries_a_state_the_canonical_view_cannot_hold():
     raw = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 0.25]
     context = build_event_kwargs(flight, 0.0, raw, phase)
 
-    # the heading is absent from the canonical state but present by name
-    assert len(context["state"]) == 13
-    assert context["phase_state"]["heading"] == 0.25
-    assert context["phase_state_dot"]["heading"] == 0.5
+    # the heading has no position among the thirteen but is present by name
+    assert len(context.state) == 13
+    assert context.state.heading == 0.25
+    assert context.state_dot.heading_dot == 0.5
+    assert context.state_dot.names[-1] == "heading_dot"
+    assert context.state_dot.names[3:6] == ("ax", "ay", "az")
+    # a rate is not read by the name of the state it is the rate of
+    with pytest.raises(AttributeError, match="heading_dot"):
+        _ = context.state_dot.heading
+    assert context.state.names == CANONICAL_STATE_NAMES + ("heading",)
     # and the states it does share are still there
-    assert context["phase_state"]["vz"] == 6.0
+    assert context.state.vz == 6.0
 
 
-def test_phase_state_dot_is_not_computed_unless_read():
+def test_a_name_the_phase_does_not_have_says_which_names_exist():
+    solution = _canonical_solution([0.0, *range(13)])
+    flight = SimpleNamespace(
+        solution=solution,
+        sensors=[],
+        sensors_by_name={},
+        env=SimpleNamespace(elevation=0.0),
+        rocket=None,
+    )
+    context = build_event_kwargs(flight, 0.0, list(range(13)), SimpleNamespace())
+
+    with pytest.raises(AttributeError, match="heading.*available.*vz"):
+        _ = context.state.heading
+
+
+def test_state_is_not_built_unless_read():
+    """Only RocketPy's own plain array is written on every solver step."""
+    solution = _canonical_solution([0.0, *range(13)])
+    flight = SimpleNamespace(
+        solution=solution,
+        sensors=[],
+        sensors_by_name={},
+        env=SimpleNamespace(elevation=0.0),
+        rocket=None,
+    )
+    context = build_event_kwargs(flight, 0.0, list(range(13)), SimpleNamespace())
+
+    assert "state" not in context
+    assert context.state.vz == 5.0
+    assert "state" in context  # kept for the other events of the step
+
+
+def test_state_dot_is_not_computed_unless_read():
     """It costs a full evaluation of the equations of motion, so it waits."""
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
@@ -1053,14 +1113,14 @@ def test_phase_state_dot_is_not_computed_unless_read():
     phase = SimpleNamespace(dynamics=dynamics)
     context = build_event_kwargs(flight, 0.0, list(range(13)), phase)
 
-    assert "phase_state_dot" not in context
+    assert "state_dot" not in context
     assert calls == []  # the equations of motion were never evaluated
-    assert context["phase_state_dot"]["vz"] == 2.0
+    assert context.state_dot.az == 2.0
     assert calls == [0.0]  # evaluated once, when first read
-    assert "phase_state_dot" in context  # and kept for the rest of the step
+    assert "state_dot" in context  # and kept for the rest of the step
 
 
-def test_both_derivative_views_share_one_evaluation():
+def test_reading_the_rates_twice_costs_one_evaluation():
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
         solution=solution,
@@ -1078,9 +1138,10 @@ def test_both_derivative_views_share_one_evaluation():
     phase = SimpleNamespace(dynamics=dynamics)
     context = build_event_kwargs(flight, 0.0, list(range(13)), phase)
 
-    assert context["phase_state_dot"]["vz"] == 2.0
-    assert list(context["state_dot"]) == [2.0] * 13
-    assert len(calls) == 1  # reading both costs no more than reading one
+    assert context.state_dot.az == 2.0
+    assert list(context.state_dot) == [2.0] * 13
+    assert list(context["canonical_state_dot"]) == [2.0] * 13
+    assert len(calls) == 1  # reading them again costs no more than reading once
 
 
 def test_moving_the_context_drops_what_was_worked_out_for_the_old_moment():
@@ -1103,7 +1164,7 @@ def test_moving_the_context_drops_what_was_worked_out_for_the_old_moment():
 
     assert moved["pressure"] == 50.0
     assert moved["state_dot"][0] == 1.0
-    assert moved["phase_state"]["x"] == 5.0
+    assert moved.state.x == 5.0
     # the original is untouched
     assert context["pressure"] == 20.0
 
@@ -1145,8 +1206,9 @@ def test_owned_values_leave_with_the_event_that_added_them():
     second = _tracking_event("second")
 
     context.bind(first)
+    assert context.controller is None  # not a controller's event
     context.own(controller="mine")
-    assert context["controller"] == "mine"
+    assert context.controller == "mine"
 
     context.bind(second)
     assert "controller" not in context
@@ -1251,53 +1313,41 @@ def _phase_context(time, phase, heading):
     )
 
 
-def test_previous_phase_state_follows_the_phase_states():
-    """A parafoil can watch its own heading the way vz is watched canonically."""
+def test_previous_state_follows_the_phase_states():
+    """A parafoil can watch its own heading the way vz is watched."""
     seen = []
     event = Event(
         callback=lambda context: None,
-        trigger=lambda context: seen.append(context["previous_phase_state"]) or False,
+        trigger=lambda context: seen.append(context.previous_state) or False,
     )
     phase = SimpleNamespace(name="parafoil")
     for time, heading in ((0.0, 0.25), (1.0, 0.75)):
         event(_phase_context(time, phase, heading))
 
     assert seen[0] is None  # nothing to compare against on the first check
-    assert seen[1] == {"x": 0.0, "heading": 0.25}
+    assert seen[1].heading == 0.25
+    assert seen[1].vz == 0.0
 
 
-def test_a_new_phase_starts_the_sequence_again():
-    """The states a phase follows mean nothing in the phase that follows it."""
+def test_previous_state_keeps_the_names_of_the_phase_it_was_taken_in():
+    """After a phase change it still answers for the phase that came before."""
     seen = []
     event = Event(
         callback=lambda context: None,
-        trigger=lambda context: seen.append(context["previous_phase_state"]) or False,
+        trigger=lambda context: seen.append(context.previous_state) or False,
     )
-    ascent = SimpleNamespace(name="ascent")
-    parafoil = SimpleNamespace(name="parafoil")
-    event(_phase_context(0.0, ascent, 0.25))
-    event(_phase_context(1.0, ascent, 0.5))
-    event(_phase_context(2.0, parafoil, 0.75))
-    event(_phase_context(3.0, parafoil, 1.0))
+    event(_phase_context(0.0, SimpleNamespace(name="parafoil"), 0.25))
+    canonical = _context(time=1.0, state=[1.0] * 13)
+    event(canonical)
+    event(_context(time=2.0, state=[2.0] * 13))
 
-    assert seen[0] is None  # first check of the flight
-    assert seen[1] == {"x": 0.0, "heading": 0.25}
-    assert seen[2] is None  # first check of the new phase
-    assert seen[3] == {"x": 0.0, "heading": 0.75}
-
-
-def test_the_canonical_previous_state_survives_a_phase_change():
-    """Every phase reports the canonical states, so that sequence never breaks."""
-    seen = []
-    event = Event(
-        callback=lambda context: None,
-        trigger=lambda context: seen.append(context["previous_state"]) or False,
-    )
-    event(_phase_context(0.0, SimpleNamespace(name="ascent"), 0.25))
-    event(_phase_context(1.0, SimpleNamespace(name="parafoil"), 0.75))
-
-    assert seen[0] is None
-    assert seen[1] == [0.0] * 13
+    # taken in the parafoil phase, read in the phase after it
+    assert seen[1].heading == 0.25
+    assert list(seen[1]) == [0.0] * 13
+    # taken in a phase with no heading
+    assert list(seen[2]) == [1.0] * 13
+    with pytest.raises(AttributeError, match="heading"):
+        _ = seen[2].heading
 
 
 def test_resetting_an_event_forgets_the_phase_it_was_in():
@@ -1308,11 +1358,12 @@ def test_resetting_an_event_forgets_the_phase_it_was_in():
     phase = SimpleNamespace(name="ascent")
     event(_phase_context(0.0, phase, 0.25))
     assert event._previous_raw_state is not None
+    assert event._previous_phase_names == ("x", "heading")
 
     event.reset()
 
     assert event._previous_raw_state is None
-    assert event._previous_phase is None
+    assert event._previous_phase_names == ()
 
 
 # ---------------------------------------------------------------------------
@@ -1358,7 +1409,7 @@ def test_exact_time_can_solve_on_a_phase_state():
         callback=lambda context: None,
         trigger=_always_true,
         name="Heading zero",
-        exact_time_function=lambda context: context["phase_state"]["heading"],
+        exact_time_function=lambda context: context.state.heading,
     )
     flight, phase = _parafoil_phase()
     result = event._compute_exact_time(
@@ -1366,7 +1417,7 @@ def test_exact_time_can_solve_on_a_phase_state():
     )
 
     assert result["time"] == pytest.approx(1.5, abs=1e-9)
-    assert result["phase_state"]["heading"] == pytest.approx(0.0, abs=1e-9)
+    assert result.state.heading == pytest.approx(0.0, abs=1e-9)
 
 
 def test_the_phase_view_moves_with_the_search():
@@ -1374,8 +1425,8 @@ def test_the_phase_view_moves_with_the_search():
     seen = []
 
     def heading(context):
-        seen.append(context["phase_state"]["heading"])
-        return context["phase_state"]["heading"]
+        seen.append(context.state.heading)
+        return context.state.heading
 
     event = Event(
         callback=lambda context: None,
@@ -1402,7 +1453,7 @@ def test_exact_time_rates_are_only_worked_out_when_read():
     without = Event(
         callback=lambda context: None,
         trigger=_always_true,
-        exact_time_function=lambda context: context["phase_state"]["heading"],
+        exact_time_function=lambda context: context.state.heading,
     )
     without._compute_exact_time(
         _context(time=2.0, state=[0.0] * 13, flight=flight, phase=phase)
@@ -1414,8 +1465,7 @@ def test_exact_time_rates_are_only_worked_out_when_read():
         callback=lambda context: None,
         trigger=_always_true,
         exact_time_function=lambda context: (
-            seen.append(context["phase_state_dot"]["heading"])
-            or context["phase_state"]["heading"]
+            seen.append(context.state_dot.heading_dot) or context.state.heading
         ),
     )
     with_rates._compute_exact_time(
@@ -1430,8 +1480,8 @@ def test_the_ends_of_the_step_are_read_from_the_stored_rows():
     seen = []
 
     def heading(context):
-        seen.append(context["phase_state"]["heading"])
-        return context["phase_state"]["heading"]
+        seen.append(context.state.heading)
+        return context.state.heading
 
     event = Event(
         callback=lambda context: None,

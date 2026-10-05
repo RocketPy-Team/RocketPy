@@ -10,7 +10,9 @@ from .exact_time_solvers import SOLVERS
 PRESETS = {
     "apogee": lambda context: (
         len(context["flight"].solution) >= 2
-        and context["flight"].solution.at_index(-2)["vz"] > 0 >= context["state"][5]
+        and context["flight"].solution.at_index(-2)["vz"]
+        > 0
+        >= context["canonical_state"][5]
     ),
     "burnout": lambda context: context["time"] >= context["rocket"].motor.burn_out_time,
 }
@@ -57,11 +59,19 @@ class Event:
             Required callable executed when the event triggers, with signature
             ``callback(context) -> None or dict``. A returned ``dict`` is
             appended to ``self.callback_log``. Queue commands via
-            ``context["event"].commands`` and keep the event's own data in
-            ``context["event"].memory``.
-            ``context`` is a dictionary with the following keys:
+            ``context.event.commands`` and keep the event's own data in
+            ``context.event.memory``.
+            ``context`` holds the following values, each read as
+            ``context.<name>``:
             ``time`` (float, s),
-            ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+            ``state`` (the rocket's states, read by name, such as
+            ``context.state.vz``. The names are ``x``, ``y``, ``z``
+            (position, m), ``vx``, ``vy``, ``vz`` (velocity, m/s), ``e0``,
+            ``e1``, ``e2``, ``e3`` (attitude quaternion) and ``w1``, ``w2``,
+            ``w3`` (angular velocity, rad/s), plus any state the current
+            flight phase follows on its own, read as
+            ``context.state.my_state`` for a state the phase calls
+            ``my_state``),
             ``height_agl`` (float, m),
             ``sensors`` (list of sensor objects),
             ``sensors_by_name`` (dict of sensor objects),
@@ -74,22 +84,18 @@ class Event:
             ``step_size`` (float, s, how long the simulation has been inside
             the solver step being evaluated; not the interval between checks
             of this callback, and not ``1 / sampling_rate``),
-            ``phase_state`` (dict, this flight phase's own states by name,
-            which may include states the 13 canonical ones cannot hold),
-            ``phase_state_dot`` (dict, time derivative of each entry in
-            ``phase_state``, by the same names),
-            ``state_dot`` (list, time derivative of ``state``),
+            ``state_dot`` (the derivative of each state with respect to
+            time, read by the same names as in :class:`rocketpy.Flight`:
+            ``context.state_dot.az`` is the vertical acceleration in m/s²
+            and ``context.state_dot.alpha1`` an angular acceleration in
+            rad/s²),
             ``pressure`` (float, Pa, at the rocket's altitude),
             ``previous_state`` (the ``state`` from the previous time this
             event was checked, or ``None`` on the first check),
-            ``previous_time`` (float, s, or ``None`` on the first check),
-            ``previous_phase_state`` (the ``phase_state`` from that previous
-            check, or ``None`` on the first check and whenever the flight has
-            just entered a new phase, since the states a phase follows are
-            only comparable within that phase).
-            The time derivatives and ``pressure`` are only worked out when a
+            ``previous_time`` (float, s, or ``None`` on the first check).
+            ``state_dot`` and ``pressure`` are only worked out when a
             function reads them, and once per solver step, so reading them
-            costs nothing unless they are used. Do not add keys to
+            costs nothing unless they are used. Do not add values to
             ``context``: it is shared by every event checked in the step.
         trigger : function, optional
             Predicate that returns ``True`` when the event should fire. It
@@ -104,7 +110,7 @@ class Event:
         memory : dict, optional
             The event's own dictionary, kept from one check to the next and
             from trigger to callback. Read and write it as
-            ``context["event"].memory``. Useful for counters, thresholds and
+            ``context.event.memory``. Useful for counters, thresholds and
             data shared between trigger and callback. It is restored to the
             values given here when the event is reset for a new flight.
             Defaults to an empty dict.
@@ -127,7 +133,7 @@ class Event:
             event. For example, to fire exactly at 500 m above ground level::
 
                 def altitude(context):
-                    return context["height_agl"] - 500
+                    return context.height_agl - 500
 
             When a crossing is found, ``callback`` runs with the ``context``
             of that exact moment. Only supported for continuous events
@@ -288,13 +294,13 @@ class Event:
 
         Called when the event is built and again when it is reset, so a second
         flight does not compare its first check against the last check of the
-        one before it. The context answers ``previous_state``, ``previous_time``
-        and ``previous_phase_state`` from these.
+        one before it. The context answers ``previous_state`` and
+        ``previous_time`` from these.
         """
         self._previous_state = None
         self._previous_time = None
         self._previous_raw_state = None
-        self._previous_phase = None
+        self._previous_phase_names = ()
 
     def __call__(self, context, trigger_only=False, callback_only=False, reset=True):
         """Evaluate the event trigger and execute the callback if triggered.
@@ -318,10 +324,6 @@ class Event:
         bool
             True if the event was triggered, False otherwise.
         """
-        # A new phase may integrate different states, so forget the previous
-        # raw state. The previous canonical state is kept.
-        if context.get("phase") is not self._previous_phase:
-            self._previous_raw_state = None
         context.bind(self)
 
         if self.enabled is False:
@@ -343,11 +345,12 @@ class Event:
             # Remember this check, whether or not it triggered, so the next one
             # can be compared against it. Recorded before the early return so a
             # trigger that did not fire is still part of the sequence. The
-            # phase's own states are kept raw; the context names them if asked.
-            self._previous_state = context["state"]
+            # plain arrays are kept, with the names of the phase's own states;
+            # the context builds a state view from them if asked.
+            self._previous_state = context["canonical_state"]
             self._previous_time = context["time"]
-            self._previous_phase = context.get("phase")
-            self._previous_raw_state = context.get("raw_state")
+            self._previous_raw_state = context["raw_state"]
+            self._previous_phase_names = context["phase_names"]
 
             if triggered is False:
                 return False
@@ -421,8 +424,8 @@ class Event:
 
         The step runs from the second-to-last stored row to the last one. At
         every candidate time the whole context is worked out again, so the
-        exact-time function sees ``state``, ``height_agl``, ``phase_state`` and
-        the rest as they were at that moment.
+        exact-time function sees ``state``, ``height_agl`` and the rest as they
+        were at that moment.
 
         Returns
         -------

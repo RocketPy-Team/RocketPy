@@ -16,14 +16,13 @@ def controller_function():
     """
 
     def controller_function(context):
-        time = context["time"]
-        sampling_rate = context["sampling_rate"]
-        state = context["state"]
-        air_brakes = context["air_brakes"]
-        z = state[2]
-        vz = state[5]
-        previous_state = context["previous_state"]
-        previous_vz = previous_state[5] if previous_state is not None else vz
+        time = context.time
+        sampling_rate = context.sampling_rate
+        air_brakes = context.controlled.air_brakes
+        z = context.state.z
+        vz = context.state.vz
+        previous_state = context.previous_state
+        previous_vz = previous_state.vz if previous_state is not None else vz
         if time < 3.9:
             return None
         if z < 1500:
