@@ -1,10 +1,53 @@
-from abc import ABC, abstractmethod
+import numpy as np
 
 
-# TODO: the rocketpy/prints/aero_surface_prints.py file could be separated into different, smaller files.
-class _AeroSurfacePrints(ABC):
+# TODO: this file could be separated into different, smaller files.
+class _GenericSurfacePrints:
+    """Base prints for a generic aerodynamic surface."""
+
     def __init__(self, aero_surface):
         self.aero_surface = aero_surface
+
+    def coefficients(self):
+        """Prints the surface's aerodynamic coefficients.
+
+        Reports the six body-frame coefficients the surface holds (``cN``,
+        ``cY``, ``cA``, ``cm``, ``cn``, ``cl``) at a reference condition (5°
+        angle of attack and sideslip, Mach 0.3) with the variables each one
+        depends on, marking the ones that are zero. A surface given in the wind
+        frame also reports ``cL``, ``cQ`` and ``cD``.
+        """
+        surface = self.aero_surface
+        independent_vars = getattr(surface, "independent_vars", None)
+        if independent_vars is None:
+            return
+        index = {name: i for i, name in enumerate(independent_vars)}
+        if "mach" not in index:
+            return
+        n_args = len(independent_vars)
+
+        print("Aerodynamic coefficients (AoA 5°, sideslip 5°, Mach 0.3):")
+        print("---------------------------------------------------------")
+        args = [0.0] * n_args
+        args[index["mach"]] = 0.3
+        if "alpha" in index:
+            args[index["alpha"]] = np.deg2rad(5)
+        if "beta" in index:
+            args[index["beta"]] = np.deg2rad(5)
+        names = ["cN", "cY", "cA", "cm", "cn", "cl"]
+        if getattr(surface, "force_convention", "body") == "wind":
+            names += ["cL", "cQ", "cD"]
+        for name in names:
+            coeff = getattr(surface, name, None)
+            if coeff is None:
+                continue
+            if getattr(coeff, "is_zero", False):
+                print(f"  {name} = 0 (zero)")
+                continue
+            depends = getattr(coeff, "depends_on", None)
+            suffix = f" [depends on {', '.join(depends)}]" if depends else ""
+            print(f"  {name} = {coeff(*args):.4f}{suffix}")
+        print()
 
     def identity(self):
         """Prints the identity of the aero surface.
@@ -18,9 +61,33 @@ class _AeroSurfacePrints(ABC):
         print(f"Name: {self.aero_surface.name}")
         print(f"Python Class: {str(self.aero_surface.__class__)}\n")
 
-    @abstractmethod
     def geometry(self):
-        pass
+        """Prints the reference geometry of the generic surface."""
+        print("Geometric information of the Surface:")
+        print("----------------------------------")
+        print(f"Reference Area: {self.aero_surface.reference_area:.3f} m^2")
+        print(f"Reference length: {self.aero_surface.reference_length:.3f} m\n")
+
+    def all(self):
+        """Prints all information of the generic surface.
+
+        Returns
+        -------
+        None
+        """
+        self.identity()
+        self.geometry()
+        self.coefficients()
+
+
+class _LinearGenericSurfacePrints(_GenericSurfacePrints):
+    """Prints for a linear generic surface; same reporting as the generic
+    base."""
+
+
+class _BarrowmanSurfacePrints(_GenericSurfacePrints):
+    """Prints shared by the geometry-defined (Barrowman) surfaces: adds the
+    center-of-pressure / lift-curve-slope report on top of the generic base."""
 
     def lift(self):
         """Prints the lift information of the aero surface.
@@ -51,9 +118,10 @@ class _AeroSurfacePrints(ABC):
         self.identity()
         self.geometry()
         self.lift()
+        self.coefficients()
 
 
-class _NoseConePrints(_AeroSurfacePrints):
+class _NoseConePrints(_BarrowmanSurfacePrints):
     """Class that contains all nosecone prints."""
 
     def geometry(self):
@@ -72,7 +140,7 @@ class _NoseConePrints(_AeroSurfacePrints):
         print(f"Reference radius ratio: {self.aero_surface.radius_ratio:.3f}\n")
 
 
-class _FinsPrints(_AeroSurfacePrints):
+class _FinsPrints(_BarrowmanSurfacePrints):
     def geometry(self):
         print("Geometric information of the fin set:")
         print("-------------------------------------")
@@ -170,7 +238,7 @@ class _FinsPrints(_AeroSurfacePrints):
         self.lift()
 
 
-class _FinPrints(_AeroSurfacePrints):
+class _FinPrints(_BarrowmanSurfacePrints):
     def geometry(self):
         print("Geometric information of the fin set:")
         print("-------------------------------------")
@@ -291,7 +359,7 @@ class _FreeFormFinPrints(_FinPrints):
     """Class that contains all free form fins prints."""
 
 
-class _TailPrints(_AeroSurfacePrints):
+class _TailPrints(_BarrowmanSurfacePrints):
     """Class that contains all tail prints."""
 
     def geometry(self):
@@ -311,7 +379,7 @@ class _TailPrints(_AeroSurfacePrints):
         print(f"Surface area: {self.aero_surface.surface_area:.6f} m²\n")
 
 
-class _RailButtonsPrints(_AeroSurfacePrints):
+class _RailButtonsPrints(_GenericSurfacePrints):
     """Class that contains all rail buttons prints."""
 
     def geometry(self):
@@ -327,7 +395,7 @@ class _RailButtonsPrints(_AeroSurfacePrints):
         )
 
 
-class _AirBrakesPrints(_AeroSurfacePrints):
+class _AirBrakesPrints(_GenericSurfacePrints):
     """Class that contains all air_brakes prints. Not yet implemented."""
 
     def geometry(self):
@@ -335,45 +403,3 @@ class _AirBrakesPrints(_AeroSurfacePrints):
 
     def all(self):
         pass
-
-
-class _GenericSurfacePrints(_AeroSurfacePrints):
-    """Class that contains all generic surface prints."""
-
-    def geometry(self):
-        print("Geometric information of the Surface:")
-        print("----------------------------------")
-        print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
-        print(f"Reference length: {2 * self.generic_surface.rocket_radius:.3f} m")
-
-    def all(self):
-        """Prints all information of the generic surface.
-
-        Returns
-        -------
-        None
-        """
-        self.identity()
-        self.geometry()
-        self.lift()
-
-
-class _LinearGenericSurfacePrints(_AeroSurfacePrints):
-    """Class that contains all linear generic surface prints."""
-
-    def geometry(self):
-        print("Geometric information of the Surface:")
-        print("----------------------------------")
-        print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
-        print(f"Reference length: {2 * self.generic_surface.rocket_radius:.3f} m")
-
-    def all(self):
-        """Prints all information of the linear generic surface.
-
-        Returns
-        -------
-        None
-        """
-        self.identity()
-        self.geometry()
-        self.lift()

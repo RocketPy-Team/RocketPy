@@ -253,13 +253,27 @@ def test_point_mass_rocket_3dof_uses_7d_drag_inputs(
         else 0
     )
 
-    cd_expected = drag_7d(alpha, beta, mach, reynolds, omega1, omega2, omega3)
-    r3_expected = -0.5 * rho * free_stream_speed**2 * rocket.area * cd_expected
-    az_expected = (
-        r3_expected - rocket.total_mass.get_value_opt(t) * gravity
-    ) / rocket.total_mass.get_value_opt(t)
+    # The drag receives the non-dimensional rates, rate * diameter / (2 * speed)
+    reduced = 2 * rocket.radius / (2 * free_stream_speed)
+    cd_expected = drag_7d(
+        alpha,
+        beta,
+        mach,
+        reynolds,
+        omega1 * reduced,
+        omega2 * reduced,
+        omega3 * reduced,
+    )
+    # A 3-DOF phase does not model the attitude, so the drag acts against the
+    # velocity relative to the air (here the body and inertial axes coincide)
+    drag_expected = (
+        0.5 * rho * free_stream_speed * rocket.area * cd_expected * free_stream_velocity
+    )
+    mass = rocket.total_mass.get_value_opt(t)
 
-    assert u_dot[5] == pytest.approx(az_expected)
+    assert u_dot[3] == pytest.approx(drag_expected[0] / mass)
+    assert u_dot[4] == pytest.approx(drag_expected[1] / mass)
+    assert u_dot[5] == pytest.approx(drag_expected[2] / mass - gravity)
 
 
 def test_weathercock_zero_gives_fixed_attitude(flight_weathercock_zero):

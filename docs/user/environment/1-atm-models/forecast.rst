@@ -179,6 +179,8 @@ If you have a HIRESW-compatible dataset from another provider (or a local copy),
 you can still load it explicitly by passing the path/URL in ``file`` and an
 appropriate mapping in ``dictionary``.
 
+.. code-block:: python
+
     env_hrrr = Environment(
         date=now_plus_twelve,
         latitude=32.988528,

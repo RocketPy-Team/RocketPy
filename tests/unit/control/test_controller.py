@@ -128,3 +128,24 @@ def test_names_must_match_the_objects():
         _Controller(lambda context: None, one, 10, controlled_objects_name=["a"])
     with pytest.raises(TypeError):
         _Controller(lambda context: None, one, 10, controlled_objects_name=3)
+
+
+def test_rebinding_points_the_context_at_the_new_objects():
+    """A loaded rocket reconnects its controller to its own rebuilt objects."""
+    saved, loaded = SimpleNamespace(), SimpleNamespace()
+    controller = _Controller(
+        lambda context: {
+            "by_name": context.controlled.air_brakes,
+            "by_position": context.controlled[0],
+        },
+        saved,
+        sampling_rate=10,
+        controlled_objects_name="air_brakes",
+    )
+
+    controller.rebind_controlled_objects(loaded)
+    log = _run(controller)
+
+    assert controller.controlled_objects is loaded
+    assert log["by_name"] is loaded
+    assert log["by_position"] is loaded

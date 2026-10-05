@@ -7,7 +7,9 @@ import pytest
 
 from rocketpy import (
     EllipticalFin,
+    EllipticalFins,
     FreeFormFin,
+    FreeFormFins,
     Rocket,
     TrapezoidalFin,
     TrapezoidalFins,
@@ -83,15 +85,18 @@ def test_trapezoidal_fin_setters_update_geometry(calisto_trapezoidal_fin):
     # Arrange
     fin = calisto_trapezoidal_fin
 
-    # Act
+    # Act and assert
     fin.tip_chord = 0.05
-    fin.sweep_angle = 12.0
-    fin.sweep_length = 0.03
-
-    # Assert
     np.testing.assert_allclose(fin.tip_chord, 0.05)
+
+    fin.sweep_angle = 12.0
     np.testing.assert_allclose(fin.sweep_angle, 12.0)
+    np.testing.assert_allclose(fin.sweep_length, np.tan(np.radians(12.0)) * fin.span)
+
+    # A length replaces the angle, which no longer describes the fin
+    fin.sweep_length = 0.03
     np.testing.assert_allclose(fin.sweep_length, 0.03)
+    assert fin.sweep_angle is None
 
 
 def test_individual_fin_rocket_diameter_aliases_are_kept_in_sync(
@@ -375,16 +380,148 @@ def test_calisto_finset_vs_four_individual_fins_close():
     mach_grid = np.linspace(0, 2, 21)
 
     # Act
-    cp_finset = finset_rocket.cp_position(mach_grid)
-    cp_individual = individual_fins_rocket.cp_position(mach_grid)
+    cp_finset = finset_rocket.aerodynamic_center(mach_grid)
+    cp_individual = individual_fins_rocket.aerodynamic_center(mach_grid)
     clalpha_finset = finset_rocket.total_lift_coeff_der(mach_grid)
     clalpha_individual = individual_fins_rocket.total_lift_coeff_der(mach_grid)
-    lift_correction = TrapezoidalFins.fin_num_correction(4) / 4
-    clalpha_individual_corrected = np.array(clalpha_individual) * lift_correction
 
-    # Assert
+    # Assert. Each individual fin projects its lift slope onto the pitch plane by
+    # sin(phi)**2, so an evenly spaced set of 4 sums to fin_num_correction(4) = 2
+    # in the plane -- matching the fin set directly, with no extra correction.
     np.testing.assert_allclose(cp_individual, cp_finset, rtol=1e-6, atol=1e-6)
-    np.testing.assert_allclose(clalpha_individual_corrected, clalpha_finset)
+    np.testing.assert_allclose(clalpha_individual, clalpha_finset)
+
+
+@pytest.mark.parametrize(
+    "fin_cls, geometry",
+    [
+        (
+            TrapezoidalFin,
+            {
+                "root_chord": 0.120,
+                "tip_chord": 0.040,
+                "span": 0.100,
+                "rocket_radius": 0.0635,
+            },
+        ),
+        (EllipticalFin, {"root_chord": 0.120, "span": 0.100, "rocket_radius": 0.0635}),
+        (
+            FreeFormFin,
+            {
+                "shape_points": [(0, 0), (0.06, 0.1), (0.12, 0.0)],
+                "rocket_radius": 0.0635,
+            },
+        ),
+    ],
+)
+def test_canted_individual_fin_builds_and_places(fin_cls, geometry):
+    """A canted individual fin of any shape must build its body<->fin rotation
+    matrices at construction, so it can be placed on a rocket. Regression test
+    for a crash where non-trapezoidal individual fins lacked
+    ``_rotation_fin_to_body_uncanted`` and failed in
+    ``_compute_leading_edge_position``."""
+    fin = fin_cls(angular_position=30, cant_angle=2.0, **geometry)
+    assert hasattr(fin, "_rotation_fin_to_body_uncanted")
+    position = fin._compute_leading_edge_position(-1.168, 1)
+    assert position is not None
+
+
+@pytest.mark.parametrize(
+    "fin_cls, geometry",
+    [
+        (
+            TrapezoidalFin,
+            {
+                "root_chord": 0.120,
+                "tip_chord": 0.040,
+                "span": 0.100,
+                "rocket_radius": 0.0635,
+            },
+        ),
+        (EllipticalFin, {"root_chord": 0.120, "span": 0.100, "rocket_radius": 0.0635}),
+        (
+            FreeFormFin,
+            {
+                "shape_points": [(0, 0), (0.06, 0.1), (0.12, 0.0)],
+                "rocket_radius": 0.0635,
+            },
+        ),
+    ],
+)
+def test_individual_fin_roll_moment_independent_of_angular_position(fin_cls, geometry):
+    """A canted individual fin's roll moment must be the same at any angular
+    position (rotational symmetry about the roll axis). Regression test for a bug
+    where the fin's center of pressure was not rotated to its azimuth (the
+    rotation matrix was left as the identity), making the roll moment vary with
+    angular position."""
+    stream_velocity = Vector([0, 0, -1.0])
+    omega = Vector([0, 0, 0])
+
+    roll_moments = []
+    for angle in (0, 90, 180, 270):
+        rocket = Rocket(
+            radius=0.0635,
+            mass=14.426,
+            inertia=(6.321, 6.321, 0.034),
+            power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+            power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
+            center_of_mass_without_motor=0,
+            coordinate_system_orientation="tail_to_nose",
+        )
+        fin = fin_cls(angular_position=angle, cant_angle=2.0, **geometry)
+        rocket.add_surfaces(fin, -1.168)
+        cp = rocket.surfaces_cp_to_cdm[fin]
+        roll = fin.compute_forces_and_moments(
+            stream_velocity, 1.0, 0.3, 1.0, cp, omega
+        )[5]
+        roll_moments.append(roll)
+
+    np.testing.assert_allclose(roll_moments, roll_moments[0], rtol=1e-9)
+    assert abs(roll_moments[0]) > 0
+
+
+@pytest.mark.parametrize(
+    "set_cls, fin_cls, geometry",
+    [
+        (
+            TrapezoidalFins,
+            TrapezoidalFin,
+            {
+                "root_chord": 0.120,
+                "tip_chord": 0.040,
+                "span": 0.100,
+                "rocket_radius": 0.0635,
+            },
+        ),
+        (
+            EllipticalFins,
+            EllipticalFin,
+            {"root_chord": 0.120, "span": 0.100, "rocket_radius": 0.0635},
+        ),
+        (
+            FreeFormFins,
+            FreeFormFin,
+            {
+                "shape_points": [(0, 0), (0.06, 0.1), (0.12, 0.0)],
+                "rocket_radius": 0.0635,
+            },
+        ),
+    ],
+)
+def test_finset_roll_forcing_equals_n_single_fins(set_cls, fin_cls, geometry):
+    """A fin set's roll forcing coefficient must scale with the full fin count
+    ``n`` (every identically-canted fin adds the same roll moment), so it equals
+    ``n`` times a single fin's roll forcing -- for every fin shape. Regression
+    test for a bug where the set used the normal-force ``fin_num_correction(n)``
+    (~n/2), halving the roll forcing (and roll rate) of a fin set."""
+    n = 4
+    finset = set_cls(n=n, cant_angle=2.0, **geometry)
+    single = fin_cls(angular_position=0, cant_angle=2.0, **geometry)
+
+    mach_grid = np.linspace(0, 2, 11)
+    clf_finset = finset.roll_parameters[0](mach_grid)
+    clf_single = single.roll_parameters[0](mach_grid)
+    np.testing.assert_allclose(clf_finset, n * np.array(clf_single), rtol=1e-6)
 
 
 @pytest.mark.parametrize(
@@ -422,3 +559,139 @@ def test_add_individual_fin_accepts_full_3d_position(position_input):
 
     # Assert
     assert stored_position == Vector([0.02, -0.01, -1.2])
+
+
+@pytest.mark.parametrize("cant_angle", [0.0, 2.0, 10.0])
+@pytest.mark.parametrize("angular_position", [0.0, 30.0, 90.0, 200.0])
+def test_fin_stability_slopes_are_the_slopes_of_what_flies(
+    cant_angle, angular_position
+):
+    """The slopes a fin gives the rocket for its aerodynamic center and static
+    margin must be the slopes of the force it produces in flight, which a cant
+    angle reduces by its cosine."""
+    fin = TrapezoidalFin(
+        angular_position=angular_position,
+        span=0.1,
+        root_chord=0.12,
+        tip_chord=0.04,
+        rocket_radius=0.0635,
+        cant_angle=cant_angle,
+    )
+    mach = 0.3
+    at_zero = (0.0, 0.0, mach, 0.0, 0.0, 0.0, 0.0)
+
+    assert fin.cN_alpha(*at_zero) == pytest.approx(
+        fin.cN.slope("alpha", "mach")(mach), rel=1e-6, abs=1e-9
+    )
+    assert fin.cY_beta(*at_zero) == pytest.approx(
+        fin.cY.slope("beta", "mach")(mach), rel=1e-6, abs=1e-9
+    )
+
+
+def test_fin_slopes_follow_a_change_of_cant_angle():
+    fin = TrapezoidalFin(
+        angular_position=90,
+        span=0.1,
+        root_chord=0.12,
+        tip_chord=0.04,
+        rocket_radius=0.0635,
+    )
+    at_zero = (0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0)
+    straight = fin.cN_alpha(*at_zero)
+    fin.cant_angle = 10
+    assert fin.cN_alpha(*at_zero) == pytest.approx(straight * np.cos(np.radians(10)))
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "calisto_trapezoidal_fins",
+        "calisto_trapezoidal_fin",
+        "calisto_free_form_fins",
+        "calisto_free_form_fin",
+        "calisto_elliptical_fin",
+    ],
+)
+def test_changing_the_geometry_of_a_built_fin_updates_it_once(request, fixture_name):
+    """A fin is built once by its constructor and updated by its setters: a
+    wider span must give a larger normal-force slope, and count as one change
+    for the rockets that hold the fin."""
+    fin = request.getfixturevalue(fixture_name)
+    # The fin's own lift slope: an individual fin at 0 degrees around the body
+    # has no share of it in the pitch plane, so cN_alpha would not show it
+    slope_before = fin.clalpha(0.3)
+    version_before = fin._version
+
+    fin.span = 1.5 * fin.span
+
+    assert fin.clalpha(0.3) > slope_before
+    assert fin._version == version_before + 1
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["calisto_trapezoidal_fin", "calisto_free_form_fin", "calisto_elliptical_fin"],
+)
+def test_individual_fin_keeps_its_rotation_when_built_and_updated(
+    request, fixture_name
+):
+    """The frame of an individual fin is turned by its angular position. That
+    rotation must be the one the surface uses, both right after the fin is
+    built and after its angular position changes."""
+    fin = request.getfixturevalue(fixture_name)
+    assert fin._rotation_surface_to_body == fin._rotation_fin_to_body
+
+    fin.angular_position = fin.angular_position + 90
+
+    assert fin._rotation_surface_to_body == fin._rotation_fin_to_body
+    assert fin._rotation_fin_to_body == fin._rotation_body_to_fin.transpose
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "calisto_trapezoidal_fins",
+        "calisto_trapezoidal_fin",
+        "calisto_free_form_fins",
+        "calisto_free_form_fin",
+        "calisto_elliptical_fin",
+    ],
+)
+def test_a_fin_canted_later_flies_like_one_built_canted(request, fixture_name):
+    """A controller may change the cant angle at every step, so the change is
+    made cheap: nothing is rebuilt, the coefficients read the angle when they
+    are evaluated. The forces, moments and coefficients must then be exactly
+    those of a fin built with that cant angle from the start."""
+    fin = request.getfixturevalue(fixture_name)
+    built_canted = type(fin).from_dict(
+        {**fin.to_dict(), "cant_angle": fin.to_dict()["cant_angle"] + 3.0}
+    )
+    version_before = fin._version
+
+    fin.cant_angle += 3.0
+
+    assert fin._version == version_before + 1
+    stream = Vector([-4.0, 6.0, -70.0])
+    call = (stream, abs(stream), 0.2, 1.1, Vector([0.0, 0.0, -1.1]), (0.3, -0.2, 5.0))
+    assert fin.compute_forces_and_moments(*call) == pytest.approx(
+        built_canted.compute_forces_and_moments(*call), rel=1e-12, abs=1e-15
+    )
+    state = (0.05, -0.02, 0.6, 0.0, 0.0, 0.0, 0.1)
+    for name in ("cN", "cY", "cA", "cl", "cN_alpha", "cY_beta", "cl_0", "cl_p"):
+        assert getattr(fin, name)(*state) == pytest.approx(
+            getattr(built_canted, name)(*state), rel=1e-12, abs=1e-15
+        )
+    assert fin.roll_parameters[2] == pytest.approx(built_canted.roll_parameters[2])
+    if hasattr(fin, "_rotation_fin_to_body"):
+        assert fin._rotation_surface_to_body == built_canted._rotation_surface_to_body
+
+
+def test_changing_the_cant_angle_rebuilds_nothing(calisto_trapezoidal_fin):
+    """The cant angle is a control input: setting it must not run the
+    geometry chain, which is far too slow for a controller step."""
+    fin = calisto_trapezoidal_fin
+    with patch.object(
+        type(fin), "_update_geometry_chain", side_effect=AssertionError("rebuilt")
+    ):
+        fin.cant_angle = 2.0
+    assert fin.cant_angle == 2.0

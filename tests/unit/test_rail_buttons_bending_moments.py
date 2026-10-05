@@ -147,12 +147,19 @@ def test_railbuttons_no_aero_contribution():
     """Test RailButtons provide zero aerodynamic contributions."""
     rb = RailButtons(buttons_distance=0.5)
 
-    rb.evaluate_center_of_pressure()
+    # Center of pressure sits at the surface origin.
     assert rb.cp == (0, 0, 0)
 
-    rb.evaluate_lift_coefficient()
-    assert rb.clalpha(1.0) == 0  # Zero lift derivative
-    assert rb.cl(0.1, 1.0) == 0  # Zero lift coefficient
+    # Every force and moment coefficient is identically zero.
+    full_state = (0.1, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0)  # alpha, beta, mach, re, rates
+    for name in ("cN", "cY", "cA", "cm", "cn", "cl"):
+        coefficient = getattr(rb, name)
+        assert coefficient.is_zero
+        assert coefficient(*full_state) == 0
+
+    # Zero stability derivatives, so rail buttons never shift the static margin.
+    assert rb.cN_alpha(*full_state) == 0
+    assert rb.cm_alpha(*full_state) == 0
 
 
 def test_rail_button_bending_moments_prints(flight_calisto_robust, capsys):

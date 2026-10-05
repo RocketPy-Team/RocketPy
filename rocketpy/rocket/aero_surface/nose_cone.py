@@ -7,10 +7,10 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _NoseConePlots
 from rocketpy.prints.aero_surface_prints import _NoseConePrints
 
-from .aero_surface import AeroSurface
+from ._barrowman_surface import _BarrowmanSurface
 
 
-class NoseCone(AeroSurface):
+class NoseCone(_BarrowmanSurface):
     """Keeps nose cone information.
 
     Note
@@ -64,12 +64,38 @@ class NoseCone(AeroSurface):
     NoseCone.cpz : float
         Nose cone local center of pressure z coordinate. Has units of length and
         is given in meters.
-    NoseCone.cl : Function
-        Function which defines the lift coefficient as a function of the angle
-        of attack and the Mach number. Takes as input the angle of attack in
-        radians and the Mach number. Returns the lift coefficient.
+    NoseCone.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    NoseCone.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    NoseCone.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    NoseCone.cm : AeroCoefficient
+        Pitching moment coefficient.
+    NoseCone.cn : AeroCoefficient
+        Yawing moment coefficient.
+    NoseCone.cl : AeroCoefficient
+        Roll moment coefficient. Always zero for a nose cone.
+    NoseCone.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    NoseCone.cD : Function
+        Drag coefficient, the force along the airflow.
+    NoseCone.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    NoseCone.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    NoseCone.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    NoseCone.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    NoseCone.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
     NoseCone.clalpha : float
-        Lift coefficient slope. Has units of 1/rad.
+        Normal-force coefficient slope. Has units of 1/rad.
     NoseCone.plots : plots.aero_surface_plots._NoseConePlots
         This contains all the plots methods. Use help(NoseCone.plots) to know
         more about it.
@@ -129,10 +155,15 @@ class NoseCone(AeroSurface):
         None
         """
         rocket_radius = rocket_radius or base_radius
-        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
+        self.name = name
+        self.reference_area = np.pi * rocket_radius**2
+        self.reference_length = 2 * rocket_radius
 
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
+        # The length the user gave. A bluff tip shortens ``_length``, and each
+        # new shape is worked out again from this one.
+        self._input_length = length
         self._length = length
         if bluffness is not None:
             if bluffness > 1 or bluffness < 0:  # pragma: no cover
@@ -163,6 +194,16 @@ class NoseCone(AeroSurface):
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
 
+        # Translate the Barrowman geometry (clalpha, cpz) into generic-surface
+        # coefficients.
+        super().__init__(
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=name,
+        )
+
         self.plots = _NoseConePlots(self)
         self.prints = _NoseConePrints(self)
 
@@ -173,9 +214,12 @@ class NoseCone(AeroSurface):
     @rocket_radius.setter
     def rocket_radius(self, value):
         self._rocket_radius = value
+        self.reference_area = np.pi * value**2
+        self.reference_length = 2 * value
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_nose_shape()
+        self._geometry_changed()
 
     @property
     def base_radius(self):
@@ -187,6 +231,7 @@ class NoseCone(AeroSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_nose_shape()
+        self._geometry_changed()
 
     @property
     def length(self):
@@ -194,9 +239,11 @@ class NoseCone(AeroSurface):
 
     @length.setter
     def length(self, value):
+        self._input_length = value
         self._length = value
         self.evaluate_center_of_pressure()
         self.evaluate_nose_shape()
+        self._geometry_changed()
 
     @property
     def power(self):
@@ -213,6 +260,7 @@ class NoseCone(AeroSurface):
         self.evaluate_k()
         self.evaluate_center_of_pressure()
         self.evaluate_nose_shape()
+        self._geometry_changed()
 
     @property
     def kind(self):
@@ -319,6 +367,7 @@ class NoseCone(AeroSurface):
         self.evaluate_center_of_pressure()
         self.evaluate_geometrical_parameters()
         self.evaluate_nose_shape()
+        self._geometry_changed()
 
     @property
     def bluffness(self):
@@ -340,6 +389,7 @@ class NoseCone(AeroSurface):
             )
         self._bluffness = value
         self.evaluate_nose_shape()
+        self._geometry_changed()
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves nose cone's radius ratio.
@@ -381,6 +431,7 @@ class NoseCone(AeroSurface):
         """
         number_of_points = 127
         density_modifier = 3  # increase density of points to improve accuracy
+        self._length = self._input_length
 
         def find_x_intercept(x):
             # find the tangential intersection point between the circle and nosec curve
@@ -464,12 +515,7 @@ class NoseCone(AeroSurface):
         self.clalpha = Function(
             lambda mach: 2 * self.radius_ratio**2,
             "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: self.clalpha(mach) * alpha,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
+            f"Normal-force coefficient derivative for {self.name}",
         )
 
     def evaluate_k(self):
@@ -495,10 +541,7 @@ class NoseCone(AeroSurface):
             Tuple containing cpx, cpy, cpz.
         """
 
-        self.cpz = self.k * self.length
-        self.cpy = 0
-        self.cpx = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        self._set_center_of_pressure((0, 0, self.k * self.length))
         return self.cp
 
     def draw(self, *, filename=None):
@@ -539,9 +582,9 @@ class NoseCone(AeroSurface):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, **kwargs):
+    def to_dict(self, include_outputs=False, **kwargs):
         data = {
-            "_length": self._length,
+            "_length": self._input_length,
             "_kind": self._kind,
             "_base_radius": self._base_radius,
             "_bluffness": self._bluffness,
@@ -549,17 +592,12 @@ class NoseCone(AeroSurface):
             "_power": self._power,
             "name": self.name,
         }
-        if kwargs.get("include_outputs", False):
+        if include_outputs:
             clalpha = self.clalpha
-            cl = self.cl
             if kwargs.get("discretize", False):
-                clalpha = clalpha.set_discrete(0, 4, 50)
-                cl = cl.set_discrete(
-                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
-                )
+                clalpha = clalpha.set_discrete(0, 4, 50, mutate_self=False)
             data["cp"] = self.cp
             data["clalpha"] = clalpha
-            data["cl"] = cl
 
         return data
 
