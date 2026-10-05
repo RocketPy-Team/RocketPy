@@ -136,7 +136,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         show_or_save_plot(filename)
 
 
-class _FinsPlots(_AeroSurfacePlots):
+class _FinsPlots(_AeroSurfacePlots):  # pylint: disable=abstract-method
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
@@ -217,7 +217,7 @@ class _FinsPlots(_AeroSurfacePlots):
         self.lift(filename=filename)
 
 
-class _FinPlots(_AeroSurfacePlots):
+class _FinPlots(_AeroSurfacePlots):  # pylint: disable=abstract-method
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 

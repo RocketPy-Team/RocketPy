@@ -119,7 +119,7 @@ def heading_to_canonical(values):
     return [values[name] for name in CANONICAL_STATE_NAMES]
 
 
-def heading_to_canonical_dot(values, values_dot):
+def heading_to_canonical_dot(values, values_dot):  # pylint: disable=unused-argument
     result = [0.0] * 13
     for name, value in values_dot.items():
         if name in CANONICAL_STATE_NAMES:
@@ -206,7 +206,7 @@ def test_bound_dynamics_post_process_at_returns_reported_variables():
 def test_bound_dynamics_forwards_phase_arguments():
     """A phase argument fixed at bind time reaches both call paths."""
 
-    def with_extra(flight, t, u, post_processing=False, *, parachute):
+    def with_extra(flight, t, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
         flight.calls.append((t, post_processing, parachute))
         return [parachute]
 
@@ -239,7 +239,7 @@ def test_bound_dynamics_default_initial_state():
 
 
 def test_bound_dynamics_custom_initial_state():
-    def seed(flight, t, canonical_state):
+    def seed(flight, t, canonical_state):  # pylint: disable=unused-argument
         return [canonical_state[2]]  # only altitude
 
     dynamics = _PhaseDynamics(
@@ -432,7 +432,7 @@ def test_unknown_post_process_variable_raises():
     )
     flight.solution._append([0.0, *[0.0] * 6])
     with pytest.raises(KeyError, match="No flight phase computed"):
-        flight.solution.post["nope"]
+        _ = flight.solution.post["nope"]
 
 
 def test_a_phase_with_no_live_dynamics_is_skipped():
@@ -443,7 +443,7 @@ def test_a_phase_with_no_live_dynamics_is_skipped():
     # The variable is one the phase declares, so the error says why it cannot be
     # produced rather than claiming the flight never computes it.
     with pytest.raises(KeyError, match="read back from a saved file"):
-        flight.solution.post["ax"]
+        _ = flight.solution.post["ax"]
 
 
 @pytest.mark.parametrize("name", FULL_POST_PROCESS_VARS)

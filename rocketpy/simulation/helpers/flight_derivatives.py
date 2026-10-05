@@ -948,7 +948,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):
+def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
     """Compute the parachute descent derivative.
 
     Only position and velocity actually move under a parachute. The attitude and

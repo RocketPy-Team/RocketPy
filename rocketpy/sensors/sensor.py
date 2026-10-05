@@ -352,7 +352,7 @@ class Sensor(ABC):
         }
 
 
-class InertialSensor(Sensor):
+class InertialSensor(Sensor):  # pylint: disable=abstract-method
     """Model of an inertial sensor (accelerometer, gyroscope, magnetometer).
     Inertial sensors measurements are handled as vectors. The measurements are
     affected by the sensor's orientation in the rocket.
@@ -671,7 +671,7 @@ class InertialSensor(Sensor):
         return data
 
 
-class ScalarSensor(Sensor):
+class ScalarSensor(Sensor):  # pylint: disable=abstract-method
     """Model of a scalar sensor (e.g. Barometer). Scalar sensors are used
     to measure a single scalar value. The measurements are not affected by the
     sensor's orientation in the rocket.

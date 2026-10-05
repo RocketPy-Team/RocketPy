@@ -7,7 +7,7 @@ from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
-class Fin(_BaseFin):
+class Fin(_BaseFin):  # pylint: disable=abstract-method
     """Abstract class that holds common methods for the individual fin classes.
     Cannot be instantiated.
 

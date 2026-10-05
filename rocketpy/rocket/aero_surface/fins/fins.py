@@ -4,7 +4,7 @@ from rocketpy.mathutils.function import Function
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
-class Fins(_BaseFin):
+class Fins(_BaseFin):  # pylint: disable=abstract-method
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
