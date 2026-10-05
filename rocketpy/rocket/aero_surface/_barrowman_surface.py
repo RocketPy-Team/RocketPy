@@ -147,7 +147,7 @@ class _BarrowmanSurface(GenericSurface):
                 "cl",
             )
 
-    def compute_forces_and_moments(
+    def compute_forces_and_moments(  # pylint: disable=unused-argument
         self,
         stream_velocity,
         stream_speed,
@@ -155,7 +155,7 @@ class _BarrowmanSurface(GenericSurface):
         rho,
         cp,
         omega,
-        *args,  # pylint: disable=unused-argument
+        *args,
     ):
         """Compute the surface's forces and moments with the classic Barrowman
         method. Called at each simulation step.
