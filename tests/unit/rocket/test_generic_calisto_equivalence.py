@@ -9,7 +9,6 @@ of the generic-surface code paths is caught cheaply. The full 6-DOF flight
 comparison lives in ``tests/unit/simulation/test_flight.py``.
 """
 
-import numpy as np
 import pytest
 
 GENERIC_FIXTURES = [

@@ -33,6 +33,7 @@ from rocketpy.simulation.events.exact_time_solvers import (
     solve_linear,
 )
 from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS, _PhaseDynamics
+from rocketpy.simulation.solution import Solution
 
 
 def _callback_return_time(context):
@@ -96,9 +97,6 @@ def _sample_state(time, vz):
 
 def _canonical_solution(*rows):
     """Build a Solution holding the given canonical rows in one phase."""
-    from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS
-    from rocketpy.simulation.solution import Solution
-
     solution = Solution()
     solution._start_phase(
         SIX_DOF_DYNAMICS, start_canonical=tuple(rows[0][1:]) if rows else None
@@ -340,15 +338,15 @@ def test_core_event_builders_update_flight_state_and_commands():
     out_of_rail_state = _sample_state(0.5, 1.0)
     out_of_rail_state[1] = 1.0
     assert out_of_rail_trigger(
-        dict(flight=flight, canonical_state=out_of_rail_state[1:])
+        {"flight": flight, "canonical_state": out_of_rail_state[1:]}
     )
     out_of_rail_callback(
-        dict(
-            flight=flight,
-            event=out_of_rail_event,
-            time=0.5,
-            canonical_state=out_of_rail_state[1:],
-        )
+        {
+            "flight": flight,
+            "event": out_of_rail_event,
+            "time": 0.5,
+            "canonical_state": out_of_rail_state[1:],
+        }
     )
     assert flight.out_of_rail_time == pytest.approx(0.5)
     assert flight.out_of_rail_time_index == 1
@@ -359,15 +357,15 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert out_of_rail_event.commands.new_flight_phase_name == "free_flight"
 
     assert apogee_trigger(
-        dict(flight=flight, canonical_state=_sample_state(1.0, -1.0)[1:])
+        {"flight": flight, "canonical_state": _sample_state(1.0, -1.0)[1:]}
     )
     apogee_result = apogee_callback(
-        dict(
-            flight=flight,
-            event=apogee_event,
-            time=1.0,
-            canonical_state=_sample_state(1.0, -1.0)[1:],
-        )
+        {
+            "flight": flight,
+            "event": apogee_event,
+            "time": 1.0,
+            "canonical_state": _sample_state(1.0, -1.0)[1:],
+        }
     )
     assert apogee_result is False
     assert flight.apogee_time == pytest.approx(1.0)
@@ -381,14 +379,14 @@ def test_core_event_builders_update_flight_state_and_commands():
     impact_state[2] = -3.0
     impact_state[3] = -4.0
     impact_state[6] = -4.0
-    assert impact_trigger(dict(flight=flight, canonical_state=impact_state[1:]))
+    assert impact_trigger({"flight": flight, "canonical_state": impact_state[1:]})
     impact_callback(
-        dict(
-            flight=flight,
-            event=impact_event,
-            time=2.0,
-            canonical_state=impact_state[1:],
-        )
+        {
+            "flight": flight,
+            "event": impact_event,
+            "time": 2.0,
+            "canonical_state": impact_state[1:],
+        }
     )
     assert flight.impact_time == pytest.approx(2.0)
     assert flight.x_impact == pytest.approx(2.0)
@@ -398,19 +396,17 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert impact_event.commands._terminate is True
 
     assert out_of_rail_exact_time_function(
-        dict(canonical_state=out_of_rail_state[1:], flight=flight)
+        {"canonical_state": out_of_rail_state[1:], "flight": flight}
     ) == pytest.approx(0.0)
     assert out_of_rail_exact_time_derivative(
-        dict(canonical_state=out_of_rail_state[1:], flight=flight)
+        {"canonical_state": out_of_rail_state[1:], "flight": flight}
     ) == pytest.approx(0.0)
     assert apogee_event_exact_time_function(
-        dict(canonical_state=_sample_state(1.0, -1.0)[1:])
+        {"canonical_state": _sample_state(1.0, -1.0)[1:]}
     ) == pytest.approx(-1.0)
-    assert impact_event_exact_time_function(dict(height_agl=-4.0)) == pytest.approx(
-        -4.0
-    )
+    assert impact_event_exact_time_function({"height_agl": -4.0}) == pytest.approx(-4.0)
     assert impact_event_exact_time_derivative(
-        dict(canonical_state=impact_state[1:], flight=flight)
+        {"canonical_state": impact_state[1:], "flight": flight}
     ) == pytest.approx(-4.0)
 
 
@@ -431,7 +427,7 @@ def test_apogee_trigger_returns_false_without_complete_history(
 
     assert (
         apogee_trigger(
-            dict(flight=flight, canonical_state=_sample_state(1.0, -1.0)[1:])
+            {"flight": flight, "canonical_state": _sample_state(1.0, -1.0)[1:]}
         )
         is False
     )

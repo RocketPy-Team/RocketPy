@@ -1,5 +1,12 @@
 import pytest
 
+from rocketpy import (
+    FreeFormFins,
+    GenericSurface,
+    StochasticNoseCone,
+    StochasticRocket,
+    TrapezoidalFin,
+)
 from rocketpy.rocket.rocket import Rocket
 
 
@@ -33,8 +40,6 @@ def test_zero_dispersion_keeps_the_full_drag_and_the_stability_phase(
     """A drag that depends on more than Mach, the stability phase and a generic
     surface on the rocket survive the stochastic mirror unchanged, and the
     drag factor scales the whole coefficient."""
-    from rocketpy import GenericSurface
-    from rocketpy.stochastic import StochasticRocket
 
     rocket = calisto_robust
     table = [[a, m, 0.4 + a**2 + 0.1 * m] for a in (-0.3, 0, 0.3) for m in (0, 1, 2)]
@@ -50,7 +55,9 @@ def test_zero_dispersion_keeps_the_full_drag_and_the_stability_phase(
     created = stochastic.create_object()
     assert created.power_off_drag_7d(*state) == rocket.power_off_drag_7d(*state)
     assert created.stability_phase == "power_on"
-    assert any(type(s) is GenericSurface for s, _ in created.aerodynamic_surfaces)
+    # exactly a GenericSurface: every other surface on the rocket is a subclass
+    plain = [s for s, _ in created.aerodynamic_surfaces if type(s) is GenericSurface]  # pylint: disable=unidiomatic-typecheck
+    assert plain
 
     scaled = StochasticRocket(rocket=rocket, power_off_drag_factor=(1.2, 0))
     scaled.add_motor(cesaroni_m1670, position=(-1.255, 0))
@@ -61,13 +68,6 @@ def test_zero_dispersion_keeps_the_full_drag_and_the_stability_phase(
 def test_surfaces_with_no_stochastic_version_are_carried_over():
     """Free-form fins, individual fins and generic surfaces have no stochastic
     version; each generated rocket keeps them, at their position."""
-    from rocketpy import (
-        FreeFormFins,
-        GenericSurface,
-        StochasticNoseCone,
-        StochasticRocket,
-        TrapezoidalFin,
-    )
 
     rocket = Rocket(
         radius=0.0635,

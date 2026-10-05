@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import inspect
 import math
 import warnings
@@ -40,10 +41,7 @@ from rocketpy.rocket.aero_surface import (
     TrapezoidalFins,
 )
 from rocketpy.rocket.aero_surface.aero_coefficient import AeroCoefficient
-from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
-from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
-from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSurface
 from rocketpy.rocket.components import Components, position_vector
 from rocketpy.rocket.parachute import Parachute

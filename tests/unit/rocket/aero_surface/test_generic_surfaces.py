@@ -5,9 +5,16 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from rocketpy import Function, GenericSurface, LinearGenericSurface
+from rocketpy import (
+    AeroCoefficient,
+    Function,
+    GenericSurface,
+    LinearGenericSurface,
+    Rocket,
+)
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils import Vector
+from rocketpy.rocket.aero_surface._helpers import total_angle_and_roll
 
 
 def _rpy_round_trip(obj):
@@ -1135,7 +1142,6 @@ def _area_length():
 def test_a_one_argument_function_is_read_by_its_name():
     """The Mach hint for unnamed one-input sources must not override a name
     that is a variable; a name that is not one still means Mach."""
-    from rocketpy import AeroCoefficient
 
     assert AeroCoefficient(lambda alpha: alpha, single_var="mach").depends_on == (
         "alpha",
@@ -1252,7 +1258,6 @@ def test_wind_and_total_angle_tables_round_trip_without_pickling():
 
 
 def test_setting_the_center_of_pressure_updates_the_rocket():
-    from rocketpy import Rocket
 
     surface = GenericSurface(*_area_length(), {"cN": lambda alpha: 2 * alpha})
     rocket = Rocket(
@@ -1378,7 +1383,6 @@ def test_converted_coefficients_accept_arrays(kind):
 
 
 def test_roll_angle_of_the_wind_is_zero_flying_exactly_tail_first():
-    from rocketpy.rocket.aero_surface._helpers import total_angle_and_roll
 
     assert total_angle_and_roll(np.pi, np.pi) == pytest.approx((np.pi, 0.0))
 

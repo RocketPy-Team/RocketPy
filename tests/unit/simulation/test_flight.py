@@ -9,6 +9,7 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Components, Flight, Function, LinearGenericSurface, Rocket
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket._helpers import aerodynamic_damping
 from rocketpy.simulation.helpers.flight_derivatives import u_dot, u_dot_generalized
 
@@ -724,13 +725,13 @@ def test_generic_surface_calisto_flight_matches_barrowman(
     """
     generic_rocket = request.getfixturevalue(generic_rocket_name)
 
-    launch = dict(
-        environment=example_plain_env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=True,
-    )
+    launch = {
+        "environment": example_plain_env,
+        "rail_length": 5.2,
+        "inclination": 85,
+        "heading": 0,
+        "terminate_on_apogee": True,
+    }
     reference_flight = Flight(rocket=calisto_robust, **launch)
     generic_flight = Flight(rocket=generic_rocket, **launch)
 
@@ -910,7 +911,6 @@ def _rigid_burning_calisto(
 def _center_of_mass_inertia(rocket, t):
     """Position of the center of mass relative to the center of dry mass in
     the body frame, and the inertia tensor about it."""
-    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
 
     r_cm = Vector([0, 0, -rocket.com_to_cdm_function.get_value_opt(t)])
     mass = rocket.total_mass.get_value_opt(t)
@@ -939,7 +939,6 @@ def test_dynamics_take_moments_about_the_center_of_mass(
     ``M + R x r_cm``, not the untransferred moment (legacy) nor the transfer
     the other way (generalized, before the fix).
     """
-    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
 
     rocket = _rigid_burning_calisto(
         calisto_motorless, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
@@ -980,7 +979,6 @@ def test_generalized_dynamics_match_a_rigid_body_when_rotating(
     center of mass, ``I_cm w_dot = M_cm - w x (I_cm w)``, and the acceleration
     of the center of dry mass follows from the center of mass' one,
     ``a_O = F / m - w_dot x r_cm - w x (w x r_cm)``."""
-    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
 
     rocket = _rigid_burning_calisto(
         calisto_motorless, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
@@ -1027,7 +1025,6 @@ def test_integrator_damping_matches_the_oscillator(flight_calisto_robust):
     Thomson's form), once the rate is taken about the same point: the state
     rotates about the center of dry mass, ``a`` ahead of the center of mass,
     which adds ``C1 a / V`` of angle-of-attack coupling."""
-    from rocketpy.mathutils.vector_matrix import Vector  # pylint: disable=import-outside-toplevel
 
     flight = flight_calisto_robust
     rocket = flight.rocket

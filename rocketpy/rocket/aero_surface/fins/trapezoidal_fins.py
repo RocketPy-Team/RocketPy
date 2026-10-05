@@ -262,11 +262,9 @@ class TrapezoidalFins(Fins):
         )
         self._set_center_of_pressure((0, 0, cpz))
 
-    def to_dict(self, **kwargs):
-        data = super().to_dict(**kwargs)
-        data.update(
-            self.geometry.get_data(include_outputs=kwargs.get("include_outputs", False))
-        )
+    def to_dict(self, include_outputs=False, **kwargs):
+        data = super().to_dict(include_outputs=include_outputs, **kwargs)
+        data.update(self.geometry.get_data(include_outputs=include_outputs))
         return data
 
     @classmethod

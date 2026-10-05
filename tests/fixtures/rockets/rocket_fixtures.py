@@ -92,17 +92,18 @@ def _generic_surface_from_barrowman(surface):
     """
     clalpha = surface.clalpha  # normal-force-curve slope, a Function of Mach
 
-    # Coefficient callables must accept the full 7-variable argument tuple. The
-    # slope ``clalpha`` is a Function of Mach only; the fin roll coefficients
-    # ``cl_0``/``cl_p`` are AeroCoefficients evaluated over the full tuple.
+    # A coefficient function only takes the variables it uses, named after
+    # them. The slope ``clalpha`` is a Function of Mach only; the fin roll
+    # coefficients ``cl_0``/``cl_p`` are AeroCoefficients evaluated over the
+    # full tuple.
     def make_normal(slope):
-        def cN(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+        def cN(alpha, mach):
             return slope.get_value_opt(mach) * alpha
 
         return cN
 
     def make_side(slope):
-        def cY(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+        def cY(beta, mach):
             return -slope.get_value_opt(mach) * beta
 
         return cY
@@ -205,7 +206,7 @@ def _full_body_derivatives(reference_rocket):
     def coefficients_at(alpha, beta, red_pitch, red_yaw, red_roll, mach):
         rate_factor = 2.0 / reference_length  # reduced rate -> omega at unit speed
         omega = (red_pitch * rate_factor, red_yaw * rate_factor, red_roll * rate_factor)
-        r1, r2, r3, m1, m2, m3 = _full_body_force_and_moment(
+        r1, r2, _, m1, m2, m3 = _full_body_force_and_moment(
             reference_rocket, alpha, beta, mach, omega
         )
         return {

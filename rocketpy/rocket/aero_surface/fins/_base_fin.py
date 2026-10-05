@@ -18,7 +18,9 @@ class _BaseFin(_BarrowmanSurface):
     Handles shared initialization logic and common properties.
     """
 
-    def __init__(
+    # GenericSurface.__init__ runs later, in _build_surface, once the fin shape
+    # class has set up its geometry
+    def __init__(  # pylint: disable=super-init-not-called
         self, name, rocket_radius, root_chord, span, airfoil=None, cant_angle=0
     ):
         """

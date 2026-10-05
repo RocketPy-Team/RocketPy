@@ -81,7 +81,7 @@ class RailButtons(GenericSurface):
     def angular_position_rad(self):
         return np.radians(self.angular_position)
 
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+    def to_dict(self, include_outputs=False, **kwargs):  # pylint: disable=unused-argument
         return {
             "buttons_distance": self.buttons_distance,
             "angular_position": self.angular_position,

@@ -397,12 +397,20 @@ def test_calisto_finset_vs_four_individual_fins_close():
     [
         (
             TrapezoidalFin,
-            dict(root_chord=0.120, tip_chord=0.040, span=0.100, rocket_radius=0.0635),
+            {
+                "root_chord": 0.120,
+                "tip_chord": 0.040,
+                "span": 0.100,
+                "rocket_radius": 0.0635,
+            },
         ),
-        (EllipticalFin, dict(root_chord=0.120, span=0.100, rocket_radius=0.0635)),
+        (EllipticalFin, {"root_chord": 0.120, "span": 0.100, "rocket_radius": 0.0635}),
         (
             FreeFormFin,
-            dict(shape_points=[(0, 0), (0.06, 0.1), (0.12, 0.0)], rocket_radius=0.0635),
+            {
+                "shape_points": [(0, 0), (0.06, 0.1), (0.12, 0.0)],
+                "rocket_radius": 0.0635,
+            },
         ),
     ],
 )
@@ -423,12 +431,20 @@ def test_canted_individual_fin_builds_and_places(fin_cls, geometry):
     [
         (
             TrapezoidalFin,
-            dict(root_chord=0.120, tip_chord=0.040, span=0.100, rocket_radius=0.0635),
+            {
+                "root_chord": 0.120,
+                "tip_chord": 0.040,
+                "span": 0.100,
+                "rocket_radius": 0.0635,
+            },
         ),
-        (EllipticalFin, dict(root_chord=0.120, span=0.100, rocket_radius=0.0635)),
+        (EllipticalFin, {"root_chord": 0.120, "span": 0.100, "rocket_radius": 0.0635}),
         (
             FreeFormFin,
-            dict(shape_points=[(0, 0), (0.06, 0.1), (0.12, 0.0)], rocket_radius=0.0635),
+            {
+                "shape_points": [(0, 0), (0.06, 0.1), (0.12, 0.0)],
+                "rocket_radius": 0.0635,
+            },
         ),
     ],
 )
@@ -470,17 +486,25 @@ def test_individual_fin_roll_moment_independent_of_angular_position(fin_cls, geo
         (
             TrapezoidalFins,
             TrapezoidalFin,
-            dict(root_chord=0.120, tip_chord=0.040, span=0.100, rocket_radius=0.0635),
+            {
+                "root_chord": 0.120,
+                "tip_chord": 0.040,
+                "span": 0.100,
+                "rocket_radius": 0.0635,
+            },
         ),
         (
             EllipticalFins,
             EllipticalFin,
-            dict(root_chord=0.120, span=0.100, rocket_radius=0.0635),
+            {"root_chord": 0.120, "span": 0.100, "rocket_radius": 0.0635},
         ),
         (
             FreeFormFins,
             FreeFormFin,
-            dict(shape_points=[(0, 0), (0.06, 0.1), (0.12, 0.0)], rocket_radius=0.0635),
+            {
+                "shape_points": [(0, 0), (0.06, 0.1), (0.12, 0.0)],
+                "rocket_radius": 0.0635,
+            },
         ),
     ],
 )

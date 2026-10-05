@@ -22,6 +22,8 @@ from rocketpy import (
     TrapezoidalFins,
 )
 from rocketpy.mathutils import Vector
+from rocketpy.rocket.aero_surface._barrowman_surface import _BarrowmanSurface
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
 def test_barrowman_derived_cp_matches_geometric_cp():
@@ -158,8 +160,6 @@ def test_barrowman_surface_uses_geometric_compute_path():
     Barrowman method (their own ``compute_forces_and_moments``): the resultant
     force is reported at the geometric center of pressure and its moment is
     transported geometrically from there."""
-    from rocketpy.rocket.aero_surface._barrowman_surface import _BarrowmanSurface
-    from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
     nose = NoseCone(
         length=0.55829, kind="vonkarman", base_radius=0.0635, rocket_radius=0.0635

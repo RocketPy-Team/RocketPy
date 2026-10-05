@@ -843,9 +843,8 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
     genuinely coincides with a check.
     """
     # imported here only to keep Flight out of this module's import graph
-    from rocketpy.simulation.flight import (
-        Flight,  # pylint: disable=import-outside-toplevel
-    )
+    # pylint: disable-next=import-outside-toplevel
+    from rocketpy.simulation.flight import Flight
 
     checked = []
 
@@ -1240,7 +1239,8 @@ def test_an_exact_time_event_does_not_rewrite_the_shared_context():
     seen = {}
 
     event = Event(
-        callback=lambda context: seen.update(context),
+        # a lambda: Event reads the signature, which dict.update does not have
+        callback=lambda context: seen.update(context),  # pylint: disable=unnecessary-lambda
         trigger=_always_true,
         name="refined",
         exact_time_function=lambda context: context["state"][5],
@@ -1273,7 +1273,8 @@ def test_exact_time_function_sees_the_context_of_each_candidate_time():
     seen = {}
 
     event = Event(
-        callback=lambda context: seen.update(context),
+        # a lambda: Event reads the signature, which dict.update does not have
+        callback=lambda context: seen.update(context),  # pylint: disable=unnecessary-lambda
         trigger=_always_true,
         exact_time_function=lambda context: context["height_agl"],
         exact_time_config={"target": 4.0},

@@ -105,7 +105,7 @@ class AeroCoefficient:
     )
     _EXTRAPOLATIONS = ("constant", "natural", "zero")
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         source,
         depends_on=None,

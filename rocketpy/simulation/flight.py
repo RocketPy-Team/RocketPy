@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import warnings
 from copy import deepcopy
 from functools import cached_property
@@ -797,7 +798,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.u_dot_parachute = PARACHUTE_DYNAMICS.bind(self)
         self.udot_rail1 = RAIL_DYNAMICS.bind(self)
         self.udot_rail2 = self.u_dot_generalized
-        
+
         # The switches events make during the flight: surface -> [(time, active)]
         self._surface_switches = {}
 

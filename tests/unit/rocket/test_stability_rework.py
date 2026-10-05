@@ -19,18 +19,18 @@ from rocketpy import (
     Rocket,
 )
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
-from rocketpy.rocket.aero_surface.aero_coefficient import AeroCoefficient
 from rocketpy.rocket._helpers import (
     aerodynamic_damping,
     corrective_and_damping_moments,
-    lateral_inertia_and_rate,
-    stability_margin_and_slope,
-    stability_surfaces,
     damping_derivative,
     is_incidence_linear,
+    lateral_inertia_and_rate,
     neutral_point_and_slope,
+    stability_margin_and_slope,
+    stability_surfaces,
     summed_force_and_moment,
 )
+from rocketpy.rocket.aero_surface.aero_coefficient import AeroCoefficient
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 
 
@@ -862,9 +862,9 @@ def _lumped_twin(rocket, force_convention="body"):
         power_on_drag=0,
         center_of_mass_without_motor=rocket.center_of_mass_without_motor,
     )
-    power_off, _ = rocket.to_surface(
+    power_off = rocket.to_surface(
         machs=[0.2, 0.3, 0.4], force_convention=force_convention
-    )
+    )[0]
     twin.add_full_body_aerodynamics(
         power_off, position=rocket.center_of_dry_mass_position
     )
@@ -998,9 +998,9 @@ def test_lumping_follows_the_reynolds_number(model):
         at_zero + 7.0, rel=1e-6
     )
 
-    power_off, _ = rocket.to_surface(
+    power_off = rocket.to_surface(
         machs=machs, model=model, angles=angles, reynolds=[1e5, 1e6, 1e7]
-    )
+    )[0]
     for reynolds in (1e5, 1e6, 1e7):
         expected = _source_coefficients(rocket, alpha, 0.5, reynolds)[0]
         lumped = power_off.cN(alpha, 0, 0.5, reynolds, 0, 0, 0)
@@ -1036,9 +1036,9 @@ def test_lumping_keeps_a_control():
     )
     assert canard.get_control("deflection") == 0.02
 
-    power_off, _ = rocket.to_surface(
+    power_off = rocket.to_surface(
         machs=machs, model="table", angles=angles, controls=controls
-    )
+    )[0]
     assert isinstance(power_off, ControllableGenericSurface)
     assert power_off.control_variables == ["deflection"]
     alpha, deflection = math.radians(3), math.radians(5)
@@ -1114,7 +1114,7 @@ def _table_twin(rocket, **kwargs):
         power_on_drag=0,
         center_of_mass_without_motor=rocket.center_of_mass_without_motor,
     )
-    power_off, _ = rocket.to_surface(model="table", machs=[0.2, 0.3, 0.4], **kwargs)
+    power_off = rocket.to_surface(model="table", machs=[0.2, 0.3, 0.4], **kwargs)[0]
     twin.add_full_body_aerodynamics(
         power_off, position=rocket.center_of_dry_mass_position
     )
@@ -1238,9 +1238,9 @@ def test_lumping_rejects_bad_options():
 def test_table_surface_saves_and_loads():
     """The table surfaces round trip through the RocketPy encoder."""
     rocket = _canted_calisto()
-    power_off, _ = rocket.to_surface(
+    power_off = rocket.to_surface(
         model="table", machs=[0.2, 0.3], angles=np.radians([-10, 0, 10])
-    )
+    )[0]
     loaded = json.loads(json.dumps(power_off, cls=RocketPyEncoder), cls=RocketPyDecoder)
     args = (math.radians(6), math.radians(-4), 0.25, 0.0, 0.1, 0.0, 0.2)
     for name in ("cN", "cY", "cA", "cm", "cn", "cl"):
@@ -1388,7 +1388,7 @@ def test_axisymmetric_nonlinear_yaw_is_read_across_the_wind():
     theta, mach = math.radians(10), 0.3
     diameter = 2 * rocket.radius
 
-    r1, r2, _, m1, _, _ = summed_force_and_moment(rocket, theta, 0.0, mach, (0, 0, 0))
+    _, r2, _, m1, _, _ = summed_force_and_moment(rocket, theta, 0.0, mach, (0, 0, 0))
     dynamic_pressure_area = 0.5 * rocket.area
     cN = -r2 / dynamic_pressure_area
     cm = m1 / (dynamic_pressure_area * diameter)

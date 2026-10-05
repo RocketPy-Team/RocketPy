@@ -1172,7 +1172,7 @@ def _control_axes(rocket, controls):
     return axes
 
 
-def full_body_coefficients(
+def full_body_coefficients(  # pylint: disable=too-many-locals
     rocket,
     machs=None,
     force_convention="body",

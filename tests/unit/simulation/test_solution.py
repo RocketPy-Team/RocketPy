@@ -13,7 +13,6 @@ from rocketpy.simulation.helpers.dynamics import (
     CANONICAL_INDEX,
     CANONICAL_STATE_NAMES,
     FULL_POST_PROCESS_VARS,
-    PARACHUTE_DYNAMICS,
     SIX_DOF_DYNAMICS,
     _PhaseDynamics,
 )
@@ -32,7 +31,7 @@ def descent_row(t, fill=None):
     return [float(t), *state]
 
 
-def stub_derivative(flight, t, u, post_processing=False):
+def stub_derivative(_flight, t, u, post_processing=False):
     """Stand-in equations of motion. These tests store rows, never integrate."""
     return [t] if post_processing else list(u)
 
@@ -719,7 +718,7 @@ def test_post_values_stay_the_same_length_as_the_rows():
         lambda: solution._insert(0, canonical_row(-1)),
         lambda: solution._pop(0),
         lambda: solution._insert_before_last(descent_row(5.5)),
-        lambda: solution._drop_last(),
+        solution._drop_last,
         lambda: solution._set_row(-1, descent_row(9)),
     ):
         mutate()
@@ -785,7 +784,7 @@ def test_value_at_unknown_state_raises():
 # ---------------------------------------------------------------------------
 
 
-def replay_derivative(flight, t, u, post_processing=False):
+def replay_derivative(_flight, t, u, post_processing=False):
     """Report values that say which row they came from, so replay is visible."""
     return [t, 2 * t, 3 * t] if post_processing else list(u)
 
@@ -798,7 +797,7 @@ REPLAY_DYNAMICS = _PhaseDynamics(
 )
 
 
-def replay_thrust_derivative(flight, t, u, post_processing=False):
+def replay_thrust_derivative(_flight, t, u, post_processing=False):
     """Like :func:`replay_derivative`, for a phase that also reports thrust."""
     return [t, 2 * t, 3 * t, 100.0] if post_processing else list(u)
 
@@ -871,7 +870,7 @@ def test_a_gap_in_a_recording_flight_is_an_error():
     solution.records_post_values = True
     solution._set_post_values(0, [1.0, 2.0, 3.0])
     with pytest.raises(ValueError, match="row 1 has none"):
-        solution.post["ax"]
+        _ = solution.post["ax"]
     with pytest.raises(ValueError, match="row 1 has none"):
         solution.post.at_index(1)
 
@@ -950,7 +949,7 @@ def test_phase_values_gives_one_phase_at_a_time():
 def test_an_unknown_variable_says_what_the_flight_computes():
     solution = build_replay_solution()
     with pytest.raises(KeyError, match="No flight phase computed"):
-        solution.post["not_a_variable"]
+        _ = solution.post["not_a_variable"]
 
 
 def test_a_solution_read_back_from_a_file_cannot_report_them():
@@ -961,7 +960,7 @@ def test_a_solution_read_back_from_a_file_cannot_report_them():
     )
     solution._append(descent_row(0))
     with pytest.raises(KeyError, match="read back from a saved file"):
-        solution.post["ax"]
+        _ = solution.post["ax"]
     with pytest.raises(KeyError, match="read back from a saved file"):
         solution.post.at_index(0)
 

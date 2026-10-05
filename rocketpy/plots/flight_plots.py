@@ -1293,7 +1293,7 @@ class _FlightPlots:
                 # stay in view
                 tops.append(1.5 * float(np.percentile(values, 95)))
                 tops.append(1.15 * float(values[0]))
-        top = max(1.0, max(tops, default=1.0))
+        top = max([1.0, *tops])
         ax.axhline(0, color="0.6", linewidth=0.8)
         ax.set_xlim(t_lower, t_upper)
         ax.set_ylim(-top, top)

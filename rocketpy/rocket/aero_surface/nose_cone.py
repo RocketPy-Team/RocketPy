@@ -582,7 +582,7 @@ class NoseCone(_BarrowmanSurface):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, **kwargs):
+    def to_dict(self, include_outputs=False, **kwargs):
         data = {
             "_length": self._input_length,
             "_kind": self._kind,
@@ -592,7 +592,7 @@ class NoseCone(_BarrowmanSurface):
             "_power": self._power,
             "name": self.name,
         }
-        if kwargs.get("include_outputs", False):
+        if include_outputs:
             clalpha = self.clalpha
             if kwargs.get("discretize", False):
                 clalpha = clalpha.set_discrete(0, 4, 50, mutate_self=False)

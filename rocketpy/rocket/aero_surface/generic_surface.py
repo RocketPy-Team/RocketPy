@@ -1,5 +1,4 @@
 import csv
-import math
 
 import numpy as np
 
@@ -383,7 +382,7 @@ class GenericSurface:
                 f"{value!r}."
             ) from exc
         numeric = isinstance(z, (int, float, np.number))
-        if hasattr(self, "cm") and (not numeric or self._xcp is not None):
+        if hasattr(self, "cm") and (not numeric or getattr(self, "_xcp", None)):
             raise ValueError(
                 "A center of pressure that varies with Mach is folded into the "
                 "moment coefficients when the surface is built: create a new "

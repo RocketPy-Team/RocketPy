@@ -1,3 +1,4 @@
+import copy
 import json
 import warnings
 from itertools import product
@@ -17,7 +18,6 @@ from rocketpy import (
 )
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.rocket._helpers import summed_force_and_moment
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import Motor
 
@@ -235,7 +235,6 @@ def test_asymmetry_warning_is_shown_once_per_configuration(calisto):
 def test_a_canted_fin_moves_its_leading_edge(calisto):
     """Canting a fin already on the rocket places it as if it were added canted:
     the position the user gave is kept, the lever arm follows the cant."""
-    import copy
 
     geometry = {"root_chord": 0.12, "tip_chord": 0.04, "span": 0.1}
     fin = TrapezoidalFin(0, rocket_radius=0.0635, **geometry)

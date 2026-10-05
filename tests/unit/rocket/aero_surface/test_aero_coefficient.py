@@ -219,7 +219,7 @@ def test_infer_single_var_unmatched_label_gives_none():
 
 def test_infer_single_var_missing_inputs_gives_none():
     class NoInputs:
-        pass
+        """An object with no inputs to read a variable name from."""
 
     assert AeroCoefficient._infer_single_var(NoInputs(), IV) is None
 

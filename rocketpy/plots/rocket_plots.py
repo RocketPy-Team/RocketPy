@@ -337,7 +337,7 @@ class _RocketPlots:
         last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
-        self._draw_center_of_mass_and_pressure(ax, plane)
+        self._draw_center_of_mass_and_pressure(ax)
         self._draw_sensors(ax, self.rocket.sensors, plane)
 
         title = "Rocket Representation"
@@ -761,7 +761,7 @@ class _RocketPlots:
         except IndexError:
             pass
 
-    def _draw_center_of_mass_and_pressure(self, ax, plane="xz"):
+    def _draw_center_of_mass_and_pressure(self, ax):
         """Draws the center of mass and center of pressure of the rocket.
 
         The red dot is the (linear) aerodynamic center, conventionally labeled

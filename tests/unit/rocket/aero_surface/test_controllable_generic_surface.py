@@ -12,7 +12,7 @@ VISCOSITY = Function(lambda z: 1.8e-5)
 
 def _moment_at_deflection(surface, deflection, comp="pitch"):
     surface.set_control("deflection", deflection)
-    r1, r2, r3, m1, m2, m3 = surface.compute_forces_and_moments(
+    _, _, _, m1, m2, m3 = surface.compute_forces_and_moments(
         Vector([0, 0, -100]),
         100,
         0.29,

@@ -154,8 +154,6 @@ _ARGS = (0.15, 0.08, 0.5, 1e6, 0.0, 0.0, 0.0)
 def test_body_input_is_recovered_by_body_accessors():
     """Coefficients supplied in the body frame are recovered by the body-frame
     accessors (they round-trip through the canonical wind-frame storage)."""
-    from rocketpy import GenericSurface
-
     surface = GenericSurface(
         reference_area=0.01,
         reference_length=0.1,
@@ -174,8 +172,6 @@ def test_body_input_is_recovered_by_body_accessors():
 def test_wind_and_body_input_agree_at_zero_angle():
     """cL == cN, cD == cA and cQ == cY at zero angle of attack and sideslip,
     regardless of the frame the coefficients were supplied in."""
-    from rocketpy import GenericSurface
-
     wind = GenericSurface(
         reference_area=0.01,
         reference_length=0.1,
@@ -196,8 +192,6 @@ def test_wind_and_body_input_agree_at_zero_angle():
 def test_mixed_frame_input_raises():
     """Supplying both wind and body force coefficients without declaring the
     frame is rejected."""
-    from rocketpy import GenericSurface
-
     with pytest.raises(ValueError, match="[Mm]ixed"):
         GenericSurface(
             reference_area=0.01,

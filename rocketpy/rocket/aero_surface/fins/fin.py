@@ -7,7 +7,8 @@ from rocketpy.rocket.aero_surface._helpers import _wind_axes
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
-class Fin(_BaseFin):
+# Still abstract: each fin shape class provides the center of pressure
+class Fin(_BaseFin):  # pylint: disable=abstract-method
     """Abstract class that holds common methods for the individual fin classes.
     Cannot be instantiated.
 

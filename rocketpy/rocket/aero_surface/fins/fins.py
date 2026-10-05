@@ -1,9 +1,8 @@
-import numpy as np
-
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
-class Fins(_BaseFin):
+# Still abstract: each fin shape class provides the center of pressure
+class Fins(_BaseFin):  # pylint: disable=abstract-method
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 

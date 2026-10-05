@@ -198,7 +198,7 @@ class AirBrakes(ControllableGenericSurface):
         self.info()
         self.plots.drag_coefficient_curve()
 
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+    def to_dict(self, include_outputs=False, **kwargs):  # pylint: disable=unused-argument
         return {
             "drag_coefficient_curve": self.drag_coefficient,
             "reference_area": self.reference_area,
