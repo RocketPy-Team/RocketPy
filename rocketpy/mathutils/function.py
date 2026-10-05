@@ -552,9 +552,9 @@ class Function:  # pylint: disable=too-many-public-methods
                     case 0:  # linear
                         if self.__dom_dim__ == 1:
 
-                            def natural_extrapolation(
+                            def natural_extrapolation(  # pylint: disable=unused-argument
                                 x, x_min, x_max, x_data, y_data, coeffs
-                            ):  # pylint: disable=unused-argument
+                            ):
                                 x_interval = 1 if x < x_min else -1
                                 x_left = x_data[x_interval - 1]
                                 y_left = y_data[x_interval - 1]

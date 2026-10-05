@@ -31,7 +31,7 @@ def descent_row(t, fill=None):
     return [float(t), *state]
 
 
-def stub_derivative(_flight, t, u, post_processing=False):
+def stub_derivative(flight, t, u, post_processing=False):  # pylint: disable=unused-argument
     """Stand-in equations of motion. These tests store rows, never integrate."""
     return [t] if post_processing else list(u)
 
@@ -784,7 +784,7 @@ def test_value_at_unknown_state_raises():
 # ---------------------------------------------------------------------------
 
 
-def replay_derivative(_flight, t, u, post_processing=False):
+def replay_derivative(flight, t, u, post_processing=False):  # pylint: disable=unused-argument
     """Report values that say which row they came from, so replay is visible."""
     return [t, 2 * t, 3 * t] if post_processing else list(u)
 
@@ -797,7 +797,7 @@ REPLAY_DYNAMICS = _PhaseDynamics(
 )
 
 
-def replay_thrust_derivative(_flight, t, u, post_processing=False):
+def replay_thrust_derivative(flight, t, u, post_processing=False):  # pylint: disable=unused-argument
     """Like :func:`replay_derivative`, for a phase that also reports thrust."""
     return [t, 2 * t, 3 * t, 100.0] if post_processing else list(u)
 

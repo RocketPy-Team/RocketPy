@@ -119,7 +119,7 @@ def heading_to_canonical(values):
     return [values[name] for name in CANONICAL_STATE_NAMES]
 
 
-def heading_to_canonical_dot(_values, values_dot):
+def heading_to_canonical_dot(values, values_dot):  # pylint: disable=unused-argument
     result = [0.0] * 13
     for name, value in values_dot.items():
         if name in CANONICAL_STATE_NAMES:
@@ -206,7 +206,7 @@ def test_bound_dynamics_post_process_at_returns_reported_variables():
 def test_bound_dynamics_forwards_phase_arguments():
     """A phase argument fixed at bind time reaches both call paths."""
 
-    def with_extra(flight, t, _u, post_processing=False, *, parachute):
+    def with_extra(flight, t, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
         flight.calls.append((t, post_processing, parachute))
         return [parachute]
 
@@ -239,7 +239,7 @@ def test_bound_dynamics_default_initial_state():
 
 
 def test_bound_dynamics_custom_initial_state():
-    def seed(_flight, _t, canonical_state):
+    def seed(flight, t, canonical_state):  # pylint: disable=unused-argument
         return [canonical_state[2]]  # only altitude
 
     dynamics = _PhaseDynamics(

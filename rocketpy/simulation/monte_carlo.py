@@ -368,8 +368,7 @@ class MonteCarlo:
                 sim_monitor.print_final_status()
 
             # Handle error from the main process
-            # pylint: disable=broad-except
-            except (Exception, KeyboardInterrupt) as error:
+            except (Exception, KeyboardInterrupt) as error:  # pylint: disable=broad-exception-caught
                 simulation_error_event.set()
 
                 for sim_producer in processes:

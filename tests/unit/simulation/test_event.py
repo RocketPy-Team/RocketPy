@@ -843,8 +843,9 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
     genuinely coincides with a check.
     """
     # imported here only to keep Flight out of this module's import graph
-    # pylint: disable-next=import-outside-toplevel
-    from rocketpy.simulation.flight import Flight
+    from rocketpy.simulation.flight import (  # pylint: disable=import-outside-toplevel
+        Flight,
+    )
 
     checked = []
 

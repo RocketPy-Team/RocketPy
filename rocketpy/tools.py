@@ -1290,8 +1290,7 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
             for i in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                # pylint: disable=broad-except
-                except Exception as e:  # pragma: no cover
+                except Exception as e:  # pylint: disable=broad-exception-caught  # pragma: no cover
                     if i == max_attempts - 1:
                         raise e from None
                     delay = min(delay * 2, max_delay)
