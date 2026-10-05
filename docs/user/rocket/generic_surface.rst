@@ -1240,10 +1240,38 @@ lowers the base drag). To capture this, build two surfaces, set each one's
 ``active_during`` to ``"power_on"`` and ``"power_off"``, and pass them as a list;
 each then produces force only during its phase.
 
+Which drag is used
+~~~~~~~~~~~~~~~~~~
+
+The drag of a rocket in flight is the sum of two things:
+
+- **The rocket's own drag curves**, ``power_on_drag`` before burnout and
+  ``power_off_drag`` after it. They are always used.
+- **The axial force of every surface**, which is added on top. The predefined
+  surfaces (nose cone, fins, tail) have no axial coefficient, so they add no
+  drag. A generic surface adds drag only if it is given a ``cA`` (or ``cD``)
+  coefficient.
+
+A full-vehicle surface follows the same rule, since it is an ordinary generic
+surface. What changes is the ``overwrite`` argument:
+
+- ``overwrite=False`` (default): the surface is added to what the rocket
+  already has. Its forces, drag included, add to the rocket's drag curves and
+  to the other surfaces.
+- ``overwrite=True``: every surface already on the rocket is removed and both
+  drag curves are set to zero, so the new surface is the only source of
+  aerodynamic forces.
+
+.. warning::
+   If your full-vehicle data already includes drag, use ``overwrite=True``, or
+   build the rocket with ``power_on_drag=0`` and ``power_off_drag=0``.
+   Otherwise the drag is counted twice: once from the rocket's curves and once
+   from the surface.
+
 Extracting a rocket's coefficients
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can also collapses an assembled rocket into a single
+You can also collapse an assembled rocket into a single
 stability-derivative model about its center of dry mass:
 
 - :meth:`rocketpy.Rocket.to_coefficients` returns the coefficient curves as a
