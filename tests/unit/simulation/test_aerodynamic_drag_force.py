@@ -141,7 +141,8 @@ def test_axial_drag_follows_the_air_moving_along_the_axis(angle_deg, equations):
         ),
         position=-0.5,
     )
-    flight = SimpleNamespace(env=env, rocket=rocket)  # all the derivative reads
+    # all the derivative reads
+    flight = SimpleNamespace(env=env, rocket=rocket, _surface_switches={})
     speed, angle = 80.0, np.radians(angle_deg)
     upright = [1.0, 0.0, 0.0, 0.0]  # the body axis is the inertial z axis
     velocity = [speed * np.sin(angle), 0.0, speed * np.cos(angle)]
@@ -190,7 +191,8 @@ def test_3dof_drag_acts_against_the_velocity(velocity):
         ),
         position=0,
     )
-    flight = SimpleNamespace(env=env, rocket=rocket)  # all the derivative reads
+    # all the derivative reads
+    flight = SimpleNamespace(env=env, rocket=rocket, _surface_switches={})
     upright = [1.0, 0.0, 0.0, 0.0]
     state = [0.0, 0.0, 1000.0, *velocity, *upright, 0.0, 0.0, 0.0]
 

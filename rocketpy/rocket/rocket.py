@@ -1052,7 +1052,9 @@ class Rocket:
 
         A surface active during only one motor phase (its ``active_during``)
         is counted only when that phase is the rocket's ``stability_phase``
-        (``"power_off"`` by default); a warning says so when one is left out.
+        (``"power_off"`` by default), and a surface that starts the flight
+        switched off (``active=False``) is not counted. A warning says so when
+        one is left out.
 
         Returns
         -------
@@ -1068,15 +1070,18 @@ class Rocket:
         self._total_side_coeff_der.set_source(lambda mach: 0)
         self._aerodynamic_center_yaw.set_source(lambda mach: 0)
 
-        # Surfaces active only in the other motor phase are left out. This
-        # method runs once per configuration, so the notice is shown once.
+        # Surfaces active only in the other motor phase, or switched off, are
+        # left out. This method runs once per configuration, so the notice is
+        # shown once.
         surfaces = stability_surfaces(self)
         if len(surfaces) != len(self.aerodynamic_surfaces):
             warnings.warn(
                 "The aerodynamic center, the margins and the lumped coefficients "
                 f"describe the rocket during '{self.stability_phase}': surfaces "
-                "active only in the other motor phase are left out. Set "
-                "`rocket.stability_phase` to 'power_on' or 'power_off' to choose.",
+                "active only in the other motor phase, or that start the flight "
+                "switched off (`active=False`), are left out. Set "
+                "`rocket.stability_phase` to 'power_on' or 'power_off' to choose "
+                "the phase.",
                 stacklevel=2,
             )
 

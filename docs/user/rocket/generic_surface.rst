@@ -238,6 +238,7 @@ it a reference area and length, the coefficients, and a few optional settings:
       extrapolation="constant",
       force_convention="body",
       active_during="always",
+      active=True,
    )
 
 Constructor parameters
@@ -272,8 +273,11 @@ Constructor parameters
 - ``force_convention`` (str, optional): the frame the force coefficients are
   given in, ``"body"`` or ``"wind"``. Default ``None`` (inferred from the
   coefficient names).
-- ``active_during`` (str or callable, optional): when the surface produces
-  aerodynamic force during the flight. Default ``"always"``. See
+- ``active_during`` (str, optional): the motor phase the surface produces
+  aerodynamic force in: ``"always"``, ``"power_on"`` or ``"power_off"``.
+  Default ``"always"``. See :ref:`active_during`.
+- ``active`` (bool, optional): whether the surface starts the flight switched
+  on. Default ``True``. An event can switch it on or off during the flight. See
   :ref:`active_during`.
 
 Coefficients
@@ -1137,18 +1141,19 @@ an extreme condition beyond your data.
 Activation Window
 -----------------
 
-By default a surface produces aerodynamic force throughout the flight. The
-``active_during`` argument restricts it to part of the flight. This is useful
-for a surface that only exists (or only matters) during a phase. It is accepted
-by both :class:`rocketpy.GenericSurface` and
-:class:`rocketpy.LinearGenericSurface`, and accepts:
+By default a surface produces aerodynamic force throughout the flight. There
+are two ways to restrict it to part of the flight. Both are accepted by
+:class:`rocketpy.GenericSurface`, :class:`rocketpy.LinearGenericSurface` and
+:class:`rocketpy.ControllableGenericSurface`.
+
+By motor phase
+~~~~~~~~~~~~~~
+
+The ``active_during`` argument ties the surface to the motor burn. It accepts:
 
 - ``"always"`` (default): the surface always contributes force.
 - ``"power_on"``: only while the motor is burning (up to burnout).
 - ``"power_off"``: only after the motor has burned out.
-- a callable ``active_during(t, flight)`` returning ``True`` when the surface is
-  active at time ``t`` (in seconds) of the given :class:`rocketpy.Flight`, for
-  any custom window.
 
 .. code-block:: python
 
@@ -1164,12 +1169,38 @@ This is also how a full-vehicle model captures the powered/coasting drag
 difference: build one ``"power_on"`` and one ``"power_off"`` surface and add them
 together (see :ref:`fullbodyaerodynamics`).
 
-The flight switches such surfaces on and off by time. The stability analysis
-(``aerodynamic_center``, the margins, the dynamic stability numbers) describes
-one phase at a time: the coasting rocket by default, or the powered one after
-``rocket.stability_phase = "power_on"``. A warning says so whenever a surface is
-left out. :meth:`rocketpy.Rocket.to_coefficients` lumps each phase with its own
-surfaces regardless of that setting.
+At any other moment, with an event
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To switch a surface on or off at any other moment, such as apogee, a given
+altitude or a sensor reading, use an :class:`rocketpy.Event`. Its callback
+switches the surface with one of two commands:
+
+- ``context.event.commands.deactivate_surface(surface)``: the surface stops
+  producing force from that moment on.
+- ``context.event.commands.activate_surface(surface)``: the surface starts
+  producing force from that moment on.
+
+For example, to switch a surface off at apogee:
+
+.. code-block:: python
+
+   def switch_off(context):
+       context.event.commands.deactivate_surface(my_surface)
+
+   switch_event = Event(
+      callback=switch_off,
+      trigger=lambda context: context.state.vz < 0,
+      trigger_only_once=True,
+   )
+
+   flight = Flight(..., custom_events=[switch_event])
+
+A surface that only appears later in the flight is built with ``active=False``,
+so that it starts the flight switched off, and an event switches it on with
+``activate_surface``.
+
+See :ref:`eventusage` for how to write the trigger of an event.
 
 
 .. _fullbodyaerodynamics:

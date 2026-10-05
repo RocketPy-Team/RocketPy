@@ -780,6 +780,7 @@ Available commands include:
 - ``event.commands.set_dynamics(dynamics, **phase_kwargs)``: Fly the rest of the flight with a different set of equations of motion.
 - ``event.commands.start_flight_phase(phase_name=None, lag=0)``: Start a new flight phase.
 - ``event.commands.terminate_flight()``: Request to end the flight simulation immediately after the current step.
+- ``event.commands.activate_surface(surface) / deactivate_surface(surface)``: Make an aerodynamic surface start or stop producing force.
 
 **event.commands.disable() / enable()**
   Disable or re-enable the event that is currently running. This is useful for
@@ -1071,6 +1072,32 @@ Available commands include:
         log = stop_event.callback_log[-1]
         print(f"Trigger time: {log['trigger_time']:.4f} s")
         print(f"Flight time reported by callback: {log['flight_time']:.4f} s")
+
+**event.commands.activate_surface(surface) / deactivate_surface(surface)**
+  Make an aerodynamic surface start or stop producing force from this moment
+  on. Use it for a part of the rocket that appears or disappears during the
+  flight. The surface must already be one of the rocket's aerodynamic surfaces. A surface that should
+  only appear later is built with ``active=False``, so that it starts the
+  flight switched off.
+
+  The switch lasts for the rest of this flight only. The surface itself is not
+  modified, so another flight of the same rocket starts from its ``active``
+  setting again.
+
+  .. code-block:: python
+
+    def switch_off(context):
+        context.event.commands.deactivate_surface(my_surface)
+
+    switch_event = Event(
+        callback=switch_off,
+        trigger=lambda context: context.state.vz < 0,  # past apogee
+        trigger_only_once=True,
+        name="Switch surface off",
+    )
+
+  .. seealso::
+    See :ref:`active_during` for a complete example.
 
 See also
 --------

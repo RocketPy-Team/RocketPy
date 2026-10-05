@@ -1491,6 +1491,21 @@ def test_closed_form_damping_follows_the_stability_phase():
         assert expected == pytest.approx(0.5 * rocket.area * arm_sum)
 
 
+def test_a_surface_that_starts_switched_off_is_left_out_of_the_stability_sum():
+    """It is not part of the rocket until an event switches it on."""
+    area, length = math.pi * 0.0635**2, 0.127
+    coefficients = {"cN_alpha": 2.0, "cY_beta": -2.0}
+    switched_off = LinearGenericSurface(area, length, coefficients, active=False)
+    switched_on = LinearGenericSurface(area, length, coefficients)
+
+    without = stability_surfaces(_rocket_with(switched_off, -0.8))
+    with_it = stability_surfaces(_rocket_with(switched_on, -0.8))
+
+    assert switched_off not in [surface for surface, _ in without]
+    assert switched_on in [surface for surface, _ in with_it]
+    assert len(with_it) == len(without) + 1
+
+
 def _oscillator_rocket():
     """A rocket of built-in surfaces with a generic surface that adds nothing."""
     nothing = LinearGenericSurface(math.pi * 0.0635**2, 0.127, {})

@@ -19,7 +19,6 @@ from rocketpy.rocket.aero_surface.aero_coefficient import (
     AeroCoefficient,
     build_independent_vars,
 )
-from rocketpy.tools import from_hex_decode, to_hex_encode
 
 
 class GenericSurface:
@@ -54,11 +53,10 @@ class GenericSurface:
         y coordinate of ``cp``, in meters.
     GenericSurface.cpz : float
         z coordinate of ``cp``, in meters.
-    GenericSurface.active_during : str or callable
-        When the surface produces force, as given.
-    GenericSurface.is_active : callable
-        ``is_active(t, flight)``: whether the surface produces force at time
-        ``t`` of the flight.
+    GenericSurface.active_during : str
+        The motor phase the surface produces force in, as given.
+    GenericSurface.active : bool
+        Whether the surface starts each flight switched on.
     GenericSurface.force_convention : str
         Frame the force coefficients were given in: ``"body"`` or ``"wind"``.
     GenericSurface.independent_vars : list of str
@@ -154,6 +152,7 @@ class GenericSurface:
         extrapolation=None,
         force_convention=None,
         active_during="always",
+        active=True,
     ):
         """Create an aerodynamic surface from its aerodynamic coefficients.
 
@@ -279,19 +278,26 @@ class GenericSurface:
             default) picks the frame from the coefficient names. Whichever
             frame you use, the body-frame and wind-frame coefficients are all
             available as attributes afterwards.
-        active_during : str or callable, optional
-            When this surface produces aerodynamic force during a simulation.
-            Use it to model a surface that is only present in part of the flight,
-            such as jet vanes that only work while the motor burns, or a base
-            drag that only appears after burnout. Accepts:
+        active_during : str, optional
+            The motor phase this surface produces aerodynamic force in. Use it
+            to model a surface that only matters in part of the flight, such as
+            jet vanes that only work while the motor burns, or a base drag that
+            only appears after burnout. Accepts:
 
             - ``"always"`` (default): the surface always contributes force.
             - ``"power_on"``: only while the motor is burning (up to the motor's
               burn-out time).
             - ``"power_off"``: only after the motor has burned out.
-            - a function ``active_during(t, flight)`` returning ``True`` when
-              the surface is active at time ``t`` (in seconds) of the given
-              :class:`Flight`. Use this for any custom window.
+
+            To switch a surface on or off at any other moment, such as apogee,
+            use an event: see ``active`` below.
+        active : bool, optional
+            Whether the surface starts each flight switched on. Default is
+            ``True``. Use ``False`` for a surface that only appears later in
+            the flight, and switch it on from an event with
+            ``context.event.commands.activate_surface(surface)``. A surface
+            that is on from the start is switched off the same way, with
+            ``deactivate_surface``.
 
         Raises
         ------
@@ -324,8 +330,8 @@ class GenericSurface:
         )
         self._set_center_of_pressure(center_of_pressure)
         self.name = name
-        self.active_during = active_during
-        self.is_active = self._activation_check(active_during)
+        self.active_during = self._validate_active_during(active_during)
+        self.active = bool(active)
 
         self._rotation_surface_to_body = self._default_surface_rotation()
 
@@ -396,27 +402,43 @@ class GenericSurface:
         self.cpx, self.cpy, self.cpz = x, y, 0.0 if xcp else z
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    @staticmethod
-    def _activation_check(active_during):
-        """Turn an ``active_during`` policy into the ``is_active(t, flight)``
-        function the flight calls every step to skip inactive surfaces.
+    def is_active(self, t, flight):
+        """Return whether the surface produces force at time ``t`` of a flight.
 
-        A callable is used as it is; ``"always"``, ``"power_on"`` and
-        ``"power_off"`` become small functions of the time ``t`` (s) and the
-        ``flight``. Anything else raises a ``ValueError``, so a typo is caught
-        when the surface is built instead of leaving it active.
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+        flight : Flight
+            The flight being simulated.
+
+        Returns
+        -------
+        bool
+            ``False`` outside the motor phase given by ``active_during``.
+            Otherwise the last switch an event of this flight made up to ``t``,
+            or the surface's own ``active`` setting when there is none.
         """
-        if callable(active_during):
+        if self.active_during != "always":
+            powered = t < flight.rocket.motor.burn_out_time
+            if powered != (self.active_during == "power_on"):
+                return False
+        for time, active in reversed(flight._surface_switches.get(self, ())):
+            if t >= time:
+                return active
+        return self.active
+
+    @staticmethod
+    def _validate_active_during(active_during):
+        """Return ``active_during`` if it is one of the accepted values, so a
+        typo is caught when the surface is built instead of leaving it active."""
+        if active_during in ("always", "power_on", "power_off"):
             return active_during
-        if active_during == "always":
-            return lambda t, flight: True
-        if active_during == "power_on":
-            return lambda t, flight: t < flight.rocket.motor.burn_out_time
-        if active_during == "power_off":
-            return lambda t, flight: t >= flight.rocket.motor.burn_out_time
         raise ValueError(
-            "`active_during` must be one of 'always', 'power_on', 'power_off' "
-            f"or a callable(t, flight) -> bool; got {active_during!r}."
+            "`active_during` must be one of 'always', 'power_on' or "
+            f"'power_off'; got {active_during!r}. To switch a surface on or off "
+            "at another moment of the flight, use an event with the "
+            "`activate_surface` and `deactivate_surface` commands."
         )
 
     @property
@@ -1164,13 +1186,6 @@ class GenericSurface:
     def _arguments_from_dict(cls, data):
         """The constructor arguments stored by :meth:`to_dict`. Subclasses extend
         it with their own arguments."""
-        # A pickled function is restored, or "always" if that is not possible
-        active_during = data.get("active_during", "always")
-        if active_during not in ("always", "power_on", "power_off"):
-            try:
-                active_during = from_hex_decode(active_during)
-            except (TypeError, ValueError):
-                active_during = "always"
         arguments = {
             "reference_area": data["reference_area"],
             "reference_length": data["reference_length"],
@@ -1179,7 +1194,8 @@ class GenericSurface:
             "name": data.get("name", "Generic Surface"),
             "reynolds_length": data.get("reynolds_length"),
             "force_convention": data.get("force_convention", "body"),
-            "active_during": active_during,
+            "active_during": data.get("active_during", "always"),
+            "active": data.get("active", True),
         }
         return arguments
 
@@ -1196,23 +1212,14 @@ class GenericSurface:
             Not used: a surface has no results to save. It is accepted so that
             every RocketPy object is saved the same way. Default False.
         **kwargs
-            ``allow_pickle`` (bool, default True): whether a custom
-            ``active_during`` function may be saved as pickled text. When it is
-            not allowed, the surface is saved as active ``"always"``.
+            Not used. Accepted so that every RocketPy object is saved the same
+            way.
 
         Returns
         -------
         dict
             The arguments needed to rebuild the surface with :meth:`from_dict`.
         """
-        # A function can only be saved by pickling it
-        active_during = self.active_during
-        if callable(active_during):
-            active_during = (
-                to_hex_encode(active_during)
-                if kwargs.get("allow_pickle", True)
-                else "always"
-            )
         x, y, z = self.center_of_pressure
         return {
             "reference_area": self.reference_area,
@@ -1223,7 +1230,8 @@ class GenericSurface:
             "center_of_pressure": (x, y, self._xcp or z),
             "name": self.name,
             "force_convention": self.force_convention,
-            "active_during": active_during,
+            "active_during": self.active_during,
+            "active": self.active,
         }
 
     @classmethod

@@ -84,11 +84,10 @@ class ControllableGenericSurface(GenericSurface):
         y coordinate of ``cp``, in meters.
     ControllableGenericSurface.cpz : float
         z coordinate of ``cp``, in meters.
-    ControllableGenericSurface.active_during : str or callable
-        When the surface produces force, as given.
-    ControllableGenericSurface.is_active : callable
-        ``is_active(t, flight)``: whether the surface produces force at time
-        ``t`` of the flight.
+    ControllableGenericSurface.active_during : str
+        The motor phase the surface produces force in, as given.
+    ControllableGenericSurface.active : bool
+        Whether the surface starts each flight switched on.
     ControllableGenericSurface.force_convention : str
         Frame the force coefficients were given in: ``"body"`` or ``"wind"``.
     ControllableGenericSurface.independent_vars : list of str
@@ -144,6 +143,7 @@ class ControllableGenericSurface(GenericSurface):
         interpolation=None,
         active_during="always",
         force_convention=None,
+        active=True,
     ):
         """Create an aerodynamic surface whose coefficients also depend on
         controls, such as a canard deflection.
@@ -218,16 +218,22 @@ class ControllableGenericSurface(GenericSurface):
             or a dict keyed by coefficient name. ``None`` (the default) uses
             ``"linear"`` for tables built here and leaves a pre-built
             :class:`Function` unchanged.
-        active_during : str or callable, optional
-            When this surface produces force during a simulation: ``"always"``
+        active_during : str, optional
+            The motor phase this surface produces force in: ``"always"``
             (default), ``"power_on"`` (only while the motor burns, e.g. jet
-            vanes), ``"power_off"`` (only after burnout), or a function
-            ``active_during(t, flight)`` returning ``True`` when the surface is
-            active at time ``t`` (in seconds).
+            vanes) or ``"power_off"`` (only after burnout). To switch a surface
+            on or off at any other moment, use an event: see ``active`` below.
         force_convention : str, optional
             The frame the force coefficients are given in: ``"body"`` for
             ``cN``/``cY``/``cA`` or ``"wind"`` for ``cL``/``cQ``/``cD``. ``None``
             (the default) works it out from the names.
+        active : bool, optional
+            Whether the surface starts each flight switched on. Default is
+            ``True``. Use ``False`` for a surface that only appears later in
+            the flight, and switch it on from an event with
+            ``context.event.commands.activate_surface(surface)``. A surface
+            that is on from the start is switched off the same way, with
+            ``deactivate_surface``.
 
         Raises
         ------
@@ -260,6 +266,7 @@ class ControllableGenericSurface(GenericSurface):
             interpolation=interpolation,
             force_convention=force_convention,
             active_during=active_during,
+            active=active,
         )
         # ``self.prints``/``self.plots`` are the generic ones wired by the base.
 

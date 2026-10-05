@@ -797,6 +797,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.u_dot_parachute = PARACHUTE_DYNAMICS.bind(self)
         self.udot_rail1 = RAIL_DYNAMICS.bind(self)
         self.udot_rail2 = self.u_dot_generalized
+        
+        # The switches events make during the flight: surface -> [(time, active)]
+        self._surface_switches = {}
 
         normalized_simulation_mode = "".join(self.simulation_mode.split()).upper()
         if normalized_simulation_mode == "3DOF":

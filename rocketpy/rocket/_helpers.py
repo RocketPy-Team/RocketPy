@@ -28,9 +28,8 @@ def stability_surfaces(rocket, phase=None):
     during ``phase`` (``"power_on"`` or ``"power_off"``; the rocket's
     ``stability_phase`` when ``None``), as ``(surface, position)`` pairs.
 
-    A surface is left out only when its ``active_during`` names the other
-    phase. One with a custom activation window cannot be evaluated without
-    a flight, so it is kept.
+    A surface is left out when its ``active_during`` names the other phase,
+    or when it starts the flight switched off (``active=False``).
     """
     phase = rocket.stability_phase if phase is None else phase
     if phase not in ("power_on", "power_off"):
@@ -42,6 +41,7 @@ def stability_surfaces(rocket, phase=None):
         (surface, position)
         for surface, position in rocket.aerodynamic_surfaces
         if getattr(surface, "active_during", "always") != other
+        and getattr(surface, "active", True)
     ]
 
 

@@ -164,8 +164,8 @@ class Event:
             Set to ``True`` when the callback changes anything that affects the
             equations of motion. This includes changing an attribute of any
             simulation object, and using the ``set_dynamics``,
-            ``start_flight_phase``, or ``terminate_flight`` commands. Defaults to
-            ``False``.
+            ``start_flight_phase``, or ``terminate_flight`` commands.
+            Defaults to ``False``.
         name : str, optional
             Human-readable identifier used in logs and debugging. Defaults to
             ``"Custom Event"``.

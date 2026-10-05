@@ -72,11 +72,10 @@ class LinearGenericSurface(GenericSurface):
         y coordinate of ``cp``, in meters.
     LinearGenericSurface.cpz : float
         z coordinate of ``cp``, in meters.
-    LinearGenericSurface.active_during : str or callable
-        When the surface produces force, as given.
-    LinearGenericSurface.is_active : callable
-        ``is_active(t, flight)``: whether the surface produces force at time
-        ``t`` of the flight.
+    LinearGenericSurface.active_during : str
+        The motor phase the surface produces force in, as given.
+    LinearGenericSurface.active : bool
+        Whether the surface starts each flight switched on.
     LinearGenericSurface.force_convention : str
         Frame the force coefficients were given in: ``"body"`` or ``"wind"``.
     LinearGenericSurface.independent_vars : list of str
@@ -108,6 +107,7 @@ class LinearGenericSurface(GenericSurface):
         force_convention=None,
         active_during="always",
         axisymmetric=False,
+        active=True,
     ):
         """Create a linear aerodynamic surface from its coefficient derivatives.
 
@@ -238,15 +238,15 @@ class LinearGenericSurface(GenericSurface):
             ``cN_alpha = cL_alpha + cD_0``, ``cY_beta = cQ_beta - cD_0``,
             ``cA_alpha = cD_alpha - cL_0`` and ``cA_beta = cD_beta + cQ_0``. At
             zero angle this reduces to ``cN = cL``, ``cY = cQ``, ``cA = cD``.
-        active_during : str or callable, optional
-            When this surface produces aerodynamic force during a simulation:
+        active_during : str, optional
+            The motor phase this surface produces aerodynamic force in:
 
             - ``"always"`` (default): the surface always contributes force.
             - ``"power_on"``: only while the motor is burning.
             - ``"power_off"``: only after the motor has burned out.
-            - a function ``active_during(t, flight)`` returning ``True`` when
-              the surface is active at time ``t`` (in seconds) of the given
-              :class:`Flight`.
+
+            To switch a surface on or off at any other moment, such as apogee,
+            use an event: see ``active`` below.
         axisymmetric : bool, optional
             Set it to ``True`` when the data describes a rocket (or a part) that
             behaves the same in every plane through its axis, such as a rocket
@@ -265,6 +265,13 @@ class LinearGenericSurface(GenericSurface):
 
             Default is ``False``: the two planes are used as given, and a plane
             without derivatives produces no force.
+        active : bool, optional
+            Whether the surface starts each flight switched on. Default is
+            ``True``. Use ``False`` for a surface that only appears later in
+            the flight, and switch it on from an event with
+            ``context.event.commands.activate_surface(surface)``. A surface
+            that is on from the start is switched off the same way, with
+            ``deactivate_surface``.
 
         Raises
         ------
@@ -296,6 +303,7 @@ class LinearGenericSurface(GenericSurface):
             interpolation=interpolation,
             force_convention=force_convention,
             active_during=active_during,
+            active=active,
         )
 
         self.compute_all_coefficients()

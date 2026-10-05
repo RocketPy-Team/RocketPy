@@ -363,32 +363,34 @@ def test_reynolds_uses_reynolds_length_not_reference_length():
     assert reynolds_seen != pytest.approx(rho_atm * speed * ref_length / mu)
 
 
-def _fake_flight(burn_out_time):
-    """Minimal stand-in exposing only what ``is_active`` reads
-    (``flight.rocket.motor.burn_out_time``), so no real Flight is built."""
-    return SimpleNamespace(
-        rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=burn_out_time))
+def _active_at(surface, t, burn_out_time=3.0):
+    """Whether ``surface`` produces force at time ``t`` of a flight whose motor
+    burns out at ``burn_out_time``. Uses a stand-in flight exposing only what
+    ``is_active`` reads, so no real Flight is built."""
+    flight = SimpleNamespace(
+        rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=burn_out_time)),
+        _surface_switches={},
     )
+    return surface.is_active(t, flight)
 
 
 def test_active_during_defaults_to_always():
-    """By default a surface is active at every time."""
+    """By default a surface is switched on and active at every time."""
     gs = GenericSurface(REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1})
-    flight = _fake_flight(burn_out_time=3.0)
     assert gs.active_during == "always"
-    assert gs.is_active(0.0, flight) is True
-    assert gs.is_active(5.0, flight) is True
+    assert gs.active is True
+    assert _active_at(gs, 0.0) is True
+    assert _active_at(gs, 5.0) is True
 
 
 def test_active_during_power_on_gates_at_burnout():
-    """A power-on surface is active up to (not including) burnout."""
+    """A power-on surface is active only before burnout."""
     gs = GenericSurface(
         REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1}, active_during="power_on"
     )
-    flight = _fake_flight(burn_out_time=3.0)
-    assert gs.is_active(2.999, flight) is True
-    assert gs.is_active(3.0, flight) is False
-    assert gs.is_active(4.0, flight) is False
+    assert _active_at(gs, 2.999) is True
+    assert _active_at(gs, 3.0) is False
+    assert _active_at(gs, 4.0) is False
 
 
 def test_active_during_power_off_gates_at_burnout():
@@ -396,31 +398,28 @@ def test_active_during_power_off_gates_at_burnout():
     gs = GenericSurface(
         REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1}, active_during="power_off"
     )
-    flight = _fake_flight(burn_out_time=3.0)
-    assert gs.is_active(2.999, flight) is False
-    assert gs.is_active(3.0, flight) is True
-    assert gs.is_active(4.0, flight) is True
+    assert _active_at(gs, 2.999) is False
+    assert _active_at(gs, 3.0) is True
+    assert _active_at(gs, 4.0) is True
 
 
-def test_active_during_accepts_callable():
-    """A custom predicate receives (t, flight) and drives activation."""
-    seen = []
+def test_a_surface_built_switched_off_produces_no_force():
+    """``active=False`` keeps the surface out until an event switches it on."""
+    gs = GenericSurface(REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1}, active=False)
+    assert gs.active is False
+    assert _active_at(gs, 0.0) is False
+    assert _active_at(gs, 5.0) is False
 
-    def only_after_one_second(t, flight):
-        seen.append((t, flight))
-        return t > 1.0
 
-    gs = GenericSurface(
-        REFERENCE_AREA,
-        REFERENCE_LENGTH,
-        {"cN": 1},
-        active_during=only_after_one_second,
-    )
-    flight = _fake_flight(burn_out_time=3.0)
-    assert gs.is_active(0.5, flight) is False
-    assert gs.is_active(2.0, flight) is True
-    # The predicate was called with the time and the flight object.
-    assert seen[0] == (0.5, flight)
+def test_active_during_no_longer_accepts_a_function():
+    """Switching at any other moment is done by an event, and the error says so."""
+    with pytest.raises(ValueError, match="activate_surface"):
+        GenericSurface(
+            REFERENCE_AREA,
+            REFERENCE_LENGTH,
+            {"cN": 1},
+            active_during=lambda t, flight: t > 1.0,
+        )
 
 
 def test_active_during_invalid_value_raises():
@@ -436,13 +435,14 @@ def test_active_during_invalid_value_raises():
 
 def test_generic_surface_round_trips_through_encoder():
     """A GenericSurface survives the full .rpy encode/decode: coefficients,
-    reynolds_length and a custom activation function are all restored."""
+    reynolds_length and whether it starts switched on are all restored."""
     gs = GenericSurface(
         reference_area=1.0,
         reference_length=0.2,
         coefficients={"cN": lambda mach: 2 * mach, "cm": 0.1},
         reynolds_length=4.0,
-        active_during=lambda t, flight: t < 3.0,
+        active_during="power_off",
+        active=False,
     )
     restored = _rpy_round_trip(gs)
 
@@ -450,8 +450,8 @@ def test_generic_surface_round_trips_through_encoder():
     assert restored.reynolds_length == 4.0
     assert restored.cN(0, 0, 0.5, 0, 0, 0, 0) == pytest.approx(1.0)
     assert restored.cm(0, 0, 0, 0, 0, 0, 0) == pytest.approx(0.1)
-    assert restored.active_during(1.0, None) is True
-    assert restored.active_during(5.0, None) is False
+    assert restored.active_during == "power_off"
+    assert restored.active is False
 
 
 def test_linear_generic_surface_round_trips_through_encoder():
