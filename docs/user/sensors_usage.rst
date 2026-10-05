@@ -221,8 +221,8 @@ Using Sensors With a Controller (Air Brakes)
 The main motivation for simulating sensors is to feed their measurements into a
 controller, such as an air brakes system, exactly as the real avionics would.
 Inside a controller function, every sensor attached to the rocket is available
-through ``context["sensors"]`` (a list, in the order they were added)
-and through ``context["sensors_by_name"]`` (a dictionary keyed by the sensor
+through ``context.sensors`` (a list, in the order they were added)
+and through ``context.sensors_by_name`` (a dictionary keyed by the sensor
 ``name``).
 Each sensor exposes its *latest* reading via the ``measurement`` attribute.
 
@@ -233,23 +233,23 @@ brakes:
 .. jupyter-execute::
 
     def controller_function(context):
-        time = context["time"]
-        sampling_rate = context["sampling_rate"]
-        state = context["state"]
-        air_brakes = context["air_brakes"]
-        sensors = context["sensors"]
+        time = context.time
+        sampling_rate = context.sampling_rate
+        state = context.state  # the states, by name
+        air_brakes = context.controlled.air_brakes
+        sensors = context.sensors
 
         # Read the sensor measurement instead of the true state.
         # Sensors can also be retrieved by name, e.g.
-        # accelerometer = context["sensors_by_name"]["Accelerometer"]
+        # accelerometer = context.sensors_by_name["Accelerometer"]
         accelerometer = sensors[0]
 
         # Do not deploy while the motor is still burning (measured az > 0)
         if accelerometer.measurement[2] > 0:
             return None
 
-        altitude_AGL = context["height_agl"]
-        vz = state[5]
+        altitude_AGL = context.height_agl
+        vz = state.vz
 
         # Below 1500 m AGL, keep the air brakes closed
         if altitude_AGL < 1500:

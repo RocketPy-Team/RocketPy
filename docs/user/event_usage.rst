@@ -83,6 +83,8 @@ time nodes, see :doc:`../technical/simulation_loop`.
     rocket.add_motor(motor, position=-1.255)
 
 
+.. _eventcontext:
+
 Parameters for Callback and Trigger Functions
 ---------------------------------------------
 
@@ -91,43 +93,83 @@ At the most basic level, an event has two callables:
 - ``trigger(context)`` returns ``True`` when the event should fire.
 - ``callback(context)`` performs the requested action.
 
-The same ``context`` dictionary is passed to both callables. It holds the
-simulation state and objects at the moment of the check. Some of its values are
+The same ``context`` is passed to both callables. It holds the simulation state
+and objects at the moment of the check, each read as ``context.<name>``, for
+example ``context.time`` or ``context.state.vz``. Some of its values are
 only worked out when a function reads them, and are then kept for the rest of
 the solver step, so reading a value you do not use costs nothing.
 
-The following keys are available:
+.. tip::
+
+    To have your code editor list these names as you type, tell it what
+    ``context`` is:
+
+    .. code-block:: python
+
+        from rocketpy import EventContext
+
+        def trigger(context: EventContext):
+            return context.state.vz < 0
+
+The following values are available:
 
 **Simulation time and state:**
 
 - ``time`` (float): The current simulation time in seconds. For an event with
   an ``exact_time_function``, the callback receives the exact moment the event
   happened, and every other value below is given at that moment too.
-- ``state`` (list of float): The state vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``
-  where ``(x, y, z)`` is position, ``(vx, vy, vz)`` is velocity,
-  ``(e0, e1, e2, e3)`` are quaternion orientation components, and
-  ``(wx, wy, wz)`` is angular velocity.
+- ``state``: The rocket's states at this moment. Read one by its name:
+
+  - ``context.state.x``, ``.y``, ``.z``: position, in meters. ``x`` points
+    East, ``y`` points North and ``z`` is the altitude above sea level.
+  - ``context.state.vx``, ``.vy``, ``.vz``: velocity along the same
+    directions, in m/s. ``vz`` is positive while the rocket climbs.
+  - ``context.state.e0``, ``.e1``, ``.e2``, ``.e3``: the quaternion that
+    describes the rocket's orientation.
+  - ``context.state.w1``, ``.w2``, ``.w3``: angular velocity around the
+    rocket's own x, y and z axes, in rad/s.
+
+  These thirteen are available in every flight phase. They can also be read by
+  position, in the order above, so ``context.state[5]`` is the same number as
+  ``context.state.vz`` and ``context.state[3:6]`` is the velocity vector.
+
+  A flight phase may follow states of its own that are not among the thirteen.
+  Read those by name in the same way, while the flight is in that phase. For a
+  state the phase calls ``my_state``::
+
+      value = context.state.my_state
+
+  Asking for a name the current phase does not have raises an error that lists
+  the names it does have. ``context.state.names`` gives the same list.
+
+  For arithmetic on all thirteen values at once, use the plain array
+  ``context.state.values``.
 - ``height_agl`` (float): Height of the rocket above ground level
-  in meters, computed as ``state[2] - env.elevation``. Always present.
-- ``state_dot`` (list of float): The time derivative of state,
-  ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, wx_dot, wy_dot, wz_dot]``.
-  Worked out when first read, by evaluating the equations of motion once more.
-- ``phase_state_dot`` (dict): The time derivative of each entry in
-  ``phase_state``, under the same names. This is how fast the phase's own
-  states are changing, for example a parafoil's turn rate. Comes from the same
-  evaluation as ``state_dot``, so reading both costs no more than one.
+  in meters, computed as ``state.z - env.elevation``. Always present.
+- ``state_dot``: The derivative of each state with respect to time. The
+  thirteen standard ones are read by the same names as in
+  :class:`rocketpy.Flight`:
+
+  - ``context.state_dot.vx``, ``.vy``, ``.vz``: velocity, in m/s.
+  - ``context.state_dot.ax``, ``.ay``, ``.az``: acceleration, in m/s².
+  - ``context.state_dot.e0_dot``, ``.e1_dot``, ``.e2_dot``, ``.e3_dot``: time
+    derivative of the quaternion.
+  - ``context.state_dot.alpha1``, ``.alpha2``, ``.alpha3``: angular
+    acceleration around the rocket's own x, y and z axes, in rad/s².
+
+  The time derivative of a state a flight phase follows on its own is read by
+  that state's name followed by ``_dot``, so for a state the phase calls
+  ``my_state`` it is ``context.state_dot.my_state_dot``. Worked out when first
+  read, by evaluating the equations of motion once more.
 - ``pressure`` (float): Current atmospheric pressure in Pa at the rocket's
   altitude. Worked out when first read.
-- ``previous_state`` (list of float or ``None``): The ``state`` from the
-  previous time this same event was checked, or ``None`` on the first check.
-- ``previous_phase_state`` (dict or ``None``): The ``phase_state`` from that
-  same previous check, or ``None`` on the first check.
+- ``previous_state``: The ``state`` from the previous time this same event was
+  checked, or ``None`` on the first check. It is read like ``state``, as
+  ``context.previous_state.vz``.
 
-  It is also ``None`` on the first check after the flight enters a new phase.
-  The states a phase follows are only comparable within that phase, since the
-  next one may follow a different set, so a new phase starts a fresh sequence.
-  The canonical ``previous_state`` has no such break: every phase can report
-  the canonical states, so it carries straight through a phase change.
+  It keeps the names of the flight phase it was taken in. On the first check
+  after the flight enters a new phase, a state only the earlier phase followed
+  can still be read from it, while a state only the new phase follows cannot.
 - ``previous_time`` (float or ``None``): The ``time`` of that previous check,
   in seconds, or ``None`` on the first check.
 
@@ -136,12 +178,13 @@ The following keys are available:
   crossing cannot slip between them::
 
       def trigger(context):
-          previous = context["previous_state"]
+          previous = context.previous_state
           if previous is None:  # the first check has nothing to compare against
               return False
-          return previous[5] > 0 >= context["state"][5]  # vz turned negative
+          # vz turned negative
+          return previous.vz > 0 >= context.state.vz
 
-  Do not reach into ``context['flight'].solution`` for this. It holds the stored
+  Do not reach into ``context.flight.solution`` for this. It holds the stored
   trajectory points, which advance independently of when your event is checked,
   so a crossing can fall between two of them and never be seen. Use the flight
   solution when you want the trajectory itself, not the previous value this
@@ -157,18 +200,6 @@ The following keys are available:
   where the solver put its step boundaries, and the solver changes its step size
   throughout the flight. To measure how much time passed between two checks of
   your own event, subtract ``previous_time`` from ``time``.
-
-- ``phase_state`` (dict): The states the current flight phase actually
-  integrates, keyed by name. For every phase RocketPy ships this is the same
-  thirteen values as ``state``, but a phase is free to follow fewer, or to
-  carry states of its own that the canonical thirteen cannot hold, such as a
-  parafoil heading or an air brake position. Read those here::
-
-      heading = context["phase_state"]["heading"]
-
-  Prefer ``state`` for anything a phase always has, so your callback keeps
-  working when the flight switches to a different set of equations, and reach
-  for ``phase_state`` when you are controlling something specific to one phase.
 
 **Simulation objects:**
 
@@ -191,12 +222,23 @@ The following keys are available:
 - ``sampling_rate`` (float or None): The sampling rate of the event in Hz, or
   ``None`` for a continuous event.
 
+**Inside a controller function only:**
+
+- ``controller``: The controller being run. Its own dictionary, kept from one
+  run to the next, is ``context.controller.memory``.
+- ``controlled``: The objects the controller drives. Read one by the name it
+  was given, such as ``context.controlled.air_brakes``, or by its position,
+  such as ``context.controlled[0]``. Looping over ``context.controlled`` gives
+  all of them, in the order they were passed to the controller.
+
+Both are ``None`` in an event that is not a controller.
+
 **Keeping your own data:**
 
-- The event's own dictionary is ``context["event"].memory``. It is kept from
+- The event's own dictionary is ``context.event.memory``. It is kept from
   one check to the next, so keep counters, thresholds and anything shared
   between trigger and callback there.
-  Do not add keys to the ``context`` passed to your function: it is shared by
+  Do not add values to the ``context`` passed to your function: it is shared by
   every event checked in the same solver step.
 
 Understanding Event Parameters
@@ -207,7 +249,7 @@ practical examples and demonstrate proper activation.
 
 **callback** (required)
   The function that runs when the event triggers. It takes the ``context``
-  dictionary as its single argument, and all of its returns are saved on the ``callback_log`` list for later 
+  as its single argument, and all of its returns are saved on the ``callback_log`` list for later 
   inspection. The callback can also queue commands to modify the simulation
   state through the ``event.commands`` interface. Access to the
   ``event.memory`` dictionary is also possible, and allows the callback to
@@ -219,7 +261,7 @@ practical examples and demonstrate proper activation.
   .. jupyter-execute::
 
       def my_callback(context):
-          time = context["time"]
+          time = context.time
           return {"time": time}
 
       simple_event = Event(
@@ -268,7 +310,7 @@ practical examples and demonstrate proper activation.
 
       def simple_trigger(context):
           """Triggers when vertical velocity becomes large (enough)."""
-          return context["state"][5] > 50  # vz > 50 m/s
+          return context.state.vz > 50  # m/s
 
       def simple_callback(context):
           return {"status": "event triggered!"}
@@ -363,7 +405,7 @@ practical examples and demonstrate proper activation.
 **memory** (optional)
   The event's own dictionary, kept from one check to the next. Useful for
   counters, thresholds and data shared between trigger and callback. Read and
-  write it as ``context["event"].memory`` inside the trigger and callback. It
+  write it as ``context.event.memory`` inside the trigger and callback. It
   is restored to the values given here when the event is reset for a new
   flight.
 
@@ -374,9 +416,9 @@ practical examples and demonstrate proper activation.
   .. jupyter-execute::
 
       def counting_callback(context):
-          event = context["event"]
+          event = context.event
           event.memory["count"] += 1
-          event.memory["last_time"] = context["time"]
+          event.memory["last_time"] = context.time
           return None
 
       counter_event = Event(
@@ -436,7 +478,7 @@ practical examples and demonstrate proper activation.
     # Disable via custom condition
     def disable_above_altitude(context):
         # return True to disable when altitude above 1000m AGL
-        return context["height_agl"] > 700.0
+        return context.height_agl > 700.0
 
     altitude_gated = Event(
         callback=my_callback,
@@ -520,7 +562,7 @@ practical examples and demonstrate proper activation.
 
     # Re-enable via custom condition
     def enable_above_altitude(context):
-        return context["height_agl"] > 500.0
+        return context.height_agl > 500.0
 
     altitude_enabled = Event(
         callback=my_callback,
@@ -574,23 +616,22 @@ practical examples and demonstrate proper activation.
   **exact_time_function** receives the same ``context`` as ``trigger`` and
   returns a number that crosses zero at the event. RocketPy searches the last
   solver step for that crossing, working out the context again at each moment
-  it tries, so ``state``, ``height_agl``, ``phase_state`` and the rest are
-  always the values at that moment. Once the crossing is found, ``callback``
+  it tries, so ``state``, ``height_agl`` and the rest are always the values at
+  that moment. Once the crossing is found, ``callback``
   runs with the context of that exact moment. For example, to fire exactly when
   the rocket climbs through 500 m above ground level::
 
       def altitude(context):
-          return context["height_agl"] - 500
+          return context.height_agl - 500
 
-  An event about a state the canonical thirteen cannot hold, such as a
-  parafoil heading, reads it from ``phase_state`` in the same way::
+  An event about a state a flight phase follows on its own reads it from
+  ``state`` in the same way::
 
-      def heading_crosses_target(context):
-          return context["phase_state"]["heading"] - target_heading
+      def my_state_crosses_target(context):
+          return context.state.my_state - target_value
 
-  ``state_dot``, ``phase_state_dot`` and ``pressure`` are worked out at each
-  moment tried as well, if the function reads them, so each adds cost to every
-  step of the search.
+  ``state_dot`` and ``pressure`` are worked out at each moment tried as well,
+  if the function reads them, so each adds cost to every step of the search.
 
   Exact-time solving is only available for continuous events
   (``sampling_rate=None``). If no crossing is found, the event fires at the
@@ -638,12 +679,12 @@ practical examples and demonstrate proper activation.
 
       def altitude_trigger(context):
           """Check when altitude crosses the target value from below."""
-          target_altitude = context["event"].memory["target_altitude"]
-          return context["height_agl"] > target_altitude
+          target_altitude = context.event.memory["target_altitude"]
+          return context.height_agl > target_altitude
 
       def altitude_exact_time_function(context):
           """Return the altitude above ground level at the moment tried."""
-          return context["height_agl"]
+          return context.height_agl
 
       # Exact-time version, which finds the crossing inside the solver step
       exact_time_event = Event(
@@ -747,13 +788,13 @@ Available commands include:
   .. jupyter-execute::
 
     def disable_after_first_hit(context):
-        event = context["event"]
+        event = context.event
         event.commands.disable()
         return {"action": "disabled self"}
 
     disable_event = Event(
         callback=disable_after_first_hit,
-        trigger=lambda context: context["state"][5] > 20,
+        trigger=lambda context: context.state.vz > 20,
         name="Self-disabling event",
     )
 
@@ -781,24 +822,24 @@ Available commands include:
   .. jupyter-execute::
 
     def add_follow_up(context):
-        event = context["event"]
+        event = context.event
 
         def follow_up_callback(follow_up_context):
-            return f"Follow-up event fired at {follow_up_context['time']:.2f} s"
+            return f"Follow-up event fired at {follow_up_context.time:.2f} s"
 
         follow_up_event = Event(
             callback=follow_up_callback,
-            trigger=lambda event_context: event_context["time"] >= 8,
+            trigger=lambda event_context: event_context.time >= 8,
             name="Follow-up event",
             sampling_rate=10,
             trigger_only_once=True,
         )
         event.commands.add_event(follow_up_event)
-        return f"Added follow-up event at {context['time']:.2f} s"
+        return f"Added follow-up event at {context.time:.2f} s"
 
     add_event = Event(
         callback=add_follow_up,
-        trigger=lambda context: context["time"] > 2,
+        trigger=lambda context: context.time > 2,
         name="Event adder",
         trigger_only_once=True,
     )
@@ -856,21 +897,21 @@ Available commands include:
   .. jupyter-execute::
 
     def disable_other_event(context):
-        event = context["event"]
-        flight = context["flight"]
+        event = context.event
+        flight = context.flight
         target_event = flight.custom_events[0]  # Assuming the target event is the first one added to the flight.
         event.commands.disable_event(target_event)
         return {"action": f"disabled {target_event.name}"}
 
     target_event = Event(
-        callback=lambda context: f"Called at {context['time']:.2f} s",
+        callback=lambda context: f"Called at {context.time:.2f} s",
         name="Target event",
         sampling_rate=2,
     )
 
     disable_other = Event(
         callback=disable_other_event,
-        trigger=lambda context: context["time"]>= 2,
+        trigger=lambda context: context.time>= 2,
         name="Disabler",
         memory={"target_event": target_event},
         sampling_rate=10,
@@ -919,13 +960,13 @@ Available commands include:
     from rocketpy.simulation.helpers import THREE_DOF_DYNAMICS
 
     def switch_dynamics(context):
-        event = context["event"]
+        event = context.event
         event.commands.set_dynamics(THREE_DOF_DYNAMICS)
         return {"action": "switched to three degrees of freedom"}
 
     dynamics_event = Event(
         callback=switch_dynamics,
-        trigger=lambda context: context["time"] >= 6,
+        trigger=lambda context: context.time >= 6,
         name="Dynamics switcher",
         trigger_only_once=True,
         changes_dynamics=True,
@@ -963,13 +1004,13 @@ Available commands include:
   .. jupyter-execute::
 
     def start_new_phase(context):
-      event = context["event"]
+      event = context.event
       event.commands.start_flight_phase(phase_name="custom_descent")
       return {"action": "started new phase"}
 
     phase_event = Event(
       callback=start_new_phase,
-      trigger=lambda context: context["time"] >= 6,
+      trigger=lambda context: context.time >= 6,
       name="Phase starter",
       trigger_only_once=True,
       )
@@ -1000,17 +1041,17 @@ Available commands include:
   .. jupyter-execute::
 
     def stop_on_trigger(context):
-        event = context["event"]
+        event = context.event
         event.commands.terminate_flight()
         return {
             "action": "termination requested",
-            "trigger_time": context["time"],
-            "flight_time": context["flight"].t,
+            "trigger_time": context.time,
+            "flight_time": context.flight.t,
         }
 
     stop_event = Event(
         callback=stop_on_trigger,
-        trigger=lambda context: context["state"][5] <= 0,
+        trigger=lambda context: context.state.vz <= 0,
         name="Terminate on trigger",
     )
 

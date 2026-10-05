@@ -31,10 +31,12 @@ class Parachute:
           parachute ejection system should be triggered and ``False``
           otherwise. The parachute is wrapped in an :class:`rocketpy.Event`,
           so ``context`` holds the same values as any event trigger receives,
-          including ``state``, ``pressure``, ``height_agl``, ``sensors``,
-          ``time``, ``flight``, ``rocket`` and ``environment``. See the Event
-          documentation for the full list. The function is called according to
-          the specified sampling rate.
+          including ``context.state``, ``context.pressure``,
+          ``context.height_agl``, ``context.sensors``, ``context.time``,
+          ``context.flight``, ``context.rocket`` and ``context.environment``.
+          See :ref:`triggerdetails` for how to write a trigger and the values
+          it can read. The function is called according to the specified
+          sampling rate.
 
           .. deprecated:: 1.13
               Defining the trigger with positional arguments
@@ -150,11 +152,12 @@ class Parachute:
               when the rocket reaches its highest point and starts descending.
             - A callable function ``trigger(context)`` that returns ``True``
               when the parachute ejection system should be triggered and
-              ``False`` otherwise. ``context`` is a dictionary holding the
-              simulation values at the moment of the check, read as
-              ``context["pressure"]``, ``context["height_agl"]``,
-              ``context["state"]``, ``context["previous_state"]`` and so on.
-              See :class:`rocketpy.Event` for the full list of keys.
+              ``False`` otherwise. ``context`` holds the simulation values
+              at the moment of the check, read as ``context.pressure`` (Pa),
+              ``context.height_agl`` (m), ``context.state.vz`` (m/s),
+              ``context.previous_state`` and so on.
+              See :ref:`triggerdetails` for how to write a trigger and the
+              values it can read.
               The legacy form ``trigger(p, h, y[, sensors])``, taking the
               freestream pressure in Pa, the height above ground level in m,
               the state vector and optionally the sensors, still works but is
@@ -247,7 +250,7 @@ class Parachute:
                 "The `noise` parameter on Parachute is deprecated and has no "
                 "effect; it will be removed in v1.16. Use a Sensor (e.g. a "
                 "Barometer) with built-in noise instead, and read the noisy "
-                "measurement via `context['sensors_by_name']` in your trigger "
+                "measurement via `context.sensors_by_name` in your trigger "
                 "function.",
                 DeprecationWarning,
                 stacklevel=3,
@@ -288,9 +291,9 @@ class Parachute:
                     "Positional-argument parachute triggers (e.g. `trigger(p, h, y)`) "
                     "are deprecated and will be removed in v1.16. Define the trigger "
                     "as `trigger(context)` and read values such as "
-                    "`context['pressure']`, `context['height_agl']` and "
-                    "`context['state']`. See the Event documentation for the full "
-                    "list of available keys.",
+                    "`context.pressure`, `context.height_agl` and "
+                    "`context.state`. See the Event documentation for the full "
+                    "list of available values.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
@@ -322,7 +325,10 @@ class Parachute:
         elif isinstance(trigger, (int, float)):
 
             def triggerfunc(context):
-                return context["state"][5] < 0 and context["height_agl"] < trigger
+                return (
+                    context["canonical_state"][5] < 0
+                    and context["height_agl"] < trigger
+                )
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
@@ -332,10 +338,10 @@ class Parachute:
 
             def triggerfunc(context):
                 # Deploy when the rocket stops climbing
-                previous = context["previous_state"]
+                previous = context["event"]._previous_state
                 if previous is None:
                     return False  # nothing to compare against yet
-                return previous[5] > 0 >= context["state"][5]
+                return previous[5] > 0 >= context["canonical_state"][5]
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
@@ -364,7 +370,7 @@ class Parachute:
                 return self.triggerfunc(
                     context["pressure"],
                     context["height_agl"],
-                    context["state"],
+                    context["canonical_state"],
                     context["sensors"],
                 )
         else:

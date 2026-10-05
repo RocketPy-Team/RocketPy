@@ -23,18 +23,14 @@ from ..tools import (
     quaternions_to_spin,
 )
 from .events.event_builders import build_core_events
+from .events.event_context import build_event_kwargs, refresh_event_kwargs
+from .events.event_execution import call_events, process_overshootable_event
 from .helpers.dynamics import (
     PARACHUTE_DYNAMICS,
     RAIL_DYNAMICS,
     SIX_DOF_DYNAMICS,
     SOLID_PROPULSION_DYNAMICS,
     THREE_DOF_DYNAMICS,
-)
-from .helpers.event_calling import (
-    build_event_kwargs,
-    call_events,
-    process_overshootable_event,
-    refresh_event_kwargs,
 )
 from .helpers.flight_phase import _FlightPhases, _TimeNodes
 from .solution import Solution

@@ -15,7 +15,7 @@ def out_of_rail_trigger(context):
         ``True`` when the rail-exit condition is satisfied.
     """
     flight = context["flight"]
-    state = context["state"]
+    state = context["canonical_state"]
     return len(flight.out_of_rail_state) == 1 and (
         state[0] ** 2 + state[1] ** 2 + (state[2] - flight.env.elevation) ** 2
         >= flight.effective_1rl**2
@@ -43,7 +43,7 @@ def out_of_rail_callback(context):
 
     flight.out_of_rail_time = context["time"]
     flight.out_of_rail_time_index = len(flight.solution) - 1
-    flight.out_of_rail_state = context["state"]
+    flight.out_of_rail_state = context["canonical_state"]
 
     event.commands.set_dynamics(flight.u_dot_generalized)
     event.commands.start_flight_phase("free_flight")
@@ -64,7 +64,7 @@ def out_of_rail_exact_time_function(context):
         length being reached.
     """
     flight = context["flight"]
-    state = context["state"]
+    state = context["canonical_state"]
     return (
         state[0] ** 2
         + state[1] ** 2
@@ -87,7 +87,7 @@ def out_of_rail_exact_time_derivative(context):
         Time derivative of :func:`out_of_rail_exact_time_function`.
     """
     flight = context["flight"]
-    state = context["state"]
+    state = context["canonical_state"]
     return 2.0 * (
         state[0] * state[3]
         + state[1] * state[4]
@@ -110,7 +110,7 @@ def apogee_trigger(context):
         after the apogee state has not yet been recorded.
     """
     flight = context["flight"]
-    state = context["state"]
+    state = context["canonical_state"]
     if len(flight.apogee_state) != 1 or len(flight.solution) < 2:
         return False
 
@@ -137,7 +137,7 @@ def apogee_callback(context):
     """
     flight = context["flight"]
     event = context["event"]
-    flight.apogee_state = context["state"]
+    flight.apogee_state = context["canonical_state"]
     flight.apogee_time = context["time"]
     flight.apogee_x = flight.apogee_state[0]
     flight.apogee_y = flight.apogee_state[1]
@@ -162,7 +162,7 @@ def apogee_event_exact_time_function(context):
     float
         Vertical velocity component. The root corresponds to ``vz = 0``.
     """
-    return context["state"][5]
+    return context["canonical_state"][5]
 
 
 def impact_trigger(context):
@@ -179,7 +179,7 @@ def impact_trigger(context):
         ``True`` when altitude is below the environment elevation.
     """
     flight = context["flight"]
-    state = context["state"]
+    state = context["canonical_state"]
     return state[2] < flight.env.elevation
 
 
@@ -202,7 +202,7 @@ def impact_callback(context):
     flight = context["flight"]
     event = context["event"]
 
-    flight.impact_state = context["state"]
+    flight.impact_state = context["canonical_state"]
     flight.x_impact = flight.impact_state[0]
     flight.y_impact = flight.impact_state[1]
     flight.z_impact = flight.impact_state[2]
@@ -241,7 +241,7 @@ def impact_event_exact_time_derivative(context):
     float
         Time derivative of :func:`impact_event_exact_time_function`.
     """
-    return context["state"][5]
+    return context["canonical_state"][5]
 
 
 def build_core_events():

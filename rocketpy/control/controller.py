@@ -1,10 +1,12 @@
 import warnings
 from inspect import signature
+from keyword import iskeyword
 
 from rocketpy.simulation.events.event import Event
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints
+from .controlled import Controlled
 
 
 class _Controller:
@@ -66,15 +68,17 @@ class _Controller:
             ``controller_function(context) -> dict or None``. Invoked once
             per sample; its return value is appended to :attr:`log`. Mutate
             ``controlled_objects`` directly to apply control actions.
-            ``context`` is a dictionary with the keys listed in
-            :class:`rocketpy.Event` (``time``, ``state``, ``height_agl``,
-            ``sensors``, ``environment``, ``rocket``, ``flight``,
-            ``state_dot``, ``pressure``, ``previous_state`` and so on) plus
-            ``controller`` (this :class:`_Controller` instance) and
-            ``controlled_objects`` (the object(s) to mutate).
-            If ``controlled_objects_name`` was set, those friendly names are
-            also present (plus ``controlled_objects_by_name`` for lists).
-            For the trajectory itself, read ``context["flight"].solution``.
+            ``context`` holds the values listed in :class:`rocketpy.Event`
+            (``context.time``, ``context.state``, ``context.height_agl``,
+            ``context.sensors``, ``context.environment``, ``context.rocket``,
+            ``context.flight``, ``context.state_dot``, ``context.pressure``,
+            ``context.previous_state`` and so on) plus ``context.controller``
+            (this :class:`_Controller` instance) and ``context.controlled``
+            (the objects to mutate). Read a controlled object by the name
+            given in ``controlled_objects_name``, such as
+            ``context.controlled.air_brakes``, or by its position, such as
+            ``context.controlled[0]``.
+            For the trajectory itself, read ``context.flight.solution``.
         controlled_objects : object or list of object
             Object(s) the controller is allowed to modify (e.g. an air brakes
             instance). May be a single object or a list. They are held by
@@ -84,21 +88,23 @@ class _Controller:
             ``1 / sampling_rate`` seconds.
         memory : dict, optional
             The controller's own dictionary, kept from one run to the next.
-            Read and write it as ``context["controller"].memory``. It is the
+            Read and write it as ``context.controller.memory``. It is the
             same dict as the wrapped event's ``memory``. Defaults to an empty
             dict.
         name : str, optional
             Human-readable controller name, used for identification and
             logging. Defaults to ``"Controller"``.
         controlled_objects_name : str or list of str, optional
-            Friendly name(s) under which the controlled objects are exposed in
-            the callback ``context``, so the function can access them as
-            ``context[name]`` instead of via ``controlled_objects``. Pass a
-            single string for a single object, or a list/tuple of unique
-            strings matching the length of ``controlled_objects`` for multiple
-            objects (which also adds a ``controlled_objects_by_name`` mapping).
-            Names must not collide with reserved callback keywords. Defaults to
-            ``None`` (no friendly binding).
+            Name(s) under which the controller function reads the controlled
+            objects, as ``context.controlled.<name>``. For example, with
+            ``controlled_objects_name="air_brakes"`` the function reads
+            ``context.controlled.air_brakes``. Pass a single string for a
+            single object, or a list/tuple of unique strings, one per object,
+            when ``controlled_objects`` is a list. Each name must be usable
+            after a dot in Python: letters, digits and underscores, not
+            starting with a digit or an underscore. Defaults to ``None``, in
+            which case the objects are read by position, as
+            ``context.controlled[0]``.
         enabled : bool, optional
             Initial enabled state of the wrapped event. If ``False``, the
             controller does not execute until re-enabled, either via the
@@ -127,10 +133,10 @@ class _Controller:
             controller_function
         )
         self.controlled_objects = controlled_objects
-        # Optional friendly name(s) to expose controlled objects in the callback context
+        # Optional name(s) the controller function reads the objects by.
         # Accept either a single string name or an iterable of string names
         self.controlled_objects_name = controlled_objects_name
-        self._controlled_objects_bindings = self.__verify_controlled_objects_name()
+        self._controlled = self.__build_controlled()
         self.sampling_rate = sampling_rate
         self.name = name
         self.memory = memory if memory is not None else {}
@@ -165,9 +171,9 @@ class _Controller:
             "It is recommended not to use positional arguments when defining "
             "a controller function. Instead, define it as "
             "`controller_function(context)` and read values such as "
-            "`context['time']`, `context['state']`, `context['sensors']` and "
-            "`context['environment']`. See the controller documentation for "
-            "the full list of available keys.",
+            "`context.time`, `context.state`, `context.sensors` and "
+            "`context.environment`. See the controller documentation for "
+            "the full list of available values.",
             UserWarning,
             stacklevel=3,
         )
@@ -176,7 +182,7 @@ class _Controller:
             args = [
                 context["time"],
                 self.sampling_rate,
-                context["state"],
+                context["canonical_state"],
                 self.log,
                 self.controlled_objects,
             ]
@@ -226,11 +232,7 @@ class _Controller:
             # These belong to this controller alone; the context is shared
             # with the other events of the step, so they are owned rather
             # than written outright and are removed when the next event binds.
-            context.own(
-                controller=self,
-                controlled_objects=self.controlled_objects,
-                **self._controlled_objects_bindings,
-            )
+            context.own(controller=self, controlled=self._controlled)
             return self.controller_function(context)
 
         return Event(
@@ -282,74 +284,47 @@ class _Controller:
     def return_log(self, value):
         self.log = value
 
-    def __verify_controlled_objects_name(self):
-        """Validate controlled_objects_name and build callback bindings."""
-        if self.controlled_objects_name is None:
-            return {}  # nothing to bind by name
+    def __build_controlled(self):
+        """Validate controlled_objects_name and build ``context.controlled``."""
+        objects = self.controlled_objects
+        names = self.controlled_objects_name
+        many = isinstance(objects, (list, tuple))
+        if names is None:
+            return Controlled(objects if many else (objects,))
 
-        single_name = isinstance(self.controlled_objects_name, str)
-        list_names = isinstance(self.controlled_objects_name, (list, tuple))
-        if not (single_name or list_names):
+        if isinstance(names, str):
+            # A single name stands for whatever was passed, object or list.
+            names, objects = (names,), (objects,)
+        elif not isinstance(names, (list, tuple)):
             raise TypeError(
                 "controlled_objects_name must be a string or list/tuple of strings"
             )
+        elif not many:
+            raise ValueError(
+                "controlled_objects_name is a list but controlled_objects is not "
+                "a list/tuple"
+            )
 
-        reserved = {
-            "time",
-            "state",
-            "sensors",
-            "environment",
-            "rocket",
-            "flight",
-            "event",
-            "controller",
-            "controlled_objects",
-            "step_size",
-            "state_dot",
-            "sensors_by_name",
-            "pressure",
-            "height_agl",
-            "callback_log",
-            "triggered_times",
-            "commands",
-            "memory",
-        }
-
-        if single_name:
-            if self.controlled_objects_name in reserved:
-                raise ValueError(
-                    f"controlled_objects_name '{self.controlled_objects_name}' conflicts with reserved callback keywords"
-                )
-            return {self.controlled_objects_name: self.controlled_objects}
-
-        if not all(isinstance(n, str) for n in self.controlled_objects_name):
+        if not all(isinstance(name, str) for name in names):
             raise TypeError(
                 "All entries in controlled_objects_name list must be strings"
             )
-        if len(set(self.controlled_objects_name)) != len(self.controlled_objects_name):
+        if len(set(names)) != len(names):
             raise ValueError("controlled_objects_name entries must be unique")
-        for n in self.controlled_objects_name:
-            if n in reserved:
+        if len(names) != len(objects):
+            raise ValueError(
+                "Length of controlled_objects_name must match number of "
+                "controlled_objects"
+            )
+        for name in names:
+            if not name.isidentifier() or iskeyword(name) or name.startswith("_"):
                 raise ValueError(
-                    f"controlled_objects_name entry '{n}' conflicts with reserved callback keywords"
+                    f"controlled_objects_name entry '{name}' cannot be read as "
+                    f"`context.controlled.{name}`. Use letters, digits and "
+                    "underscores only, not starting with a digit or an "
+                    "underscore, and not a Python keyword."
                 )
-        if not isinstance(self.controlled_objects, (list, tuple)):
-            raise ValueError(
-                "controlled_objects_name is a list but controlled_objects is not a list/tuple"
-            )
-        if len(self.controlled_objects_name) != len(self.controlled_objects):
-            raise ValueError(
-                "Length of controlled_objects_name must match number of controlled_objects"
-            )
-
-        controlled_objects_by_name = dict(
-            zip(self.controlled_objects_name, self.controlled_objects)
-        )
-        controlled_objects_bindings = dict(controlled_objects_by_name)
-        controlled_objects_bindings["controlled_objects_by_name"] = (
-            controlled_objects_by_name
-        )
-        return controlled_objects_bindings
+        return Controlled(objects, names)
 
     def info(self):
         """Prints out summarized information about the controller."""
@@ -492,7 +467,7 @@ class _Controller:
 
     def rebind_controlled_objects(self, controlled_objects):
         """Point the controller at reconstructed controlled object(s) and
-        refresh the callback name bindings.
+        rebuild ``context.controlled`` from them.
 
         Used when a rocket is loaded from a file: the controller is rebuilt
         without its controlled objects (they are separate objects in the saved
@@ -505,4 +480,4 @@ class _Controller:
             The reconstructed object(s) the controller should control.
         """
         self.controlled_objects = controlled_objects
-        self._controlled_objects_bindings = self.__verify_controlled_objects_name()
+        self._controlled = self.__build_controlled()

@@ -103,8 +103,8 @@ class FlightDataExporter:
             Names of the data variables which shall be exported. Each is a
             Flight attribute that is a Function (``'z'``, ``'angle_of_attack'``,
             ``'mach_number'``) or the name of a state stored in the flight
-            solution, which is how a state only some flight phases integrate,
-            such as a parafoil heading, is exported. Usage example:
+            solution, which is how a state only some flight phases integrate
+            is exported. Usage example:
             test_flight.exports.data('test.csv', 'z', 'angle_of_attack',
             'mach_number'). With no names and no ``time_step``, the 14-column
             state table ``[t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2,

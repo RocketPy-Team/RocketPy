@@ -6,6 +6,7 @@ These tests use stub flights and stub derivatives, so they never run a Flight.
 import numpy as np
 import pytest
 
+from rocketpy.simulation.events.event_execution import apply_rollback_command
 from rocketpy.simulation.flight import Flight
 from rocketpy.simulation.helpers import dynamics as dynamics_module
 from rocketpy.simulation.helpers.dynamics import (
@@ -19,7 +20,6 @@ from rocketpy.simulation.helpers.dynamics import (
     THREE_DOF_DYNAMICS,
     _PhaseDynamics,
 )
-from rocketpy.simulation.helpers.event_commands import apply_rollback_command
 from rocketpy.simulation.solution import Solution
 
 

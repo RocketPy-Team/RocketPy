@@ -52,11 +52,11 @@ class _PhaseDynamics:
     """The states, equations of motion and outputs of one kind of flight phase.
 
     A phase may integrate fewer states than the 13 canonical ones, more, or
-    states of its own (a parafoil heading, sloshing modes). Events, sensors and
+    states of its own that are not among the 13. Events, sensors and
     outputs always read the full canonical state, so every phase must be able to
     report it. By default a canonical state the phase does not integrate is held
     at the value it had when the phase began; a phase that rebuilds some of them
-    from its own states (an attitude from a heading, say) gives a
+    from its own states (an attitude from an angle of its own, say) gives a
     ``to_canonical`` function instead.
 
     Notes
@@ -100,9 +100,10 @@ class _PhaseDynamics:
 
             A phase can integrate fewer states than the canonical thirteen, and
             it can add states of its own. An extra state is read by name like
-            any other, through ``solution["heading"]`` or ``solution.at(t)``,
-            but is not part of the canonical state, so events and sensors do not
-            see it. Give an ``initial_state`` rule to seed it.
+            any other, through ``solution["my_state"]`` or ``solution.at(t)``,
+            and by events as ``context.state.my_state``. It is not part of the
+            canonical state, so sensors do not see it. Give an
+            ``initial_state`` rule to seed it.
         post_process_vars : sequence of str, optional
             Ordered names of the variables this phase reports besides its
             states, such as ``("ax", "ay", "az")``. The order must match what
@@ -115,8 +116,8 @@ class _PhaseDynamics:
             start of the phase, so the function only has to work out the states
             it rebuilds and copy the rest::
 
-                def parafoil_to_canonical(values):
-                    half = values["heading"] / 2
+                def my_to_canonical(values):
+                    half = values["my_angle"] / 2
                     values["e0"], values["e3"] = math.cos(half), math.sin(half)
                     return [values[name] for name in CANONICAL_STATE_NAMES]
 

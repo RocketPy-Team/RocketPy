@@ -53,6 +53,7 @@ from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
 from .simulation import (
     Event,
+    EventContext,
     Flight,
     MonteCarlo,
     MultivariateRejectionSampler,

@@ -2647,13 +2647,13 @@ rocketpy.ControllableGenericSurface
 
             - A callable function ``trigger(context)`` that returns ``True`` \
                 if the parachute ejection system should be triggered and \
-                ``False`` otherwise. ``context`` is a dictionary holding the \
-                simulation values at the moment of the check, such as \
-                ``context["pressure"]`` (Pa), ``context["height_agl"]`` (m), \
-                ``context["state"]`` (``[x, y, z, vx, vy, vz, e0, e1, e2, e3, \
-                wx, wy, wz]``) and ``context["previous_state"]``. See \
-                :class:`rocketpy.Event` for the full list of keys. The legacy \
-                form ``trigger(p, h, y)`` is deprecated.
+                ``False`` otherwise. ``context`` holds the simulation values \
+                at the moment of the check, such as ``context.pressure`` \
+                (Pa), ``context.height_agl`` (m), ``context.state`` (the \
+                rocket's states, read by name, such as ``context.state.vz``) \
+                and ``context.previous_state``. See :ref:`triggerdetails` \
+                for how to write a trigger and the values it can read. The \
+                legacy form ``trigger(p, h, y)`` is deprecated.
             - A float value, representing an absolute height in meters. In this \
                 case, the parachute will be ejected when the rocket reaches this \
                 height above ground level.
@@ -2821,12 +2821,13 @@ rocketpy.ControllableGenericSurface
             ``controller_function(context) -> dict or None``. Invoked once per
             sample; its return value is appended to the controller log. Set
             ``air_brakes.deployment_level`` to apply the control action.
-            ``context`` is a dictionary with the keys listed in
-            :class:`rocketpy.Event` (``time``, ``state``, ``height_agl``,
-            ``sensors``, ``environment``, ``rocket``, ``flight``,
-            ``state_dot``, ``pressure``, ``previous_state`` and so on) plus
-            ``controller`` (the :class:`_Controller`), ``controlled_objects``
-            (same as ``air_brakes``) and ``air_brakes`` (:class:`AirBrakes`).
+            ``context`` holds the values listed in :class:`rocketpy.Event`
+            (``context.time``, ``context.state``, ``context.height_agl``,
+            ``context.sensors``, ``context.environment``, ``context.rocket``,
+            ``context.flight``, ``context.state_dot``, ``context.pressure``,
+            ``context.previous_state`` and so on) plus ``context.controller``
+            (the :class:`_Controller`) and ``context.controlled.air_brakes``
+            (the :class:`AirBrakes` being controlled).
             The legacy positional form
             ``controller_function(time, sampling_rate, state, state_history,
             observed_variables, interactive_objects[, sensors[, environment]])``
@@ -2858,7 +2859,7 @@ rocketpy.ControllableGenericSurface
                 for the positional argument will be removed in v1.14.
         memory : dict, optional
             The controller's own dictionary, kept from one run to the next.
-            Read and write it as ``context["controller"].memory`` inside
+            Read and write it as ``context.controller.memory`` inside
             ``controller_function``. Defaults to an empty dict.
         override_rocket_drag : bool, optional
             If False, the air brakes drag coefficient will be added to the
@@ -2953,9 +2954,9 @@ rocketpy.ControllableGenericSurface
                 pos_args = [
                     context["time"],
                     sampling_rate,
-                    context["state"],
+                    context["canonical_state"],
                     controller_memory.get("observed_variables", []),
-                    context["controlled_objects"],
+                    context["controlled"][0],
                     context["sensors"],
                     context["environment"],
                 ]

@@ -189,8 +189,8 @@ class Sensor(ABC):
 
         def sensor_callback(context):
             time = context["time"]
-            state = context["state"]
-            state_dot = context["state_dot"]
+            state = context["canonical_state"]
+            state_dot = context["canonical_state_dot"]
             rocket = context["rocket"]
             environment = context["environment"]
             event = context["event"]

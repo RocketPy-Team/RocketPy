@@ -127,10 +127,19 @@ def test_a_built_in_height_trigger_is_called_without_a_wrapper():
     parachute = Parachute(name="Main", cd_s=10.0, trigger=800, sampling_rate=100, lag=0)
     assert parachute.event.trigger is parachute.triggerfunc
     # and it still answers correctly
-    assert parachute.event.trigger({"state": [0.0] * 13, "height_agl": 700}) is False
+    assert (
+        parachute.event.trigger({"canonical_state": [0.0] * 13, "height_agl": 700})
+        is False
+    )
     descending = [0.0] * 5 + [-1.0] + [0.0] * 7
-    assert parachute.event.trigger({"state": descending, "height_agl": 700}) is True
-    assert parachute.event.trigger({"state": descending, "height_agl": 900}) is False
+    assert (
+        parachute.event.trigger({"canonical_state": descending, "height_agl": 700})
+        is True
+    )
+    assert (
+        parachute.event.trigger({"canonical_state": descending, "height_agl": 900})
+        is False
+    )
 
 
 def test_a_legacy_positional_trigger_still_goes_through_the_adapter():

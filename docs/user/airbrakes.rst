@@ -152,7 +152,7 @@ vertical velocity at the current time step and of the vertical velocity at the
 previous time step.
 
 To read the vertical velocity from the previous controller call, use
-``context["previous_state"]``. That is the state from the previous run of
+``context.previous_state``. That is the state from the previous run of
 *this controller*, so it is always exactly one control step back. Reading the
 flight solution instead would give you the last stored trajectory point, which
 advances on the solver's schedule rather than the controller's.
@@ -169,16 +169,15 @@ Lets define the controller function:
 .. jupyter-execute::
 
     def controller_function(context):
-        # state = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
-        time = context["time"]
-        state = context["state"]
-        sampling_rate = context["sampling_rate"]
-        motor = context["rocket"].motor
-        environment = context["environment"]
-        air_brakes = context["air_brakes"]
-        altitude_ASL = state[2]
-        altitude_AGL = context["height_agl"]
-        vx, vy, vz = state[3], state[4], state[5]
+        time = context.time
+        state = context.state  # the states, by name
+        sampling_rate = context.sampling_rate
+        motor = context.rocket.motor
+        environment = context.environment
+        air_brakes = context.controlled.air_brakes
+        altitude_ASL = state.z
+        altitude_AGL = context.height_agl
+        vx, vy, vz = state.vx, state.vy, state.vz
 
         # Get winds in x and y directions
         wind_x, wind_y = environment.wind_velocity_x(altitude_ASL), environment.wind_velocity_y(altitude_ASL)
@@ -190,8 +189,8 @@ Lets define the controller function:
         mach_number = free_stream_speed / environment.speed_of_sound(altitude_ASL)
 
         # Get the state from the previous controller call
-        previous_state = context["previous_state"]
-        previous_vz = previous_state[5] if previous_state is not None else vz
+        previous_state = context.previous_state
+        previous_vz = previous_state.vz if previous_state is not None else vz
 
         # If we wanted to we could get the returned values from observed_variables:
         # returned_time, deployment_level, drag_coefficient = observed_variables[-1]

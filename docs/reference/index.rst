@@ -19,6 +19,7 @@ This reference manual details functions, modules, methods and attributes include
    classes/Flight
    classes/Solution
    classes/Event
+   classes/EventContext
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis
    Monte Carlo Analysis <classes/monte_carlo/index> 
