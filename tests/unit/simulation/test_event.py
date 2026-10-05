@@ -1240,7 +1240,8 @@ def test_an_exact_time_event_does_not_rewrite_the_shared_context():
     seen = {}
 
     event = Event(
-        callback=seen.update,
+        # a lambda: Event reads the signature, which dict.update does not have
+        callback=lambda context: seen.update(context),  # pylint: disable=unnecessary-lambda
         trigger=_always_true,
         name="refined",
         exact_time_function=lambda context: context["state"][5],
@@ -1273,7 +1274,8 @@ def test_exact_time_function_sees_the_context_of_each_candidate_time():
     seen = {}
 
     event = Event(
-        callback=seen.update,
+        # a lambda: Event reads the signature, which dict.update does not have
+        callback=lambda context: seen.update(context),  # pylint: disable=unnecessary-lambda
         trigger=_always_true,
         exact_time_function=lambda context: context["height_agl"],
         exact_time_config={"target": 4.0},
