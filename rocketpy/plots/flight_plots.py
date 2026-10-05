@@ -59,8 +59,9 @@ class _FlightPlots:
     # Consistent red used for the rocket trajectory line across all plots.
     _TRAJECTORY_COLOR = "#e63946"
 
-    # Burnout vertical/drop-line color -- kept separate from the orange dot marker so
-    # the dashed line stays readable against typical orange and blue plot lines.
+    # Dark drop-line/vertical-line color shared by the Burnout and Out Of Rail
+    # events -- kept separate from their (orange / dark-red) dot markers so the
+    # dashed line stays readable against typical orange and blue plot lines.
     _BURNOUT_LINE_COLOR = "#4a4a4a"
     _EVENT_LINE_WIDTH = 1.2
 
@@ -69,7 +70,7 @@ class _FlightPlots:
         "Impact": "#ff1f1f",
         "Apogee": "#46daff",
         "Burnout": "#ff8121",
-        "Out Of Rail": "#8b0000",
+        "Out Of Rail": "#e6c000",
     }
     _COLOR_CYCLE = [
         "#7de07a",
@@ -110,8 +111,9 @@ class _FlightPlots:
                     (t_ev, "Apogee", "o", self._RESERVED_COLORS["Apogee"], 40)
                 )
             elif name == "Out Of Rail":
+                # Same dot shape and size as Burnout; distinguished by color.
                 events.append(
-                    (t_ev, "Out Of Rail", "^", self._RESERVED_COLORS["Out Of Rail"], 30)
+                    (t_ev, "Out Of Rail", "o", self._RESERVED_COLORS["Out Of Rail"], 40)
                 )
             elif "Parachute" in name:
                 if name not in parachute_color_map:
@@ -186,18 +188,21 @@ class _FlightPlots:
     def _add_event_markers_dropline(self, ax, legend=True, y_bottom=None, labels=None):
         """Event markers on the plotted curve with drop-lines from the y-axis bottom.
 
-        For each trigger-once event (excluding Out Of Rail and Landing), draws an
-        unlabelled dashed vertical line from the axis bottom to the curve value at
-        that time, and a labelled scatter marker on the curve itself.  Apogee is
-        drawn last so it renders on top of coincident markers.
+        For each trigger-once event, draws an unlabelled dashed vertical line from
+        the axis bottom to the curve value at that time, and a labelled scatter
+        marker on the curve itself.  Apogee is drawn last so it renders on top of
+        coincident markers.  By default Out Of Rail and Landing are omitted, but a
+        caller can draw them by naming them explicitly in ``labels``.
 
         Parameters
         ----------
         y_bottom : float or None
-            Y coordinate for the bottom of drop-lines.  When None (default) the
+            Y coordinate for the bottom of drop-lines. When None (default) the
             bottom is derived from the minimum of the visible plotted data.
         labels : set or None
-            If given, only events whose label is in this set are drawn.
+            If given, only events whose label is in this set are drawn; an
+            explicit set also overrides the default omission of Out Of Rail and
+            Landing (so e.g. ``labels={"Out Of Rail"}`` draws that marker).
         """
         lines = [ln for ln in ax.lines if len(ln.get_xdata()) > 1]
         if not lines:
@@ -217,14 +222,22 @@ class _FlightPlots:
 
         deferred_apogee = None
         for t_ev, label, marker, color, size in self._collect_events():
-            if label in ("Out Of Rail", "Landing"):
-                continue
-            if labels is not None and label not in labels:
+            if labels is not None:
+                # An explicit label set is an opt-in: draw exactly those events,
+                # including Out Of Rail / Landing when named.
+                if label not in labels:
+                    continue
+            elif label in ("Out Of Rail", "Landing"):
+                # Omitted from the default (unfiltered) set of drop-line markers.
                 continue
             if not xlim[0] <= t_ev <= xlim[1]:
                 continue
             y_ev = float(np.interp(t_ev, xdata, ydata))
-            line_color = self._BURNOUT_LINE_COLOR if label == "Burnout" else color
+            line_color = (
+                self._BURNOUT_LINE_COLOR
+                if label in ("Burnout", "Out Of Rail")
+                else color
+            )
             lw = (
                 self._EVENT_LINE_WIDTH if label == "Burnout" else self._EVENT_LINE_WIDTH
             )
@@ -1245,9 +1258,144 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def stability_and_control_data(self, *, filename=None):  # pylint: disable=too-many-statements
-        """Prints out Rocket Stability and Control parameters graphs available
-        about the Flight
+    # Stability along the ascent. The panels below are shared by the single
+    # plots and by ``stability_summary``.
+
+    def _ascent_window(self):
+        """Start and end, in seconds, of the free ascent: rail departure to
+        apogee, or to the first parachute event (or the end of the flight) when
+        there is no apogee, e.g. a flight cut short before it."""
+        upper = (
+            self.flight.apogee_time
+            if self.flight.apogee_time != 0
+            else self.first_parachute_event_time
+        )
+        return self.flight.out_of_rail_time, upper
+
+    def _plot_angles(self, ax, t_lower, t_upper):
+        """Total angle of attack, angle of attack in the pitch plane and
+        sideslip angle against time, on ``ax``."""
+        flight = self.flight
+        curves = (
+            (flight.angle_of_attack, "-", "Total angle of attack"),
+            (flight.partial_angle_of_attack, "--", "Angle of attack (pitch plane)"),
+            (flight.angle_of_sideslip, ":", "Sideslip angle (yaw plane)"),
+        )
+        tops = []
+        for curve, style, label in curves:
+            ax.plot(curve[:, 0], curve[:, 1], style, label=label)
+            mask = (curve[:, 0] >= t_lower) & (curve[:, 0] <= t_upper)
+            values = np.abs(curve[mask, 1])
+            if len(values):
+                # The 95th percentile keeps the runaway rise near apogee (where
+                # the speed vanishes) from setting the scale; the value at rail
+                # departure, usually the largest the margins are read at, must
+                # stay in view
+                tops.append(1.5 * float(np.percentile(values, 95)))
+                tops.append(1.15 * float(values[0]))
+        top = max([1.0, *tops])
+        ax.axhline(0, color="0.6", linewidth=0.8)
+        ax.set_xlim(t_lower, t_upper)
+        ax.set_ylim(-top, top)
+        ax.set_title("Angles of Attack")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Angle (°)")
+        ax.legend()
+        ax.grid()
+
+    def _plot_stability_margin(self, ax, t_upper):
+        """Stability margin in calibers against time on ``ax``, in the pitch and
+        yaw planes, with a secondary axis in percent of the rocket's length."""
+        ax.plot(
+            self.flight.stability_margin[:, 0],
+            self.flight.stability_margin[:, 1],
+            label="Pitch",
+        )
+        ax.plot(
+            self.flight.stability_margin_yaw[:, 0],
+            self.flight.stability_margin_yaw[:, 1],
+            "--",
+            label="Yaw",
+        )
+        ax.set_title("Stability Margin")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Stability Margin (c)")
+        ax.set_xlim(0, t_upper)
+        ax.legend()
+        ax.grid()
+        # Secondary y-axis reading the same margin as a percentage of the
+        # rocket's overall length (see Rocket.length), the convention often used
+        # in hobby rocketry. A margin in calibers and the same margin as a
+        # fraction of body length differ only by the constant factor below, so
+        # the second scale is a plain rescaling of the caliber axis.
+        # A rocket whose two ends are not known has no length (None), so the
+        # percentage-of-length scale can't be drawn; skip it in that case.
+        rocket = self.flight.rocket
+        rocket_length = rocket.length or 0
+        if rocket_length > 0:
+            factor = 2 * rocket.radius / rocket_length * 100
+            secondary_axis = ax.secondary_yaxis(
+                "right",
+                functions=(lambda c: c * factor, lambda p: p / factor),
+            )
+            secondary_axis.set_ylabel("Stability Margin (% of length)")
+        self._add_event_markers_dropline(ax, labels={"Out Of Rail", "Burnout"})
+
+    def _plot_natural_frequency(self, ax, t_upper):
+        """Natural frequency of the attitude oscillation, in the pitch and yaw
+        planes, with the roll rate overlaid, in Hz, on ``ax``."""
+        freq = self.flight.pitch_natural_frequency
+        ax.plot(freq[:, 0], freq[:, 1] / (2 * np.pi), label="Pitch natural freq.")
+        yaw_freq = self.flight.yaw_natural_frequency
+        ax.plot(
+            yaw_freq[:, 0],
+            yaw_freq[:, 1] / (2 * np.pi),
+            "--",
+            label="Yaw natural freq.",
+        )
+        roll_rate = self.flight.w3
+        ax.plot(
+            roll_rate[:, 0],
+            np.abs(roll_rate[:, 1]) / (2 * np.pi),
+            ":",
+            color="tab:red",
+            label="Roll rate",
+        )
+        ax.set_title("Natural Frequency & Roll Rate")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Frequency (Hz)")
+        ax.set_xlim(0, t_upper)
+        ax.legend()
+        ax.grid()
+        self._add_event_markers_dropline(ax, labels={"Out Of Rail", "Burnout"})
+
+    def _plot_damping_ratio(self, ax, t_upper):
+        """Damping ratio of the attitude oscillation, in the pitch and yaw
+        planes, on ``ax``."""
+        ratio = self.flight.pitch_damping_ratio
+        ax.plot(ratio[:, 0], ratio[:, 1], label="Pitch")
+        yaw_ratio = self.flight.yaw_damping_ratio
+        ax.plot(yaw_ratio[:, 0], yaw_ratio[:, 1], "--", label="Yaw")
+        ax.set_title("Damping Ratio")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Damping Ratio (ζ)")
+        ax.set_xlim(0, t_upper)
+        ax.legend()
+        ax.grid()
+
+    def stability_margin_data(self, *, filename=None):
+        """Plots the rocket's stability margin over the ascent, in calibers.
+
+        The stability margin is one of the most important results of a
+        simulation: it is the distance from the center of mass to the neutral
+        point that must stay positive (neutral point behind the center of mass)
+        for the rocket to correct disturbances. A secondary axis reads the same
+        margin as a percentage of the rocket's overall length, the convention
+        often used in hobby rocketry. The pitch and yaw margins are drawn
+        separately whenever they can differ: for a non-axisymmetric rocket, and
+        for an axisymmetric rocket with a surface nonlinear in the angle of
+        attack, where pitch is the plane of the wind and yaw the motion across
+        it. The time axis stops at apogee.
 
         Parameters
         ----------
@@ -1261,56 +1409,131 @@ class _FlightPlots:
         -------
         None
         """
+        plt.figure(figsize=(9, 4.5))
+        self._plot_stability_margin(plt.subplot(111), self._ascent_window()[1])
+        show_or_save_plot(filename)
 
+    def stability_and_control_data(self, *, filename=None):
+        """Deprecated. Stability and the frequency response are now separate
+        plots.
+
+        Use :meth:`stability_margin_data` for the stability margin,
+        :meth:`dynamic_stability_data` for the natural frequency and damping
+        ratio, and :meth:`attitude_frequency_response_data` for the attitude
+        frequency response.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            Passed through to the replacement plots.
+        """
+        warnings.warn(
+            "stability_and_control_data() is deprecated and will be removed in "
+            "v1.16.0. Stability is now its own plot: use stability_margin_data() "
+            "for the stability margin, dynamic_stability_data() for the "
+            "natural frequency and damping ratio, and "
+            "attitude_frequency_response_data() for the frequency response.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.stability_margin_data(filename=filename)
+        self.dynamic_stability_data(filename=filename)
+        self.attitude_frequency_response_data(filename=filename)
+
+    def dynamic_stability_data(self, *, filename=None):
+        """Plots the rocket's dynamic-stability quantities over the ascent: the
+        natural frequency and damping ratio of the linearized attitude
+        oscillation, pitch and yaw when they can differ, with the roll rate
+        overlaid on the frequency so that roll-resonance crossings can be read
+        off directly.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        _, t_upper = self._ascent_window()
         plt.figure(figsize=(9, 6))
-
-        ax1 = plt.subplot(211)
-        ax1.plot(self.flight.stability_margin[:, 0], self.flight.stability_margin[:, 1])
-        ax1.set_title("Stability Margin")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Stability Margin (c)")
-        ax1.set_xlim(0, self.first_parachute_event_time)
-        ax1.grid()
-        self._add_event_markers_dropline(ax1, labels={"Burnout"})
-
-        ax2 = plt.subplot(212)
-        x_axis = np.arange(0, 5, 0.01)
-        max_attitude = self.flight.attitude_frequency_response.max
-        max_attitude = max_attitude if max_attitude != 0 else 1
-        ax2.plot(
-            x_axis,
-            self.flight.attitude_frequency_response(x_axis) / max_attitude,
-            label="Attitude Angle",
-        )
-        max_omega1 = self.flight.omega1_frequency_response.max
-        max_omega1 = max_omega1 if max_omega1 != 0 else 1
-        ax2.plot(
-            x_axis,
-            self.flight.omega1_frequency_response(x_axis) / max_omega1,
-            label=r"$\omega_1$",
-        )
-        max_omega2 = self.flight.omega2_frequency_response.max
-        max_omega2 = max_omega2 if max_omega2 != 0 else 1
-        ax2.plot(
-            x_axis,
-            self.flight.omega2_frequency_response(x_axis) / max_omega2,
-            label=r"$\omega_2$",
-        )
-        max_omega3 = self.flight.omega3_frequency_response.max
-        max_omega3 = max_omega3 if max_omega3 != 0 else 1
-        ax2.plot(
-            x_axis,
-            self.flight.omega3_frequency_response(x_axis) / max_omega3,
-            label=r"$\omega_3$",
-        )
-        ax2.set_title("Frequency Response")
-        ax2.set_xlabel("Frequency (Hz)")
-        ax2.set_ylabel("Amplitude Magnitude Normalized")
-        ax2.set_xlim(0, 5)
-        ax2.legend()
-        ax2.grid()
-
+        self._plot_natural_frequency(plt.subplot(211), t_upper)
+        self._plot_damping_ratio(plt.subplot(212), t_upper)
         plt.subplots_adjust(hspace=0.5)
+        show_or_save_plot(filename)
+
+    def attitude_frequency_response_data(self, *, filename=None):
+        """Plots the attitude frequency response: the FFT spectrum of the
+        simulated attitude angle and body rates over the five seconds after
+        rail departure, each normalized by its peak. The peak should fall at
+        the natural frequency of :meth:`dynamic_stability_data`, giving an
+        independent check of the linearized prediction.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        plt.figure(figsize=(9, 4.5))
+        ax = plt.subplot(111)
+        x_axis = np.arange(0, 5, 0.01)
+        for response, label in (
+            (self.flight.attitude_frequency_response, "Attitude Angle"),
+            (self.flight.omega1_frequency_response, r"$\omega_1$"),
+            (self.flight.omega2_frequency_response, r"$\omega_2$"),
+            (self.flight.omega3_frequency_response, r"$\omega_3$"),
+        ):
+            peak = response.max if response.max != 0 else 1
+            ax.plot(x_axis, response(x_axis) / peak, label=label)
+        ax.set_title("Attitude Frequency Response")
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Amplitude Magnitude Normalized")
+        ax.set_xlim(0, 5)
+        ax.legend()
+        ax.grid()
+        show_or_save_plot(filename)
+
+    def stability_summary(self, *, filename=None):
+        """Plots the stability of the ascent in one figure: the angles of
+        attack the margins are read at, the stability margin, the natural
+        frequency with the roll rate, and the damping ratio, pitch and yaw
+        wherever they can differ.
+
+        This is the four panels of :meth:`angle_of_attack_data`,
+        :meth:`stability_margin_data` and :meth:`dynamic_stability_data` side by
+        side, so that a margin or frequency that moves with the angle of attack
+        can be read against the angle that moves it.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        t_lower, t_upper = self._ascent_window()
+        _, axes = plt.subplots(2, 2, figsize=(12, 7))
+        self._plot_angles(axes[0, 0], t_lower, t_upper)
+        self._plot_stability_margin(axes[0, 1], t_upper)
+        self._plot_natural_frequency(axes[1, 0], t_upper)
+        self._plot_damping_ratio(axes[1, 1], t_upper)
+        plt.tight_layout()
         show_or_save_plot(filename)
 
     def pressure_rocket_altitude(self, *, filename=None):
@@ -1373,12 +1596,21 @@ class _FlightPlots:
             print("No sensors were registered in this flight.")
             return
 
+        # A flight loaded from a file without being re-simulated has no recorded
+        # measurements, so fall back to an empty mapping instead of raising.
+        sensor_data = getattr(self.flight, "sensor_data", None) or {}
+
         seen = []
         for sensor in self.flight.sensors:
             if sensor in seen:  # a multiply-added sensor is listed more than once
                 continue
             seen.append(sensor)
-            measured_data = self.flight.sensor_data[sensor]
+            measured_data = sensor_data.get(sensor)
+            if not measured_data:
+                print(
+                    f"\n\n{sensor.name}: no data available (flight was not simulated)."
+                )
+                continue
             print(f"\n\n{sensor.name} Sensor Data\n")
             if filename is None:
                 sensor.plots.all(data=measured_data)
@@ -1428,7 +1660,11 @@ class _FlightPlots:
             if not xlim[0] <= t_ev <= xlim[1]:
                 continue
             alt_ev = float(np.interp(t_ev, z_times, z_agl))
-            line_color = self._BURNOUT_LINE_COLOR if label == "Burnout" else color
+            line_color = (
+                self._BURNOUT_LINE_COLOR
+                if label in ("Burnout", "Out Of Rail")
+                else color
+            )
             lw = (
                 self._EVENT_LINE_WIDTH if label == "Burnout" else self._EVENT_LINE_WIDTH
             )
@@ -1631,7 +1867,9 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def angle_of_attack_data(self, *, filename=None):
-        """Plots angle of attack, partial angle of attack, and angle of sideslip.
+        """Plots the angles of attack over the ascent on one panel: the total
+        angle of attack, between the rocket's axis and the air; the angle of
+        attack in the pitch plane; and the sideslip angle in the yaw plane.
 
         Parameters
         ----------
@@ -1645,58 +1883,9 @@ class _FlightPlots:
         -------
         None
         """
-        t_lower = self.flight.out_of_rail_time
-        t_upper = (
-            self.flight.apogee_time
-            if self.flight.apogee_time != 0
-            else self.flight.t_final
-        )
-
-        def _ylim_in_range(arr):
-            mask = (arr[:, 0] >= t_lower) & (arr[:, 0] <= t_upper)
-            vals = arr[mask, 1]
-            if len(vals) == 0:
-                return 10.0
-            # Use 95th percentile so the runaway rise near apogee (v→0)
-            # does not dominate the y-scale; multiply by 1.5 to keep headroom.
-            top = float(np.percentile(vals, 95)) * 1.5
-            return max(top, 1.0)
-
-        plt.figure(figsize=(9, 9))
-
-        ax1 = plt.subplot(311)
-        ax1.plot(self.flight.angle_of_attack[:, 0], self.flight.angle_of_attack[:, 1])
-        ax1.set_xlim(t_lower, t_upper)
-        ax1.set_ylim(0, _ylim_in_range(self.flight.angle_of_attack[:, :]))
-        ax1.set_title("Angle of Attack")
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Angle of Attack (°)")
-        ax1.grid()
-
-        ax2 = plt.subplot(312)
-        ax2.plot(
-            self.flight.partial_angle_of_attack[:, 0],
-            self.flight.partial_angle_of_attack[:, 1],
-        )
-        ax2.set_xlim(t_lower, t_upper)
-        ax2.set_ylim(0, _ylim_in_range(self.flight.partial_angle_of_attack[:, :]))
-        ax2.set_title("Partial Angle of Attack")
-        ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Partial Angle of Attack (°)")
-        ax2.grid()
-
-        ax3 = plt.subplot(313)
-        ax3.plot(
-            self.flight.angle_of_sideslip[:, 0], self.flight.angle_of_sideslip[:, 1]
-        )
-        ax3.set_xlim(t_lower, t_upper)
-        ax3.set_ylim(0, _ylim_in_range(self.flight.angle_of_sideslip[:, :]))
-        ax3.set_title("Angle of Sideslip")
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Angle of Sideslip (°)")
-        ax3.grid()
-
-        plt.subplots_adjust(hspace=0.5)
+        t_lower, t_upper = self._ascent_window()
+        plt.figure(figsize=(9, 4.5))
+        self._plot_angles(plt.subplot(111), t_lower, t_upper)
         show_or_save_plot(filename)
 
     def all(self):  # pylint: disable=too-many-statements
@@ -1725,8 +1914,20 @@ class _FlightPlots:
         print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
         self.angular_kinematics_data()
 
-        print("\n\nAngle of Attack Plots\n")
+        print("\n\nStability Margin Plot\n")
+        self.stability_margin_data()
+
+        print("\n\nDynamic Stability Plots\n")
+        self.dynamic_stability_data()
+
+        print("\n\nAttitude Frequency Response Plot\n")
+        self.attitude_frequency_response_data()
+
+        print("\n\nAngle of Attack Plot\n")
         self.angle_of_attack_data()
+
+        print("\n\nStability Summary Plot\n")
+        self.stability_summary()
 
         print("\n\nAngular Position Plots\n")
         self.flight_path_angle_data()
@@ -1748,9 +1949,6 @@ class _FlightPlots:
 
         print("\n\nTrajectory Fluid Mechanics Plots\n")
         self.fluid_mechanics_data()
-
-        print("\n\nTrajectory Stability and Control Plots\n")
-        self.stability_and_control_data()
 
         if self.flight.sensors:
             print("\n\nSensor Data Plots\n")

@@ -85,18 +85,23 @@ plotted as follows:
 
 .. jupyter-execute::
 
-    # Plot the source with standard 2d shepard interpolation
+    # The points cover a regular grid, so they are interpolated on it
     f.plot()
 
 .. important::
 
     For datasets higher than one dimension (more than one input), the
-    ``Function`` class supports interpolation ``linear``, ``shepard``, ``rbf``
-    and ``regular_grid``.
+    ``Function`` class supports the interpolations ``linear``, ``shepard`` and
+    ``rbf``.
 
-    The ``regular_grid`` interpolation requires a complete Cartesian grid and
-    must be provided as ``(axes, grid_data)``. See the ``Function`` API
-    documentation for details.
+    When the dataset holds every combination of the values of its inputs (a
+    regular grid, like a table of a coefficient against angle of attack and
+    Mach number), the ``Function`` notices it and interpolates on the grid,
+    which is faster and more accurate. Nothing has to be asked for, and
+    ``Function.is_regular_grid`` tells whether it happened. On a grid the
+    methods are ``linear`` (the default), ``nearest``, ``slinear``, ``cubic``,
+    ``quintic`` and ``pchip``. Ask for ``shepard`` or ``rbf`` to have such a
+    dataset treated as scattered points.
 
 CSV File
 ^^^^^^^^
@@ -187,7 +192,7 @@ In this section we are going to delve deeper on ``Function`` creation and its pa
 - source: the ``Function`` data source. We have explored this parameter in the section above;
 - inputs: a list of strings containing each input variable name. If the source only has one input, may be abbreviated as a string (e.g. "speed (m/s)");
 - outputs: a list of strings containing each output variable name. If the source only has one output, may be abbreviated as a string (e.g. "total energy (J)");
-- interpolation: a string that is the interpolation method to be used if the source is a dataset. For N-D datasets, supported options are ``linear``, ``shepard``, ``rbf`` and ``regular_grid``. Defaults to ``spline`` for 1-D and ``shepard`` for N-D datasets;
+- interpolation: a string that is the interpolation method to be used if the source is a dataset. For N-D datasets, supported options are ``linear``, ``shepard`` and ``rbf``, and on a regular grid ``linear``, ``nearest``, ``slinear``, ``cubic``, ``quintic`` and ``pchip``. Defaults to ``spline`` for 1-D, ``shepard`` for N-D datasets and ``linear`` on a regular grid;
 - extrapolation: a string that is the extrapolation method to be used if the source is a dataset. Defaults to ``constant``;
 - title: the title to be shown in the plots.
 

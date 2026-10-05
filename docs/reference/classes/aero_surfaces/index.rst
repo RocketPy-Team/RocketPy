@@ -20,3 +20,4 @@ AeroSurface Classes
    AirBrakes
    GenericSurface
    LinearGenericSurface
+   ControllableGenericSurface

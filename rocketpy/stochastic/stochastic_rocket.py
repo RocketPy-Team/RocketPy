@@ -36,6 +36,9 @@ from .stochastic_solid_motor import StochasticSolidMotor
 
 # TODO: Private methods of this class should be double underscored
 
+# Surfaces with a stochastic version, which is added with the ``add_*`` methods
+_DISPERSED_SURFACES = (NoseCone, TrapezoidalFins, EllipticalFins, Tail)
+
 
 class StochasticRocket(StochasticModel):
     """A Stochastic Rocket class that inherits from StochasticModel.
@@ -75,9 +78,11 @@ class StochasticRocket(StochasticModel):
     inertia_23 : tuple, list, int, float
         The inertia of the rocket around the yz axis.
     power_off_drag : list
-        The power off drag of the rocket.
+        The power off drag curves to choose from. By default, the rocket's own
+        ``power_off_drag_7d``, with every variable it depends on.
     power_on_drag : list
-        The power on drag of the rocket.
+        The power on drag curves to choose from. By default, the rocket's own
+        ``power_on_drag_7d``.
     power_off_drag_factor : tuple, list, int, float
         The power off drag factor of the rocket.
     power_on_drag_factor : tuple, list, int, float
@@ -87,6 +92,14 @@ class StochasticRocket(StochasticModel):
     coordinate_system_orientation : list[str]
         The orientation of the coordinate system of the rocket. This attribute
         can not be a randomized.
+
+    Notes
+    -----
+    The rocket's ``stability_phase`` and ``length`` are kept as they are.
+    Surfaces with no stochastic version yet, the ones built from their own
+    coefficients (``GenericSurface`` and its linear and controllable versions),
+    the free-form fins and the individual fins, are added to every generated
+    rocket unchanged, at their position.
     """
 
     def __init__(
@@ -133,9 +146,12 @@ class StochasticRocket(StochasticModel):
         inertia_23 : int, float, tuple, list, optional
             The inertia of the rocket around the yz axis.
         power_off_drag : list, optional
-            The power off drag of the rocket.
+            Drag curves to choose from, in any form the ``Rocket`` accepts
+            (CSV paths, lists of points, Functions, AeroCoefficients or
+            functions). Default is the rocket's own ``power_off_drag_7d``.
         power_on_drag : list, optional
-            The power on drag of the rocket.
+            Drag curves to choose from, as ``power_off_drag``. Default is the
+            rocket's own ``power_on_drag_7d``.
         power_off_drag_factor : int, float, tuple, list, optional
             The power off drag factor of the rocket. This represents a factor
             that multiplies the power off drag curve.
@@ -146,6 +162,10 @@ class StochasticRocket(StochasticModel):
             The center of mass of the rocket without the motor.
         """
         # TODO: mention that these factors are validated differently
+        # The rocket's ``power_off_drag`` is its Mach-only view; the simulation
+        # uses the full coefficient, so that is the default.
+        power_off_drag = power_off_drag or [rocket.power_off_drag_7d]
+        power_on_drag = power_on_drag or [rocket.power_on_drag_7d]
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
         self.motors = Components()
@@ -741,9 +761,11 @@ class StochasticRocket(StochasticModel):
             coordinate_system_orientation=generated_dict[
                 "coordinate_system_orientation"
             ],
+            length=self.obj._length,
         )
         rocket.power_off_drag_7d *= generated_dict["power_off_drag_factor"]
         rocket.power_on_drag_7d *= generated_dict["power_on_drag_factor"]
+        rocket.stability_phase = self.obj.stability_phase
 
         if hasattr(self, "cp_eccentricity_x") and hasattr(self, "cp_eccentricity_y"):
             cp_ecc_x, cp_ecc_y = self._create_eccentricities(
@@ -769,6 +791,11 @@ class StochasticRocket(StochasticModel):
         for component_surface in self.aerodynamic_surfaces:
             surface, position_rnd = self._create_surface(component_surface)
             rocket.add_surfaces(surface, position_rnd)
+
+        # Surfaces with no stochastic version are carried over as they are
+        for surface, position in self.obj.aerodynamic_surfaces:
+            if not isinstance(surface, _DISPERSED_SURFACES):
+                rocket.add_surfaces(surface, position)
 
         for air_brake in self.air_brakes:
             air_brake = self._create_air_brake(air_brake)

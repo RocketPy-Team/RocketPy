@@ -1,6 +1,3 @@
-from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
-
-
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -103,43 +100,84 @@ class _RocketPrints:
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
         for surface, _ in self.rocket.aerodynamic_surfaces:
-            if isinstance(surface, GenericSurface):
+            # The slopes at Mach 0 and zero angles, referenced to the rocket's
+            # area; the yaw one is signed like the pitch one (see
+            # Rocket.evaluate_center_of_pressure).
+            ref_factor = surface.reference_area / self.rocket.area
+            pitch = ref_factor * surface.cN_alpha(0, 0, 0, 0, 0, 0, 0)
+            yaw = -ref_factor * surface.cY_beta(0, 0, 0, 0, 0, 0, 0)
+            if pitch == 0 and yaw == 0:
                 continue
-            name = surface.name
-            # ref_factor corrects lift for different reference areas
-            ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
-            print(
-                f"{name} Lift Coefficient Derivative: "
-                f"{ref_factor * surface.clalpha(0):.3f}/rad"
-            )
+            line = f"{surface.name} Lift Coefficient Derivative: {pitch:.3f}/rad"
+            if abs(yaw - pitch) > 1e-9 * max(1.0, abs(pitch)):
+                line += f" (pitch), {yaw:.3f}/rad (yaw)"
+            print(line)
 
         print("\nCenter of Pressure\n")
         for surface, position in self.rocket.aerodynamic_surfaces:
             name = surface.name
-            cpz = surface.cp[2]  # relative to the user defined coordinate system
+            # Same point the rocket's center of pressure is built from (see
+            # Rocket.evaluate_center_of_pressure), at Mach 0
+            cpz = surface.aerodynamic_center.get_value_opt(0)
+            position = self.rocket._surface_origin(surface, position)
             print(
                 f"{name} Center of Pressure position: "
-                f"{position.z - self.rocket._csys * cpz:.3f} m"
+                f"{position.z + self.rocket._csys * cpz:.3f} m"
             )
         print("\nStability\n")
         print(
             f"Center of Mass position (time=0): {self.rocket.center_of_mass(0):.3f} m"
         )
         print(
-            f"Center of Pressure position (time=0): {self.rocket.cp_position(0):.3f} m"
+            f"Center of Pressure position (Mach=0): "
+            f"{self.rocket.aerodynamic_center(0):.3f} m"
         )
+        # The static margin is reported in calibers and, when the rocket has a
+        # defined overall length, also as a percentage of that length (the
+        # convention often used in hobby rocketry). See Rocket.length.
+        burn_out_time = self.rocket.motor.burn_out_time
+        length = self.rocket.length or 0
+        to_percent = 2 * self.rocket.radius / length * 100 if length > 0 else None
+
+        def _margin(value):
+            """Format a margin in calibers, appending the length percentage when
+            the rocket length is known."""
+            if to_percent is None:
+                return f"{value:.3f} c"
+            return f"{value:.3f} c ({value * to_percent:.2f}% of length)"
+
+        if length > 0:
+            print(f"Rocket Length: {length:.3f} m")
         print(
             f"Initial Static Margin (mach=0, time=0): "
-            f"{self.rocket.static_margin(0):.3f} c"
+            f"{_margin(self.rocket.static_margin(0))}"
         )
         print(
             f"Final Static Margin (mach=0, time=burn_out): "
-            f"{self.rocket.static_margin(self.rocket.motor.burn_out_time):.3f} c"
+            f"{_margin(self.rocket.static_margin(burn_out_time))}"
         )
         print(
-            f"Rocket Center of Mass (time=0) - Center of Pressure (mach=0): "
-            f"{abs(self.rocket.center_of_mass(0) - self.rocket.cp_position(0)):.3f} m\n"
+            f"Rocket Center of Mass (time=0) - Center of Pressure (Mach=0): "
+            f"{abs(self.rocket.center_of_mass(0) - self.rocket.aerodynamic_center(0)):.3f} m\n"
         )
+
+        if not self.rocket.is_axisymmetric:
+            print(
+                "The rocket is NOT axisymmetric: the values above describe the "
+                "PITCH plane. Yaw plane:\n"
+            )
+            print(
+                f"Center of Pressure position - yaw (Mach=0): "
+                f"{self.rocket.aerodynamic_center_yaw(0):.3f} m"
+            )
+            print(
+                f"Initial Static Margin - yaw (mach=0, time=0): "
+                f"{_margin(self.rocket.static_margin_yaw(0))}"
+            )
+            print(
+                f"Final Static Margin - yaw (mach=0, time=burn_out): "
+                f"{_margin(self.rocket.static_margin_yaw(burn_out_time))}\n"
+            )
 
     def parachute_data(self):
         """Print parachute data.

@@ -46,5 +46,6 @@ RocketPy's User Guide
    :maxdepth: 2
    :caption: Further Analysis
 
+   Center of Pressure and Stability <center_of_pressure_and_stability.rst>
    Function <function.rst>
    Utilities <analysis.rst>

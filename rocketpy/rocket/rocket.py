@@ -1,8 +1,8 @@
-import csv
+# pylint: disable=too-many-lines
 import inspect
 import math
 import warnings
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -12,21 +12,38 @@ from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
+from rocketpy.rocket._helpers import (
+    center_of_pressure_position,
+    corrective_and_damping_moments,
+    disturbance_response,
+    full_body_coefficients,
+    is_axisymmetric,
+    is_incidence_linear,
+    lateral_inertia_and_rate,
+    lumped_control_names,
+    lumped_surface_coefficients,
+    moment_slopes_left_out,
+    neutral_point_and_slope,
+    stability_margin_and_slope,
+    stability_surfaces,
+    uses_rate_coefficients,
+)
 from rocketpy.rocket.aero_surface import (
     AirBrakes,
+    ControllableGenericSurface,
     EllipticalFins,
+    Fin,
     Fins,
+    GenericSurface,
     NoseCone,
     RailButtons,
     Tail,
     TrapezoidalFins,
 )
-from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
-from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
+from rocketpy.rocket.aero_surface.aero_coefficient import AeroCoefficient
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
-from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
-from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
-from rocketpy.rocket.components import Components
+from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSurface
+from rocketpy.rocket.components import Components, position_vector
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
@@ -35,7 +52,7 @@ from rocketpy.tools import (
 )
 
 
-# pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes, too-many-public-methods
 class Rocket:
     """Keeps rocket information.
 
@@ -133,41 +150,53 @@ class Rocket:
         Collection of air brakes of the rocket.
     Rocket._controllers : list
         Collection of controllers of the rocket.
+    Rocket.aerodynamic_center : Function
+        Position of the rocket's aerodynamic center, in meters, as a function
+        of Mach number, in the user defined rocket reference system. It is the
+        point the static margin is measured from. For a rocket built from nose
+        cones, fins and tails it is the same point as the center of pressure.
+        See :doc:`Positions and Coordinate Systems </user/positions>` for more
+        information.
     Rocket.cp_position : Function
-        Function of Mach number expressing the rocket's center of pressure
-        position relative to user defined rocket reference system.
-        See :doc:`Positions and Coordinate Systems </user/positions>`
-        for more information.
+        Position of the rocket's center of pressure, in meters, as a function
+        of Mach number, in the user defined rocket reference system. Same
+        Function as ``Rocket.aerodynamic_center``.
     Rocket.stability_margin : Function
-        Stability margin of the rocket, in calibers, as a function of mach
-        number and time. Stability margin is defined as the distance between
-        the center of pressure and the center of mass, divided by the
-        rocket's diameter.
+        Stability margin of the rocket, in calibers, as a function of Mach
+        number and time, with the rocket flying straight into the air (zero
+        angle of attack). It is the distance from the center of mass to the
+        center of pressure, divided by the rocket's diameter.
     Rocket.static_margin : Function
-        Static margin of the rocket, in calibers, as a function of time. Static
-        margin is defined as the distance between the center of pressure and the
-        center of mass, divided by the rocket's diameter.
-    Rocket.static_margin : float
-        Float value corresponding to rocket static margin when
-        loaded with propellant in units of rocket diameter or calibers.
+        Static margin of the rocket, in calibers, as a function of time. It is
+        the distance from the center of mass to the center of pressure at zero
+        airspeed (``cp_position`` at Mach 0), divided by the rocket's diameter.
+    Rocket.stability_phase : str
+        Which motor phase the aerodynamic center, the margins and the lumped
+        coefficients (``to_coefficients``) describe when a surface is only
+        active during one phase (its ``active_during``): ``"power_off"``
+        (default, the rocket after burnout) or ``"power_on"`` (while the motor
+        burns). Has no effect on a rocket whose surfaces are all always active,
+        nor on the flight itself, which switches surfaces on and off by time.
     Rocket.power_off_drag : Function
         Rocket's drag coefficient as a function of Mach number when the
-        motor is off. Alias for ``power_off_drag_by_mach``.
+        motor is off. Alias for ``power_off_drag_by_mach``. Assign a new drag
+        curve to it to replace the drag used in the simulation.
     Rocket.power_on_drag : Function
         Rocket's drag coefficient as a function of Mach number when the
-        motor is on. Alias for ``power_on_drag_by_mach``.
-    Rocket.power_off_drag_input : int, float, callable, string, array, Function
-        Original user input for rocket's drag coefficient when the motor is
-        off. Preserved for reconstruction and Monte Carlo workflows.
-    Rocket.power_on_drag_input : int, float, callable, string, array, Function
-        Original user input for rocket's drag coefficient when the motor is
-        on. Preserved for reconstruction and Monte Carlo workflows.
-    Rocket.power_off_drag_7d : Function
-        Rocket's drag coefficient with motor off as a 7D function of
-        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
-    Rocket.power_on_drag_7d : Function
-        Rocket's drag coefficient with motor on as a 7D function of
-        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
+        motor is on. Alias for ``power_on_drag_by_mach``. Assign a new drag
+        curve to it to replace the drag used in the simulation.
+    Rocket.power_off_drag_7d : AeroCoefficient
+        Rocket's drag coefficient with motor off, callable over the seven
+        independent variables (alpha, beta, mach, reynolds, pitch_rate,
+        yaw_rate, roll_rate), with the three rates non-dimensional
+        (``rate * diameter / (2 * airspeed)``). It is the rocket's axial force
+        coefficient: the force acts along the rocket's centerline.
+    Rocket.power_on_drag_7d : AeroCoefficient
+        Rocket's drag coefficient with motor on, callable over the seven
+        independent variables (alpha, beta, mach, reynolds, pitch_rate,
+        yaw_rate, roll_rate), with the three rates non-dimensional
+        (``rate * diameter / (2 * airspeed)``). It is the rocket's axial force
+        coefficient: the force acts along the rocket's centerline.
     Rocket.power_off_drag_by_mach : Function
         Rocket's drag coefficient with motor off as a function of Mach number.
     Rocket.power_on_drag_by_mach : Function
@@ -239,9 +268,10 @@ class Rocket:
         power_on_drag,
         center_of_mass_without_motor,
         coordinate_system_orientation="tail_to_nose",
+        length=None,
     ):
-        """Initializes Rocket class, process inertial, geometrical and
-        aerodynamic parameters.
+        """Initialize the rocket from its inertial, geometrical and aerodynamic
+        parameters.
 
         Parameters
         ----------
@@ -261,18 +291,30 @@ class Rocket:
             in the direction of e_i x e_j. Alternatively, the inertia tensor can
             be given as (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0. This
             can also be called as "rocket dry inertia tensor".
-        power_off_drag : int, float, callable, string, array
-            Rocket's drag coefficient when the motor is off. Can be given as an
-            entry to the Function class. See help(Function) for more
-            information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function of Mach
-            number only.
-        power_on_drag : int, float, callable, string, array
-            Rocket's drag coefficient when the motor is on. Can be given as an
-            entry to the Function class. See help(Function) for more
-            information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function of Mach
-            number only.
+        power_off_drag : int, float, callable, string, array, Function
+            Rocket's drag coefficient when the motor is off, based on the
+            rocket's cross-section area (``pi * radius**2``). It can be a number,
+            a ``.csv`` file or list of points with the Mach number in the first
+            column and the drag coefficient in the second, a function such as
+            ``lambda mach: ...``, or a :class:`Function`.
+
+            The coefficient may also depend on ``alpha`` and ``beta`` (angle of
+            attack and sideslip, rad), or ``alpha_total`` in their place,
+            ``mach``, ``reynolds`` (based on the rocket's diameter) and
+            ``pitch_rate``, ``yaw_rate`` and ``roll_rate`` (rate in rad/s times
+            the diameter, divided by twice the airspeed). Name the arguments of
+            the function, or the columns of the ``.csv`` file, after the ones
+            used, for example ``lambda alpha, mach: ...``.
+
+            Outside the range of its data, a table or a ``.csv`` file holds the
+            value at its nearest end; a function is evaluated as given.
+
+            For the coefficients of the whole rocket (lift, drag and moment
+            against angle of attack), see :meth:`add_full_body_aerodynamics`.
+        power_on_drag : int, float, callable, string, array, Function
+            Rocket's drag coefficient when the motor is on. Given in the same
+            way as ``power_off_drag``. If you only have one drag curve, use it
+            for both.
         center_of_mass_without_motor : int, float
             Position, in m, of the rocket's center of mass without motor
             relative to the rocket's coordinate system. Default is 0, which
@@ -293,6 +335,15 @@ class Rocket:
             coordinate system with the rocket's axis of symmetry pointing from
             the  rocket's nose cone to the rocket's tail. Default is
             "tail_to_nose".
+        length : int, float, optional
+            Overall length of the rocket, from the nose tip to the aft end, in
+            meters. It is only used to report the static and stability margins
+            as a percentage of the rocket's length (prints and plots). When not
+            given, the length is measured from the nose cone to the aft-most
+            tail, fin set or motor nozzle (see :attr:`length`). Give it when
+            the rocket has no nose cone, such as a rocket described only by a
+            :class:`rocketpy.GenericSurface`; otherwise the percentage is left
+            out. Default is ``None``.
 
         Returns
         -------
@@ -325,6 +376,7 @@ class Rocket:
         self.center_of_mass_without_motor = center_of_mass_without_motor
         self.radius = radius
         self.area = np.pi * self.radius**2
+        self._length = length
         self._is_point_mass = False
 
         # Eccentricity data initialization
@@ -343,55 +395,60 @@ class Rocket:
         self.sensors_by_name = {}
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
+        # What the values derived from the surfaces were last built for (see
+        # _refresh_aerodynamics, _refresh_aerodynamic_center, _refresh_margins)
+        self._lever_arms_stamp = None
+        self._aerodynamic_center_stamp = None
+        self._margins_stamp = None
+        # Set once a full-body model replaces the modeled aerodynamics
+        # (add_full_body_aerodynamics(overwrite=True)); warns on later surface adds.
+        self._aerodynamics_overwritten = False
+        # Which motor phase the stability analysis describes when a surface is
+        # only active during one of them (see ``stability_phase``).
+        self.stability_phase = "power_off"
         self.rail_buttons = Components()
 
-        self.cp_position = Function(
+        self._aerodynamic_center = Function(
             lambda mach: 0,
             inputs="Mach Number",
-            outputs="Center of Pressure Position (m)",
+            outputs="Aerodynamic Center Position (m)",
         )
-        self.total_lift_coeff_der = Function(
+        self._total_lift_coeff_der = Function(
             lambda mach: 0,
             inputs="Mach Number",
             outputs="Total Lift Coefficient Derivative",
         )
-        self.static_margin = Function(
+        self._static_margin = Function(
             lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
         )
-        self.stability_margin = Function(
+        self._stability_margin = Function(
             lambda mach, time: 0,
             inputs=["Mach", "Time (s)"],
             outputs="Stability Margin (c)",
         )
+        # Yaw-plane counterparts
+        self._aerodynamic_center_yaw = Function(
+            lambda mach: 0,
+            inputs="Mach Number",
+            outputs="Aerodynamic Center Position - Yaw (m)",
+        )
+        self._total_side_coeff_der = Function(
+            lambda mach: 0,
+            inputs="Mach Number",
+            outputs="Total Side Coefficient Derivative",
+        )
+        self._static_margin_yaw = Function(
+            lambda time: 0, inputs="Time (s)", outputs="Static Margin - Yaw (c)"
+        )
+        self._stability_margin_yaw = Function(
+            lambda mach, time: 0,
+            inputs=["Mach", "Time (s)"],
+            outputs="Stability Margin - Yaw (c)",
+        )
 
-        # Define aerodynamic drag coefficients
-        # Coefficients used during flight simulation
-        self.power_off_drag_7d = self.__process_drag_input(
-            power_off_drag, "Drag Coefficient with Power Off"
-        )
-        self.power_on_drag_7d = self.__process_drag_input(
-            power_on_drag, "Drag Coefficient with Power On"
-        )
-        self.power_on_drag_by_mach = Function(
-            lambda mach: self.power_on_drag_7d(0, 0, mach, 0, 0, 0, 0),
-            inputs="Mach Number",
-            outputs="Drag Coefficient with Power On",
-            interpolation="linear",
-            extrapolation="constant",
-        )
-        self.power_off_drag_by_mach = Function(
-            lambda mach: self.power_off_drag_7d(0, 0, mach, 0, 0, 0, 0),
-            inputs="Mach Number",
-            outputs="Drag Coefficient with Power Off",
-            interpolation="linear",
-            extrapolation="constant",
-        )
-        # Saving raw user input for reconstruction and Monte Carlo
-        self._power_off_drag_input = power_off_drag
-        self._power_on_drag_input = power_on_drag
-        # Public API attributes: keep as Function (Mach-only) for backward compatibility
-        self.power_off_drag = self.power_off_drag_by_mach
-        self.power_on_drag = self.power_on_drag_by_mach
+        # Define aerodynamic drag coefficients used during flight simulation
+        self._set_drag("power_off", power_off_drag)
+        self._set_drag("power_on", power_on_drag)
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported
@@ -412,14 +469,80 @@ class Rocket:
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
 
-        # Evaluate stability (even though no aerodynamic surfaces are present yet)
-        self.evaluate_center_of_pressure()
-        self.evaluate_stability_margin()
-        self.evaluate_static_margin()
+        # Attributes for lazy evaluation of aerodynamic centers and margins
+        self._is_incidence_linear = True
+        self._uses_rate_coefficients = False
+        # Whether the rocket behaves the same in every plane
+        self._is_axisymmetric = True
 
         # Initialize plots and prints object
         self.prints = _RocketPrints(self)
         self.plots = _RocketPlots(self)
+
+    def _set_drag(self, which, source):
+        """Set one of the rocket's drag curves from a user input.
+
+        Builds the two attributes of that curve: ``<which>_drag_7d``, the
+        coefficient used in the simulation, and ``<which>_drag_by_mach``, its
+        view against Mach number alone (also read as ``<which>_drag``).
+
+        Parameters
+        ----------
+        which : str
+            ``"power_off"`` or ``"power_on"``.
+        source : int, float, callable, string, array, Function
+            The drag coefficient, as accepted by ``power_off_drag`` in
+            :meth:`__init__`.
+        """
+        label = "Power On" if which == "power_on" else "Power Off"
+        setattr(
+            self,
+            f"{which}_drag_7d",
+            AeroCoefficient(
+                source,
+                name=f"Drag Coefficient with {label}",
+                extrapolation="constant",
+                single_var="mach",
+            ),
+        )
+        # Reads the coefficient on each call, so it follows a later change of it
+        # (for example the Monte Carlo drag factor).
+        by_mach = Function(
+            lambda mach: getattr(self, f"{which}_drag_7d")(0, 0, mach, 0, 0, 0, 0),
+            inputs="Mach Number",
+            outputs=f"Drag Coefficient with {label}",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+        setattr(self, f"{which}_drag_by_mach", by_mach)
+
+    @property
+    def power_off_drag(self):
+        """Drag coefficient with the motor off, as a Function of Mach number.
+
+        It is read at zero angle of attack and zero rates. Assign a new drag
+        curve to it, in any of the forms accepted by :meth:`__init__`, to
+        replace the drag used in the simulation.
+        """
+        return self.power_off_drag_by_mach
+
+    @power_off_drag.setter
+    def power_off_drag(self, source):
+        self._set_drag("power_off", source)
+
+    @property
+    def power_on_drag(self):
+        """Drag coefficient with the motor on, as a Function of Mach number.
+
+        It is read at zero angle of attack and zero rates. Assign a new drag
+        curve to it, in any of the forms accepted by :meth:`__init__`, to
+        replace the drag used in the simulation.
+        """
+        return self.power_on_drag_by_mach
+
+    @power_on_drag.setter
+    def power_on_drag(self, source):
+        self._set_drag("power_on", source)
 
     def _check_missing_components(self):
         """Check if the rocket is missing any essential components and issue a warning.
@@ -609,43 +732,563 @@ class Rocket:
         self.thrust_to_weight.set_outputs("Thrust/Weight")
         self.thrust_to_weight.set_title("Thrust to Weight ratio")
 
-    def evaluate_center_of_pressure(self):
-        """Evaluates rocket center of pressure position relative to user defined
-        rocket reference system. It can be called as many times as needed, as it
-        will update the center of pressure function every time it is called. The
-        code will iterate through all aerodynamic surfaces and consider each of
-        their center of pressure position and derivative of the coefficient of
-        lift as a function of Mach number.
+    # Lazily-evaluated aerodynamic outputs.
+
+    # The values the rocket derives from its surfaces are rebuilt when read, and
+    # only if something they depend on changed.
+
+    def _surfaces_stamp(self):
+        """What the aerodynamic center depends on: each surface, its version
+        (counted up when its geometry changes) and where it was placed."""
+        return (
+            self._csys,
+            self.radius,
+            self.stability_phase,
+            tuple(
+                (surface, surface._version, position)
+                for surface, position in self.aerodynamic_surfaces
+            ),
+        )
+
+    def _refresh_aerodynamics(self):
+        """Bring up to date what the simulation reads from the surfaces: each
+        surface's center of pressure relative to the center of dry mass (for an
+        individual fin, its leading edge moves with the cant angle). Returns the
+        surfaces stamp."""
+        surfaces_stamp = self._surfaces_stamp()
+        stamp = (
+            surfaces_stamp,
+            self.center_of_dry_mass_position,
+            self.cm_eccentricity_x,
+            self.cm_eccentricity_y,
+        )
+        if stamp != self._lever_arms_stamp:
+            self._lever_arms_stamp = stamp
+            self.evaluate_surfaces_cp_to_cdm()
+        return surfaces_stamp
+
+    def _refresh_aerodynamic_center(self):
+        """Rebuild the pitch/yaw aerodynamic centers if a surface changed.
+        Returns the surfaces stamp."""
+        stamp = self._refresh_aerodynamics()
+        if stamp != self._aerodynamic_center_stamp:
+            # Set before computing: evaluate_center_of_pressure reads the
+            # aerodynamic center it is building (the axisymmetry check).
+            self._aerodynamic_center_stamp = stamp
+            self.evaluate_center_of_pressure()
+        return stamp
+
+    def _refresh_margins(self):
+        """Rebuild the static/stability margins if a surface or the center of
+        mass changed."""
+        stamp = (self._refresh_aerodynamic_center(), self.center_of_mass)
+        if stamp != self._margins_stamp:
+            self.evaluate_stability_margin()
+            self.evaluate_static_margin()
+            # Set after computing, so a rebuild that fails is tried again
+            self._margins_stamp = stamp
+
+    @property
+    def aerodynamic_center(self):
+        """Position of the rocket's aerodynamic center, in meters, as a function
+        of Mach number, in the user-defined rocket coordinate system.
+
+        The aerodynamic center is the point where the extra aerodynamic force
+        appears when the rocket tilts a little away from the airflow. The rocket
+        is stable when it is behind the center of mass. For a rocket built from
+        nose cones, fins and tails it is the center of pressure.
+        """
+        self._refresh_aerodynamic_center()
+        return self._aerodynamic_center
+
+    @property
+    def aerodynamic_center_yaw(self):
+        """Position of the rocket's aerodynamic center in the yaw plane, in
+        meters, as a function of Mach number. Equals :attr:`aerodynamic_center`
+        for an axisymmetric rocket.
+        """
+        self._refresh_aerodynamic_center()
+        return self._aerodynamic_center_yaw
+
+    def neutral_point(self, alpha, mach, beta=0.0):
+        """Position of the rocket's neutral point at an angle of attack, in
+        meters.
+
+        The neutral point is the point where the extra aerodynamic force
+        appears when the angle of attack changes a little from the given one.
+        The stability margin is measured from it. At zero angle of attack it is
+        the :attr:`aerodynamic_center`.
+
+        Parameters
+        ----------
+        alpha : float
+            Angle of attack, in radians, to evaluate the neutral point at.
+        mach : float
+            Free-stream Mach number.
+        beta : float, optional
+            Sideslip angle, in radians, the rocket is at. Default 0.
 
         Returns
         -------
-        self.cp_position : Function
-            Function of Mach number expressing the rocket's center of pressure
-            position relative to user defined rocket reference system.
-            See :doc:`Positions and Coordinate Systems </user/positions>`
-            for more information.
+        float
+            Position of the neutral point along the rocket's axis, in meters,
+            in the user-defined rocket coordinate system.
         """
-        # Re-Initialize total lift coefficient derivative and center of pressure position
-        self.total_lift_coeff_der.set_source(lambda mach: 0)
-        self.cp_position.set_source(lambda mach: 0)
+        return neutral_point_and_slope(self, alpha, beta, mach, "pitch")[0]
 
-        # Calculate total lift coefficient derivative and center of pressure
-        if len(self.aerodynamic_surfaces) > 0:
-            for aero_surface, position in self.aerodynamic_surfaces:
-                if isinstance(aero_surface, GenericSurface):
-                    continue
-                # ref_factor corrects lift for different reference areas
-                ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
-                self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
-                self.cp_position += (
-                    ref_factor
-                    * aero_surface.clalpha
-                    * (position.z - self._csys * aero_surface.cpz)
+    def neutral_point_yaw(self, beta, mach, alpha=0.0):
+        """Position of the rocket's neutral point in the yaw plane at a sideslip
+        angle, in meters.
+
+        Same as :meth:`neutral_point`, for the sideslip angle instead of the
+        angle of attack. At zero angle it is :attr:`aerodynamic_center_yaw`.
+
+        Parameters
+        ----------
+        beta : float
+            Sideslip angle, in radians, to evaluate the neutral point at.
+        mach : float
+            Free-stream Mach number.
+        alpha : float, optional
+            Angle of attack, in radians, the rocket is at. Default 0.
+
+        Returns
+        -------
+        float
+            Position of the yaw-plane neutral point along the rocket's axis, in
+            meters, in the user-defined rocket coordinate system.
+        """
+        return neutral_point_and_slope(self, alpha, beta, mach, "yaw")[0]
+
+    def center_of_pressure(self, alpha, mach, beta=0.0):
+        """Position of the rocket's center of pressure at an angle of attack, in
+        meters.
+
+        The center of pressure is the point where the whole aerodynamic force
+        on the rocket acts. For a rocket built from nose cones, fins and tails
+        it does not move with the angle of attack and equals
+        :attr:`cp_position`.
+
+        Parameters
+        ----------
+        alpha : float
+            Angle of attack, in radians. For an axisymmetric rocket, pass the
+            total angle of attack and leave ``beta`` at 0.
+        mach : float
+            Free-stream Mach number.
+        beta : float, optional
+            Sideslip angle, in radians, the rocket is at. Default 0.
+
+        Returns
+        -------
+        float
+            Position of the center of pressure along the rocket's axis, in
+            meters, in the user-defined rocket coordinate system. At zero angle
+            of attack there is no sideways force, and :attr:`cp_position` is
+            returned.
+        """
+        return center_of_pressure_position(self, alpha, beta, mach, "pitch")
+
+    def center_of_pressure_yaw(self, beta, mach, alpha=0.0):
+        """Position of the rocket's center of pressure in the yaw plane at a
+        sideslip angle, in meters.
+
+        Same as :meth:`center_of_pressure`, for the side force and the sideslip
+        angle. Only needed for a rocket that is not axisymmetric.
+
+        Parameters
+        ----------
+        beta : float
+            Sideslip angle, in radians.
+        mach : float
+            Free-stream Mach number.
+        alpha : float, optional
+            Angle of attack, in radians, the rocket is at. Default 0.
+
+        Returns
+        -------
+        float
+            Position of the yaw-plane center of pressure along the rocket's
+            axis, in meters, in the user-defined rocket coordinate system. At
+            zero sideslip angle there is no side force, and
+            :attr:`aerodynamic_center_yaw` is returned.
+        """
+        return center_of_pressure_position(self, alpha, beta, mach, "yaw")
+
+    @property
+    def total_lift_coeff_der(self):
+        """How fast the rocket's normal force coefficient grows with the angle of
+        attack, in 1/rad, as a function of Mach number: the sum over all
+        aerodynamic surfaces, referenced to the rocket's cross-sectional area.
+        """
+        self._refresh_aerodynamic_center()
+        return self._total_lift_coeff_der
+
+    @property
+    def total_side_coeff_der(self):
+        """How fast the rocket's side force coefficient grows with the sideslip
+        angle, in 1/rad, as a function of Mach number. Equals
+        :attr:`total_lift_coeff_der` for an axisymmetric rocket.
+        """
+        self._refresh_aerodynamic_center()
+        return self._total_side_coeff_der
+
+    @property
+    def static_margin(self):
+        """Static margin of the rocket, in calibers, as a function of time (s).
+
+        It is the distance from the center of mass to the center of pressure at
+        zero airspeed (:attr:`cp_position` at Mach 0), divided by the rocket's
+        diameter. It is positive when the rocket is stable.
+        """
+        self._refresh_margins()
+        return self._static_margin
+
+    @property
+    def static_margin_yaw(self):
+        """Static margin of the rocket in the yaw plane, in calibers, as a
+        function of time (s). Equals :attr:`static_margin` for an axisymmetric
+        rocket.
+        """
+        self._refresh_margins()
+        return self._static_margin_yaw
+
+    @property
+    def stability_margin(self):
+        """Stability margin of the rocket, in calibers, as a function of Mach
+        number and time (s), with the rocket flying straight into the air (zero
+        angle of attack).
+
+        It is the distance from the center of mass to the center of pressure,
+        divided by the rocket's diameter. It is positive when the rocket is
+        stable. For the margin at an angle of attack, see
+        :meth:`neutral_point`; for the margin along a flight, see
+        :attr:`rocketpy.Flight.stability_margin`.
+        """
+        self._refresh_margins()
+        return self._stability_margin
+
+    @property
+    def stability_margin_yaw(self):
+        """Stability margin of the rocket in the yaw plane, in calibers, as a
+        function of Mach number and time (s), with zero sideslip angle. Equals
+        :attr:`stability_margin` for an axisymmetric rocket.
+        """
+        self._refresh_margins()
+        return self._stability_margin_yaw
+
+    @property
+    def length(self):
+        """Overall length of the rocket, from the nose tip to the aft end, in
+        meters, or ``None`` when it cannot be measured.
+
+        The ``length`` given when the rocket was built, if any. Otherwise it is
+        measured from the rocket's parts: from the tip of the nose cone to the
+        aft-most point among the tails, the fins and the motor nozzle. This
+        needs a nose cone and at least one of a tail, a fin set or a motor.
+        Without them (for example a rocket described only by a
+        :class:`rocketpy.GenericSurface`) the two ends are not known and the
+        length is ``None``; give ``length`` when building the rocket instead.
+
+        The length is only used to show the static and stability margins as a
+        percentage of the rocket's length in the prints and plots. They leave
+        that percentage out when the length is ``None``.
+
+        Returns
+        -------
+        float or None
+            Overall length of the rocket, in meters. It does not depend on the
+            coordinate system orientation.
+        """
+        if self._length is not None:
+            return self._length
+        has_nose = False
+        has_aft_end = False
+        points = []
+        for surface, position in self.aerodynamic_surfaces:
+            if isinstance(surface, NoseCone):
+                has_nose = True
+                axial_extent = surface.length
+            elif isinstance(surface, Tail):
+                has_aft_end = True
+                axial_extent = surface.length
+            elif isinstance(surface, (Fins, Fin)):
+                has_aft_end = True
+                axial_extent = surface.root_chord
+            else:
+                # Generic/controllable surfaces have no defined axial extent
+                # and say nothing about where the rocket ends.
+                continue
+            # The reference point and the point one axial extent toward the tail
+            # (the tail direction is -_csys along the z axis). Taking the global
+            # extremes makes the result independent of which end is the reference.
+            points.append(position.z)
+            points.append(position.z - self._csys * axial_extent)
+        # nozzle_position is already in the rocket reference frame.
+        if getattr(self, "motor", None) is not None and not isinstance(
+            self.motor, EmptyMotor
+        ):
+            has_aft_end = True
+            points.append(self.nozzle_position)
+        if not (has_nose and has_aft_end):
+            return None
+        return max(points) - min(points)
+
+    def evaluate_center_of_pressure(self):
+        """Compute the rocket's center of pressure as a function of Mach number.
+
+        The result is stored in ``aerodynamic_center`` (also read as
+        ``cp_position``): the average position of the aerodynamic surfaces,
+        each weighted by how fast its normal force grows with the angle of
+        attack. This is the center of pressure at a small angle of attack.
+
+        The same is done for the yaw plane (``aerodynamic_center_yaw``), with
+        the side force and the sideslip angle. For an axisymmetric rocket the
+        two are equal. When they differ a warning is shown, because
+        ``static_margin`` and ``stability_margin`` then describe the pitch
+        plane only.
+
+        A surface active during only one motor phase (its ``active_during``)
+        is counted only when that phase is the rocket's ``stability_phase``
+        (``"power_off"`` by default), and a surface that starts the flight
+        switched off (``active=False``) is not counted. A warning says so when
+        one is left out.
+
+        Returns
+        -------
+        self.aerodynamic_center : Function
+            Position of the rocket's pitch-plane aerodynamic center, in meters,
+            as a function of Mach number, in the user-defined rocket coordinate
+            system. See :doc:`Positions and Coordinate Systems
+            </user/positions>` for more information.
+        """
+        # Re-Initialize total force coefficient derivatives and AC positions
+        self._total_lift_coeff_der.set_source(lambda mach: 0)
+        self._aerodynamic_center.set_source(lambda mach: 0)
+        self._total_side_coeff_der.set_source(lambda mach: 0)
+        self._aerodynamic_center_yaw.set_source(lambda mach: 0)
+
+        # Surfaces active only in the other motor phase, or switched off, are
+        # left out. This method runs once per configuration, so the notice is
+        # shown once.
+        surfaces = stability_surfaces(self)
+        if len(surfaces) != len(self.aerodynamic_surfaces):
+            warnings.warn(
+                "The aerodynamic center, the margins and the lumped coefficients "
+                f"describe the rocket during '{self.stability_phase}': surfaces "
+                "active only in the other motor phase, or that start the flight "
+                "switched off (`active=False`), are left out. Set "
+                "`rocket.stability_phase` to 'power_on' or 'power_off' to choose "
+                "the phase.",
+                stacklevel=2,
+            )
+
+        # Calculate total force coefficient derivatives and aerodynamic center.
+        # The parts of the surfaces' moments the weighted average leaves out
+        # are kept apart and added before dividing.
+        self.evaluate_surfaces_cp_to_cdm()
+        pitch_left_out, yaw_left_out = [], []
+        for aero_surface, position in surfaces:
+            # Force-curve slopes as Functions of Mach, from the surface's
+            # coefficient derivatives sliced at zero alpha/beta and zero
+            # rates. The yaw slope is the sign-flipped ``cY_beta`` so an
+            # axisymmetric surface gives the same signed weight as the pitch
+            # plane (their margins then coincide when symmetric).
+            lift_coeff_der = aero_surface.cN_alpha.slice("mach")
+            side_coeff_der = -1.0 * aero_surface.cY_beta.slice("mach")
+            cp_z = aero_surface.aerodynamic_center
+            cp_z_yaw = aero_surface.aerodynamic_center_yaw
+            # ref_factor corrects force for different reference areas
+            ref_factor = aero_surface.reference_area / self.area
+            self._total_lift_coeff_der += ref_factor * lift_coeff_der
+            self._aerodynamic_center += (
+                ref_factor * lift_coeff_der * (position.z + self._csys * cp_z)
+            )
+
+            # Yaw plane.
+            self._total_side_coeff_der += ref_factor * side_coeff_der
+            self._aerodynamic_center_yaw += (
+                ref_factor * side_coeff_der * (position.z + self._csys * cp_z_yaw)
+            )
+            pitch, yaw = moment_slopes_left_out(
+                self, aero_surface, position, lift_coeff_der, side_coeff_der
+            )
+            if pitch is not None:
+                pitch_left_out.append(pitch)
+            if yaw is not None:
+                yaw_left_out.append(yaw)
+        # Avoid errors when only zero-lift surfaces are added
+        if self._total_lift_coeff_der.get_value(0) != 0:
+            for moment_slope in pitch_left_out:
+                self._aerodynamic_center += moment_slope
+            self._aerodynamic_center /= self._total_lift_coeff_der
+        if self._total_side_coeff_der.get_value(0) != 0:
+            for moment_slope in yaw_left_out:
+                self._aerodynamic_center_yaw += moment_slope
+            self._aerodynamic_center_yaw /= self._total_side_coeff_der
+
+        # Non-axisymmetry advisory. This method runs once per configuration of
+        # the surfaces, so the warning is shown once per configuration.
+        # Nose, tail and fin sets contribute identically to both planes; with
+        # any other surface the rocket's own derivatives decide.
+        self._is_axisymmetric = all(
+            surface.is_axisymmetric for surface, _ in surfaces
+        ) or is_axisymmetric(self)
+        if not self._is_axisymmetric:
+            # Largest difference of the two aerodynamic centers over Mach 0 to 3
+            max_diff = max(
+                abs(
+                    self.aerodynamic_center.get_value_opt(mach)
+                    - self.aerodynamic_center_yaw.get_value_opt(mach)
                 )
-            # Avoid errors when only generic surfaces are added
-            if self.total_lift_coeff_der.get_value(0) != 0:
-                self.cp_position /= self.total_lift_coeff_der
-        return self.cp_position
+                for mach in np.linspace(0.0, 3.0, 16)
+            )
+            if max_diff > 1e-6 * (2 * self.radius):
+                reason = (
+                    "Pitch- and yaw-plane aerodynamic centers differ "
+                    f"(max difference ~{max_diff:.4g} m)"
+                )
+            else:
+                reason = (
+                    "The pitch and yaw planes differ in strength, or couple "
+                    "differently seen from each"
+                )
+            warnings.warn(
+                f"{reason}: the rocket is not axisymmetric. "
+                "'aerodynamic_center', 'static_margin' and 'stability_margin' "
+                "describe the PITCH plane. Use 'aerodynamic_center_yaw', "
+                "'static_margin_yaw' and 'stability_margin_yaw' for the yaw "
+                "plane.",
+                stacklevel=2,
+            )
+
+        # The margins are built from the center of pressure
+        self._margins_stamp = None
+        return self._aerodynamic_center
+
+    def disturbance_response(
+        self,
+        speed,
+        time=0.0,
+        disturbance=5.0,
+        density=1.225,
+        speed_of_sound=340.29,
+        plane="pitch",
+        duration=None,
+    ):
+        """Compute how the rocket would swing back after a sudden disturbance,
+        such as a gust, at a flight condition you choose.
+
+        The rocket is tilted by ``disturbance`` away from its flight direction
+        and released. The result shows how its angle swings back: how fast it
+        oscillates and how quickly the oscillation dies out. No flight
+        simulation is needed, so it is a quick way to compare designs (fin
+        size, ballast, inertia) at a condition such as the rail exit.
+
+        The airspeed, air density and rocket mass are held fixed, so this is a
+        snapshot of one instant: during the motor burn the real conditions
+        change while the rocket swings. It is valid for small angles. For the
+        response at an instant of a simulated flight, see
+        :meth:`rocketpy.Flight.disturbance_response`.
+
+        Parameters
+        ----------
+        speed : float
+            Airspeed of the rocket, in m/s. For example the speed at which it
+            leaves the rail.
+        time : float, optional
+            Time since motor ignition, in seconds. It sets how much propellant
+            is left, and so the rocket's mass, center of mass and inertia, and
+            whether the motor is still burning (a burning motor adds damping).
+            Default is 0.
+        disturbance : float, optional
+            Angle the rocket is tilted by, in degrees. Default is 5.
+        density : float, optional
+            Air density, in kg/m³. Default is 1.225 (sea level).
+        speed_of_sound : float, optional
+            Speed of sound, in m/s, used to find the Mach number. Default is
+            340.29 (sea level).
+        plane : str, optional
+            ``"pitch"`` or ``"yaw"``. The two only differ for a rocket that is
+            not axisymmetric. Default is ``"pitch"``.
+        duration : float, optional
+            How long to follow the response, in seconds. By default, long
+            enough for the oscillation to settle.
+
+        Returns
+        -------
+        rocketpy.Function
+            Angle of the rocket, in degrees, as a function of the time since
+            the disturbance, in seconds. Call ``.plot()`` on it to see the
+            curve; its title shows the natural frequency and damping ratio.
+
+        Raises
+        ------
+        ValueError
+            For a point mass rocket, which has no attitude to disturb.
+
+        Examples
+        --------
+        >>> response = rocket.disturbance_response(speed=30, time=0.4)  # doctest: +SKIP
+        >>> response.plot()  # doctest: +SKIP
+        """
+        inertia_about_cdm = self.I_22 if plane == "yaw" else self.I_11
+        if not isinstance(inertia_about_cdm, Function):
+            inertia, inertia_rate = 0.0, 0.0  # a point mass rocket
+        else:
+            inertia, inertia_rate = lateral_inertia_and_rate(
+                self, inertia_about_cdm, time
+            )
+        corrective, damping = corrective_and_damping_moments(
+            self,
+            0.0,
+            0.0,
+            speed / speed_of_sound,
+            time,
+            speed,
+            density,
+            0.5 * density * speed**2,
+            inertia_rate,
+            plane,
+        )
+        return disturbance_response(corrective, damping, inertia, disturbance, duration)
+
+    @property
+    def is_axisymmetric(self):
+        """Whether the rocket behaves the same in every plane through its axis,
+        at small angles of attack.
+
+        ``True`` for a rocket with evenly spaced fins. ``False`` for example
+        with canards on a single axis or a single fin; the pitch and yaw planes
+        then have separate values (:attr:`static_margin` and
+        :attr:`static_margin_yaw`, and so on).
+        """
+        self._refresh_aerodynamic_center()
+        return self._is_axisymmetric
+
+    @property
+    def is_incidence_linear(self):
+        """Whether every aerodynamic force on the rocket grows in proportion to
+        the angle of attack.
+
+        ``True`` for a rocket built from nose cones, fins and tails. ``False``
+        when a :class:`rocketpy.GenericSurface` has a force that does not, such
+        as a body-lift term; the stability margin then varies with the angle of
+        attack (see :meth:`neutral_point`). Checked up to 15 degrees, at Mach 0.3, 0.9 and 2.
+        """
+        self._refresh_margins()
+        return self._is_incidence_linear
+
+    @property
+    def cp_position(self):
+        """Position of the rocket's center of pressure, in meters, as a function
+        of Mach number, in the user-defined rocket coordinate system.
+
+        It is the point where the aerodynamic force acts at a small angle of
+        attack. The rocket is stable when it is behind the center of mass. Same
+        Function as :attr:`aerodynamic_center`.
+        """
+        return self.aerodynamic_center
 
     def evaluate_surfaces_cp_to_cdm(self):
         """Calculates the relative position of each aerodynamic surface center
@@ -662,10 +1305,23 @@ class Rocket:
             self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
+    def _surface_origin(self, surface, position):
+        """Where a surface's own frame sits, in the user's coordinate system:
+        the position it was added at, except for an individual fin, whose frame
+        sits at its root leading edge once the cant angle is applied. A fin
+        added at a position on the rocket axis (x = y = 0) sits on the body
+        surface at its angular position."""
+        if isinstance(surface, Fin):
+            on_axis = position.x == 0 and position.y == 0
+            return surface._compute_leading_edge_position(
+                position.z if on_axis else position, self._csys
+            )
+        return position
+
     def __evaluate_single_surface_cp_to_cdm(self, surface, position):
-        """Calculates the relative position of each aerodynamic surface
-        center of pressure to the rocket's center of dry mass in Body Axes
-        Coordinate System."""
+        """Store where one surface applies its force, relative to the rocket's
+        center of dry mass, in the body axes."""
+        position = self._surface_origin(surface, position)
         # position of the surfaces coordinate system origin in body frame
         pos_origin = Vector(
             [
@@ -674,69 +1330,78 @@ class Rocket:
                 (position.z - self.center_of_dry_mass_position) * self._csys,
             ]
         )
-        # position of the center of pressure in body frame
+        # position of the force application point in body frame. Every surface
+        # applies its resultant force at its center of pressure and transports
+        # the moment geometrically; the surface-local application point is mapped
+        # into the body frame by ``_rotation_surface_to_body``
         pos = (
-            surface._rotation_surface_to_body
-            @ Vector([surface.cpx, surface.cpy, surface.cpz])
+            surface._rotation_surface_to_body @ surface.force_application_point
             + pos_origin
-        )  # TODO: this should be recomputed whenever cant angle changes for fin
+        )
         self.surfaces_cp_to_cdm[surface] = pos
 
     def evaluate_stability_margin(self):
-        """Calculates the stability margin of the rocket as a function of mach
+        """Compute the stability margin of the rocket as a function of Mach
         number and time.
 
         Returns
         -------
         stability_margin : Function
-            Stability margin of the rocket, in calibers, as a function of mach
-            number and time. Stability margin is defined as the distance between
-            the center of pressure and the center of mass, divided by the
-            rocket's diameter.
+            Stability margin of the rocket, in calibers, as a function of Mach
+            number and time (s), at zero angle of attack: the distance from the
+            center of mass to the center of pressure, divided by the rocket's
+            diameter.
         """
-        self.stability_margin.set_source(
-            lambda mach, time: (
-                (
-                    (
-                        self.center_of_mass.get_value_opt(time)
-                        - self.cp_position.get_value_opt(mach)
-                    )
-                    / (2 * self.radius)
-                )
-                * self._csys
-            )
+        self._is_incidence_linear = is_incidence_linear(self)
+        self._uses_rate_coefficients = uses_rate_coefficients(self)
+        self._stability_margin.set_source(
+            lambda mach, time: stability_margin_and_slope(
+                self, 0.0, 0.0, mach, time, "pitch"
+            )[0]
         )
-        return self.stability_margin
+        # Yaw-plane stability margin (equal to the pitch plane when axisymmetric)
+        self._stability_margin_yaw.set_source(
+            lambda mach, time: stability_margin_and_slope(
+                self, 0.0, 0.0, mach, time, "yaw"
+            )[0]
+        )
+        return self._stability_margin
 
     def evaluate_static_margin(self):
-        """Calculates the static margin of the rocket as a function of time.
+        """Compute the static margin of the rocket as a function of time.
 
         Returns
         -------
         static_margin : Function
-            Static margin of the rocket, in calibers, as a function of time.
-            Static margin is defined as the distance between the center of
-            pressure and the center of mass, divided by the rocket's diameter.
+            Static margin of the rocket, in calibers, as a function of time
+            (s): the distance from the center of mass to the center of pressure
+            at zero airspeed (``cp_position`` at Mach 0), divided by the
+            rocket's diameter.
         """
-        # Calculate static margin
-        self.static_margin.set_source(
-            lambda time: (
+
+        # The sign flip for an upside-down coordinate system is part of the
+        # formula, so each Function is updated in place and a reference kept by
+        # the user stays current.
+        def margin_about(center):
+            return lambda time: (
                 (
                     self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(0)
+                    - getattr(self, center).get_value_opt(0)
                 )
                 / (2 * self.radius)
+                * self._csys
             )
-        )
-        # Change sign if coordinate system is upside down
-        self.static_margin *= self._csys
-        self.static_margin.set_inputs("Time (s)")
-        self.static_margin.set_outputs("Static Margin (c)")
-        self.static_margin.set_title("Static Margin")
-        self.static_margin.set_discrete(
-            lower=0, upper=self.motor.burn_out_time, samples=200
-        )
-        return self.static_margin
+
+        for margin, center, label in (
+            (self._static_margin, "aerodynamic_center", "Static Margin"),
+            (self._static_margin_yaw, "aerodynamic_center_yaw", "Static Margin - Yaw"),
+        ):
+            margin.set_source(margin_about(center))
+            margin.set_inputs("Time (s)")
+            margin.set_outputs(f"{label} (c)")
+            margin.set_title(label)
+            margin.set_discrete(lower=0, upper=self.motor.burn_out_time, samples=200)
+        return self._static_margin
 
     def evaluate_dry_inertias(self):
         """Calculates and returns the rocket's dry inertias relative to
@@ -914,7 +1579,7 @@ class Rocket:
             Matrix containing the nozzle gyration tensor.
         """
         S_noz_33 = 0.5 * self.motor.nozzle_radius**2
-        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + self.nozzle_to_cdm**2
         S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
         self.nozzle_gyration_tensor = Matrix(
             [
@@ -1066,10 +1731,7 @@ class Rocket:
         self.evaluate_inertias()
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
-        self.evaluate_center_of_pressure()
         self.evaluate_surfaces_cp_to_cdm()
-        self.evaluate_stability_margin()
-        self.evaluate_static_margin()
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
@@ -1077,20 +1739,7 @@ class Rocket:
         """Adds a single aerodynamic surface to the rocket. Makes checks for
         rail buttons case, and position type.
         """
-        if isinstance(surface, (TrapezoidalFin, EllipticalFin, FreeFormFin)):
-            # TODO: the leading edge position should be recomputed whenever cant
-            # angle of the fin changes, but currently it is only computed at the
-            # moment the fin is added to the rocket. Detecting when the cant
-            # angle changes is hard, because it is a parameter of the fin, while
-            # the leading edge position is only defined on the rocket
-            position = surface._compute_leading_edge_position(position, self._csys)
-        else:
-            position = (
-                Vector([0, 0, position])
-                if not isinstance(position, (Vector, tuple, list))
-                else Vector(position)
-            )
-
+        position = position_vector(position)
         if isinstance(surface, RailButtons):
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
@@ -1100,14 +1749,14 @@ class Rocket:
 
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
-        surface must be an instance of a class that inherits from the
-        AeroSurface (e.g. NoseCone, TrapezoidalFins, etc.)
+        surface must be an instance of a class that inherits from
+        GenericSurface (e.g. NoseCone, TrapezoidalFins, etc.)
 
         Parameters
         ----------
-        surfaces : list[AeroSurface], AeroSurface
+        surfaces : list[GenericSurface], GenericSurface
             Aerodynamic surface to be added to the rocket. Can be a list of
-            AeroSurface if more than one surface is to be added.
+            surfaces if more than one surface is to be added.
         positions : int, float, tuple, list, Vector
             Position(s) of the aerodynamic surface's reference point. Can be:
 
@@ -1121,7 +1770,10 @@ class Rocket:
             For NoseCone type, position is the tip coordinate along the axis.
             For Fins type, position refers to the z-coordinate of the root
             chord leading-edge point closest to the nose cone, before any
-            cant-angle offset is considered.
+            cant-angle offset is considered. For an individual fin
+            (TrapezoidalFin, EllipticalFin, FreeFormFin), a single number
+            places that point on the body surface at the fin's angular
+            position; a full (x, y, z) is used as given.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
             For RailButtons type, position is relative to the lower rail button.
@@ -1134,6 +1786,14 @@ class Rocket:
         -------
         None
         """
+        if self._aerodynamics_overwritten:
+            warnings.warn(
+                "This rocket's aerodynamics were overwritten by a full-body "
+                "model (add_full_body_aerodynamics(overwrite=True)); the surface(s) "
+                "you are adding now will be summed on top of that model.",
+                UserWarning,
+                stacklevel=2,
+            )
         if isinstance(surfaces, Iterable):
             if isinstance(positions, Iterable):
                 if len(surfaces) != len(positions):
@@ -1148,9 +1808,412 @@ class Rocket:
         else:
             self.__add_single_surface(surfaces, positions)
 
-        self.evaluate_center_of_pressure()
-        self.evaluate_stability_margin()
-        self.evaluate_static_margin()
+    def add_full_body_aerodynamics(self, surfaces, position=None, overwrite=False):
+        """Add a prebuilt full-body aerodynamic surface: the whole rocket
+        modeled as a single surface. Instead of (or in addition to) modeling
+        each component, this lets you provide a set of coefficients for the
+        whole rocket, which is often easier.
+
+        Parameters
+        ----------
+        surfaces : GenericSurface or list of GenericSurface
+            The prebuilt full-body surface, or a list of them (for example a
+            power-on/power-off pair, each carrying its own ``active_during``).
+            Any of:
+
+            - a :class:`GenericSurface`;
+            - a :class:`LinearGenericSurface`;
+            - a :class:`ControllableGenericSurface` for coefficients that
+              also depend on control-deflection axes.
+
+            Reference the surface's coefficients to the rocket cross-section
+            area and diameter (build it with ``reference_area=rocket.area`` and
+            ``reference_length=2 * rocket.radius``) so it sums consistently with
+            the rest of the rocket. Because it is just another aerodynamic
+            surface, a full-body model can be **mixed** with modeled add-on
+            surfaces (e.g. use ``add_full_body_aerodynamics`` together with
+            ``add_tail``): they simply add.
+
+            A rocket's aerodynamics usually differ between powered and coasting
+            flight. To capture this, build two surfaces, set each one's
+            ``active_during`` to ``"power_on"`` and ``"power_off"``, and pass
+            them together as a list; each then produces force only during its
+            phase.
+        position : int, float, optional
+            Position along the rocket's center axis (in the user coordinate
+            system) where the surface's resultant force is applied and about
+            which its moment coefficients are taken. Defaults to the rocket's
+            center of dry mass at the time of the call, so add the motor first
+            (before that, it is the center of mass without the motor).
+        overwrite : bool, optional
+            If ``True``, make this the rocket's only aerodynamics: every
+            aerodynamic surface already on the rocket is removed first, and both
+            built-in drag curves (``power_on_drag`` and ``power_off_drag``) are
+            cleared. Default ``False`` (the model is added on top of the
+            existing aerodynamics).
+
+        Returns
+        -------
+        GenericSurface or list of GenericSurface
+            The surface(s) added.
+        """
+        if position is None:
+            position = self.center_of_dry_mass_position
+
+        if overwrite:
+            self._clear_aerodynamic_surfaces()
+
+        surface_list = (
+            list(surfaces) if isinstance(surfaces, (list, tuple)) else [surfaces]
+        )
+        added = []
+        for surface in surface_list:
+            # pylint: disable-next=protected-access
+            yaw_is_zero = all(
+                getattr(surface, name).is_zero
+                for name in surface._get_default_coefficients()
+                if name.partition("_")[0] in ("cY", "cn")
+            )
+            if yaw_is_zero:
+                warnings.warn(
+                    f"'{surface.name}' has no yaw-plane coefficients (cY and cn "
+                    "are zero): the rocket will have no side force or yaw moment "
+                    "in flight. If the data describes an axisymmetric rocket, "
+                    "build a LinearGenericSurface with axisymmetric=True, or "
+                    "give the cN and cm of a GenericSurface against alpha_total.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            self.add_surfaces(surface, position)
+            added.append(surface)
+
+        if overwrite:
+            # Re-arm the "added after" guard now that the full-body model is set.
+            self._aerodynamics_overwritten = True
+
+        return added if isinstance(surfaces, (list, tuple)) else added[0]
+
+    def _clear_aerodynamic_surfaces(self):
+        """Wipe the rocket's aerodynamics so a full-body model can fully replace
+        them: remove every aerodynamic surface, clear both built-in drag curves,
+        and reset the derived stability caches. Used by
+        :meth:`add_full_body_aerodynamics` with ``overwrite=True``.
+        """
+        self.aerodynamic_surfaces.clear()
+        self.surfaces_cp_to_cdm.clear()
+        # Clear both built-in drag curves; the supplied surface(s) now provide
+        # the complete aerodynamics, including any drag they carry.
+        self._set_drag("power_on", 0)
+        self._set_drag("power_off", 0)
+        warnings.warn(
+            "add_full_body_aerodynamics(overwrite=True): the rocket's existing "
+            "aerodynamic surfaces and both built-in drag curves (power_on_drag, "
+            "power_off_drag) were cleared; the supplied surface(s) now provide "
+            "the complete aerodynamics, including any drag they carry.",
+            UserWarning,
+            stacklevel=3,
+        )
+        # New adds are welcome again; the guard is re-armed once the full-body
+        # surfaces are in place (see add_full_body_aerodynamics).
+        self._aerodynamics_overwritten = False
+
+    def to_coefficients(
+        self,
+        machs=None,
+        force_convention="body",
+        model="linear",
+        angles=None,
+        rates=True,
+        reynolds=None,
+        controls=None,
+    ):
+        """Return the whole rocket's aerodynamic coefficients, split by motor
+        phase.
+
+        Sweeps the rocket's aerodynamic surfaces and lumps them into one set
+        of coefficients about the dry center of mass, in one of two forms:
+
+        - ``model="linear"`` (default): the 36 derivatives a
+          :class:`LinearGenericSurface` takes. For each of the normal force
+          ``cN``, side force ``cY``, axial force ``cA``, pitch moment ``cm``,
+          yaw moment ``cn`` and roll moment ``cl``, its value at zero angle
+          and zero rates (``_0``) and its slopes with the angle of attack
+          (``_alpha``), the sideslip angle (``_beta``) and the reduced roll,
+          pitch and yaw rates (``_p``, ``_q``, ``_r``), each a curve over
+          Mach. Terms that are zero at every Mach number are left out, so an
+          ordinary rocket gets the familiar ``cN_alpha``, ``cm_alpha``,
+          ``cY_beta``, ``cn_beta``, ``cN_q``, ``cm_q``, ``cY_r``, ``cn_r``,
+          ``cl_p`` and ``cA_0``; canted fins add their roll forcing ``cl_0``,
+          and a rocket that is not axisymmetric keeps its cross terms
+          (``cN_beta``, ``cm_beta``, ...) and any force or moment it has at
+          zero angle.
+        - ``model="table"``: the six coefficients ``cN``, ``cY``, ``cA``,
+          ``cm``, ``cn`` and ``cl`` as tables over the angle of attack, the
+          sideslip angle and Mach, read at zero rates, which keep any curve
+          in the angles (a stall, a body-lift term, the cross coupling of a
+          lopsided rocket). For an axisymmetric rocket the sweep is over the
+          total angle of attack and Mach only: ``cN``, ``cA``, ``cm`` and
+          ``cl`` are then tables of ``alpha_total`` and ``mach``, and ``cY``
+          and ``cn`` are left out since they follow from ``cN`` and ``cm``
+          by the split along the crossflow (see
+          :class:`GenericSurface`).
+          The rate terms are added as in the linear model, ``cN_q``,
+          ``cm_q``, ``cY_r``, ``cn_r``, ``cl_p`` and any other non-zero one,
+          each a curve over Mach.
+
+        The result is returned as two coefficient sets, ``"power_off"``
+        (coasting) and ``"power_on"`` (motor burning). Each is built from the
+        surfaces active during its phase (a surface's ``active_during``) and
+        that phase's drag curve. The axial coefficient is the rocket's drag
+        coefficient of the phase plus the axial force of the surfaces.
+
+        Important
+        ---------
+        By default the coefficients depend on Mach number (and, for the table
+        model, on the angles) only. Three things are then held fixed, and each
+        can be included with an optional argument:
+
+        - **Reynolds number.** Held at zero unless ``reynolds`` is given.
+        - **Control deflections.** Each control of a
+          :class:`ControllableGenericSurface` is held at its current value
+          unless it is listed in ``controls``.
+        - **How the rate terms change with the angles.** The rate terms are
+          read at zero angle unless ``rates="at_each_angle"`` (table model).
+          In every case the effect of a rate is a straight line: the rate term
+          times the rate.
+
+        Each value added to ``reynolds`` or ``controls`` multiplies the number
+        of points computed, so keep those lists short.
+
+        The linear model also keeps only the slope at zero angle, so any
+        curve in the angle of attack or sideslip is lost, the drag rise with
+        angle of attack (induced drag) among them. The table model keeps those
+        curves within the range of ``angles`` and holds the edge value beyond
+        it.
+
+        RocketPy's built-in Barrowman surfaces (:class:`NoseCone`,
+        :class:`Tail`, the fin sets and the individual fins, canted or not)
+        are linear, Mach-tabulated and Reynolds-independent, so a rocket built
+        only from them is reproduced exactly by the linear model to first
+        order in the angles, and by the table model at every angle of an
+        axisymmetric rocket. The optional arguments matter when you have added
+        a :class:`GenericSurface` or :class:`ControllableGenericSurface` (or a
+        Reynolds-dependent :class:`LinearGenericSurface`) whose coefficients
+        vary with Reynolds number, with a control deflection or, for the
+        linear model, with the angles beyond a straight line.
+
+        Parameters
+        ----------
+        machs : sequence of float, optional
+            Mach numbers at which the coefficients are read and tabulated.
+            Defaults to ``0`` to ``3`` in steps of ``0.02`` for the linear
+            model and of ``0.05`` for the table model.
+        force_convention : str, optional
+            The frame the force coefficients are named in. ``"body"`` (default)
+            gives the body-frame set: normal ``cN_*``, side ``cY_*`` and axial
+            ``cA_*``. ``"wind"`` gives the wind-frame set: lift ``cL_*``, side
+            ``cQ_*`` and drag ``cD_*``. The moment derivatives (``cm_*``,
+            ``cn_*``, ``cl_*``) are the same in both. The table model gives
+            the body frame only.
+        model : str, optional
+            ``"linear"`` (default) for the derivatives, ``"table"`` for the
+            tables over the angles. See above.
+        angles : sequence of float, optional
+            Angles, in radians, the table model is read at, used for both the
+            angle of attack and the sideslip angle (for an axisymmetric
+            rocket, their absolute values give the total angles of attack).
+            Defaults to -30 to 30 degrees every 2 degrees, that is
+            ``np.radians(np.arange(-30, 31, 2))``. Widen it for a surface
+            that stalls beyond that. Ignored by the linear model.
+        rates : bool or str, optional
+            How the rate terms are included:
+
+            - ``True`` (default): each rate term is read at zero angle of
+              attack and sideslip.
+            - ``"at_each_angle"``: table model only. Each rate term is read at
+              every angle of the table, so damping that changes with the
+              angle of attack is kept. The rate terms are then tables like the
+              coefficients, and the rocket is swept over both the angle of
+              attack and the sideslip angle even when it is axisymmetric. It
+              takes about seven times as long as ``True``.
+            - ``False``: no rate terms. The linear model then has no ``_p``,
+              ``_q`` or ``_r`` terms and the table model holds the static
+              tables only, which describe the rocket as a wind tunnel does,
+              held still, with no aerodynamic damping at all.
+        reynolds : float or sequence of float, optional
+            Reynolds number of the rocket, based on its diameter
+            (``air density * airspeed * 2 * radius / air viscosity``):
+
+            - ``None`` (default): the coefficients are read at zero Reynolds
+              number.
+            - a single number: the coefficients are read at that Reynolds
+              number, for example ``1e6``.
+            - a list: the coefficients are read at each value and gain
+              ``reynolds`` as an input, for example ``[1e5, 1e6, 1e7]``.
+
+            It only has an effect when a surface or a drag curve of the rocket
+            depends on the Reynolds number.
+        controls : dict, optional
+            Controls to keep as inputs of the coefficients, as a dict from the
+            name of a control of a :class:`ControllableGenericSurface` to the
+            values it is read at (at least two), for example
+            ``{"deflection": np.radians([-10, 0, 10])}``. Each control listed
+            becomes an input with that name. A control that is not listed is
+            held at its current value. The controls of the rocket's surfaces
+            are left as they were.
+
+            When several surfaces use the same control name, each is kept as
+            a separate input named ``<surface name>_<control name>`` (in lower
+            case, with ``_`` for spaces). Giving the shared name reads all of
+            them at the same values and shows a warning with the names; give
+            those names to choose the values of each. With a control listed,
+            the table model sweeps both the angle of attack and the sideslip
+            angle. Default ``None``.
+
+        Returns
+        -------
+        dict
+            A dict with keys ``"power_off"`` and ``"power_on"``. Each value is
+            itself a dict mapping a coefficient name to a
+            :class:`rocketpy.Function`. Its inputs are, in this order: the
+            angles (table model only: ``alpha_total``, or ``alpha`` and
+            ``beta``), ``mach``, ``reynolds`` (when a list was given) and one
+            per control listed. A derivative of the linear model and a rate
+            term read at zero angle have no angle inputs.
+
+        Examples
+        --------
+        Coefficients as tables over the angles, Mach and three Reynolds
+        numbers:
+
+        >>> coefficients = rocket.to_coefficients(  # doctest: +SKIP
+        ...     model="table", reynolds=[1e5, 1e6, 1e7]
+        ... )
+        >>> cN = coefficients["power_off"]["cN"]  # doctest: +SKIP
+        >>> cN(0.05, 0.6, 1e6)  # alpha_total, mach, reynolds  # doctest: +SKIP
+        """
+        return full_body_coefficients(
+            self, machs, force_convention, model, angles, rates, reynolds, controls
+        )
+
+    def to_surface(
+        self,
+        machs=None,
+        force_convention="body",
+        name="Full Body Aerodynamics",
+        model="linear",
+        angles=None,
+        rates=True,
+        reynolds=None,
+        controls=None,
+    ):
+        """Collapse the whole assembled rocket aerodynamics into two surfaces,
+        one for coasting and one for powered flight. It reproduces the source
+        rocket's aerodynamics, so a bare rocket carrying the same body and
+        motor plus this pair flies the same as the fully modeled rocket.
+
+        Important
+        ---------
+        With ``model="linear"`` (default) the surfaces are
+        :class:`rocketpy.LinearGenericSurface` objects holding a linear summary
+        of the rocket, tabulated against Mach. With ``model="table"`` they are
+        :class:`rocketpy.GenericSurface` objects holding the coefficients as
+        tables over the angles and Mach, which keep any curve in the angles.
+        See :meth:`to_coefficients` for what each model keeps and leaves out.
+
+        Parameters
+        ----------
+        machs : sequence of float, optional
+            Mach numbers at which the coefficients are read and tabulated.
+            Defaults to ``0`` to ``3`` in steps of ``0.02`` for the linear
+            model and of ``0.05`` for the table model.
+        force_convention : str, optional
+            The frame the force coefficients are expressed in. ``"body"``
+            (default) gives the body-frame set: normal ``cN``, side ``cY`` and
+            axial ``cA`` (drag). ``"wind"`` gives the wind-frame set: lift
+            ``cL``, side ``cQ`` and drag ``cD``. The moment coefficients are the
+            same in both. The table model gives the body frame only.
+        name : str, optional
+            Base name of the returned surfaces.
+            Default ``"Full Body Aerodynamics"``.
+        model : str, optional
+            ``"linear"`` (default) or ``"table"``. See :meth:`to_coefficients`.
+        angles : sequence of float, optional
+            Angles, in radians, the table model is read at. See
+            :meth:`to_coefficients`.
+        rates : bool or str, optional
+            ``True`` (default), ``False`` or ``"at_each_angle"``: whether and
+            how the surfaces carry the rate (damping) terms. See
+            :meth:`to_coefficients`.
+        reynolds : float or sequence of float, optional
+            Reynolds number of the rocket, based on its diameter: a single
+            value to read the coefficients at, or a list to make the surfaces
+            follow the Reynolds number of the flight. Default ``None`` (zero).
+            See :meth:`to_coefficients`.
+        controls : dict, optional
+            Controls the surfaces keep, from control name to the values it is
+            read at, for example ``{"deflection": np.radians([-10, 0, 10])}``.
+            Needs ``model="table"``; the surfaces returned are then
+            :class:`rocketpy.ControllableGenericSurface` objects with those
+            controls, each starting at 0. Default ``None``. See
+            :meth:`to_coefficients`.
+
+        Returns
+        -------
+        list of rocketpy.LinearGenericSurface, rocketpy.GenericSurface or \
+rocketpy.ControllableGenericSurface
+            Two surfaces, ``[power_off, power_on]``, each carrying the whole
+            rocket's coefficients referenced to the rocket cross-section area
+            and diameter and taken about the center of dry mass, and gated to
+            its motor phase.
+        """
+        if controls and model != "table":
+            raise ValueError(
+                "A surface that keeps controls needs model='table'; the linear "
+                "model has no control inputs."
+            )
+        coefficients = self.to_coefficients(
+            machs=machs,
+            force_convention=force_convention,
+            model=model,
+            angles=angles,
+            rates=rates,
+            reynolds=reynolds,
+            controls=controls,
+        )
+        surfaces = []
+        for phase in ("power_off", "power_on"):
+            label = f"{name} ({phase.replace('_', ' ')})"
+            if model == "table" and controls:
+                surface = ControllableGenericSurface(
+                    reference_area=self.area,
+                    reference_length=2 * self.radius,
+                    coefficients=lumped_surface_coefficients(coefficients[phase]),
+                    controls=lumped_control_names(coefficients[phase]),
+                    force_convention="body",
+                    name=label,
+                    active_during=phase,
+                )
+            elif model == "table":
+                surface = GenericSurface(
+                    reference_area=self.area,
+                    reference_length=2 * self.radius,
+                    coefficients=lumped_surface_coefficients(coefficients[phase]),
+                    force_convention="body",
+                    name=label,
+                    active_during=phase,
+                )
+            else:
+                surface = LinearGenericSurface(
+                    reference_area=self.area,
+                    reference_length=2 * self.radius,
+                    coefficients=coefficients[phase],
+                    force_convention=force_convention,
+                    name=label,
+                    active_during=phase,
+                )
+            surfaces.append(surface)
+        return surfaces
 
     def _add_controllers(self, controllers):
         """Adds a controller to the rocket.
@@ -1279,7 +2342,7 @@ class Rocket:
 
     @deprecated(
         reason="This method is set to be deprecated in version 1.0.0 and fully "
-        "removed by version 2.0.0",
+        "removed by version 1.16.0",
         alternative="Rocket.add_trapezoidal_fins",
     )
     def add_fins(self, *args, **kwargs):  # pragma: no cover
@@ -1288,6 +2351,17 @@ class Rocket:
         by version 2.0.0. Use Rocket.add_trapezoidal_fins instead. It keeps the
         same arguments and signature."""
         return self.add_trapezoidal_fins(*args, **kwargs)
+
+    @staticmethod
+    def _check_fin_set_count(n):
+        """Raise a ``ValueError`` unless a fin set has more than 2 fins."""
+        if n <= 2:
+            raise ValueError(
+                "Number of fins must be greater than 2. "
+                "For 1 or 2 fins, create each fin as a TrapezoidalFin, "
+                "EllipticalFin or FreeFormFin object and add it to the rocket "
+                "using the add_surfaces method."
+            )
 
     def add_trapezoidal_fins(
         self,
@@ -1368,12 +2442,7 @@ class Rocket:
         fin_set : TrapezoidalFins
             Fin set object created.
         """
-        if n <= 2:
-            raise ValueError(
-                "Number of fins must be greater than 2. "
-                "For 1 or 2 fins, create a FreeFormFin object "
-                "and add it to the rocket using the add_surfaces method."
-            )
+        self._check_fin_set_count(n)
 
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
@@ -1460,12 +2529,7 @@ class Rocket:
         fin_set : EllipticalFins
             Fin set object created.
         """
-        if n <= 2:
-            raise ValueError(
-                "Number of fins must be greater than 2. "
-                "For 1 or 2 fins, create a FreeFormFin object "
-                "and add it to the rocket using the add_surfaces method."
-            )
+        self._check_fin_set_count(n)
 
         radius = radius if radius is not None else self.radius
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
@@ -1533,12 +2597,7 @@ class Rocket:
         fin_set : FreeFormFins
             Fin set object created.
         """
-        if n <= 2:
-            raise ValueError(
-                "Number of fins must be greater than 2. "
-                "For 1 or 2 fins, create a FreeFormFin object "
-                "and add it to the rocket using the add_surfaces method."
-            )
+        self._check_fin_set_count(n)
 
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
@@ -1900,7 +2959,7 @@ class Rocket:
                     sampling_rate,
                     context["canonical_state"],
                     controller_memory.get("observed_variables", []),
-                    air_brakes,
+                    context["controlled"][0],
                     context["sensors"],
                     context["environment"],
                 ]
@@ -2019,6 +3078,8 @@ class Rocket:
         """
         self.cm_eccentricity_x = x
         self.cm_eccentricity_y = y
+        # The center of mass moved sideways: so did every surface relative to it
+        self._refresh_aerodynamics()
         self.add_cp_eccentricity(-x, -y)
         self.add_thrust_eccentricity(-x, -y)
         return self
@@ -2139,6 +3200,21 @@ class Rocket:
 
     # pylint: disable=too-many-statements
     def to_dict(self, **kwargs):
+        """Return the rocket as a dictionary, to save it and rebuild it later.
+
+        Parameters
+        ----------
+        **kwargs
+            ``include_outputs`` (bool, default False) also saves the values the
+            rocket computes, such as its mass and margins over time, and
+            ``discretize`` (bool, default False) saves those as tables sampled
+            over the motor's burn instead of as functions.
+
+        Returns
+        -------
+        dict
+            The arguments needed to rebuild the rocket with :meth:`from_dict`.
+        """
         discretize = kwargs.get("discretize", False)
 
         power_off_drag = self.power_off_drag_7d
@@ -2146,6 +3222,7 @@ class Rocket:
 
         rocket_dict = {
             "radius": self.radius,
+            "length": self._length,
             "mass": self.mass,
             "I_11_without_motor": self.I_11_without_motor,
             "I_22_without_motor": self.I_22_without_motor,
@@ -2157,6 +3234,7 @@ class Rocket:
             "power_on_drag": power_on_drag,
             "center_of_mass_without_motor": self.center_of_mass_without_motor,
             "coordinate_system_orientation": self.coordinate_system_orientation,
+            "stability_phase": self.stability_phase,
             "motor": self.motor,
             "motor_position": self.motor_position,
             "aerodynamic_surfaces": self.aerodynamic_surfaces,
@@ -2168,82 +3246,74 @@ class Rocket:
         }
 
         if kwargs.get("include_outputs", False):
-            thrust_to_weight = self.thrust_to_weight
-            cp_position = self.cp_position
+            aerodynamic_center = self.aerodynamic_center
             stability_margin = self.stability_margin
-            center_of_mass = self.center_of_mass
-            motor_center_of_mass_position = self.motor_center_of_mass_position
-            reduced_mass = self.reduced_mass
-            total_mass = self.total_mass
-            total_mass_flow_rate = self.total_mass_flow_rate
-            center_of_propellant_position = self.center_of_propellant_position
-
-            if discretize:
-                thrust_to_weight = thrust_to_weight.set_discrete_based_on_model(
-                    self.motor.thrust, mutate_self=False
+            # Functions of time while the motor burns
+            timed = {
+                name: getattr(self, name)
+                for name in (
+                    "thrust_to_weight",
+                    "center_of_mass",
+                    "motor_center_of_mass_position",
+                    "reduced_mass",
+                    "total_mass",
+                    "total_mass_flow_rate",
+                    "center_of_propellant_position",
                 )
-                cp_position = cp_position.set_discrete(0, 4, 25, mutate_self=False)
+            }
+            if discretize:
+                timed = {
+                    name: function.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                    for name, function in timed.items()
+                }
+                aerodynamic_center = aerodynamic_center.set_discrete(
+                    0, 4, 25, mutate_self=False
+                )
                 stability_margin = stability_margin.set_discrete(
                     (0, self.motor.burn_time[0]),
                     (2, self.motor.burn_time[1]),
                     (10, 10),
                     mutate_self=False,
                 )
-                center_of_mass = center_of_mass.set_discrete_based_on_model(
-                    self.motor.thrust, mutate_self=False
-                )
-                motor_center_of_mass_position = (
-                    motor_center_of_mass_position.set_discrete_based_on_model(
-                        self.motor.thrust, mutate_self=False
-                    )
-                )
-                reduced_mass = reduced_mass.set_discrete_based_on_model(
-                    self.motor.thrust, mutate_self=False
-                )
-                total_mass = total_mass.set_discrete_based_on_model(
-                    self.motor.thrust, mutate_self=False
-                )
-                total_mass_flow_rate = total_mass_flow_rate.set_discrete_based_on_model(
-                    self.motor.thrust, mutate_self=False
-                )
-                center_of_propellant_position = (
-                    center_of_propellant_position.set_discrete_based_on_model(
-                        self.motor.thrust, mutate_self=False
-                    )
-                )
 
+            rocket_dict.update(timed)
             rocket_dict["area"] = self.area
             rocket_dict["center_of_dry_mass_position"] = (
                 self.center_of_dry_mass_position
             )
-            rocket_dict["center_of_mass_without_motor"] = (
-                self.center_of_mass_without_motor
-            )
-            rocket_dict["motor_center_of_mass_position"] = motor_center_of_mass_position
             rocket_dict["motor_center_of_dry_mass_position"] = (
                 self.motor_center_of_dry_mass_position
             )
-            rocket_dict["center_of_mass"] = center_of_mass
-            rocket_dict["reduced_mass"] = reduced_mass
-            rocket_dict["total_mass"] = total_mass
-            rocket_dict["total_mass_flow_rate"] = total_mass_flow_rate
-            rocket_dict["thrust_to_weight"] = thrust_to_weight
             rocket_dict["cp_eccentricity_x"] = self.cp_eccentricity_x
             rocket_dict["cp_eccentricity_y"] = self.cp_eccentricity_y
             rocket_dict["thrust_eccentricity_x"] = self.thrust_eccentricity_x
             rocket_dict["thrust_eccentricity_y"] = self.thrust_eccentricity_y
-            rocket_dict["cp_position"] = cp_position
+            rocket_dict["aerodynamic_center"] = aerodynamic_center
             rocket_dict["stability_margin"] = stability_margin
             rocket_dict["static_margin"] = self.static_margin
             rocket_dict["nozzle_position"] = self.nozzle_position
             rocket_dict["nozzle_to_cdm"] = self.nozzle_to_cdm
             rocket_dict["nozzle_gyration_tensor"] = self.nozzle_gyration_tensor
-            rocket_dict["center_of_propellant_position"] = center_of_propellant_position
 
         return rocket_dict
 
     @classmethod
     def from_dict(cls, data):
+        """Rebuild a rocket saved with :meth:`to_dict`.
+
+        Parameters
+        ----------
+        data : dict
+            The dictionary returned by :meth:`to_dict`.
+
+        Returns
+        -------
+        Rocket
+            The rocket, with its motor, surfaces, rail buttons, parachutes,
+            sensors, air brakes and controllers.
+        """
         rocket = cls(
             radius=data["radius"],
             mass=data["mass"],
@@ -2259,7 +3329,9 @@ class Rocket:
             power_on_drag=data["power_on_drag"],
             center_of_mass_without_motor=data["center_of_mass_without_motor"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
+            length=data.get("length"),
         )
+        rocket.stability_phase = data.get("stability_phase", "power_off")
 
         if (motor := data["motor"]) is not None:
             rocket.add_motor(
@@ -2288,290 +3360,34 @@ class Rocket:
             rocket.air_brakes.append(air_brake)
 
         for controller in data["_controllers"]:
-            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
-            if interactive_objects_hash is not None:
-                is_iterable = isinstance(interactive_objects_hash, Iterable)
-                if not is_iterable:
-                    interactive_objects_hash = [interactive_objects_hash]
-                for hash_ in interactive_objects_hash:
+            # Reconnect the controller to the rocket's own reconstructed objects
+            # by matching the hash(es) it stored for its controlled objects
+            # against the reconstructed objects (see _Controller.to_dict).
+            controlled_objects_hash = getattr(
+                controller, "_serialized_controlled_objects_hash", None
+            )
+            if controlled_objects_hash is not None:
+                is_iterable = isinstance(controlled_objects_hash, Iterable)
+                hashes = (
+                    controlled_objects_hash
+                    if is_iterable
+                    else [controlled_objects_hash]
+                )
+                found = []
+                for hash_ in hashes:
+                    if hash_ is None:  # unhashable controlled object; cannot match
+                        continue
                     if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
-                        if not is_iterable:
-                            controller.interactive_objects = hashed_obj
-                        else:
-                            controller.interactive_objects.append(hashed_obj)
+                        found.append(hashed_obj)
                     else:
                         warnings.warn(
-                            "Could not find controller interactive objects."
+                            "Could not find controller controlled objects. "
                             "Deserialization will proceed, results may not be accurate."
                         )
+                if found:
+                    controller.rebind_controlled_objects(
+                        found if is_iterable else found[0]
+                    )
             rocket._add_controllers(controller)
 
         return rocket
-
-    def __process_drag_input(self, input_data, coeff_name):
-        """Process drag coefficient input and normalize it to a 7D Function.
-
-        Parameters
-        ----------
-        input_data : int, float, str, callable, Function
-            Input data to be processed.
-        coeff_name : str
-            Name of the coefficient being processed for error reporting.
-
-        Returns
-        -------
-        Function
-            Function object with 7 input arguments in the following order:
-            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
-        """
-        inputs = [
-            "alpha",
-            "beta",
-            "mach",
-            "reynolds",
-            "pitch_rate",
-            "yaw_rate",
-            "roll_rate",
-        ]
-
-        # Helper: lift a 1D Mach-only source into the required 7D signature.
-        def _wrap_mach_only_source(mach_source):
-            return Function(
-                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
-                    mach_source(mach)
-                ),
-                inputs,
-                [coeff_name],
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        # Helper: enforce that Function-based inputs are either 1D (Mach) or 7D.
-        def _validate_function_domain_dimension(function):
-            if function.__dom_dim__ not in (1, 7):
-                raise ValueError(
-                    f"{coeff_name} function must have either 1 input argument "
-                    "(mach) or 7 input arguments (alpha, beta, mach, reynolds, "
-                    "pitch_rate, yaw_rate, roll_rate), in that order."
-                )
-
-        # Helper: count required positional arguments in a callable.
-        def _count_positional_args(callable_obj):
-            signature = inspect.signature(callable_obj)
-            positional_params = [
-                parameter
-                for parameter in signature.parameters.values()
-                if parameter.kind
-                in (
-                    inspect.Parameter.POSITIONAL_ONLY,
-                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                )
-                and parameter.default is inspect.Parameter.empty
-            ]
-            return len(positional_params)
-
-        # Case 1: string input can be a CSV path or any Function-supported source.
-        if isinstance(input_data, str):
-            if input_data.lower().endswith(".csv"):
-                return self.__load_rocket_drag_csv(input_data, coeff_name)
-
-            function_data = Function(input_data)
-            _validate_function_domain_dimension(function_data)
-            if function_data.__dom_dim__ == 7:
-                function_data.set_extrapolation("constant")
-                return function_data
-            return _wrap_mach_only_source(function_data.get_value_opt)
-
-        # Case 2: Function input is accepted directly after domain validation.
-        if isinstance(input_data, Function):
-            _validate_function_domain_dimension(input_data)
-            if input_data.__dom_dim__ == 7:
-                input_data.set_extrapolation("constant")
-                return input_data
-            return _wrap_mach_only_source(input_data.get_value_opt)
-
-        # Case 3: callable input must expose either 1 (Mach) or 7 arguments.
-        if callable(input_data):
-            n_positional_args = _count_positional_args(input_data)
-            if n_positional_args not in (1, 7):
-                raise ValueError(
-                    f"{coeff_name} callable must have either 1 positional "
-                    "argument (mach) or 7 positional arguments (alpha, beta, "
-                    "mach, reynolds, pitch_rate, yaw_rate, roll_rate), in that "
-                    "order."
-                )
-
-            if n_positional_args == 1:
-                return _wrap_mach_only_source(input_data)
-
-            return Function(
-                input_data,
-                inputs,
-                [coeff_name],
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        # Case 4: scalar input means a constant drag coefficient in all conditions.
-        if isinstance(input_data, (int, float)):
-            return Function(
-                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
-                    float(input_data)
-                ),
-                inputs,
-                [coeff_name],
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        # If is list/tuple try to pass it to a function.
-        # If composed of lists/tuples len 2, then interpret as function of mach
-        # Otherwise interpret it as function of all 7 variables
-        # This reuses Function's parser and then feeds back into this same pipeline.
-        if isinstance(input_data, (list, tuple)):
-            if all(
-                isinstance(item, (list, tuple)) and (len(item) == 2 or len(item) == 8)
-                for item in input_data
-            ):
-                try:
-                    return self.__process_drag_input(
-                        Function(list(input_data)), coeff_name
-                    )
-                except (TypeError, ValueError) as e:
-                    raise ValueError(
-                        f"Invalid list/tuple format for {coeff_name}. Expected "
-                        "a list of [mach, coefficient] pairs or a list of "
-                        "[alpha, beta, mach, reynolds, pitch_rate, yaw_rate, "
-                        "roll_rate, coefficient] entries."
-                    ) from e
-
-        raise TypeError(
-            f"Invalid input for {coeff_name}: must be int, float, CSV file path, "
-            "Function, or callable."
-        )
-
-    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
-        """Load Rocket drag CSV into a 7D Function.
-
-        Supports either headerless two-column (mach, coefficient) tables or
-        header-based multi-variable CSV tables.
-        """
-        independent_vars = [
-            "alpha",
-            "beta",
-            "mach",
-            "reynolds",
-            "pitch_rate",
-            "yaw_rate",
-            "roll_rate",
-        ]
-
-        def _is_numeric(value):
-            try:
-                float(value)
-                return True
-            except (TypeError, ValueError):
-                try:
-                    int(value)
-                    return True
-                except (TypeError, ValueError):
-                    return False
-
-        try:
-            with open(file_path, mode="r") as file:
-                reader = csv.reader(file)
-                first_row = next(reader)
-        except (FileNotFoundError, IOError) as e:
-            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
-        except StopIteration as e:
-            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
-
-        if not first_row:
-            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
-
-        is_headerless_two_column = len(first_row) == 2 and all(
-            _is_numeric(cell) for cell in first_row
-        )
-
-        if is_headerless_two_column:
-            csv_func = Function(
-                file_path,
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-            def mach_wrapper(
-                _alpha,
-                _beta,
-                mach,
-                _reynolds,
-                _pitch_rate,
-                _yaw_rate,
-                _roll_rate,
-            ):
-                return csv_func(mach)
-
-            return Function(
-                mach_wrapper,
-                independent_vars,
-                [coeff_name],
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        header = [column.strip() for column in first_row]
-        present_columns = [col for col in independent_vars if col in header]
-
-        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
-        if invalid_columns:
-            raise ValueError(
-                f"Invalid independent variable(s) in {coeff_name} CSV: "
-                f"{invalid_columns}. Valid options are: {independent_vars}."
-            )
-
-        if header[-1] in independent_vars:
-            raise ValueError(
-                f"Last column in {coeff_name} CSV must be the coefficient "
-                "value, not an independent variable."
-            )
-
-        if not present_columns:
-            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
-
-        ordered_present_columns = [
-            col for col in header[:-1] if col in independent_vars
-        ]
-
-        csv_func = Function.from_regular_grid_csv(
-            file_path,
-            ordered_present_columns,
-            coeff_name,
-            extrapolation="constant",
-        )
-        if csv_func is None:
-            csv_func = Function(
-                file_path,
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
-            args_by_name = {
-                "alpha": alpha,
-                "beta": beta,
-                "mach": mach,
-                "reynolds": reynolds,
-                "pitch_rate": pitch_rate,
-                "yaw_rate": yaw_rate,
-                "roll_rate": roll_rate,
-            }
-            selected_args = [args_by_name[col] for col in ordered_present_columns]
-            return csv_func(*selected_args)
-
-        return Function(
-            wrapper,
-            independent_vars,
-            [coeff_name],
-            interpolation="linear",
-            extrapolation="constant",
-        )

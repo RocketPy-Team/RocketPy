@@ -27,9 +27,11 @@ from .motors import (
 )
 from .plots.compare import Compare, CompareFlights
 from .rocket import (
+    AeroCoefficient,
     AeroSurface,
     AirBrakes,
     Components,
+    ControllableGenericSurface,
     EllipticalFin,
     EllipticalFins,
     Fin,

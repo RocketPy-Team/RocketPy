@@ -667,7 +667,7 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
 
     assert np.isclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
-        0.4641547105489406,
+        0.463944387965394,
         atol=hard_atol,
     )
     assert np.isclose(
@@ -679,11 +679,11 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     )
     assert np.isclose(
         test_flight.free_stream_speed(test_flight.apogee_time),
-        0.46415471054894075,
+        0.4639443879653988,
         atol=hard_atol,
     )
     assert np.isclose(
-        test_flight.apogee_freestream_speed, 0.46415471054894075, atol=hard_atol
+        test_flight.apogee_freestream_speed, 0.4639443879653988, atol=hard_atol
     )
 
 
