@@ -21,8 +21,11 @@ def test_set_elevation_open_elevation(
     # either successfully gets the elevation or raises RuntimeError
     try:
         example_plain_env.set_elevation(elevation="Open-Elevation")
+        # The value depends on the elevation model behind the public API, which
+        # changes over time (e.g. 34 m -> 40.8 m at the Eiffel Tower in October
+        # 2026), so only check that it is plausible for the location.
         assert example_plain_env.elevation == pytest.approx(
-            theoretical_elevation, abs=1
+            theoretical_elevation, abs=10
         ), "The Open-Elevation API returned an unexpected value for the elevation"
     except RuntimeError:
         pass  # Ignore the error and pass the test
