@@ -553,6 +553,31 @@ def test_max_values(flight_calisto_robust):
     assert pytest.approx(285.94948, rel=rtol) == test.max_speed
 
 
+def test_potential_energy_increases_with_altitude(flight_calisto):
+    """Test that the potential energy grows as the rocket climbs. Between
+    burn out and apogee the mass is constant, so the change in potential
+    energy must match m * g * dz.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test = flight_calisto
+    burn_out_time = test.rocket.motor.burn_out_time
+    apogee_time = test.apogee_time
+    mass = test.rocket.total_mass(apogee_time)
+    delta_z = test.z(apogee_time) - test.z(burn_out_time)
+    initial_potential_energy = test.potential_energy(burn_out_time)
+    final_potential_energy = test.potential_energy(apogee_time)
+    delta_potential_energy = final_potential_energy - initial_potential_energy
+    expected_delta = mass * 9.80665 * delta_z
+
+    assert delta_z > 0
+    assert pytest.approx(expected_delta, rel=1e-2) == delta_potential_energy
+
+
 @pytest.mark.parametrize(
     "flight_time_attr",
     ["t_initial", "out_of_rail_time", "apogee_time", "t_final"],

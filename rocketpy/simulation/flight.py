@@ -3824,7 +3824,7 @@ class Flight:
         return (
             standard_gravitational_parameter
             * total_mass
-            * (1 / (self.z + self.env.earth_radius) - 1 / self.env.earth_radius)
+            * (1 / self.env.earth_radius - 1 / (self.z + self.env.earth_radius))
         )
 
     # Total Mechanical Energy
