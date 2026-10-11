@@ -802,6 +802,11 @@ class StochasticRocket(StochasticModel):
         for air_brake in self.air_brakes:
             rocket.air_brakes.append(self._create_air_brake(air_brake))
 
+        # Thrust actuators, effectors and mass actuators have no stochastic
+        # version: they are carried over as they are, holding no state
+        for actuator in getattr(self.obj, "_added_actuators", ()):
+            rocket.add_actuator(actuator)
+
         if self.air_brakes:
             # A controller sets the air brakes by the name of their channel and
             # points at no object, so each sampled rocket flies a copy of it

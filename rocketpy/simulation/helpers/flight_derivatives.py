@@ -111,6 +111,82 @@ def _compute_drag_area(
     return drag_area
 
 
+# Hooks for the actuators that are not aerodynamic surfaces. Each derivative
+# calls them only when the rocket has actuators of that kind, so a rocket
+# without any is flown exactly as before.
+
+
+def _controls_of(flight, actuator, u):
+    """Return the values of ``actuator``'s controls, in its order."""
+    return [u[name] for name in flight._control_channels.get(actuator, ())]
+
+
+def _thrust_at(flight, t, net_thrust, pressure, u):
+    """Return the thrust force and its moment about the center of dry mass,
+    both in the body frame, after the rocket's thrust actuators have acted on
+    the motor's net thrust in turn. The thrust acts at the nozzle, moved by
+    the thrust eccentricity."""
+    rocket = flight.rocket
+    force = Vector([0, 0, net_thrust])
+    for actuator in rocket.thrust_actuators:
+        force = Vector(
+            actuator.thrust_vector(
+                t, force, pressure, _controls_of(flight, actuator, u)
+            )
+        )
+    nozzle = Vector(
+        [
+            rocket.thrust_eccentricity_x,
+            rocket.thrust_eccentricity_y,
+            -rocket.nozzle_to_cdm,
+        ]
+    )
+    return force, nozzle ^ force
+
+
+def _effectors_at(flight, t, x, u):
+    """Return the sum of the effectors' forces and of their moments about
+    the center of dry mass, in the body frame."""
+    force, moment = Vector([0, 0, 0]), Vector([0, 0, 0])
+    for effector in flight.rocket.effectors:
+        effector_force, effector_moment = effector.force_and_moment(
+            t, x, _controls_of(flight, effector, u)
+        )
+        force = force + Vector(effector_force)
+        moment = moment + Vector(effector_moment)
+    return force, moment
+
+
+def _added_mass_at(flight, t, u):
+    """Return what the mass actuators add to the rocket: their mass, its first
+    moment about the center of dry mass (mass times position) and their
+    inertia tensor about the center of dry mass, in the body frame."""
+    mass, first_moment = 0.0, Vector([0, 0, 0])
+    inertia = Matrix([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    for actuator in flight.rocket.mass_actuators:
+        part_mass, position, own_inertia = actuator.mass_properties(
+            t, _controls_of(flight, actuator, u)
+        )
+        position = Vector(position)
+        mass += part_mass
+        first_moment = first_moment + position * part_mass
+        # Parallel axis: a point mass at ``position`` about the center of dry mass
+        inertia = inertia + (position.cross_matrix @ -position.cross_matrix) * part_mass
+        if own_inertia is not None:
+            inertia = inertia + Matrix(own_inertia)
+    return mass, first_moment, inertia
+
+
+def _with_added_mass(flight, t, u, total_mass, r_CM, inertia_tensor):
+    """Return the total mass, the position of the center of mass relative to
+    the center of dry mass and the inertia tensor about the center of dry
+    mass, with the mass actuators' parts added to the rocket's. How fast the
+    parts move is not taken into account."""
+    added_mass, added_first_moment, added_inertia = _added_mass_at(flight, t, u)
+    r_CM = (r_CM * total_mass + added_first_moment) / (total_mass + added_mass)
+    return total_mass + added_mass, r_CM, inertia_tensor + added_inertia
+
+
 def udot_rail1(flight, t, x, u, post_processing=False):
     """Compute the 1-DOF rail-flight state derivative.
 
@@ -146,6 +222,8 @@ def udot_rail1(flight, t, x, u, post_processing=False):
     # Retrieve important quantities
     # Mass
     total_mass_at_t = flight.rocket.total_mass.get_value_opt(t)
+    if flight.rocket.mass_actuators:
+        total_mass_at_t += _added_mass_at(flight, t, u)[0]
 
     # Get freestream speed
     free_stream_velocity = Vector(
@@ -182,6 +260,12 @@ def udot_rail1(flight, t, x, u, post_processing=False):
         0,
     )
     R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
+    # On the rail the rocket can only slide along it: only the parts of the
+    # thrust and of the effectors' forces along its axis move it
+    if flight.rocket.thrust_actuators:
+        net_thrust = _thrust_at(flight, t, net_thrust, pressure, u)[0].z
+    if flight.rocket.effectors:
+        R3 += _effectors_at(flight, t, x, u)[0].z
 
     # Calculate Linear acceleration
     a3 = (R3 + net_thrust) / total_mass_at_t - (
@@ -266,10 +350,19 @@ def u_dot(flight, t, x, u, post_processing=False):
         post-process variables in its declared order.
     """
 
+    if flight.rocket.mass_actuators:
+        raise ValueError(
+            "The 'solid_propulsion' equations of motion do not model parts that "
+            "move mass, such as the rocket's mass actuators. Fly the rocket "
+            "with equations_of_motion='standard'."
+        )
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = x
     # Determine lift force and moment
     R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
+    # Forces and moments besides the aerodynamic ones and the axial thrust:
+    # the sideways thrust of thrust actuators and the effectors
+    extra_force, extra_moment = None, None
     # Thrust correction parameters
     pressure = flight.env.pressure.get_value_opt(z)
     # Determine current behavior
@@ -291,9 +384,18 @@ def u_dot(flight, t, x, u, post_processing=False):
             + flight.rocket.motor.pressure_thrust(pressure),
             0,
         )
-        # Off center moment
-        M1 += flight.rocket.thrust_eccentricity_y * net_thrust
-        M2 -= flight.rocket.thrust_eccentricity_x * net_thrust
+        if flight.rocket.thrust_actuators:
+            thrust_force, thrust_moment = _thrust_at(flight, t, net_thrust, pressure, u)
+            net_thrust = thrust_force.z
+            extra_force = Vector([thrust_force.x, thrust_force.y, 0])
+            extra_moment = Vector([0, 0, 0])
+            M1 += thrust_moment.x
+            M2 += thrust_moment.y
+            M3 += thrust_moment.z
+        else:
+            # Off center moment
+            M1 += flight.rocket.thrust_eccentricity_y * net_thrust
+            M2 -= flight.rocket.thrust_eccentricity_x * net_thrust
     else:
         # Motor stopped
         # Inertias
@@ -429,6 +531,18 @@ def u_dot(flight, t, x, u, post_processing=False):
     a = b * mu / rocket_dry_mass  # = b * m_prop / m_total
     M1_cm = M1 - a * R2
     M2_cm = M2 + a * R1
+    M3_total = M3
+    if flight.rocket.effectors:
+        effector_force, effector_moment = _effectors_at(flight, t, x, u)
+        if extra_force is None:
+            extra_force, extra_moment = effector_force, effector_moment
+        else:
+            extra_force = extra_force + effector_force
+            extra_moment = extra_moment + effector_moment
+    if extra_force is not None:
+        M1_cm += extra_moment.x - a * extra_force.y
+        M2_cm += extra_moment.y + a * extra_force.x
+        M3_total += extra_moment.z
 
     # Calculate derivatives
     # Angular acceleration
@@ -483,7 +597,7 @@ def u_dot(flight, t, x, u, post_processing=False):
         )
     ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
     alpha3 = (
-        M3
+        M3_total
         - omega3
         * (motor_I_33_derivative_at_t - mass_flow_rate_at_t * (nozzle_radius**2) / 2)
     ) / (rocket_dry_I_33 + motor_I_33_at_t)
@@ -509,6 +623,8 @@ def u_dot(flight, t, x, u, post_processing=False):
         (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
         / total_mass_at_t,
     ]
+    if extra_force is not None:
+        L = [value + part / total_mass_at_t for value, part in zip(L, extra_force)]
     ax, ay, az = K @ Vector(L)
     az -= flight.env.gravity.get_value_opt(z)  # Include gravity
 
@@ -594,6 +710,8 @@ def u_dot_generalized_3dof(flight, t, x, u, post_processing=False):
 
     # Mass and transformation
     total_mass = flight.rocket.total_mass.get_value_opt(t)
+    if flight.rocket.mass_actuators:
+        total_mass += _added_mass_at(flight, t, u)[0]
     K = Matrix.transformation(e)
     Kt = K.transpose
 
@@ -675,7 +793,17 @@ def u_dot_generalized_3dof(flight, t, x, u, post_processing=False):
     gravity = flight.env.gravity.get_value_opt(z)
     weight_body = Kt @ Vector([0, 0, -total_mass * gravity])
 
-    total_force = Vector([0, 0, net_thrust]) + weight_body + Vector([R1, R2, R3])
+    if flight.rocket.thrust_actuators:
+        # A 3-DOF phase takes the thrust's force, not its moment
+        thrust_force, _ = _thrust_at(
+            flight, t, net_thrust, flight.env.pressure.get_value_opt(z), u
+        )
+        net_thrust = thrust_force.z
+        total_force = thrust_force + weight_body + Vector([R1, R2, R3])
+    else:
+        total_force = Vector([0, 0, net_thrust]) + weight_body + Vector([R1, R2, R3])
+    if flight.rocket.effectors:
+        total_force = total_force + _effectors_at(flight, t, x, u)[0]
 
     # Dynamics
     v_dot = K @ (total_force / total_mass)
@@ -835,6 +963,11 @@ def u_dot_generalized(flight, t, x, u, post_processing=False):
     ## Inertia tensor time derivative in the body frame
     I_dot = flight.rocket.get_inertia_tensor_derivative_at_time(t)
 
+    if flight.rocket.mass_actuators:
+        total_mass, r_CM, inertia_tensor = _with_added_mass(
+            flight, t, u, total_mass, r_CM, inertia_tensor
+        )
+
     # Calculate the Inertia tensor relative to CM
     H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
     I_CM = inertia_tensor - H
@@ -922,14 +1055,24 @@ def u_dot_generalized(flight, t, x, u, post_processing=False):
         M3 += L
 
     # Off center moment
-    M1 += (
-        flight.rocket.cp_eccentricity_y * R3
-        + flight.rocket.thrust_eccentricity_y * net_thrust
-    )
-    M2 -= (
-        flight.rocket.cp_eccentricity_x * R3
-        + flight.rocket.thrust_eccentricity_x * net_thrust
-    )
+    if flight.rocket.thrust_actuators:
+        thrust_force, thrust_moment = _thrust_at(
+            flight, t, net_thrust, flight.env.pressure.get_value_opt(z), u
+        )
+        net_thrust = thrust_force.z
+        M1 += flight.rocket.cp_eccentricity_y * R3 + thrust_moment.x
+        M2 += thrust_moment.y - flight.rocket.cp_eccentricity_x * R3
+        M3 += thrust_moment.z
+    else:
+        thrust_force = Vector([0, 0, net_thrust])
+        M1 += (
+            flight.rocket.cp_eccentricity_y * R3
+            + flight.rocket.thrust_eccentricity_y * net_thrust
+        )
+        M2 -= (
+            flight.rocket.cp_eccentricity_x * R3
+            + flight.rocket.thrust_eccentricity_x * net_thrust
+        )
     M3 += flight.rocket.cp_eccentricity_x * R2 - flight.rocket.cp_eccentricity_y * R1
 
     weight_in_body_frame = Kt @ Vector(
@@ -939,7 +1082,7 @@ def u_dot_generalized(flight, t, x, u, post_processing=False):
     T00 = total_mass * r_CM
     T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
     T04 = (
-        Vector([0, 0, net_thrust])
+        thrust_force
         - total_mass * r_CM_ddot
         - 2 * total_mass_dot * r_CM_dot
         + total_mass_ddot * (r_NOZ - r_CM)
@@ -956,6 +1099,10 @@ def u_dot_generalized(flight, t, x, u, post_processing=False):
         - (weight_in_body_frame ^ r_CM)
         + Vector([M1, M2, M3])
     )
+    if flight.rocket.effectors:
+        effector_force, effector_moment = _effectors_at(flight, t, x, u)
+        T20 = T20 + effector_force
+        T21 = T21 + effector_moment
 
     # Angular velocity derivative
     w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))

@@ -387,6 +387,13 @@ class Rocket:
         self.parachutes = []
         self._controllers = []
         self.air_brakes = []
+        # Actuators that are not aerodynamic surfaces, by how they act on the
+        # rocket (see add_actuator)
+        self.thrust_actuators = []
+        self.effectors = []
+        self.mass_actuators = []
+        # The same, each once and in the order they were added
+        self._added_actuators = []
         self.sensors = Components()
         self.sensors_by_name = {}
         self.aerodynamic_surfaces = Components()
@@ -587,7 +594,8 @@ class Rocket:
     @property
     def actuators(self):
         """Every part of the rocket a controller can move: the aerodynamic
-        surfaces, then the air brakes, each in the order they were added.
+        surfaces, then the air brakes, then the parts added with
+        :meth:`add_actuator`, each in the order they were added.
 
         A flight builds its control inputs from these, one channel per
         control of each. See :attr:`control_channels`.
@@ -595,7 +603,80 @@ class Rocket:
         return (
             *(surface for surface, _ in self.aerodynamic_surfaces),
             *self.air_brakes,
+            *self._added_actuators,
         )
+
+    def add_actuator(self, actuator):
+        """Add a part that acts on the rocket other than through the air,
+        such as a thrust vectoring gimbal, a reaction control thruster or a
+        moving mass.
+
+        What the part does is told by the method it has. It can have more
+        than one:
+
+        - ``thrust_vector(t, thrust, pressure, controls)``: it changes the
+          motor's thrust. ``thrust`` is the thrust force so far, a
+          :class:`rocketpy.Vector` in the rocket's body frame (``[0, 0, T]``
+          for the motor alone, with z along the rocket's axis toward the
+          nose), ``pressure`` the air pressure in Pa, and ``controls`` the
+          values of its controls, in the order of its ``controls``. It
+          returns the new thrust force, in N. The thrust acts at the nozzle,
+          moved by the thrust eccentricity. Example: a throttle returns
+          ``thrust * controls[0]``.
+        - ``force_and_moment(t, state, controls)``: it pushes or turns the
+          rocket directly. ``state`` is ``[x, y, z, vx, vy, vz, e0, e1, e2,
+          e3, w1, w2, w3]``. It returns ``(force, moment)``: the force in N and
+          the moment in N m about the rocket's center of dry mass, both in the
+          body frame. See :class:`rocketpy.GenericEffector`.
+        - ``mass_properties(t, controls)``: it adds mass that can move. It
+          returns ``(mass, position, inertia)``: the mass in kg, its position
+          relative to the rocket's center of dry mass in the body frame, in
+          m, and its own inertia tensor about its center of mass, in kg m², or
+          ``None`` for a point mass. The mass is added to the rocket's.
+
+        Like a surface with controls, the part also has a ``name``,
+        ``controls``, ``control_defaults``, ``control_limits`` and ``clamp``
+        (see :class:`rocketpy.Actuator`). A controller sets its controls as
+        ``context.controls["<name in snake_case>.<control>"]``.
+
+        These parts are not aerodynamic: they take no part in the static
+        margin, the center of pressure or :meth:`to_surface`.
+
+        Parameters
+        ----------
+        actuator : object
+            The part to add.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            If it has none of the three methods, or lacks the attributes of
+            an actuator.
+        """
+        kinds = [
+            target
+            for method, target in (
+                ("thrust_vector", self.thrust_actuators),
+                ("force_and_moment", self.effectors),
+                ("mass_properties", self.mass_actuators),
+            )
+            if callable(getattr(actuator, method, None))
+        ]
+        if not kinds:
+            raise TypeError(
+                f"{actuator!r} cannot be added with add_actuator: it has none of "
+                "the methods thrust_vector, force_and_moment and "
+                "mass_properties. An aerodynamic surface is added with "
+                "add_surfaces."
+            )
+        self._check_new_actuators(actuator)
+        for target in kinds:
+            target.append(actuator)
+        self._added_actuators.append(actuator)
 
     @property
     def control_channels(self):
@@ -3252,6 +3333,7 @@ class Rocket:
             "rail_buttons": self.rail_buttons,
             "parachutes": self.parachutes,
             "air_brakes": self.air_brakes,
+            "actuators": list(self._added_actuators),
             "_controllers": self._controllers,
             "sensors": self.sensors,
         }
@@ -3369,6 +3451,17 @@ class Rocket:
 
         for air_brake in data["air_brakes"]:
             rocket.air_brakes.append(air_brake)
+
+        for actuator in data.get("actuators", []):
+            if isinstance(actuator, dict):
+                # Saved by a class this version cannot rebuild
+                warnings.warn(
+                    f"The actuator '{actuator.get('name')}' could not be "
+                    "loaded and was left out of the rocket.",
+                    UserWarning,
+                )
+                continue
+            rocket.add_actuator(actuator)
 
         # A controller points at no object of the rocket: it writes control
         # channels by name, so there is nothing to reconnect

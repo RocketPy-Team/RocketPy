@@ -113,3 +113,16 @@ def test_surfaces_with_no_stochastic_version_are_carried_over():
 
     assert surfaces(generated) == surfaces(rocket)
     assert generated.static_margin(0) == pytest.approx(rocket.static_margin(0))
+
+
+def test_added_actuators_are_carried_over(
+    stochastic_calisto, calisto_robust, push_effector, gimbal
+):
+    """Thrust actuators, effectors and mass actuators have no stochastic
+    version; each generated rocket keeps them and their channels."""
+    calisto_robust.add_actuator(gimbal)
+    calisto_robust.add_actuator(push_effector)
+    obj = stochastic_calisto.create_object()
+    assert obj.thrust_actuators == [gimbal]
+    assert obj.effectors == [push_effector]
+    assert obj.control_channels[-2:] == ("gimbal.pitch", "push.on")

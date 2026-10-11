@@ -1,5 +1,5 @@
 from ._logging import enable_logging, logger, set_log_level
-from .control import Actuator, Controller
+from .control import Actuator, Controller, GenericEffector
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
