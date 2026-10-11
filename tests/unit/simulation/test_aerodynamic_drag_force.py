@@ -23,7 +23,9 @@ def _flight_stand_in(power_off_drag, power_on_drag, burn_out_time=3.0):
         center_of_mass_without_motor=0,
     )
     rocket.motor = SimpleNamespace(burn_out_time=burn_out_time)
-    return SimpleNamespace(rocket=rocket, control_signal={}, _control_channels={})
+    return SimpleNamespace(
+        rocket=rocket, control_signal={}, _control_channels={}, _drag_overrides=()
+    )
 
 
 def _head_on(speed):
@@ -167,7 +169,11 @@ def test_axial_drag_follows_the_air_moving_along_the_axis(angle_deg, equations):
     )
     # all the derivative reads
     flight = SimpleNamespace(
-        env=env, rocket=rocket, _surface_switches={}, _control_channels={}
+        env=env,
+        rocket=rocket,
+        _surface_switches={},
+        _control_channels={},
+        _drag_overrides=(),
     )
     controls = {}
     speed, angle = 80.0, np.radians(angle_deg)
@@ -220,7 +226,11 @@ def test_3dof_drag_acts_against_the_velocity(velocity):
     )
     # all the derivative reads
     flight = SimpleNamespace(
-        env=env, rocket=rocket, _surface_switches={}, _control_channels={}
+        env=env,
+        rocket=rocket,
+        _surface_switches={},
+        _control_channels={},
+        _drag_overrides=(),
     )
     controls = {}
     upright = [1.0, 0.0, 0.0, 0.0]

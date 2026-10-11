@@ -91,11 +91,31 @@ def test_records_are_read_after_the_flight(damped_flight):
     assert roll_rate(t) == pytest.approx(flight.w3(t), rel=1e-3, abs=1e-6)
 
 
-def test_recorded_outputs_equal_the_rows_worked_out_again(flight_calisto_air_brakes):
-    """An air-brakes flight records its outputs while flying. Working each
-    row out again with the controls stored with it gives the same values,
-    so the stored controls are the ones the row was flown with."""
-    solution = flight_calisto_air_brakes.solution
+def test_recorded_outputs_equal_the_rows_worked_out_again(
+    calisto_air_brakes_clamp_on, example_plain_env
+):
+    """A flight with an event that changes the dynamics records its outputs
+    while flying. Working each row out again with the controls stored with it
+    gives the same values, so the stored controls are the ones the row was
+    flown with."""
+    # Never fires; declaring changes_dynamics is what makes the flight record
+    recorder = Event(
+        callback=lambda context: None,
+        trigger=lambda context: False,
+        sampling_rate=7,
+        changes_dynamics=True,
+        name="Recorder",
+    )
+    flight = Flight(
+        rocket=calisto_air_brakes_clamp_on,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        custom_events=[recorder],
+    )
+    solution = flight.solution
     assert solution.records_post_values
     assert max(solution["air_brakes.deployment_level"][:, 1]) > 0
     for index in range(len(solution)):

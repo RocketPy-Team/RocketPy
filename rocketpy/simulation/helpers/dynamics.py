@@ -146,7 +146,8 @@ class _PhaseDynamics:
             which works whenever every state it integrates is a canonical one.
         reads : sequence of str, optional
             Which of the rocket's actuators the derivative reads the controls
-            of: ``"surfaces"`` (the aerodynamic surfaces), ``"air_brakes"``,
+            of: ``"surfaces"`` (the aerodynamic surfaces, air brakes
+            included), ``"air_brakes"`` (only the air brakes among them),
             ``"thrust"`` (the thrust actuators), ``"effectors"``, ``"mass"``
             (the mass actuators), or the name of one actuator in snake_case,
             such as ``"canopy"`` for a part only this phase flies. The control
@@ -184,7 +185,7 @@ class _PhaseDynamics:
         derivative reads, in the order of ``rocket.actuators``."""
         kinds = {
             "surfaces": [surface for surface, _ in rocket.aerodynamic_surfaces],
-            "air_brakes": rocket.air_brakes,
+            "air_brakes": rocket._air_brakes,
             "thrust": rocket.thrust_actuators,
             "effectors": rocket.effectors,
             "mass": rocket.mass_actuators,
@@ -495,15 +496,16 @@ class _BoundDynamics:
 
 
 # What the free-flight equations read: every kind of actuator the rocket can
-# have, except a part only a phase of its own flies
-_FREE_FLIGHT_READS = ("surfaces", "air_brakes", "thrust", "effectors", "mass")
+# have (the air brakes are among the surfaces), except a part only a phase of
+# its own flies
+_FREE_FLIGHT_READS = ("surfaces", "thrust", "effectors", "mass")
 
 RAIL_DYNAMICS = _PhaseDynamics(
     "rail",
     udot_rail1,
     CANONICAL_STATE_NAMES,
     FULL_POST_PROCESS_VARS,
-    # On the rail the surfaces make no force; the air brakes add drag
+    # On the rail, of the surfaces, only the air brakes add drag
     reads=("air_brakes", "thrust", "effectors", "mass"),
 )
 SOLID_PROPULSION_DYNAMICS = _PhaseDynamics(

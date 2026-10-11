@@ -719,6 +719,14 @@ class StochasticRocket(StochasticModel):
         )
         return rail_buttons, lower_button_position_rnd, upper_button_position_rnd
 
+    def _air_brake_position(self, air_brakes):
+        """Return where ``air_brakes`` sit on the base rocket, or its center of
+        dry mass when they are not on it."""
+        for surface, position in self.obj.aerodynamic_surfaces:
+            if surface is air_brakes:
+                return position
+        return self.obj.center_of_dry_mass_position
+
     def _create_air_brake(self, stochastic_air_brake):
         air_brake = stochastic_air_brake.create_object()
         self.last_rnd_dict["air_brakes"].append(stochastic_air_brake.last_rnd_dict)
@@ -794,13 +802,16 @@ class StochasticRocket(StochasticModel):
             surface, position_rnd = self._create_surface(component_surface)
             rocket.add_surfaces(surface, position_rnd)
 
-        # Surfaces with no stochastic version are carried over as they are
+        # Surfaces with no stochastic version are carried over as they are. Air
+        # brakes have one, added with add_air_brakes; without it, the rocket
+        # flies without them, as it always has
         for surface, position in self.obj.aerodynamic_surfaces:
-            if not isinstance(surface, _DISPERSED_SURFACES):
+            if not isinstance(surface, (*_DISPERSED_SURFACES, AirBrakes)):
                 rocket.add_surfaces(surface, position)
 
         for air_brake in self.air_brakes:
-            rocket.air_brakes.append(self._create_air_brake(air_brake))
+            created = self._create_air_brake(air_brake)
+            rocket.add_surfaces(created, self._air_brake_position(air_brake.obj))
 
         # Thrust actuators, effectors and mass actuators have no stochastic
         # version: they are carried over as they are, holding no state

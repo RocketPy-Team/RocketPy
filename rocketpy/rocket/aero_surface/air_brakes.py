@@ -77,12 +77,8 @@ class AirBrakes(GenericSurface):
             - If a Function, it must take two parameters: deployment level and
               Mach number, and return the drag coefficient.
 
-            .. note:: For ``override_rocket_drag = False``, at
-                deployment level 0, the drag coefficient is assumed to be 0,
-                independent of the input drag coefficient curve. This means that
-                the simulation always considers that at a deployment level of 0,
-                the air brakes are completely retracted and do not contribute to
-                the drag of the rocket.
+            .. note:: At deployment level 0 the drag coefficient is 0,
+                whatever the curve says: retracted air brakes add no drag.
 
         reference_area : int, float
             Reference area used to calculate the drag force of the air brakes
@@ -93,11 +89,11 @@ class AirBrakes(GenericSurface):
             not clamp the deployment level and will instead raise a warning if
             the deployment level is out of bounds. Default is True.
         override_rocket_drag : bool, optional
-            If False, the air brakes drag coefficient will be added to the
-            rocket's power off drag coefficient curve. If True, during the
-            simulation, the rocket's power off drag will be ignored and the air
-            brakes drag coefficient will be used for the entire rocket instead.
-            Default is False.
+            If False, the drag of the air brakes is added to the drag of the
+            rocket. If True, while the air brakes are deployed (deployment
+            level above 0) their drag coefficient curve is the drag of the
+            whole rocket: the rocket's own drag curve is left out. Retracted,
+            the rocket flies with its own drag. Default is False.
         deployment_level : float, optional
             Initial deployment level, ranging from 0 to 1. Deployment level is
             the fraction of the total airbrake area that is deployed. Default
@@ -124,13 +120,11 @@ class AirBrakes(GenericSurface):
             interpolation="linear",
         )
 
-        # The drag force acts along the rocket's centerline (see
-        # flight_derivatives._compute_drag_area), so the curve is given to
-        # the surface as its axial coefficient, over only the two variables it
-        # uses. The deployment-0 => Cd 0 rule applies only when the air brakes
-        # add to (rather than override) the rocket drag.
+        # The curve is given to the surface as its axial coefficient, over
+        # only the two variables it uses: the force acts along the rocket's
+        # axis. Retracted air brakes make no force, whatever the curve says.
         def drag_coefficient_function(mach, deployment_level):
-            if deployment_level == 0 and not self.override_rocket_drag:
+            if deployment_level == 0:
                 return 0.0
             return self.drag_coefficient.get_value_opt(deployment_level, mach)
 
@@ -145,6 +139,10 @@ class AirBrakes(GenericSurface):
             control_limits={"deployment_level": (0, 1)},
             clamp=clamp,
         )
+
+        # Set by Rocket.add_air_brakes when no position is given: the force
+        # then acts at the center of dry mass, wherever it is
+        self._at_center_of_dry_mass = False
 
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
@@ -211,11 +209,12 @@ class AirBrakes(GenericSurface):
             "override_rocket_drag": self.override_rocket_drag,
             "deployment_level": self.initial_deployment_level,
             "name": self.name,
+            "at_center_of_dry_mass": self._at_center_of_dry_mass,
         }
 
     @classmethod
     def from_dict(cls, data):
-        return cls(
+        air_brakes = cls(
             drag_coefficient_curve=data.get("drag_coefficient_curve"),
             reference_area=data.get("reference_area"),
             clamp=data.get("clamp"),
@@ -223,3 +222,7 @@ class AirBrakes(GenericSurface):
             deployment_level=data.get("deployment_level"),
             name=data.get("name"),
         )
+        # Saved before air brakes were surfaces: they acted at the center of
+        # dry mass
+        air_brakes._at_center_of_dry_mass = data.get("at_center_of_dry_mass", True)
+        return air_brakes

@@ -214,18 +214,21 @@ def test_memory_starts_again_at_every_flight():
     assert controller.memory["calls"] == 0
 
 
-def test_a_controller_moving_air_brakes_does_not_mark_its_commands():
-    """A controller changes the dynamics, so it already runs at its exact time:
-    its writes do not also mark a change of trajectory."""
+def test_a_controller_write_marks_its_commands():
+    """A controller is a plain event: a write that changes a control cuts the
+    solver step at the sampling time, and a write that changes nothing does
+    not."""
     flight = _flight_of(_air_brakes())
     controller = Controller(
         lambda context: context.controls.update({"air_brakes.deployment_level": 0.5}),
         sampling_rate=10,
     )
     _run(controller, flight)
-    assert controller.changes_dynamics
-    assert controller.commands.wrote_controls is False
+    assert not controller.changes_dynamics
+    assert controller.commands.wrote_controls is True
     assert controller.commands.control_changes == {"air_brakes.deployment_level": 0.5}
+    _run(controller, flight)
+    assert controller.commands.wrote_controls is False
 
 
 def test_a_positional_function_moves_the_air_brakes_by_name(recwarn):

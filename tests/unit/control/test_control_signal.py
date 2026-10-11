@@ -265,9 +265,10 @@ def test_air_brakes_and_controlled_surfaces_add_their_channels(
 ):
     rocket = calisto_air_brakes_clamp_on
     rocket.add_surfaces(_canard(), 0.5)
+    # air brakes are surfaces: the channels follow the order they were added
     assert rocket.control_channels == (
-        "canards.deflection",
         "air_brakes.deployment_level",
+        "canards.deflection",
     )
 
 
@@ -300,6 +301,7 @@ def _coasting_forces(rocket, environment, controls):
         env=environment,
         _surface_switches={},
         _control_channels=channels,
+        _drag_overrides=(),
     )
     upright = [1.0, 0.0, 0.0, 0.0]
     state = [0.0, 0.0, 1500.0, 10.0, 0.0, 200.0, *upright, 0.0, 0.0, 0.0]
@@ -337,7 +339,7 @@ def test_the_air_brakes_drag_follows_their_channel(
     controls["air_brakes.deployment_level"] = 0.8
     deployed = _coasting_forces(rocket, example_plain_env, controls)[2]
     assert deployed < retracted  # more drag, toward the tail
-    assert rocket.air_brakes[0].deployment_level == 0
+    assert rocket._air_brakes[0].deployment_level == 0
 
 
 # ---------------------------------------------------------------------------

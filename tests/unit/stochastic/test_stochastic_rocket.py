@@ -126,3 +126,18 @@ def test_added_actuators_are_carried_over(
     assert obj.thrust_actuators == [gimbal]
     assert obj.effectors == [push_effector]
     assert obj.control_channels[-2:] == ("gimbal.pitch", "push.on")
+
+
+def test_air_brakes_are_dispersed_once(stochastic_calisto, calisto_air_brakes_clamp_on):
+    """The base rocket's air brakes are a surface; the stochastic rocket
+    replaces them with its dispersed copy rather than carrying both over."""
+    (brakes,) = calisto_air_brakes_clamp_on._air_brakes
+    (controller,) = calisto_air_brakes_clamp_on._controllers
+    stochastic_calisto.add_air_brakes(brakes, controller)
+    obj = stochastic_calisto.create_object()
+
+    (dispersed,) = obj._air_brakes
+    assert dispersed is not brakes
+    assert dispersed._at_center_of_dry_mass
+    assert obj.control_channels == ("air_brakes.deployment_level",)
+    assert len(obj._controllers) == 1 and obj._controllers[0] is not controller

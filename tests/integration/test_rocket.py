@@ -58,7 +58,7 @@ def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):  # pylint:
         A predefined instance of the calisto with air brakes in clamp on
         configuration.
     """
-    air_brakes_clamp_on = calisto_air_brakes_clamp_on.air_brakes[0]
+    air_brakes_clamp_on = calisto_air_brakes_clamp_on._air_brakes[0]
 
     # test basic attributes
     assert air_brakes_clamp_on.drag_coefficient.__dom_dim__ == 2
@@ -94,7 +94,7 @@ def test_air_brakes_clamp_off(  # pylint: disable=unused-argument
         A predefined instance of the calisto with air brakes in clamp off
         configuration.
     """
-    air_brakes_clamp_off = calisto_air_brakes_clamp_off.air_brakes[0]
+    air_brakes_clamp_off = calisto_air_brakes_clamp_off._air_brakes[0]
 
     # test basic attributes
     assert air_brakes_clamp_off.drag_coefficient.__dom_dim__ == 2

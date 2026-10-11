@@ -4,7 +4,7 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Flight, Rocket, SolidMotor
+from rocketpy import AirBrakes, Flight, Rocket, SolidMotor
 from rocketpy.simulation.helpers.dynamics import FULL_POST_PROCESS_VARS
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -454,7 +454,7 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: dis
         regarding this pytest fixture.
     """
     test_flight = flight_calisto_air_brakes
-    air_brakes = test_flight.rocket.air_brakes[0]
+    air_brakes = test_flight.rocket._air_brakes[0]
 
     assert air_brakes.plots.all() is None
     assert air_brakes.prints.all() is None
@@ -468,7 +468,7 @@ def test_air_brakes_flight_with_overshoot(
     Same as test_air_brakes_flight but with time_overshoot=True.
     """
     test_flight = flight_calisto_air_brakes_time_overshoot
-    air_brakes = test_flight.rocket.air_brakes[0]
+    air_brakes = test_flight.rocket._air_brakes[0]
     assert air_brakes.plots.all() is None
     assert air_brakes.prints.all() is None
 
@@ -813,9 +813,11 @@ def test_air_brakes_serialization_with_environment(
     # Serialize the rocket
     rocket_dict = calisto_robust.to_dict()
 
-    # Verify serialization succeeded and contains air brakes data
-    assert "air_brakes" in rocket_dict
-    assert len(rocket_dict["air_brakes"]) > 0
+    # Verify serialization succeeded and the air brakes are among the surfaces
+    assert any(
+        isinstance(surface, AirBrakes)
+        for surface, _ in rocket_dict["aerodynamic_surfaces"]
+    )
 
     # Run a flight with the original rocket
     flight_original = Flight(

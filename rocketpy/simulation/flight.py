@@ -767,6 +767,15 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self._control_channels,
             self._control_limits,
         ) = initial_controls(self.rocket.actuators)
+        # The air brakes, which the rail reads apart from the other surfaces,
+        # and the channels of those whose curve replaces the rocket's drag
+        # while deployed
+        self._rail_air_brakes = self.rocket._air_brakes
+        self._drag_overrides = tuple(
+            self._control_channels[air_brakes][0]
+            for air_brakes in self._rail_air_brakes
+            if air_brakes.override_rocket_drag
+        )
         self.controllers = self.rocket._controllers[:]
         self.sensors = self.rocket.sensors.get_components()
         self.sensors_by_name = self.rocket.sensors_by_name

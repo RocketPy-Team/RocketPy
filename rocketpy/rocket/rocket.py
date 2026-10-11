@@ -143,7 +143,8 @@ class Rocket:
     Rocket.parachutes : list
         Collection of parachutes of the rocket.
     Rocket.air_brakes : list
-        Collection of air brakes of the rocket.
+        The air brakes among the aerodynamic surfaces. Deprecated: read
+        ``Rocket.aerodynamic_surfaces``.
     Rocket._controllers : list
         Controllers of the rocket, added with :meth:`add_controller`.
     Rocket.aerodynamic_center : Function
@@ -386,7 +387,6 @@ class Rocket:
         # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
         self._controllers = []
-        self.air_brakes = []
         # Actuators that are not aerodynamic surfaces, by how they act on the
         # rocket (see add_actuator)
         self.thrust_actuators = []
@@ -596,7 +596,7 @@ class Rocket:
     @property
     def actuators(self):
         """Every part of the rocket a controller can move: the aerodynamic
-        surfaces, then the air brakes, then the parts added with
+        surfaces (air brakes among them), then the parts added with
         :meth:`add_actuator`, each in the order they were added.
 
         A flight builds its control inputs from these, one channel per
@@ -604,8 +604,28 @@ class Rocket:
         """
         return (
             *(surface for surface, _ in self.aerodynamic_surfaces),
-            *self.air_brakes,
             *self._added_actuators,
+        )
+
+    @property
+    @deprecated(
+        reason="Air brakes are aerodynamic surfaces",
+        version="v1.16.0",
+        alternative="rocket.aerodynamic_surfaces",
+    )
+    def air_brakes(self):
+        """The air brakes among the aerodynamic surfaces, in the order they
+        were added. A new list: adding to it does not add air brakes to the
+        rocket, use :meth:`add_air_brakes` or :meth:`add_surfaces`."""
+        return list(self._air_brakes)
+
+    @property
+    def _air_brakes(self):
+        """The air brakes among the aerodynamic surfaces."""
+        return tuple(
+            surface
+            for surface, _ in self.aerodynamic_surfaces
+            if isinstance(surface, AirBrakes)
         )
 
     def add_actuator(self, actuator):
@@ -1438,6 +1458,11 @@ class Rocket:
     def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Store where one surface applies its force, relative to the rocket's
         center of dry mass, in the body axes."""
+        if getattr(surface, "_at_center_of_dry_mass", False):
+            # Air brakes added without a position act at the center of dry
+            # mass, wherever the motor puts it
+            self.surfaces_cp_to_cdm[surface] = Vector([0, 0, 0])
+            return
         position = self._surface_origin(surface, position)
         # position of the surfaces coordinate system origin in body frame
         pos_origin = Vector(
@@ -2907,9 +2932,10 @@ class Rocket:
         initial_observed_variables=None,
         memory=None,
         override_rocket_drag=False,
-        return_controller=False,
+        return_controller=None,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
+        position=None,
     ):
         """Creates a new air brakes system, storing its parameters such as
         drag coefficient curve, controller function, sampling rate, and
@@ -2985,22 +3011,38 @@ class Rocket:
             written as ``context.event.memory`` inside
             ``controller_function``. It starts again from this dictionary at
             every flight. Defaults to an empty dict.
+
+            .. deprecated:: 1.14
+                Build the controller yourself with
+                ``Controller(controller_function, sampling_rate, memory=...)``
+                and add it with :meth:`add_controller`, after adding the air
+                brakes with ``add_surfaces(AirBrakes(...), position)``.
         override_rocket_drag : bool, optional
-            If False, the air brakes drag coefficient will be added to the
-            rocket's power off drag coefficient curve. If True, during the
-            simulation, the rocket's power off drag will be ignored and the air
-            brakes drag coefficient will be used for the entire rocket instead.
-            Default is False.
+            If False, the drag of the air brakes is added to the drag of the
+            rocket. If True, while the air brakes are deployed their drag
+            coefficient curve is the drag of the whole rocket: the rocket's own
+            drag curve is left out. Retracted, the rocket flies with its own
+            drag. Default is False.
         return_controller : bool, optional
-            If True, the function will return the controller object created.
-            Default is False.
+            If True, return the controller as well as the air brakes.
+
+            .. deprecated:: 1.14
+                From v1.16 ``add_air_brakes`` always returns
+                ``(air_brakes, controller)``.
         name : string, optional
             AirBrakes name. It also names their control channels: the default
             ``"AirBrakes"`` gives ``air_brakes.deployment_level``. Air brakes
             added twice to one rocket need different names.
         controller_name : string, optional
-            Controller name. Has no impact in simulation, as it is only used to
-            display data in a more organized matter.
+            Controller name. It names the controller's records:
+            ``"AirBrakes Controller"`` gives
+            ``flight.records["air_brakes_controller.<record>"]``.
+        position : int, float, tuple, optional
+            Where the air brakes' drag acts, in the rocket's coordinate
+            system, in meters, as for :meth:`add_surfaces`. The drag acts along
+            the rocket's axis, so the position matters only through where the
+            air meets the brakes while the rocket turns. Default is ``None``:
+            at the rocket's center of dry mass, wherever the motor puts it.
         Returns
         -------
         air_brakes : AirBrakes
@@ -3017,6 +3059,24 @@ class Rocket:
             deployment_level=0,
             name=name,
         )
+        if memory is not None:
+            warnings.warn(
+                "Passing `memory` to `add_air_brakes` is deprecated: build the "
+                "controller with `Controller(controller_function, sampling_rate, "
+                "memory=...)`, add it with `rocket.add_controller`, and add the "
+                "air brakes with `rocket.add_surfaces(AirBrakes(...), position)`. "
+                "Support for this argument will be removed in v1.16.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if return_controller is not None:
+            warnings.warn(
+                "The `return_controller` argument of `add_air_brakes` is "
+                "deprecated: from v1.16 `add_air_brakes` always returns "
+                "`(air_brakes, controller)`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         controller_memory = memory.copy() if memory is not None else {}
         if initial_observed_variables is not None:
             warnings.warn(
@@ -3069,8 +3129,10 @@ class Rocket:
             memory=controller_memory,
             name=controller_name,
         )
-        self._check_new_actuators(air_brakes)
-        self.air_brakes.append(air_brakes)
+        if position is None:
+            air_brakes._at_center_of_dry_mass = True
+            position = self.center_of_dry_mass_position
+        self.add_surfaces(air_brakes, position)
         self.add_controller(controller)
         if return_controller:
             return air_brakes, controller
@@ -3331,7 +3393,6 @@ class Rocket:
             "aerodynamic_surfaces": self.aerodynamic_surfaces,
             "rail_buttons": self.rail_buttons,
             "parachutes": self.parachutes,
-            "air_brakes": self.air_brakes,
             "actuators": list(self._added_actuators),
             "_controllers": self._controllers,
             "sensors": self.sensors,
@@ -3448,8 +3509,10 @@ class Rocket:
         for sensor, position in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
-        for air_brake in data["air_brakes"]:
-            rocket.air_brakes.append(air_brake)
+        # Saved before air brakes were aerodynamic surfaces
+        for air_brake in data.get("air_brakes", []):
+            air_brake._at_center_of_dry_mass = True
+            rocket.add_surfaces(air_brake, rocket.center_of_dry_mass_position)
 
         for actuator in data.get("actuators", []):
             if isinstance(actuator, dict):

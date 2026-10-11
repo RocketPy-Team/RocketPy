@@ -547,4 +547,6 @@ class StochasticAirBrakes(StochasticModel):
             name=self.obj.name,
         )
         air_brakes.drag_coefficient *= generated_dict["drag_coefficient_curve_factor"]
+        # Placed where the air brakes it disperses are
+        air_brakes._at_center_of_dry_mass = self.obj._at_center_of_dry_mass
         return air_brakes

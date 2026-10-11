@@ -115,10 +115,10 @@ class Controller(Event):
             disable_on=disable_on,
             enable_on=enable_on,
             trigger_only_once=False,
-            # Cuts the solver step at every sample, whether or not a control
-            # changed, as controllers always have, so flights keep their
-            # results. To be dropped when air brakes join the surface loop.
-            changes_dynamics=True,
+            # A controller never switches the flight phase. A write that
+            # changes a control cuts the solver step at the sampling time,
+            # like any event's (see Event.__call__)
+            changes_dynamics=False,
             name=name,
             enabled=enabled,
             priority=priority,

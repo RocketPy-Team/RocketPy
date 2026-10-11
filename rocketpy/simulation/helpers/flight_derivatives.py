@@ -15,12 +15,14 @@ def _compute_drag_area(
     omega,
     u,
 ):
-    """Drag coefficient times reference area of the rocket, air brakes included,
-    in squared meters.
+    """Drag coefficient times reference area of the rocket's body, in squared
+    meters.
 
-    Selects the power-on/power-off drag curve based on the motor burn state, and
-    then adds (or, when ``override_rocket_drag`` is set, substitutes) the drag of
-    any deployed air brakes. The force follows from it as
+    Selects the power-on/power-off drag curve based on the motor burn state. It
+    is zero while air brakes built with ``override_rocket_drag`` are deployed,
+    since their curve is then the drag of the whole rocket. The air brakes'
+    own drag is not part of it: they are aerodynamic surfaces, summed with the
+    others. The force follows from it as
     ``0.5 * rho * stream_speed * drag_area`` times the velocity of the air
     relative to the rocket: its component along the rocket's axis in a 6-DOF
     phase, the whole vector in a 3-DOF one. The rocket's drag curve is its axial
@@ -58,6 +60,11 @@ def _compute_drag_area(
     float
         The drag coefficient times the reference area.
     """
+    # Deployed air brakes built with override_rocket_drag are the drag of the
+    # whole rocket: their own force comes from the surface loop
+    for name in flight._drag_overrides:
+        if u[name] > 0:
+            return 0.0
     rocket = flight.rocket
     # The inputs of the drag coefficients, in the order they expect them
     alpha = np.arctan2(-stream_velocity_body[1], -stream_velocity_body[2])
@@ -84,30 +91,6 @@ def _compute_drag_area(
         omega[2] * reduced,
     )
 
-    # Air brakes are drag-only and may override the rocket drag
-    channels = flight._control_channels
-    for air_brakes in rocket.air_brakes:
-        # Air brakes added after this flight began have no channel of their own
-        names = channels.get(air_brakes)
-        deployment_level = u[names[0]] if names else air_brakes.deployment_level
-        if deployment_level > 0:
-            reduced = air_brakes.reference_length * reduced_per_length
-            air_brakes_area = air_brakes.reference_area * air_brakes.cA.get_value_opt(
-                *air_brakes._coefficient_arguments(
-                    alpha,
-                    beta,
-                    mach,
-                    reynolds,
-                    omega[0] * reduced,
-                    omega[1] * reduced,
-                    omega[2] * reduced,
-                    controls=(deployment_level,),
-                )
-            )
-            if air_brakes.override_rocket_drag:
-                drag_area = air_brakes_area  # Substitutes rocket drag
-            else:
-                drag_area += air_brakes_area
     return drag_area
 
 
@@ -261,7 +244,24 @@ def udot_rail1(flight, t, x, u, post_processing=False):
     )
     R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
     # On the rail the rocket can only slide along it: only the parts of the
-    # thrust and of the effectors' forces along its axis move it
+    # forces along its axis move it. Of the surfaces, only the air brakes'
+    # drag is counted there.
+    channels = flight._control_channels
+    for air_brakes in flight._rail_air_brakes:
+        if not air_brakes.is_active(t, flight):
+            continue
+        R3 += air_brakes.compute_forces_and_moments(
+            stream_velocity_body,
+            free_stream_speed,
+            free_stream_mach,
+            rho,
+            flight.rocket.surfaces_cp_to_cdm[air_brakes],
+            Vector([0, 0, 0]),
+            flight.env.density,
+            flight.env.dynamic_viscosity,
+            z,
+            [u[name] for name in channels.get(air_brakes, ())],
+        )[2]
     if flight.rocket.thrust_actuators:
         net_thrust = _thrust_at(flight, t, net_thrust, pressure, u)[0].z
     if flight.rocket.effectors:
