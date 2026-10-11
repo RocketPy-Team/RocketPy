@@ -48,6 +48,13 @@ class _GenericSurfacePlots:
     }
 
     @staticmethod
+    def _reference_arguments(surface, n_args):
+        """The arguments of the coefficients at zero flow variables, with the
+        controls at their defaults, as everywhere outside a flight."""
+        reference = getattr(surface, "_reference_arguments", None)
+        return reference() if reference else [0.0] * n_args
+
+    @staticmethod
     def _depends_on(coeff, index, mach):
         """Find the inputs a coefficient changes with.
 
@@ -169,7 +176,7 @@ class _GenericSurfacePlots:
             for curve_mach in curve_machs:
                 values = np.empty_like(x)
                 for i, value in enumerate(x):
-                    args = [0.0] * n_args
+                    args = self._reference_arguments(surface, n_args)
                     args[index["mach"]] = machs[0] if curve_mach is None else curve_mach
                     args[index[var]] = value
                     values[i] = coeff(*args)

@@ -289,6 +289,11 @@ def get_class_from_signature(signature):
     type
         Class defined by the signature.
     """
+    replacement = _REPLACED_CLASSES.get((signature["module"], signature["name"]))
+    if replacement is not None:
+        module_name, class_name = replacement
+        return getattr(import_module(module_name), class_name)
+
     module = import_module(signature["module"])
     inner_class = None
 
@@ -296,6 +301,17 @@ def get_class_from_signature(signature):
         inner_class = getattr(module, class_)
 
     return inner_class
+
+
+# Classes that no longer exist, with the class that loads what they saved.
+# ControllableGenericSurface was folded into GenericSurface, which takes the
+# same ``controls`` and keeps the same coefficients.
+_REPLACED_CLASSES = {
+    (
+        "rocketpy.rocket.aero_surface.controllable_generic_surface",
+        "ControllableGenericSurface",
+    ): ("rocketpy.rocket.aero_surface.generic_surface", "GenericSurface"),
+}
 
 
 def remove_circular_references(obj_dict):

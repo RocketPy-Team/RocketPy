@@ -561,18 +561,18 @@ GRAVITY = 9.80665
 BALLISTIC_STATES = ("x", "y", "z", "vx", "vy", "vz")
 
 
-def _ballistic_derivative(_flight, _t, u, post_processing=False):
+def _ballistic_derivative(_flight, _t, x, _u, post_processing=False):
     """Free fall: position follows velocity, velocity follows gravity."""
     if post_processing:
         return ()
-    return [u[3], u[4], u[5], 0.0, 0.0, -GRAVITY]
+    return [x[3], x[4], x[5], 0.0, 0.0, -GRAVITY]
 
 
-def _parafoil_derivative(_flight, _t, u, post_processing=False):
+def _parafoil_derivative(_flight, _t, x, _u, post_processing=False):
     """Free fall that also turns, carrying a heading the canonical state lacks."""
     if post_processing:
         return ()
-    return [u[3], u[4], u[5], 0.0, 0.0, -GRAVITY, 0.5]
+    return [x[3], x[4], x[5], 0.0, 0.0, -GRAVITY, 0.5]
 
 
 BALLISTIC_DYNAMICS = _PhaseDynamics(

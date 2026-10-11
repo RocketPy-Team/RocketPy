@@ -1,5 +1,5 @@
 from ._logging import enable_logging, logger, set_log_level
-from .control import _Controller
+from .control import Actuator, _Controller
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
@@ -31,7 +31,6 @@ from .rocket import (
     AeroSurface,
     AirBrakes,
     Components,
-    ControllableGenericSurface,
     EllipticalFin,
     EllipticalFins,
     Fin,

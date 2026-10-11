@@ -31,9 +31,10 @@ class EventContext(dict):
     holds.
 
     Some values are only worked out when they are first read: ``state``,
-    ``state_dot``, ``pressure`` and ``step_size``. Once read they are kept for
-    the rest of the step, so a second event reading the same value in the same
-    step pays nothing. A value no function reads costs nothing at all.
+    ``state_dot``, ``pressure``, ``step_size`` and ``controls``. Once read they
+    are kept for the rest of the step, so a second event reading the same value
+    in the same step pays nothing. A value no function reads costs nothing at
+    all.
 
     ``previous_state`` and ``previous_time`` describe the previous check of the
     event being evaluated, so they are answered from that event and never
@@ -94,6 +95,10 @@ class EventContext(dict):
             )
         elif key == "step_size":
             self["step_size"] = infer_step_size(self["flight"], self["time"])
+        elif key == "controls":
+            # The same object for the whole flight, so it is kept when the
+            # context moves to another moment of the step
+            self["controls"] = self["flight"].control_signal
         else:
             raise KeyError(key)
         return self[key]
@@ -210,6 +215,22 @@ class EventContext(dict):
     def event(self):
         """The event being checked."""
         return self["event"]
+
+    @property
+    def controls(self):
+        """The flight's control inputs: a dictionary from channel name to
+        value, one channel per control of each actuator. Write a channel by
+        name::
+
+            context.controls["air_brakes.deployment_level"] = 0.5
+
+        ``rocket.control_channels`` lists the names. A value written here is
+        kept inside the control's limits (or warned about) once the callback
+        returns, and acts from this moment on: if the event ran inside a
+        solver step that had already gone past it, the step is cut at the
+        event's time.
+        """
+        return self["controls"]
 
     @property
     def flight(self):

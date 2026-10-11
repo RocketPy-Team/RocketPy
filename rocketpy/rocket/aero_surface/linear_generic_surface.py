@@ -94,7 +94,7 @@ class LinearGenericSurface(GenericSurface):
     # Force prefix in the body frame -> in the wind frame
     _BODY_TO_WIND_PREFIX = {"cN": "cL", "cY": "cQ", "cA": "cD"}
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         reference_area,
         reference_length,
@@ -109,6 +109,10 @@ class LinearGenericSurface(GenericSurface):
         active_during="always",
         active=True,
         axisymmetric=False,
+        controls=(),
+        control_defaults=None,
+        control_limits=None,
+        clamp=True,
     ):
         """Create a linear aerodynamic surface from its coefficient derivatives.
 
@@ -273,6 +277,22 @@ class LinearGenericSurface(GenericSurface):
 
             Default is ``False``: the two planes are used as given, and a plane
             without derivatives produces no force.
+        controls : iterable of str, optional
+            Names of controls the derivatives depend on, such as a canard
+            deflection, set by a controller during the flight. Each name becomes
+            one more variable the derivatives can use, for example
+            ``controls=("deflection",)`` with
+            ``{"cl_0": lambda mach, deflection: 0.5 * deflection}``. Do not list
+            ``active``: every surface has it. Default is no controls.
+        control_defaults : dict, optional
+            The value of each control at the start of every flight, and outside
+            a flight, by name. A control left out starts at 0. Default ``None``.
+        control_limits : dict, optional
+            The range of each control, as ``(low, high)`` by name. A control
+            left out has no limits. Default ``None``.
+        clamp : bool, optional
+            ``True`` (the default) moves a value outside a control's limits to
+            the nearest limit; ``False`` keeps it and warns.
 
         Raises
         ------
@@ -305,6 +325,10 @@ class LinearGenericSurface(GenericSurface):
             force_convention=force_convention,
             active_during=active_during,
             active=active,
+            controls=controls,
+            control_defaults=control_defaults,
+            control_limits=control_limits,
+            clamp=clamp,
         )
 
         self.compute_all_coefficients()

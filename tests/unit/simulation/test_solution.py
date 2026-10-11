@@ -31,9 +31,9 @@ def descent_row(t, fill=None):
     return [float(t), *state]
 
 
-def stub_derivative(flight, t, u, post_processing=False):  # pylint: disable=unused-argument
+def stub_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
     """Stand-in equations of motion. These tests store rows, never integrate."""
-    return [t] if post_processing else list(u)
+    return [t] if post_processing else list(x)
 
 
 # Every phase RocketPy ships integrates the full canonical state, so the
@@ -723,6 +723,7 @@ def test_post_values_stay_the_same_length_as_the_rows():
     ):
         mutate()
         assert len(solution._post_values) == len(solution)
+        assert len(solution._controls) == len(solution)
 
 
 def test_recording_values_does_not_disturb_the_cached_states():
@@ -784,9 +785,9 @@ def test_value_at_unknown_state_raises():
 # ---------------------------------------------------------------------------
 
 
-def replay_derivative(flight, t, u, post_processing=False):  # pylint: disable=unused-argument
+def replay_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
     """Report values that say which row they came from, so replay is visible."""
-    return [t, 2 * t, 3 * t] if post_processing else list(u)
+    return [t, 2 * t, 3 * t] if post_processing else list(x)
 
 
 REPLAY_DYNAMICS = _PhaseDynamics(
@@ -797,9 +798,9 @@ REPLAY_DYNAMICS = _PhaseDynamics(
 )
 
 
-def replay_thrust_derivative(flight, t, u, post_processing=False):  # pylint: disable=unused-argument
+def replay_thrust_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
     """Like :func:`replay_derivative`, for a phase that also reports thrust."""
-    return [t, 2 * t, 3 * t, 100.0] if post_processing else list(u)
+    return [t, 2 * t, 3 * t, 100.0] if post_processing else list(x)
 
 
 REPLAY_THRUST_DYNAMICS = _PhaseDynamics(
@@ -1195,3 +1196,31 @@ def test_saving_a_flight_keeps_every_phase_width():
     assert restored.canonical_array.tolist() == solution.canonical_array.tolist()
     with pytest.warns(UserWarning, match="not defined during"):
         assert restored["heading"][:, 1].tolist() == [4.0, 5.0]
+
+
+def controlled_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+    """Report the row's time and the trim value it was given."""
+    return [t, u["tab.trim"], 0.0] if post_processing else list(x)
+
+
+def test_a_replayed_row_is_given_the_controls_stored_with_it():
+    """A row worked out again after the flight reads its own controls."""
+    dynamics = _PhaseDynamics(
+        "controlled",
+        controlled_derivative,
+        ("x", "y", "z", "vx", "vy", "vz"),
+        ("ax", "ay", "az"),
+    )
+    solution = Solution()
+    solution._start_phase(
+        dynamics.bind(None), t_start=0.0, start_canonical=tuple([0.0] * 13)
+    )
+    for t, trim in enumerate([0.0, 0.25, 0.5]):
+        solution._append(descent_row(t))
+        solution._set_controls(-1, {"tab.trim": trim})
+
+    assert solution.post["ay"].tolist() == [[0.0, 0.0], [1.0, 0.25], [2.0, 0.5]]
+    assert solution.post.at_index(1)["ay"] == 0.25
+    # a rolled-back row loses its controls until they are stored again
+    solution._replace_last(descent_row(1.5))
+    assert solution._controls[-1] is None

@@ -83,13 +83,15 @@ class _PhaseDynamics:
         name : str
             Name of this kind of phase, such as ``"parachute"``.
         derivative : callable or None
-            The function ``f(flight, t, u)`` giving the time derivative of each
-            state in ``states``, in that same order. ``u`` is the phase's own
-            state. With ``None`` the phase's states can still be read by name,
-            but the phase cannot be flown or post-processed.
+            The function ``f(flight, t, x, u)`` giving the time derivative of
+            each state in ``states``, in that same order. ``x`` is the phase's
+            own state and ``u`` the flight's control inputs, a dictionary from
+            channel name to value, such as ``u["canards.deflection"]``.
+            With ``None`` the phase's states can still be read by name, but the
+            phase cannot be flown or post-processed.
 
             A phase that reports post-process variables writes
-            ``f(flight, t, u, post_processing=False)`` instead, and when the
+            ``f(flight, t, x, u, post_processing=False)`` instead, and when the
             flag is true returns those variables in ``post_process_vars`` order.
             A phase that reports nothing never sees the flag and can leave it
             out.
@@ -366,9 +368,10 @@ class _PhaseDynamics:
             )
         return values
 
-    def post_process_at(self, flight, t, u, **kwargs):
+    def post_process_at(self, flight, t, x, u, **kwargs):
         """Return this phase's post-process variables at time ``t``.
 
+        ``x`` is the phase's state and ``u`` the control inputs at that time.
         Any extra keyword arguments are the phase-specific ones fixed onto the
         phase when it began, such as which parachute is descending.
 
@@ -380,7 +383,7 @@ class _PhaseDynamics:
         """
         if not self.post_process_vars:
             return []
-        return self.derivative(flight, t, u, post_processing=True, **kwargs)
+        return self.derivative(flight, t, x, u, post_processing=True, **kwargs)
 
     # -- Binding ----------------------------------------------------------
 
@@ -424,13 +427,27 @@ class _BoundDynamics:
         self.kwargs = dict(kwargs or {})
         self.__name__ = getattr(dynamics.derivative, "__name__", dynamics.name)
 
-    def __call__(self, t, u):
-        """Return the state derivative at ``t``, as the ODE solver needs it."""
-        return self.dynamics.derivative(self.flight, t, u, **self.kwargs)
+    def __call__(self, t, x):
+        """Return the state derivative at ``t``, as the ODE solver needs it,
+        with the flight's control inputs as they are now."""
+        return self.dynamics.derivative(
+            self.flight, t, x, self.flight.control_signal, **self.kwargs
+        )
 
-    def post_process_at(self, t, u):
-        """Return this phase's post-process variables at ``t``."""
-        return self.dynamics.post_process_at(self.flight, t, u, **self.kwargs)
+    def derivative_at(self, t, x, u):
+        """Return the state derivative at ``t`` with the control inputs ``u``."""
+        return self.dynamics.derivative(self.flight, t, x, u, **self.kwargs)
+
+    def post_process_at(self, t, x, u=None):
+        """Return this phase's post-process variables at ``t``.
+
+        ``u`` are the control inputs in force at ``t``, such as the values
+        stored with a row of the solution. ``None`` uses the flight's control
+        inputs as they are now.
+        """
+        if u is None:
+            u = getattr(self.flight, "control_signal", None)
+        return self.dynamics.post_process_at(self.flight, t, x, u, **self.kwargs)
 
     def initial_state(self, t, canonical_state):
         """Seed this phase's state from a canonical state."""

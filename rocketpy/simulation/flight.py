@@ -9,6 +9,7 @@ from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
 from .._logging import enable_logging, logger
+from ..control.control_signal import initial_controls
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix
 from ..motors.solid_motor import SolidMotor
@@ -756,14 +757,19 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self._non_overshootable_events.sort(key=lambda x: x.priority)
 
     def __init_eventful_objects(self):
-        """Initialize controllers and sensors"""
+        """Initialize the control inputs, controllers and sensors"""
+        # The control inputs of this flight, ``u``: channel name to value, every
+        # channel at its default. A new dictionary for every flight, so no
+        # flight inherits another's controls and the rocket itself is never
+        # changed by flying.
+        (
+            self.control_signal,
+            self._control_channels,
+            self._control_limits,
+        ) = initial_controls(self.rocket.actuators)
         self._controllers = self.rocket._controllers[:]
         self.sensors = self.rocket.sensors.get_components()
         self.sensors_by_name = self.rocket.sensors_by_name
-
-        # reset controllable object to initial state (only airbrakes for now)
-        for air_brakes in self.rocket.air_brakes:
-            air_brakes._reset()
 
         self.sensor_data = {}
         for sensor in self.sensors:
@@ -790,8 +796,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         # Bind each phase's dynamics (states + equations of motion) to this
-        # flight. Each bound object is callable as (t, u), so it is a drop-in
-        # for the old derivative functions.
+        # flight. Each bound object is callable as (t, x), with the flight's
+        # control inputs as they are, which is what the ODE solver needs.
         self.u_dot = SOLID_PROPULSION_DYNAMICS.bind(self)
         self.u_dot_generalized = SIX_DOF_DYNAMICS.bind(self)
         self.u_dot_generalized_3dof = THREE_DOF_DYNAMICS.bind(self)
@@ -1133,6 +1139,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.__execute_solver_step(phase)
             self.__process_events(phase, phase_index, node_index)
             self.__post_process_step()
+            self.__store_row_controls()
 
     def __execute_solver_step(self, phase):
         """Execute one solver step and update simulation history."""
@@ -1295,6 +1302,24 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         index = len(post_values) - 1
         while index >= 0 and post_values[index] is None:
             self._post_process_row(index)
+            index -= 1
+
+    def __store_row_controls(self):
+        """Store a copy of the control inputs with every row that has none.
+
+        Called once per solver step, after the step's events are handled, so
+        a row carries what its events wrote. The rows without controls are the
+        ones written since the last call: normally just the step's own row,
+        plus the flight's first row on the first call. A row an event inserts
+        at its exact time gets its controls when it is inserted.
+        """
+        controls = self.solution._controls
+        index = len(controls) - 1
+        if index < 0 or controls[index] is not None:
+            return
+        stored = dict(self.control_signal)
+        while index >= 0 and controls[index] is None:
+            self.solution._set_controls(index, stored)
             index -= 1
 
     def _post_process_row(self, index):

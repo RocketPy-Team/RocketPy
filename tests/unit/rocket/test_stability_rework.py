@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 from rocketpy import (
-    ControllableGenericSurface,
     Function,
     GenericSurface,
     LinearGenericSurface,
@@ -1009,7 +1008,7 @@ def test_lumping_follows_the_reynolds_number(model):
 
 def _canard(name):
     area, diameter = math.pi * 0.0635**2, 2 * 0.0635
-    return ControllableGenericSurface(
+    return GenericSurface(
         area,
         diameter,
         {
@@ -1017,16 +1016,18 @@ def _canard(name):
             "cY": lambda beta: -1.5 * beta,
         },
         name=name,
+        controls=("deflection",),
     )
 
 
 def test_lumping_keeps_a_control():
     """A control listed in ``controls`` becomes an input of the coefficients,
-    the surface built from them is controllable and matches the rocket at a
-    deflection, and the rocket's own control is left where it was."""
+    the surface built from them has that control and matches the rocket at a
+    deflection, and the default of the rocket's own control is left where it
+    was."""
     canard = _canard("Canard")
     rocket = _rocket_with(canard, 0.8)
-    canard.set_control("deflection", 0.02)
+    canard.control_defaults["deflection"] = 0.02
     machs, angles = [0.2, 0.5, 0.8], np.radians([-10, 0, 10])
     controls = {"deflection": np.radians([-10, 0, 10])}
 
@@ -1034,17 +1035,17 @@ def test_lumping_keeps_a_control():
     assert linear["cN_0"](0.5, math.radians(10)) == pytest.approx(
         1.5 * math.radians(10)
     )
-    assert canard.get_control("deflection") == 0.02
+    assert canard.control_defaults["deflection"] == 0.02
 
     power_off = rocket.to_surface(
         machs=machs, model="table", angles=angles, controls=controls
     )[0]
-    assert isinstance(power_off, ControllableGenericSurface)
-    assert power_off.control_variables == ["deflection"]
+    assert power_off.controls == ("deflection",)
     alpha, deflection = math.radians(3), math.radians(5)
-    power_off.set_control("deflection", deflection)
-    canard.set_control("deflection", deflection)
-    args = power_off._coefficient_arguments(alpha, 0, 0.5, 0, 0, 0, 0)
+    canard.control_defaults["deflection"] = deflection
+    args = power_off._coefficient_arguments(
+        alpha, 0, 0.5, 0, 0, 0, 0, controls=(deflection,)
+    )
     expected = _source_coefficients(rocket, alpha, 0.5)
     assert power_off.cN.get_value_opt(*args) == pytest.approx(expected[0])
     assert power_off.cm.get_value_opt(*args) == pytest.approx(expected[1])

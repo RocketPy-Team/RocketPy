@@ -362,9 +362,8 @@ The angles can also be given in other forms. RocketPy converts them for you:
      - Roll angle of the wind, in degrees.
 
 These are all the accepted names. A coefficient cannot use the same angle under
-two names, such as ``alpha`` and ``alpha_deg`` together. A
-:class:`rocketpy.ControllableGenericSurface` adds the names of its own control
-variables.
+two names, such as ``alpha`` and ``alpha_deg`` together. A surface built with
+``controls`` adds the names of its controls (see :ref:`surface_controls`).
 
 .. important::
    The angular rates are the conventional **non-dimensional reduced rates**, not
@@ -639,8 +638,8 @@ one step. Every coefficient is read against all the variable columns:
 Any other argument of the class (``center_of_pressure``, ``name``,
 ``active_during``, ...) can be passed along. The same method exists on
 :class:`rocketpy.LinearGenericSurface`, with derivative columns such as
-``cN_alpha`` and ``cm_q``, and on :class:`rocketpy.ControllableGenericSurface`,
-where a control can be one of the variable columns.
+``cN_alpha`` and ``cm_q``. Pass ``controls`` to make a control one of the
+variable columns.
 
 A file written by another program has its own column names. Translate them with
 ``columns``; the columns you do not list are ignored:
@@ -1136,6 +1135,39 @@ an extreme condition beyond your data.
    :meth:`rocketpy.Function.set_extrapolation` for the full list of methods.
 
 
+.. _surface_controls:
+
+Controls
+--------
+
+A surface's coefficients can also depend on controls that a controller moves
+during the flight, such as the deflection of canards. List their names in
+``controls``; each becomes one more variable the coefficients can use:
+
+.. code-block:: python
+
+   canards = GenericSurface(
+       reference_area=rocket.area,
+       reference_length=2 * rocket.radius,
+       coefficients={
+           "cN": lambda alpha, mach, deflection: 2.0 * (alpha + deflection),
+           "cl": lambda deflection: 0.5 * deflection,
+       },
+       name="Canards",
+       controls=("deflection",),
+       control_defaults={"deflection": 0.0},
+       control_limits={"deflection": (-0.2, 0.2)},
+   )
+
+During a flight the value of each control is a channel of the flight's
+control inputs, named after the surface: an event or a controller writes it as
+``context.controls["canards.deflection"] = 0.1``. ``rocket.control_channels``
+lists every channel. A value outside ``control_limits`` is moved to the
+nearest limit, or kept with a warning when ``clamp=False``. The surface itself
+is never changed by a flight: every flight starts from ``control_defaults``,
+and those values are also the ones used outside a flight, for the stability
+margin and the plots.
+
 .. _active_during:
 
 Activation Window
@@ -1143,8 +1175,7 @@ Activation Window
 
 By default a surface produces aerodynamic force throughout the flight. There
 are two ways to restrict it to part of the flight. Both are accepted by
-:class:`rocketpy.GenericSurface`, :class:`rocketpy.LinearGenericSurface` and
-:class:`rocketpy.ControllableGenericSurface`.
+:class:`rocketpy.GenericSurface` and :class:`rocketpy.LinearGenericSurface`.
 
 By motor phase
 ~~~~~~~~~~~~~~
@@ -1288,8 +1319,8 @@ stability-derivative model about its center of dry mass:
    The slopes a generic surface reports for the stability analysis (its
    ``cN_alpha``, ``cm_alpha``, ``cY_beta``, ``cn_beta`` and the center of
    pressure built from them) are taken at zero angle of attack and sideslip,
-   zero rotation rates, Reynolds number 0 and, for a controllable surface,
-   zero control. A table that changes with the Reynolds number is therefore
+   zero rotation rates, Reynolds number 0 and, for a surface with controls,
+   each control at its default. A table that changes with the Reynolds number is therefore
    linearized at its low-Reynolds edge; the flight itself always reads the
    table at the actual Reynolds number.
 
@@ -1332,7 +1363,7 @@ optional arguments of both methods keep the dependence:
        # read the coefficients at these Reynolds numbers (based on the
        # rocket's diameter); they gain "reynolds" as an input
        reynolds=[1e5, 1e6, 1e7],
-       # keep a control of a ControllableGenericSurface as an input
+       # keep a control of a surface (see "Controls") as an input
        controls={"deflection": np.radians([-10, 0, 10])},
        # read the damping at every angle of the table, not only at zero
        rates="at_each_angle",
@@ -1343,8 +1374,8 @@ optional arguments of both methods keep the dependence:
 - ``reynolds`` also takes a single number, which sets the Reynolds number the
   coefficients are read at without adding an input. It works with both models.
 - ``controls`` works with both models in ``to_coefficients``. In
-  ``to_surface`` it needs ``model="table"``, and the surfaces returned are
-  :class:`rocketpy.ControllableGenericSurface` objects with those controls.
+  ``to_surface`` it needs ``model="table"``, and the surfaces returned have
+  those controls.
   When two surfaces of the rocket use the same control name, each is kept as
   its own input, named ``<surface name>_<control name>``.
 - ``rates="at_each_angle"`` needs ``model="table"``.

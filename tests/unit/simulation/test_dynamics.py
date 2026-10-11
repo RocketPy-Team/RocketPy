@@ -29,13 +29,14 @@ class StubFlight:
     def __init__(self):
         self.calls = []
         self.atol = 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3]
+        self.control_signal = {}
 
 
-def stub_derivative(flight, t, u, post_processing=False):
-    flight.calls.append((t, list(u), post_processing))
+def stub_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+    flight.calls.append((t, list(x), post_processing))
     if post_processing:
         return [t]
-    return [value * 2 for value in u]
+    return [value * 2 for value in x]
 
 
 # Every phase RocketPy ships integrates the full canonical state, so the
@@ -52,6 +53,7 @@ def stub_flight_shell(live=False):
     flight = Flight.__new__(Flight)
     flight.calls = []
     flight.solution = Solution()
+    flight.control_signal = {}
     flight._has_change_dynamics_events = live
     flight.solution.records_post_values = live
     return flight
@@ -206,7 +208,7 @@ def test_bound_dynamics_post_process_at_returns_reported_variables():
 def test_bound_dynamics_forwards_phase_arguments():
     """A phase argument fixed at bind time reaches both call paths."""
 
-    def with_extra(flight, t, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
+    def with_extra(flight, t, x, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
         flight.calls.append((t, post_processing, parachute))
         return [parachute]
 
@@ -223,7 +225,7 @@ def test_a_phase_reporting_no_variables_never_calls_the_derivative():
     # This derivative has no post_processing parameter, so it raises TypeError if
     # post-processing asks it for variables the phase never declared.
     dynamics = _PhaseDynamics(
-        "silent", lambda flight, t, u: list(u), TRANSLATION_STATES
+        "silent", lambda flight, t, x, u: list(x), TRANSLATION_STATES
     )
     bound = dynamics.bind(StubFlight())
     assert bound(0.0, [1] * 6) == [1] * 6
@@ -398,16 +400,16 @@ def test_a_phase_that_does_not_compute_a_variable_reports_zero():
     flight = stub_flight_shell()
     full = _PhaseDynamics(
         "full",
-        lambda flight, t, u, post_processing=False: (
-            [1.0, 2.0] if post_processing else list(u)
+        lambda flight, t, x, u, post_processing=False: (
+            [1.0, 2.0] if post_processing else list(x)
         ),
         TRANSLATION_STATES,
         ("ax", "M1"),
     )
     partial = _PhaseDynamics(
         "partial",
-        lambda flight, t, u, post_processing=False: (
-            [3.0] if post_processing else list(u)
+        lambda flight, t, x, u, post_processing=False: (
+            [3.0] if post_processing else list(x)
         ),
         TRANSLATION_STATES,
         ("ax",),
@@ -457,8 +459,8 @@ def test_every_built_in_variable_has_a_flight_attribute(name):
     """
     flight = stub_flight_shell()
 
-    def report_everything(_flight, t, u, post_processing=False):
-        return [t] * len(FULL_POST_PROCESS_VARS) if post_processing else list(u)
+    def report_everything(_flight, t, x, _u, post_processing=False):
+        return [t] * len(FULL_POST_PROCESS_VARS) if post_processing else list(x)
 
     dynamics = _PhaseDynamics(
         "all", report_everything, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
@@ -471,3 +473,34 @@ def test_every_built_in_variable_has_a_flight_attribute(name):
 
     attribute = getattr(flight, name)
     assert np.allclose(attribute.y_array, [0.0, 0.5, 1.0, 1.5])
+
+
+def test_each_row_stores_a_copy_of_the_controls_after_its_step():
+    """The controls in force when a step's events are done are stored with the
+    step's row (and the first row, on the first step), and replaying a row
+    reads them, not the flight's controls at the end."""
+    flight = stub_flight_shell()
+    flight.control_signal = {"tab.trim": 0.0}
+
+    def trim_derivative(_flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+        return [u["tab.trim"]] if post_processing else list(x)
+
+    dynamics = _PhaseDynamics("trim", trim_derivative, TRANSLATION_STATES, ("ax",))
+    flight.solution._start_phase(
+        dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
+    )
+    flight.solution._append([0.0, *[0.0] * 6])
+    flight.solution._append([0.5, *[0.0] * 6])
+    flight.control_signal["tab.trim"] = 0.25
+    flight._Flight__store_row_controls()
+    flight.control_signal["tab.trim"] = 0.5
+    flight.solution._append([1.0, *[0.0] * 6])
+    flight._Flight__store_row_controls()
+    flight.control_signal["tab.trim"] = 0.75
+
+    assert flight.solution._controls[0] == {"tab.trim": 0.25}
+    assert flight.solution.post["ax"].tolist() == [
+        [0.0, 0.25],
+        [0.5, 0.25],
+        [1.0, 0.5],
+    ]

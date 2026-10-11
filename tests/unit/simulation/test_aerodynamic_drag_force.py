@@ -23,7 +23,7 @@ def _flight_stand_in(power_off_drag, power_on_drag, burn_out_time=3.0):
         center_of_mass_without_motor=0,
     )
     rocket.motor = SimpleNamespace(burn_out_time=burn_out_time)
-    return SimpleNamespace(rocket=rocket)
+    return SimpleNamespace(rocket=rocket, control_signal={}, _control_channels={})
 
 
 def _head_on(speed):
@@ -45,7 +45,7 @@ def test_rocket_drag_receives_reduced_rates():
     expected_coefficient = reduced * (omega[0] + 10 * omega[1] + 100 * omega[2])
 
     drag_area = _compute_drag_area(
-        flight, 5.0, _head_on(speed), speed, 0.15, 1.2, 0, omega
+        flight, 5.0, _head_on(speed), speed, 0.15, 1.2, 0, omega, flight.control_signal
     )
 
     assert drag_area == pytest.approx(flight.rocket.area * expected_coefficient)
@@ -57,7 +57,7 @@ def test_rocket_drag_rates_are_zero_without_airspeed():
         power_off_drag=lambda mach, roll_rate: 0.5 + roll_rate, power_on_drag=0.0
     )
     drag_area = _compute_drag_area(
-        flight, 5.0, _head_on(0.0), 0.0, 0, 1.2, 0, (0, 0, 8.0)
+        flight, 5.0, _head_on(0.0), 0.0, 0, 1.2, 0, (0, 0, 8.0), flight.control_signal
     )
     assert drag_area == pytest.approx(0.5 * flight.rocket.area)
 
@@ -79,7 +79,15 @@ def test_rocket_drag_reads_the_flow_from_the_stream():
     reynolds = density * speed * (2 * 0.05) / viscosity
 
     drag_area = _compute_drag_area(
-        flight, 5.0, stream, speed, 0.25, density, viscosity, (0, 0, 0)
+        flight,
+        5.0,
+        stream,
+        speed,
+        0.25,
+        density,
+        viscosity,
+        (0, 0, 0),
+        flight.control_signal,
     )
 
     expected = alpha + 10 * beta + 100 * 0.25 + reynolds / 1e6
@@ -90,10 +98,26 @@ def test_rocket_drag_curve_follows_the_motor_burn():
     """The power-on curve is used until burn out, the power-off curve after."""
     flight = _flight_stand_in(power_off_drag=0.6, power_on_drag=0.4)
     before = _compute_drag_area(
-        flight, 1.0, _head_on(50.0), 50.0, 0.15, 1.2, 0, (0, 0, 0)
+        flight,
+        1.0,
+        _head_on(50.0),
+        50.0,
+        0.15,
+        1.2,
+        0,
+        (0, 0, 0),
+        flight.control_signal,
     )
     after = _compute_drag_area(
-        flight, 5.0, _head_on(50.0), 50.0, 0.15, 1.2, 0, (0, 0, 0)
+        flight,
+        5.0,
+        _head_on(50.0),
+        50.0,
+        0.15,
+        1.2,
+        0,
+        (0, 0, 0),
+        flight.control_signal,
     )
     assert before == pytest.approx(0.4 * flight.rocket.area)
     assert after == pytest.approx(0.6 * flight.rocket.area)
@@ -142,7 +166,10 @@ def test_axial_drag_follows_the_air_moving_along_the_axis(angle_deg, equations):
         position=-0.5,
     )
     # all the derivative reads
-    flight = SimpleNamespace(env=env, rocket=rocket, _surface_switches={})
+    flight = SimpleNamespace(
+        env=env, rocket=rocket, _surface_switches={}, _control_channels={}
+    )
+    controls = {}
     speed, angle = 80.0, np.radians(angle_deg)
     upright = [1.0, 0.0, 0.0, 0.0]  # the body axis is the inertial z axis
     velocity = [speed * np.sin(angle), 0.0, speed * np.cos(angle)]
@@ -150,7 +177,7 @@ def test_axial_drag_follows_the_air_moving_along_the_axis(angle_deg, equations):
 
     # After burn out, with no aerodynamic surface, the axial force is the drag
     derivative = getattr(flight_derivatives, equations)
-    axial_force = derivative(flight, 10.0, state, post_processing=True)[8]
+    axial_force = derivative(flight, 10.0, state, controls, post_processing=True)[8]
 
     rho = env.density.get_value_opt(1000.0)
     full = 0.5 * rho * speed**2 * 0.5 * rocket.area
@@ -192,12 +219,15 @@ def test_3dof_drag_acts_against_the_velocity(velocity):
         position=0,
     )
     # all the derivative reads
-    flight = SimpleNamespace(env=env, rocket=rocket, _surface_switches={})
+    flight = SimpleNamespace(
+        env=env, rocket=rocket, _surface_switches={}, _control_channels={}
+    )
+    controls = {}
     upright = [1.0, 0.0, 0.0, 0.0]
     state = [0.0, 0.0, 1000.0, *velocity, *upright, 0.0, 0.0, 0.0]
 
     drag = np.array(
-        u_dot_generalized_3dof(flight, 10.0, state, post_processing=True)[6:9]
+        u_dot_generalized_3dof(flight, 10.0, state, controls, post_processing=True)[6:9]
     )
 
     speed = np.linalg.norm(velocity)

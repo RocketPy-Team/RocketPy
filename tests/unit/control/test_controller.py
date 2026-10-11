@@ -1,7 +1,10 @@
+import copy
 from types import SimpleNamespace
 
 import pytest
 
+from rocketpy import AirBrakes
+from rocketpy.control.control_signal import initial_controls
 from rocketpy.control.controlled import Controlled
 from rocketpy.control.controller import _Controller
 from rocketpy.simulation.events.event_context import EventContext
@@ -149,3 +152,162 @@ def test_rebinding_points_the_context_at_the_new_objects():
     assert controller.controlled_objects is loaded
     assert log["by_name"] is loaded
     assert log["by_position"] is loaded
+
+
+def _flight_of(*actuators):
+    """A stand-in flight holding the control inputs of ``actuators``."""
+    controls, channels, limits = initial_controls(actuators)
+    return SimpleNamespace(
+        control_signal=controls, _control_channels=channels, _control_limits=limits
+    )
+
+
+def test_air_brakes_move_the_flight_signal_not_the_object():
+    """In a flight, the deployment level a controller writes is the flight's
+    control channel; the air brakes object keeps its own default."""
+    air_brakes = AirBrakes(
+        drag_coefficient_curve=lambda deployment_level, mach: deployment_level,
+        reference_area=0.01,
+    )
+    flight = _flight_of(air_brakes)
+
+    def function(context):
+        brakes = context.controlled.air_brakes
+        brakes.deployment_level = 1.4  # clamped, as the air brakes say
+        return {"read": brakes.deployment_level, "area": brakes.reference_area}
+
+    controller = _Controller(
+        function, air_brakes, sampling_rate=10, controlled_objects_name="air_brakes"
+    )
+    context = EventContext(
+        time=0.0,
+        canonical_state=[0.0] * 13,
+        raw_state=[0.0] * 13,
+        phase_names=(),
+        flight=flight,
+    )
+    controller.event(context)
+
+    assert controller.log[-1] == {"read": 1.0, "area": 0.01}
+    assert flight.control_signal["air_brakes.deployment_level"] == 1.0
+    assert air_brakes.deployment_level == 0.0
+
+
+def test_a_positional_controller_gets_the_same_view(recwarn):
+    """The deprecated positional form receives the air brakes the same way."""
+    air_brakes = AirBrakes(
+        drag_coefficient_curve=lambda deployment_level, mach: deployment_level,
+        reference_area=0.01,
+    )
+    flight = _flight_of(air_brakes)
+
+    def legacy(time, sampling_rate, state, state_history, brakes):  # pylint: disable=unused-argument
+        brakes.deployment_level = 0.3
+
+    controller = _Controller(legacy, air_brakes, sampling_rate=10)
+    context = EventContext(
+        time=0.0,
+        canonical_state=[0.0] * 13,
+        raw_state=[0.0] * 13,
+        phase_names=(),
+        flight=flight,
+    )
+    controller.event(context)
+
+    assert flight.control_signal["air_brakes.deployment_level"] == 0.3
+    assert air_brakes.deployment_level == 0.0
+    assert any("positional arguments" in str(w.message) for w in recwarn.list)
+
+
+def _flight_context(flight):
+    return EventContext(
+        time=0.0,
+        canonical_state=[0.0] * 13,
+        raw_state=[0.0] * 13,
+        phase_names=(),
+        flight=flight,
+    )
+
+
+def _air_brakes(name="AirBrakes"):
+    return AirBrakes(
+        drag_coefficient_curve=lambda deployment_level, mach: deployment_level,
+        reference_area=0.01,
+        name=name,
+    )
+
+
+def test_objects_of_any_kind_can_still_be_controlled():
+    """A list under one name, a dict or any object that cannot be hashed is
+    handed over as before; air brakes inside a list still move the flight."""
+    brakes = _air_brakes()
+    settings = {"gain": 2.0}
+    flight = _flight_of(brakes)
+
+    def function(context):
+        context.controlled.brakes[0].deployment_level = 0.4
+        context.controlled.settings["gain"] = 3.0
+
+    controller = _Controller(
+        function,
+        [[brakes, SimpleNamespace()], settings],
+        sampling_rate=10,
+        controlled_objects_name=["brakes", "settings"],
+    )
+    controller.event(_flight_context(flight))
+
+    assert flight.control_signal["air_brakes.deployment_level"] == 0.4
+    assert brakes.deployment_level == 0.0
+    assert settings["gain"] == 3.0
+
+
+def test_a_positional_controller_gets_its_objects_in_the_shape_given(recwarn):
+    brakes = _air_brakes()
+    flight = _flight_of(brakes)
+    received = []
+
+    def legacy(time, sampling_rate, state, state_history, objects):  # pylint: disable=unused-argument
+        received.append(objects)
+        objects[0].deployment_level = 0.6
+
+    controller = _Controller(
+        legacy, (brakes,), sampling_rate=10, controlled_objects_name="objects"
+    )
+    controller.event(_flight_context(flight))
+
+    assert isinstance(received[0], tuple) and len(received[0]) == 1
+    assert flight.control_signal["air_brakes.deployment_level"] == 0.6
+    assert any("positional arguments" in str(w.message) for w in recwarn.list)
+
+
+def test_a_controller_moving_air_brakes_does_not_cut_the_step():
+    """A controller event changes the dynamics, so it already runs at its
+    exact time: its writes do not also mark a change of trajectory."""
+    brakes = _air_brakes()
+    flight = _flight_of(brakes)
+    controller = _Controller(
+        lambda context: setattr(context.controlled[0], "deployment_level", 0.5),
+        brakes,
+        sampling_rate=10,
+    )
+    controller.event(_flight_context(flight))
+
+    assert flight.control_signal["air_brakes.deployment_level"] == 0.5
+    assert controller.event.commands.wrote_controls is False
+
+
+def test_a_controlled_object_can_be_copied():
+    brakes = _air_brakes()
+    flight = _flight_of(brakes)
+    controller = _Controller(
+        lambda context: {"brakes": context.controlled.air_brakes},
+        brakes,
+        sampling_rate=10,
+        controlled_objects_name="air_brakes",
+    )
+    controller.event(_flight_context(flight))
+    logged = controller.log[-1]["brakes"]
+
+    copied = copy.deepcopy(logged)
+    assert copied.reference_area == brakes.reference_area
+    assert copy.copy(logged).deployment_level == 0.0

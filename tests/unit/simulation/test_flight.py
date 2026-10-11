@@ -809,12 +809,17 @@ def test_an_angular_rate_is_aerodynamically_damped(flight_calisto_robust, deriva
     equations.
     """
     flight = flight_calisto_robust
+    controls = flight.control_signal
     t, state = _coasting_state(flight)
-    at_rest = derivative(flight, t, state)
+    at_rest = derivative(flight, t, state, controls)
     for axis, rate in ((0, 2.0), (1, 2.0), (2, 20.0)):
         slot = 10 + axis
-        positive = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": rate}))
-        negative = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": -rate}))
+        positive = derivative(
+            flight, t, _with_rates(state, **{f"w{axis + 1}": rate}), controls
+        )
+        negative = derivative(
+            flight, t, _with_rates(state, **{f"w{axis + 1}": -rate}), controls
+        )
         assert positive[slot] < at_rest[slot] < negative[slot], f"axis {axis + 1}"
         # damping is close to linear in the rate at these magnitudes
         assert positive[slot] - at_rest[slot] == pytest.approx(
@@ -833,8 +838,8 @@ def test_solid_propulsion_and_generalized_equations_agree_when_rotating(
     flight = flight_calisto_robust
     t, state = _coasting_state(flight)
     pitching = _with_rates(state, w1=2.0)
-    solid = u_dot(flight, t, pitching)
-    generalized = u_dot_generalized(flight, t, pitching)
+    solid = u_dot(flight, t, pitching, flight.control_signal)
+    generalized = u_dot_generalized(flight, t, pitching, flight.control_signal)
     assert solid[10] == pytest.approx(generalized[10], rel=0.1)
     assert solid[3:6] == pytest.approx(generalized[3:6], rel=0.05)
 
@@ -957,7 +962,7 @@ def test_dynamics_take_moments_about_the_center_of_mass(
 
     # Vertical, 100 m/s up with 10 m/s sideways: sideslip, no rotation
     state = [0, 0, 1500, 10.0, 0, 100.0, 1, 0, 0, 0, 0, 0, 0]
-    out = derivative(flight, t, state, post_processing=True)
+    out = derivative(flight, t, state, flight.control_signal, post_processing=True)
     w_dot, forces, moments = Vector(out[3:6]), Vector(out[6:9]), Vector(out[9:12])
     assert abs(moments[1]) > 10  # the fins push back
     about_center_of_mass = moments + (forces ^ r_cm)
@@ -996,7 +1001,9 @@ def test_generalized_dynamics_match_a_rigid_body_when_rotating(
     mass = rocket.total_mass.get_value_opt(t)
     w = Vector([0.4, -0.3, 2.0])
     state = [0, 0, 1500, 10.0, -5.0, 100.0, 1, 0, 0, 0, *w]
-    out = u_dot_generalized(flight, t, state, post_processing=True)
+    out = u_dot_generalized(
+        flight, t, state, flight.control_signal, post_processing=True
+    )
     a_cdm, w_dot = Vector(out[:3]), Vector(out[3:6])
     forces, moments, thrust = Vector(out[6:9]), Vector(out[9:12]), out[12]
 
@@ -1036,7 +1043,9 @@ def test_integrator_damping_matches_the_oscillator(flight_calisto_robust):
     state = [0, 0, 1500, 0, 0, speed, 1, 0, 0, 0, 0, 0, 0]
 
     def pitch_acceleration(rate):
-        out = u_dot_generalized(flight, t, [*state[:10], rate, 0, 0])
+        out = u_dot_generalized(
+            flight, t, [*state[:10], rate, 0, 0], flight.control_signal
+        )
         return (inertia_cm @ Vector(out[10:13]))[0]
 
     step = 1e-3

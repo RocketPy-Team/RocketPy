@@ -6,6 +6,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
+from rocketpy.control.control_signal import check_actuator, control_channels
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
@@ -30,7 +31,6 @@ from rocketpy.rocket._helpers import (
 )
 from rocketpy.rocket.aero_surface import (
     AirBrakes,
-    ControllableGenericSurface,
     EllipticalFins,
     Fin,
     Fins,
@@ -587,6 +587,47 @@ class Rocket:
     def tails(self):
         """A list with all the tails currently added to the rocket"""
         return self.aerodynamic_surfaces.get_by_type(Tail)
+
+    @property
+    def actuators(self):
+        """Every part of the rocket a controller can move: the aerodynamic
+        surfaces, then the air brakes, each in the order they were added.
+
+        A flight builds its control inputs from these, one channel per
+        control of each. See :attr:`control_channels`.
+        """
+        return (
+            *(surface for surface, _ in self.aerodynamic_surfaces),
+            *self.air_brakes,
+        )
+
+    @property
+    def control_channels(self):
+        """Names of the control channels the next flight of this rocket will
+        have, in order. Read-only.
+
+        A channel is ``<actuator>.<control>``: the actuator's name in
+        snake_case, then the name of the control, one per control of each
+        actuator that has controls, such as ``("canards.deflection",
+        "air_brakes.deployment_level")``. A rocket with no controls has none.
+        A controller writes these channels as
+        ``context.controls["air_brakes.deployment_level"] = 0.5``.
+
+        Returns
+        -------
+        tuple of str
+        """
+        channels = control_channels(self.actuators).values()
+        return tuple(name for names in channels for name in names)
+
+    def _check_new_actuators(self, *actuators):
+        """Raise if one of ``actuators`` cannot be flown, or if their channels
+        could not be told apart from each other's and from those of the
+        rocket's other actuators. Called before any of them is added, so a
+        failed add leaves the rocket as it was."""
+        for actuator in actuators:
+            check_actuator(actuator)
+        control_channels((*self.actuators, *actuators))
 
     def evaluate_total_mass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -1802,10 +1843,15 @@ class Rocket:
                     )
             else:
                 positions = [positions] * len(surfaces)
-
+            # Every surface is checked before any is added
+            self._check_new_actuators(
+                *(s for s in surfaces if not isinstance(s, RailButtons))
+            )
             for surface, position in zip(surfaces, positions):
                 self.__add_single_surface(surface, position)
         else:
+            if not isinstance(surfaces, RailButtons):
+                self._check_new_actuators(surfaces)
             self.__add_single_surface(surfaces, positions)
 
     def add_full_body_aerodynamics(self, surfaces, position=None, overwrite=False):
@@ -1823,8 +1869,8 @@ class Rocket:
 
             - a :class:`GenericSurface`;
             - a :class:`LinearGenericSurface`;
-            - a :class:`ControllableGenericSurface` for coefficients that
-              also depend on control-deflection axes.
+            - a :class:`GenericSurface` built with ``controls``, for
+              coefficients that also depend on a control deflection.
 
             Reference the surface's coefficients to the rocket cross-section
             area and diameter (build it with ``reference_area=rocket.area`` and
@@ -1974,9 +2020,9 @@ class Rocket:
         can be included with an optional argument:
 
         - **Reynolds number.** Held at zero unless ``reynolds`` is given.
-        - **Control deflections.** Each control of a
-          :class:`ControllableGenericSurface` is held at its current value
-          unless it is listed in ``controls``.
+        - **Control deflections.** Each control of a surface (the names in its
+          ``controls``) is held at its default unless it is listed in
+          ``controls``.
         - **How the rate terms change with the angles.** The rate terms are
           read at zero angle unless ``rates="at_each_angle"`` (table model).
           In every case the effect of a rate is a straight line: the rate term
@@ -1997,7 +2043,7 @@ class Rocket:
         only from them is reproduced exactly by the linear model to first
         order in the angles, and by the table model at every angle of an
         axisymmetric rocket. The optional arguments matter when you have added
-        a :class:`GenericSurface` or :class:`ControllableGenericSurface` (or a
+        a :class:`GenericSurface`, with or without controls (or a
         Reynolds-dependent :class:`LinearGenericSurface`) whose coefficients
         vary with Reynolds number, with a control deflection or, for the
         linear model, with the angles beyond a straight line.
@@ -2055,12 +2101,12 @@ class Rocket:
             depends on the Reynolds number.
         controls : dict, optional
             Controls to keep as inputs of the coefficients, as a dict from the
-            name of a control of a :class:`ControllableGenericSurface` to the
-            values it is read at (at least two), for example
-            ``{"deflection": np.radians([-10, 0, 10])}``. Each control listed
-            becomes an input with that name. A control that is not listed is
-            held at its current value. The controls of the rocket's surfaces
-            are left as they were.
+            name of a control of a surface (one of the names in its
+            ``controls``) to the values it is read at (at least two), for
+            example ``{"deflection": np.radians([-10, 0, 10])}``. Each control
+            listed becomes an input with that name. A control that is not
+            listed is held at its default. The defaults of the rocket's
+            surfaces are left as they were.
 
             When several surfaces use the same control name, each is kept as
             a separate input named ``<surface name>_<control name>`` (in lower
@@ -2153,15 +2199,13 @@ class Rocket:
         controls : dict, optional
             Controls the surfaces keep, from control name to the values it is
             read at, for example ``{"deflection": np.radians([-10, 0, 10])}``.
-            Needs ``model="table"``; the surfaces returned are then
-            :class:`rocketpy.ControllableGenericSurface` objects with those
-            controls, each starting at 0. Default ``None``. See
+            Needs ``model="table"``; the surfaces returned then have those
+            controls, each with a default of 0. Default ``None``. See
             :meth:`to_coefficients`.
 
         Returns
         -------
-        list of rocketpy.LinearGenericSurface, rocketpy.GenericSurface or \
-rocketpy.ControllableGenericSurface
+        list of rocketpy.LinearGenericSurface or rocketpy.GenericSurface
             Two surfaces, ``[power_off, power_on]``, each carrying the whole
             rocket's coefficients referenced to the rocket cross-section area
             and diameter and taken about the center of dry mass, and gated to
@@ -2185,7 +2229,7 @@ rocketpy.ControllableGenericSurface
         for phase in ("power_off", "power_on"):
             label = f"{name} ({phase.replace('_', ' ')})"
             if model == "table" and controls:
-                surface = ControllableGenericSurface(
+                surface = GenericSurface(
                     reference_area=self.area,
                     reference_length=2 * self.radius,
                     coefficients=lumped_surface_coefficients(coefficients[phase]),
@@ -2874,9 +2918,9 @@ rocketpy.ControllableGenericSurface
             If True, the function will return the controller object created.
             Default is False.
         name : string, optional
-            AirBrakes name, such as drogue and main. Has no impact in
-            simulation, as it is only used to display data in a more
-            organized matter.
+            AirBrakes name. It also names their control channels: the default
+            ``"AirBrakes"`` gives ``air_brakes.deployment_level``. Air brakes
+            added twice to one rocket need different names.
         controller_name : string, optional
             Controller name. Has no impact in simulation, as it is only used to
             display data in a more organized matter.
@@ -2978,6 +3022,7 @@ rocketpy.ControllableGenericSurface
             memory=controller_memory,
             name=controller_name,
         )
+        self._check_new_actuators(air_brakes)
         self.air_brakes.append(air_brakes)
         self._add_controllers(_controller)
         if return_controller:

@@ -222,6 +222,20 @@ The following values are available:
 - ``sampling_rate`` (float or None): The sampling rate of the event in Hz, or
   ``None`` for a continuous event.
 
+**Control inputs:**
+
+- ``controls`` (dict): The flight's control inputs, from channel name to value:
+  one channel per control of each part of the rocket that has controls, such
+  as air brakes or a surface built with ``controls``. Write a channel by name::
+
+      context.controls["air_brakes.deployment_level"] = 0.5
+
+  ``rocket.control_channels`` lists the names: the part's name in snake_case,
+  then the control. A value written here is kept inside the control's limits
+  (or warned about) once the callback returns, and acts from this moment on.
+  The rocket itself is never changed, so the next flight starts from the
+  defaults again.
+
 **Inside a controller function only:**
 
 - ``controller``: The controller being run. Its own dictionary, kept from one

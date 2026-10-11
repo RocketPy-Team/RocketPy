@@ -2,11 +2,72 @@ import warnings
 from inspect import signature
 from keyword import iskeyword
 
+from rocketpy.control.control_signal import limited_value
 from rocketpy.simulation.events.event import Event
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints
 from .controlled import Controlled
+
+
+def _with_controls(obj, flight):
+    """Return ``obj`` with its controls in the flight's control inputs, or
+    ``obj`` itself when it has no channels in this flight. A list or tuple of
+    objects keeps its shape, with each actuator in it handed over the same way.
+    """
+    if isinstance(obj, list):
+        return [_with_controls(item, flight) for item in obj]
+    if isinstance(obj, tuple):
+        return tuple(_with_controls(item, flight) for item in obj)
+    try:
+        channels = flight._control_channels.get(obj)  # pylint: disable=protected-access
+    except TypeError:  # unhashable, so not an actuator
+        return obj
+    if channels is None:
+        return obj
+    return _ControlledObject(obj, dict(zip(obj.controls, channels)), flight)
+
+
+class _ControlledObject:
+    """An object a controller drives, as the controller function sees it.
+
+    Its controls, such as the ``deployment_level`` of air brakes, are read and
+    written in the flight's control inputs, so the controller moves the flight
+    and never the object itself. Every other attribute is the object's own. A
+    write is kept inside the control's limits right away, as the object did,
+    so the controller reads back the value that flies.
+    """
+
+    __slots__ = ("_object", "_channels", "_flight")
+
+    def __init__(self, obj, channels, flight):
+        object.__setattr__(self, "_object", obj)
+        object.__setattr__(self, "_channels", channels)
+        object.__setattr__(self, "_flight", flight)
+
+    def __getattr__(self, name):
+        if name in _ControlledObject.__slots__:
+            # Not set yet, as in an empty copy being filled in
+            raise AttributeError(name)
+        channel = self._channels.get(name)
+        if channel is not None:
+            return self._flight.control_signal[channel]
+        return getattr(self._object, name)
+
+    def __setattr__(self, name, value):
+        if name in _ControlledObject.__slots__:
+            object.__setattr__(self, name, value)
+            return
+        channel = self._channels.get(name)
+        if channel is None:
+            setattr(self._object, name, value)
+            return
+        flight = self._flight
+        bounds, clamp = flight._control_limits[channel]  # pylint: disable=protected-access
+        flight.control_signal[channel] = limited_value(value, bounds, clamp, channel)
+
+    def __repr__(self):
+        return repr(self._object)
 
 
 class _Controller:
@@ -184,7 +245,7 @@ class _Controller:
                 self.sampling_rate,
                 context["canonical_state"],
                 self.log,
-                self.controlled_objects,
+                self._controlled_objects_in(context),
             ]
             if positional_count >= 6 or accepts_var_positional:
                 args.append(context["sensors"])
@@ -232,7 +293,7 @@ class _Controller:
             # These belong to this controller alone; the context is shared
             # with the other events of the step, so they are owned rather
             # than written outright and are removed when the next event binds.
-            context.own(controller=self, controlled=self._controlled)
+            context.own(controller=self, controlled=self._controlled_in(context))
             return self.controller_function(context)
 
         return Event(
@@ -283,6 +344,32 @@ class _Controller:
     @return_log.setter
     def return_log(self, value):
         self.log = value
+
+    def _controlled_in(self, context):
+        """Return ``context.controlled`` for one run of the controller.
+
+        An object that is one of the flight's actuators is handed over wrapped,
+        so that reading or writing one of its controls, such as
+        ``air_brakes.deployment_level``, reads or writes the flight's control
+        signal. Everything else about the object is read from the object.
+        """
+        flight = context.get("flight")
+        if getattr(flight, "control_signal", None) is None:
+            return self._controlled
+        controlled = self._controlled
+        return Controlled(
+            tuple(_with_controls(obj, flight) for obj in controlled),
+            controlled._names,  # pylint: disable=protected-access
+        )
+
+    def _controlled_objects_in(self, context):
+        """Return ``controlled_objects`` in the shape it was given, for the
+        deprecated positional controller function, wrapped as in
+        :meth:`_controlled_in`."""
+        flight = context.get("flight")
+        if getattr(flight, "control_signal", None) is None:
+            return self.controlled_objects
+        return _with_controls(self.controlled_objects, flight)
 
     def __build_controlled(self):
         """Validate controlled_objects_name and build ``context.controlled``."""

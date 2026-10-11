@@ -22,6 +22,9 @@ class Commands:
         self._terminate = False
         self.terminate_phase_name = None
         self.surface_switches = []
+        # Set when the event's callback changes a value of the flight's
+        # control inputs, through ``context.controls``
+        self.wrote_controls = False
 
     def disable(self):
         self._disabled = True
@@ -163,7 +166,8 @@ class Commands:
 
         Returns ``True`` when the queued commands start a new flight phase,
         switch the equations of motion, terminate the flight, or switch an
-        aerodynamic surface on or off. In all these cases the trajectory past
+        aerodynamic surface on or off, or when the event's callback changed a
+        control through ``context.controls``. In all these cases the trajectory past
         the trigger is no longer valid, so during time overshoot the simulation
         must be rolled back to the exact trigger crossing before the commands
         are applied. Pure scheduling changes (enabling/disabling or adding
@@ -174,4 +178,5 @@ class Commands:
             or self.new_dynamics is not None
             or self._terminate
             or bool(self.surface_switches)
+            or self.wrote_controls
         )

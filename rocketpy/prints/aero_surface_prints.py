@@ -28,7 +28,9 @@ class _GenericSurfacePrints:
 
         print("Aerodynamic coefficients (AoA 5°, sideslip 5°, Mach 0.3):")
         print("---------------------------------------------------------")
-        args = [0.0] * n_args
+        # The controls at their defaults, as everywhere outside a flight
+        reference = getattr(surface, "_reference_arguments", None)
+        args = reference() if reference else [0.0] * n_args
         args[index["mach"]] = 0.3
         if "alpha" in index:
             args[index["alpha"]] = np.deg2rad(5)

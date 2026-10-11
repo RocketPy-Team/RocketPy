@@ -2,6 +2,11 @@ import csv
 
 import numpy as np
 
+from rocketpy.control.control_signal import (
+    _check_control_name,
+    _check_limits,
+    limited_value,
+)
 from rocketpy.mathutils import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.plots.aero_surface_plots import _GenericSurfacePlots
@@ -14,6 +19,7 @@ from rocketpy.rocket.aero_surface._helpers import (
     _wind_to_body_coefficients,
 )
 from rocketpy.rocket.aero_surface.aero_coefficient import (
+    BASE_INDEPENDENT_VARS,
     SOURCE_ONLY_NAMES,
     AeroCoefficient,
     build_independent_vars,
@@ -56,6 +62,17 @@ class GenericSurface:
         The motor phase the surface produces force in, as given.
     GenericSurface.active : bool
         Whether the surface starts each flight switched on.
+    GenericSurface.controls : tuple of str
+        Names of the controls the coefficients read, such as
+        ``("deflection",)``. Empty for a surface without controls.
+    GenericSurface.control_defaults : dict
+        Value of each control at the start of every flight, and the value
+        used outside a flight (for the stability margin, for instance).
+    GenericSurface.control_limits : dict
+        ``(low, high)`` of each control, or ``None`` for no limits.
+    GenericSurface.clamp : bool
+        Whether a value written outside a control's limits is moved to the
+        nearest limit (``True``) or kept with a warning (``False``).
     GenericSurface.force_convention : str
         Frame the force coefficients were given in: ``"body"`` or ``"wind"``.
     GenericSurface.independent_vars : list of str
@@ -139,7 +156,7 @@ class GenericSurface:
     # Rate derivatives, such as ``cm_q``: the reduced rate each suffix multiplies
     _RATE_DERIVATIVES = {"p": "roll_rate", "q": "pitch_rate", "r": "yaw_rate"}
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         reference_area,
         reference_length,
@@ -153,6 +170,10 @@ class GenericSurface:
         force_convention=None,
         active_during="always",
         active=True,
+        controls=(),
+        control_defaults=None,
+        control_limits=None,
+        clamp=True,
     ):
         """Create an aerodynamic surface from its aerodynamic coefficients.
 
@@ -298,6 +319,27 @@ class GenericSurface:
             ``context.event.commands.activate_surface(surface)``. A surface
             that is on from the start is switched off the same way, with
             ``deactivate_surface``.
+        controls : iterable of str, optional
+            Names of controls the coefficients depend on, such as a canard
+            deflection, set by a controller during the flight. Each name
+            becomes one more variable the coefficients can use, after the
+            variables above and in this order, for example
+            ``controls=("deflection",)`` with
+            ``{"cl": lambda mach, deflection: 0.5 * deflection}``. Default is
+            no controls.
+        control_defaults : dict, optional
+            The value of each control at the start of every flight, by name,
+            for example ``{"deflection": 0.0}``. It is also the value used
+            outside a flight, such as for the stability margin. A control left
+            out starts at 0. Default is ``None``, every control at 0.
+        control_limits : dict, optional
+            The range each control can take, as ``(low, high)`` by name, for
+            example ``{"deflection": (-0.3, 0.3)}``. A control left out has no
+            limits. Default is ``None``, no limits.
+        clamp : bool, optional
+            What happens to a value outside a control's limits: ``True`` (the
+            default) moves it to the nearest limit, ``False`` keeps it and
+            warns.
 
         Raises
         ------
@@ -308,20 +350,21 @@ class GenericSurface:
             If a coefficient name, a variable name, ``force_convention`` or
             ``active_during`` is not one of the accepted values, if wind-frame
             and body-frame force coefficients are mixed without a
-            ``force_convention``, or if a coefficient given against the total
-            angle of attack breaks the rules above.
+            ``force_convention``, if a coefficient given against the total
+            angle of attack breaks the rules above, or if a control name is
+            not a valid name, is repeated or is one of the variables above.
 
         See Also
         --------
         :ref:`genericsurfaces`
         """
 
-        # Externally-supplied axes (e.g. control deflections). Subclasses set
-        # this before ``super().__init__``. Defaults to none for plain surfaces.
-        self.control_variables = getattr(self, "control_variables", ())
-        # Ordered independent variables accepted by every coefficient: the seven
-        # base axes, plus any ``control_variables``
-        self.independent_vars = build_independent_vars(self.control_variables)
+        self.name = name
+        # The surface's controls, set first: the coefficients are built over
+        # them. Every coefficient takes the seven flow variables, then one
+        # value per control.
+        self._set_controls(controls, control_defaults, control_limits, clamp)
+        self.independent_vars = build_independent_vars(self._control_axes)
 
         self.reference_area = reference_area
         self.reference_length = reference_length
@@ -329,7 +372,6 @@ class GenericSurface:
             reference_length if reynolds_length is None else reynolds_length
         )
         self._set_center_of_pressure(center_of_pressure)
-        self.name = name
         self.active_during = self._validate_active_during(active_during)
         self.active = bool(active)
 
@@ -393,7 +435,7 @@ class GenericSurface:
             if numeric
             else AeroCoefficient(
                 z,
-                control_variables=getattr(self, "control_variables", ()),
+                control_variables=self._control_axes,
                 name="center_of_pressure",
                 single_var="mach",
             )
@@ -401,6 +443,64 @@ class GenericSurface:
         self._center_of_pressure, self._xcp = tuple(value), xcp
         self.cpx, self.cpy, self.cpz = x, y, 0.0 if xcp else z
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    def _set_controls(self, controls, defaults, limits, clamp):
+        """Check and store the controls the coefficients read."""
+        controls = tuple(controls)
+        flow_variables = {*BASE_INDEPENDENT_VARS, *SOURCE_ONLY_NAMES}
+        for control in controls:
+            _check_control_name(control, self.name)
+            if control in flow_variables:
+                raise ValueError(
+                    f"'{self.name}' cannot have a control named '{control}': it "
+                    "is one of the flow variables."
+                )
+        if len(set(controls)) != len(controls):
+            raise ValueError(f"'{self.name}' lists a control twice: {controls}.")
+        defaults = dict(defaults or {})
+        limits = dict(limits or {})
+        for setting, given in (
+            ("control_defaults", defaults),
+            ("control_limits", limits),
+        ):
+            unknown = sorted(set(given) - set(controls))
+            if unknown:
+                raise ValueError(
+                    f"'{self.name}' has {setting} for {unknown}, which are not "
+                    f"among its controls {controls}."
+                )
+        self.controls = controls
+        self.clamp = bool(clamp)
+        self.control_limits = {}
+        self.control_defaults = {}
+        for control in controls:
+            _check_limits(limits.get(control), control, self.name)
+            given = limits.get(control)
+            self.control_limits[control] = None if given is None else tuple(given)
+            self.control_defaults[control] = limited_value(
+                defaults.get(control, 0.0),
+                self.control_limits[control],
+                self.clamp,
+                f"{self.name}.{control}",
+            )
+
+    @property
+    def _control_axes(self):
+        """The controls the coefficients read, in order. Empty while the
+        surface is being built and has none yet."""
+        return getattr(self, "controls", ())
+
+    def _default_control_values(self):
+        """The defaults of the controls, in order: the values used outside a
+        flight."""
+        return tuple(self.control_defaults[name] for name in self.controls)
+
+    def _reference_arguments(self):
+        """The arguments of every coefficient at zero angles, Mach number,
+        Reynolds number and rates, with the controls at their defaults, as a
+        list to set the variables of interest in. What a surface is evaluated
+        at outside a flight."""
+        return [0.0] * len(BASE_INDEPENDENT_VARS) + list(self._default_control_values())
 
     def is_active(self, t, flight):
         """Return whether the surface produces force at time ``t`` of a flight.
@@ -491,7 +591,7 @@ class GenericSurface:
         A plain generic surface recovers each derivative from its body-frame
         force and moment coefficients by numerical differentiation about one
         point: ``alpha = beta = 0``, Reynolds number 0, every rotation rate 0
-        and every control at 0, as a function of Mach. A coefficient that
+        and every control at its default, as a function of Mach. A coefficient that
         changes with the Reynolds number is therefore linearized at Reynolds 0
         (the edge of its table, when tabulated). The Barrowman surfaces instead
         set these four attributes directly from geometry and only reuse
@@ -509,9 +609,18 @@ class GenericSurface:
         # whole surface is read that way.
         step = self._SLOPE_STEP
         one_sided = bool(self._wind_plane_names)
+        # TODO: the slopes are taken once, with the controls at their defaults,
+        # so the static margin of a surface whose moment couples the angle of
+        # attack and a control (an ``alpha * deflection`` term) is the margin
+        # at the default deflection. It does not follow a control moved during
+        # a flight, and a single margin is the wrong summary for such a
+        # surface anyway: it is a function of the control. If that is ever
+        # needed, sweep the margin over the control's range in dedicated
+        # stability plots rather than re-deriving these slopes.
+        defaults = dict(zip(self._control_axes, self._default_control_values()))
 
         def slope(coefficient, angle):
-            at = {angle: step} if one_sided else None
+            at = {**defaults, angle: step} if one_sided else (defaults or None)
             return coefficient.slope(angle, "mach", at=at, dx=step)
 
         for name, angle in (
@@ -527,7 +636,7 @@ class GenericSurface:
                 AeroCoefficient(
                     slope(getattr(self, name), angle),
                     depends_on=("mach",),
-                    control_variables=self.control_variables,
+                    control_variables=self._control_axes,
                     name=slope_name,
                 ),
             )
@@ -562,10 +671,13 @@ class GenericSurface:
                 application_z = (
                     self._rotation_surface_to_body @ self.force_application_point
                 )[2]
-                slope = force_coeff.get_value_opt(0.0, 0.0, mach, 0.0, 0.0, 0.0, 0.0)
+                # At zero angles and rates, the controls at their defaults
+                args = (0.0, 0.0, mach, 0.0, 0.0, 0.0, 0.0)
+                args += self._default_control_values()
+                slope = force_coeff.get_value_opt(*args)
                 if slope == 0:
                     return application_z
-                moment = moment_coeff.get_value_opt(0.0, 0.0, mach, 0.0, 0.0, 0.0, 0.0)
+                moment = moment_coeff.get_value_opt(*args)
                 return application_z + moment / slope * self.reference_length
 
             return Function(
@@ -624,7 +736,7 @@ class GenericSurface:
         )
         coefficient = AeroCoefficient(
             source,
-            control_variables=self.control_variables,
+            control_variables=self._control_axes,
             name=name,
             extrapolation=extrapolation,
             interpolation=interpolation,
@@ -957,10 +1069,14 @@ class GenericSurface:
                 "Check the documentation for valid names."
             )
 
-    def _coefficient_arguments(self, *state):
+    def _coefficient_arguments(self, *state, controls=None):
         """The arguments every coefficient is called with: the seven flow
-        variables in ``state``, plus any a subclass adds."""
-        return state
+        variables in ``state``, then the value of each control besides
+        ``active``. ``controls`` holds those values, from the flight's control
+        signal; ``None`` uses the defaults, as outside a flight."""
+        if controls is None:
+            controls = self._default_control_values()
+        return (*state, *controls) if len(controls) else state
 
     def compute_forces_and_moments(
         self,
@@ -973,6 +1089,7 @@ class GenericSurface:
         density,
         dynamic_viscosity,
         z,
+        controls=None,
     ):
         """Computes the forces and moments acting on the aerodynamic surface.
         Used in each time step of the simulation.  This method is valid for
@@ -1001,6 +1118,11 @@ class GenericSurface:
         z : float
             Altitude of the surface, used to evaluate ``density`` and
             ``dynamic_viscosity``.
+        controls : sequence of float, optional
+            The value of each of the surface's controls besides ``active``, in
+            the order of :attr:`controls`, as the flight holds them. ``None``
+            (the default) uses :attr:`control_defaults`, the values outside a
+            flight.
 
         Returns
         -------
@@ -1046,6 +1168,7 @@ class GenericSurface:
             omega[0] * reduced_rate_factor,
             omega[1] * reduced_rate_factor,
             omega[2] * reduced_rate_factor,
+            controls=controls,
         )
         force = 0.5 * rho * stream_speed**2 * self.reference_area
         moment = force * self.reference_length
@@ -1068,10 +1191,14 @@ class GenericSurface:
         return set(cls._get_default_coefficients()) | set(cls._WIND_FORCE_NAMES)
 
     @classmethod
-    def _input_variable_names(cls, **kwargs):  # pylint: disable=unused-argument
+    def _input_variable_names(cls, **kwargs):
         """Every name a variable can be given under, for a surface built with
-        the constructor arguments ``kwargs``."""
-        return [*build_independent_vars(), *SOURCE_ONLY_NAMES]
+        the constructor arguments ``kwargs``: the flow variables and the
+        surface's controls."""
+        return [
+            *build_independent_vars(kwargs.get("controls", ())),
+            *SOURCE_ONLY_NAMES,
+        ]
 
     @classmethod
     def from_csv(
@@ -1111,8 +1238,8 @@ class GenericSurface:
             ``alpha_deg`` and ``beta_deg`` (degrees), ``alpha_total`` and
             ``phi`` (total angle of attack and roll angle of the wind, also with
             ``_deg``), ``mach``, ``reynolds``,
-            ``pitch_rate``, ``yaw_rate`` and ``roll_rate``, plus the control
-            names of a controllable surface. The coefficient names are those of
+            ``pitch_rate``, ``yaw_rate`` and ``roll_rate``, plus the names in
+            ``controls`` when it is given. The coefficient names are those of
             the class, such as ``cN``, ``cY``, ``cA`` (or ``cL``, ``cQ``,
             ``cD``), ``cm``, ``cn`` and ``cl`` for a :class:`GenericSurface`.
             Names are case sensitive: ``cN`` is the normal force and ``cn`` the
@@ -1196,6 +1323,10 @@ class GenericSurface:
             "force_convention": data.get("force_convention", "body"),
             "active_during": data.get("active_during", "always"),
             "active": data.get("active", True),
+            "controls": tuple(data.get("controls", ())),
+            "control_defaults": data.get("control_defaults"),
+            "control_limits": data.get("control_limits"),
+            "clamp": data.get("clamp", True),
         }
         return arguments
 
@@ -1221,7 +1352,7 @@ class GenericSurface:
             The arguments needed to rebuild the surface with :meth:`from_dict`.
         """
         x, y, z = self.center_of_pressure
-        return {
+        data = {
             "reference_area": self.reference_area,
             "reference_length": self.reference_length,
             "reynolds_length": self.reynolds_length,
@@ -1233,6 +1364,17 @@ class GenericSurface:
             "active_during": self.active_during,
             "active": self.active,
         }
+        controls = self._control_axes
+        if controls:
+            data["controls"] = list(controls)
+            data["control_defaults"] = {
+                name: self.control_defaults[name] for name in controls
+            }
+            data["control_limits"] = {
+                name: self.control_limits[name] for name in controls
+            }
+            data["clamp"] = self.clamp
+        return data
 
     @classmethod
     def from_dict(cls, data):

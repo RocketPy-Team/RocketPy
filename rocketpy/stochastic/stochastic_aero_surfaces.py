@@ -543,6 +543,8 @@ class StochasticAirBrakes(StochasticModel):
             clamp=generated_dict["clamp"],
             override_rocket_drag=generated_dict["override_rocket_drag"],
             deployment_level=generated_dict["deployment_level"],
+            # The name sets the names of its control channels
+            name=self.obj.name,
         )
         air_brakes.drag_coefficient *= generated_dict["drag_coefficient_curve_factor"]
         return air_brakes

@@ -328,6 +328,11 @@ class Solution:
         # recorded. Not saved to file: a solution read back has no live flight
         # to post-process against.
         self._post_values = [None] * len(self._rows)
+        # The control inputs in force from each row's time on (a dictionary of
+        # channel name to value), one entry per row, kept beside the rows the
+        # same way. A row worked out again after the flight is given its own.
+        # ``None`` where nothing was stored. Not saved to file yet.
+        self._controls = [None] * len(self._rows)
         # Set by a flight that records its post-process values as it runs. Such
         # a flight changes the rocket mid-flight, so working the values out
         # again afterwards would read the rocket in the configuration it ended
@@ -709,6 +714,7 @@ class Solution:
         """
         self._rows.append(row)
         self._post_values.append(None)
+        self._controls.append(None)
         self._version += 1
 
     def _set_post_values(self, index, values):
@@ -738,6 +744,25 @@ class Solution:
         self._post_values[self._normalize(int(index))] = values
         self._post_version += 1
 
+    def _set_controls(self, index, controls):
+        """Store the control inputs in force from one row's time on.
+
+        Parameters
+        ----------
+        index : int
+            Row position across the whole flight. Negative values count from
+            the end.
+        controls : dict
+            Channel name to value, a copy of the flight's control inputs.
+
+        Raises
+        ------
+        IndexError
+            If ``index`` is outside the flight's rows.
+        """
+        self._controls[self._normalize(int(index))] = controls
+        self._post_version += 1
+
     def _replace_last(self, row):
         """Overwrite the most recent row with a raw state row ``[t, *state]``.
 
@@ -754,6 +779,7 @@ class Solution:
         """
         self._rows[-1] = row
         self._post_values[-1] = None
+        self._controls[-1] = None
         self._version += 1
 
     def _insert_before_last(self, row):
@@ -776,6 +802,7 @@ class Solution:
         position = len(self._rows) - 1
         self._rows.insert(position, row)
         self._post_values.insert(position, None)
+        self._controls.insert(position, None)
         self._shift_starts_after(position, 1)
         self._version += 1
 
@@ -796,6 +823,7 @@ class Solution:
             raise IndexError("this solution has no stored rows")
         row = self._rows.pop()
         self._post_values.pop()
+        self._controls.pop()
         self._shift_starts_after(len(self._rows), -1)
         self._version += 1
         return row
@@ -820,6 +848,7 @@ class Solution:
         position = self._normalize(int(index))
         self._rows.insert(position, row)
         self._post_values.insert(position, None)
+        self._controls.insert(position, None)
         self._shift_starts_after(position, 1)
         self._version += 1
 
@@ -845,6 +874,7 @@ class Solution:
         position = self._normalize(int(index))
         row = self._rows.pop(position)
         self._post_values.pop(position)
+        self._controls.pop(position)
         self._shift_starts_after(position, -1)
         self._version += 1
         return row
@@ -1358,12 +1388,13 @@ class PostProcessSolution:
             # A phase read back from a saved flight cannot be worked out again,
             # since that needs the equations of motion of a live flight.
             return None
+        controls = self._solution._controls[start:stop]
         return np.array(
             [
                 phase.dynamics.post_process_values(
-                    phase.bound_dynamics.post_process_at(row[0], row[1:])
+                    phase.bound_dynamics.post_process_at(row[0], row[1:], row_controls)
                 )
-                for row in rows
+                for row, row_controls in zip(rows, controls)
             ],
             dtype=float,
         )
@@ -1527,6 +1558,8 @@ class PostProcessSolution:
                 )
             row = solution.raw_row(position)
             values = phase.dynamics.post_process_values(
-                phase.bound_dynamics.post_process_at(row[0], row[1:])
+                phase.bound_dynamics.post_process_at(
+                    row[0], row[1:], solution._controls[position]
+                )
             )
         return dict(zip(phase.dynamics.post_process_vars, values))

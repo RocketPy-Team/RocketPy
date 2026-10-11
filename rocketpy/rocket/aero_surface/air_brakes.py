@@ -1,18 +1,21 @@
-import warnings
-
 import numpy as np
 
+from rocketpy.control.control_signal import limited_value
 from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _AirBrakesPlots
 from rocketpy.prints.aero_surface_prints import _AirBrakesPrints
 
-from .controllable_generic_surface import ControllableGenericSurface
+from .generic_surface import GenericSurface
 
 
-class AirBrakes(ControllableGenericSurface):
-    """AirBrakes class. Inherits from :class:`ControllableGenericSurface`, using
-    ``deployment_level`` as its single control variable and a multivariable drag
-    coefficient.
+class AirBrakes(GenericSurface):
+    """AirBrakes class. A :class:`GenericSurface` with one control,
+    ``deployment_level``, and a drag coefficient that depends on it.
+
+    During a flight the deployment level is the ``air_brakes.deployment_level``
+    channel of the flight's control inputs, written by a controller as
+    ``context.controls["air_brakes.deployment_level"]``. The air brakes object
+    itself is not changed by a flight.
 
     Attributes
     ----------
@@ -25,8 +28,10 @@ class AirBrakes(ControllableGenericSurface):
         the current deployment level in flight; the wind-frame ``cD`` is a view
         derived from it.
     AirBrakes.deployment_level : float
-        Current deployment level, ranging from 0 to 1. Deployment level is the
-        fraction of the total airbrake area that is deployed.
+        Deployment level at the start of every flight, and outside a flight,
+        ranging from 0 to 1. Deployment level is the fraction of the total
+        airbrake area that is deployed. It is the default of the
+        ``deployment_level`` control.
     AirBrakes.reference_area : int, float
         Reference area used to calculate the drag force of the air brakes
         from the drag coefficient curve. Units of m^2.
@@ -98,15 +103,16 @@ class AirBrakes(ControllableGenericSurface):
             the fraction of the total airbrake area that is deployed. Default
             is 0.
         name : str, optional
-            Name of the air brakes. Default is "AirBrakes".
+            Name of the air brakes. Default is "AirBrakes". It also names their
+            control channels: ``"AirBrakes"`` gives
+            ``air_brakes.deployment_level``. Two air brakes on one rocket need
+            different names.
 
         Returns
         -------
         None
         """
-        self.clamp = clamp
         self.override_rocket_drag = override_rocket_drag
-        self.initial_deployment_level = deployment_level
         self.drag_coefficient_curve = drag_coefficient_curve
         # Back-compatible 2-input (deployment level, Mach) drag curve, kept for
         # display/serialization and as the source of the multivariable drag
@@ -135,41 +141,40 @@ class AirBrakes(ControllableGenericSurface):
             center_of_pressure=(0, 0, 0),
             name=name,
             controls=("deployment_level",),
+            control_defaults={"deployment_level": deployment_level},
+            control_limits={"deployment_level": (0, 1)},
+            clamp=clamp,
         )
 
-        self.deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
 
-    def _clamp_control(self, name, value):
-        """Clamp ``deployment_level`` to ``[0, 1]`` (or warn if ``clamp`` is
-        False), preserving the historical AirBrakes behavior."""
-        if name == "deployment_level" and (value < 0 or value > 1):
-            if self.clamp:
-                value = float(np.clip(value, 0, 1))
-            else:
-                warnings.warn(
-                    f"Deployment level of {self.name} is smaller than 0 or "
-                    + "larger than 1. Extrapolation for the drag coefficient "
-                    + "curve will be used.",
-                    UserWarning,
-                )
-        return value
-
     @property
     def deployment_level(self):
-        """Returns the deployment level of the air brakes."""
-        return self.control_state["deployment_level"]
+        """The deployment level the air brakes start every flight at, from 0
+        to 1. Setting it outside that range clamps it, or warns when ``clamp``
+        is ``False``. During a flight the deployment level is a channel of the
+        flight's control inputs, not this attribute."""
+        return self.control_defaults["deployment_level"]
 
     @deployment_level.setter
     def deployment_level(self, value):
-        self.set_control("deployment_level", value)
+        self.control_defaults["deployment_level"] = limited_value(
+            value,
+            self.control_limits["deployment_level"],
+            self.clamp,
+            f"{self.name}.deployment_level",
+        )
 
-    def _reset(self):
-        """Resets the air brakes to their initial state. This is ran at the
-        beginning of each simulation to ensure the air brakes are in the correct
-        state."""
-        self.deployment_level = self.initial_deployment_level
+    @property
+    def initial_deployment_level(self):
+        """The deployment level at the start of every flight. The same as
+        :attr:`deployment_level`."""
+        return self.deployment_level
+
+    @initial_deployment_level.setter
+    def initial_deployment_level(self, value):
+        self.deployment_level = value
 
     def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the aerodynamic surface.

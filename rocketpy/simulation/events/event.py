@@ -4,6 +4,7 @@ from copy import deepcopy
 from numbers import Real
 
 from ..._logging import logger
+from ...control.control_signal import check_writes
 from .commands import Commands
 from .exact_time_solvers import SOLVERS
 
@@ -364,7 +365,20 @@ class Event:
         # --- Callback Phase ---
         context = self._call_exact_time(context)
 
-        callback_log = self.callback(context)
+        # The callback may write the flight's control inputs. What it wrote is
+        # checked against the limits, and a change marks this event's commands:
+        # the trajectory changes from here on (see Commands)
+        flight = context.get("flight")
+        controls = getattr(flight, "control_signal", None)
+        if controls is None:
+            callback_log = self.callback(context)
+        else:
+            before = dict(controls)
+            callback_log = self.callback(context)
+            limits = flight._control_limits  # pylint: disable=protected-access
+            # An event that changes the dynamics already runs at its exact time
+            if check_writes(controls, before, limits) and not self.changes_dynamics:
+                self.commands.wrote_controls = True
 
         self.callback_log.append(callback_log)
         self.triggered_times.append(context.get("time"))

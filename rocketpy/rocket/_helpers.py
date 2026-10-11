@@ -214,7 +214,7 @@ def is_incidence_linear(rocket):
         """Change of a coefficient per radian between neighboring angles."""
         if not _varies_with(coefficient, ("alpha", "beta")[angle_index]):
             return np.zeros(intervals)
-        args = [0.0] * len(surface.independent_vars)
+        args = surface._reference_arguments()
         args[2] = mach
         values = []
         for angle in _PROBE_ANGLES:
@@ -257,7 +257,7 @@ def is_incidence_linear(rocket):
                         getattr(surface, moment), surface, angle_index, mach
                     )
                 else:
-                    args = [0.0] * len(surface.independent_vars)
+                    args = surface._reference_arguments()
                     args[2] = mach
                     forces = getattr(surface, force_slope)(*args)
                     moments = getattr(surface, moment_slope)(*args)
@@ -1122,7 +1122,7 @@ def _control_axes(rocket, controls):
     """
     owners = {}
     for surface, _ in rocket.aerodynamic_surfaces:
-        for control in getattr(surface, "control_variables", ()):
+        for control in getattr(surface, "controls", ()):
             owners.setdefault(control, []).append(surface)
 
     def slug(text):
@@ -1238,9 +1238,11 @@ def full_body_coefficients(  # pylint: disable=too-many-locals
         reynolds_at = fixed_reynolds
         if sweeps_reynolds:
             reynolds_at = reynolds[others.pop(0)]
+        # Outside a flight a surface is evaluated at its control defaults, so
+        # the sweep moves those, and puts them back below
         for (_, targets, values), i in zip(control_axes, others):
             for surface, control in targets:
-                surface.set_control(control, values[i])
+                surface.control_defaults[control] = float(values[i])
         return machs[mach_index], reynolds_at
 
     # Make sure each surface's center-of-pressure offset is current.
@@ -1286,9 +1288,10 @@ def full_body_coefficients(  # pylint: disable=too-many-locals
                 )
         return packaged
 
-    # The sweep moves the controls of the rocket's surfaces; put them back
+    # The sweep moves the control defaults of the rocket's surfaces; put them
+    # back
     moved = {
-        (surface, control): surface.control_state[control]
+        (surface, control): surface.control_defaults[control]
         for _, targets, _ in control_axes
         for surface, control in targets
     }
@@ -1311,7 +1314,7 @@ def full_body_coefficients(  # pylint: disable=too-many-locals
             result[phase] = package(values, rate_values)
     finally:
         for (surface, control), value in moved.items():
-            surface.control_state[control] = value
+            surface.control_defaults[control] = value
     return result
 
 

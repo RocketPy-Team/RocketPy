@@ -326,6 +326,7 @@ def apply_exact_time_result(flight, event_results):
         # Recorded now, with the rocket as it was when the step was flown: an
         # event later in this step may change it before the step is recorded.
         flight._post_process_row(-2)  # pylint: disable=protected-access
+        solution._set_controls(-2, dict(flight.control_signal))
 
 
 def bind_new_dynamics(flight, event_results):

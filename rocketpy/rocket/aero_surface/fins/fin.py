@@ -453,8 +453,9 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
             Tuple containing angular velocities around the x, y, z axes.
         *args
             Extra positional arguments accepted for signature compatibility with
-            the generic surface (e.g. ``density``, ``dynamic_viscosity``,
-            ``z``). Unused by the fin's Barrowman model.
+            the generic surface (``density``, ``dynamic_viscosity``, ``z`` and
+            ``controls``). Unused by the fin's Barrowman model, whose only
+            control is ``active``.
 
         Returns
         -------

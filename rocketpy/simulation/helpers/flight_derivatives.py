@@ -13,6 +13,7 @@ def _compute_drag_area(
     density,
     dynamic_viscosity,
     omega,
+    u,
 ):
     """Drag coefficient times reference area of the rocket, air brakes included,
     in squared meters.
@@ -48,6 +49,9 @@ def _compute_drag_area(
         Body angular rates ``(omega1, omega2, omega3)``, in rad/s. They are
         passed to the coefficients as the non-dimensional reduced rates
         ``omega * L_ref / (2 * V)``.
+    u : dict
+        The flight's control inputs, channel name to value, which hold each
+        air brake's deployment level.
 
     Returns
     -------
@@ -80,9 +84,13 @@ def _compute_drag_area(
         omega[2] * reduced,
     )
 
-    # Air brakes are drag-only and may override the rocket drag.
+    # Air brakes are drag-only and may override the rocket drag
+    channels = flight._control_channels
     for air_brakes in rocket.air_brakes:
-        if air_brakes.deployment_level > 0:
+        # Air brakes added after this flight began have no channel of their own
+        names = channels.get(air_brakes)
+        deployment_level = u[names[0]] if names else air_brakes.deployment_level
+        if deployment_level > 0:
             reduced = air_brakes.reference_length * reduced_per_length
             air_brakes_area = air_brakes.reference_area * air_brakes.cA.get_value_opt(
                 *air_brakes._coefficient_arguments(
@@ -93,6 +101,7 @@ def _compute_drag_area(
                     omega[0] * reduced,
                     omega[1] * reduced,
                     omega[2] * reduced,
+                    controls=(deployment_level,),
                 )
             )
             if air_brakes.override_rocket_drag:
@@ -102,7 +111,7 @@ def _compute_drag_area(
     return drag_area
 
 
-def udot_rail1(flight, t, u, post_processing=False):
+def udot_rail1(flight, t, x, u, post_processing=False):
     """Compute the 1-DOF rail-flight state derivative.
 
     The rail model advances translation along the launch rail while keeping the
@@ -114,8 +123,12 @@ def udot_rail1(flight, t, u, post_processing=False):
         Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
-    u : list
+    x : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    u : dict
+        The flight's control inputs, channel name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
@@ -128,7 +141,7 @@ def udot_rail1(flight, t, u, post_processing=False):
         post-process variables as a variable name to value map.
     """
     # Retrieve integration data
-    _, _, z, vx, vy, vz, e0, e1, e2, e3, _, _, _ = u
+    _, _, z, vx, vy, vz, e0, e1, e2, e3, _, _, _ = x
 
     # Retrieve important quantities
     # Mass
@@ -158,6 +171,7 @@ def udot_rail1(flight, t, u, post_processing=False):
         rho,
         dynamic_viscosity,
         (0, 0, 0),
+        u,
     )
 
     # Calculate Forces
@@ -181,14 +195,14 @@ def udot_rail1(flight, t, u, post_processing=False):
         ax, ay, az = 0, 0, 0
 
     if post_processing:
-        values = list(flight.u_dot_generalized.post_process_at(t, u))
+        values = list(flight.u_dot_generalized.post_process_at(t, x, u))
         values[:6] = [ax, ay, az, 0.0, 0.0, 0.0]
         return values
 
     return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
 
-def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
+def udot_rail2(flight, t, x, u, post_processing=False):  # pragma: no cover
     """Compute the rail-flight derivative through the generalized solver.
 
     This function is a placeholder for a dedicated 3DOF rail model. The current
@@ -200,8 +214,12 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
         Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
-    u : list
+    x : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    u : dict
+        The flight's control inputs, channel name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
@@ -213,11 +231,11 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
     """
     # Hey! We will finish this function later, now we just can use u_dot
     if post_processing:
-        return flight.u_dot_generalized.post_process_at(t, u)
-    return flight.u_dot_generalized(t, u)
+        return flight.u_dot_generalized.post_process_at(t, x, u)
+    return flight.u_dot_generalized.derivative_at(t, x, u)
 
 
-def u_dot(flight, t, u, post_processing=False):
+def u_dot(flight, t, x, u, post_processing=False):
     """Compute the simplified 6DOF free-flight derivative.
 
     This solver is used for powered ascent and coasting descent without parachutes.
@@ -230,8 +248,12 @@ def u_dot(flight, t, u, post_processing=False):
         Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
-    u : list
+    x : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    u : dict
+        The flight's control inputs, channel name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
@@ -245,7 +267,7 @@ def u_dot(flight, t, u, post_processing=False):
     """
 
     # Retrieve integration data
-    _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+    _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = x
     # Determine lift force and moment
     R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
     # Thrust correction parameters
@@ -344,6 +366,7 @@ def u_dot(flight, t, u, post_processing=False):
         rho,
         dynamic_viscosity,
         (omega1, omega2, omega3),
+        u,
     )
     # The drag curve is the axial force coefficient, so the drag follows the
     # air moving along the rocket's axis: zero sideways, reversed tail first
@@ -358,6 +381,7 @@ def u_dot(flight, t, u, post_processing=False):
     # Calculate lift and moment for each component of the rocket
     velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
     w = Vector([omega1, omega2, omega3])
+    channels = flight._control_channels
     for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
         if not aero_surface.is_active(t, flight):
             continue
@@ -385,6 +409,7 @@ def u_dot(flight, t, u, post_processing=False):
             flight.env.density,
             flight.env.dynamic_viscosity,
             comp_z,
+            [u[name] for name in channels.get(aero_surface, ())],
         )
         R1 += X
         R2 += Y
@@ -529,7 +554,7 @@ def u_dot(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_generalized_3dof(flight, t, u, post_processing=False):
+def u_dot_generalized_3dof(flight, t, x, u, post_processing=False):
     """Compute the 3DOF free-flight derivative with weathercocking.
 
     The model advances translational motion with variable mass while using a kinematic
@@ -542,8 +567,12 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
         Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
-    u : list
+    x : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    u : dict
+        The flight's control inputs, channel name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
@@ -556,7 +585,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
         post-process variables in its declared order.
     """
     # Unpack state
-    _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+    _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = x
 
     # Define vectors
     v = Vector([vx, vy, vz])
@@ -593,12 +622,14 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
         rho,
         dynamic_viscosity,
         (omega1, omega2, omega3),
+        u,
     )
     R1, R2, R3 = stream_velocity_body * (0.5 * rho * free_stream_speed * drag_area)
 
     # Velocity in body frame
     vb_body = Kt @ v
 
+    channels = flight._control_channels
     for surface, _ in flight.rocket.aerodynamic_surfaces:
         if not surface.is_active(t, flight):
             continue
@@ -624,6 +655,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
             flight.env.density,
             flight.env.dynamic_viscosity,
             comp_z,
+            [u[name] for name in channels.get(surface, ())],
         )
         R1 += fx
         R2 += fy
@@ -738,7 +770,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_generalized(flight, t, u, post_processing=False):
+def u_dot_generalized(flight, t, x, u, post_processing=False):
     """Compute the full 6DOF generalized flight derivative.
 
     This is the highest-fidelity rigid-body flight solver in this module. It accounts
@@ -751,8 +783,12 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
-    u : list
+    x : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    u : dict
+        The flight's control inputs, channel name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
@@ -765,7 +801,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         post-process variables in its declared order.
     """
     # Retrieve integration data
-    _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+    _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = x
 
     # Create necessary vectors
     # r = Vector([x, y, z])  # CDM position vector
@@ -840,6 +876,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         rho,
         dynamic_viscosity,
         (omega1, omega2, omega3),
+        u,
     )
     # The drag curve is the axial force coefficient, so the drag follows the
     # air moving along the rocket's axis: zero sideways, reversed tail first
@@ -847,6 +884,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     # Get rocket velocity in body frame
     velocity_in_body_frame = Kt @ v
     # Calculate lift and moment for each component of the rocket
+    channels = flight._control_channels
     for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
         if not aero_surface.is_active(t, flight):
             continue
@@ -874,6 +912,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
             flight.env.density,
             flight.env.dynamic_viscosity,
             comp_z,
+            [u[name] for name in channels.get(aero_surface, ())],
         )
         R1 += X
         R2 += Y
@@ -948,7 +987,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
+def u_dot_parachute(flight, t, x, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
     """Compute the parachute descent derivative.
 
     Only position and velocity actually move under a parachute. The attitude and
@@ -962,10 +1001,12 @@ def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):  # pylin
         Flight object containing the environment and the rocket.
     t : float
         Time in seconds.
-    u : list
+    x : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``. Only
         the position and velocity are read; the attitude and angular rates come
         along unchanged.
+    u : dict
+        The flight's control inputs. A parachute descent reads none of them.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
@@ -982,7 +1023,7 @@ def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):  # pylin
         order.
     """
     # Get relevant state data
-    z, vx, vy, vz = u[2:6]
+    z, vx, vy, vz = x[2:6]
 
     # Get atmospheric data
     rho = flight.env.density.get_value_opt(z)

@@ -52,8 +52,14 @@ Building blocks
     The equations of motion of a phase and the list of states they integrate.
     Every phase can report the full 13-state canonical vector, so events and
     outputs never need to know which states a phase actually integrates.
-    Bound to a flight (``dynamics.bind(flight)``) it is callable as ``(t, u)``,
-    which is what the SciPy solver expects.
+    Bound to a flight (``dynamics.bind(flight)``) it is callable as ``(t, x)``,
+    which is what the SciPy solver expects; the equations themselves take
+    ``(flight, t, x, u)``, where ``x`` is the state and ``u`` the flight's
+    control inputs, a dictionary from channel name to value. ``u`` is built
+    from the rocket's actuators at the start of every flight
+    (``flight.control_signal``), written by events through
+    ``context.controls``, and a copy is stored with every row, so a row worked
+    out again after the flight reads its own controls.
 
 ``_TimeNodes`` / ``_TimeNode``
     The node schedule of one phase. A node is a time and the list of events
