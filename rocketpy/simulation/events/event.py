@@ -4,7 +4,7 @@ from copy import deepcopy
 from numbers import Real
 
 from ..._logging import logger
-from ...control.control_signal import check_writes
+from ...control.control_signal import check_writes, history_function
 from .commands import Commands
 from .exact_time_solvers import SOLVERS
 
@@ -210,6 +210,8 @@ class Event:
         self.verbose_log = []
         self.callback_log = []
         self.triggered_times = []
+        # Named numbers recorded by the callback: name -> [(time, value), ...]
+        self._records = {}
         self._trigger_checked = False
         self._forget_previous_check()
 
@@ -265,6 +267,7 @@ class Event:
         self.enabled = self._initial_enabled
         self.verbose_log.clear()
         self.callback_log.clear()
+        self._records = {}
         self.triggered_times.clear()
         self._trigger_checked = False
         self._forget_previous_check()
@@ -289,6 +292,36 @@ class Event:
             f"time_overshootable={self.time_overshootable}, "
             f"trigger_only_once={self.trigger_only_once}, "
         )
+
+    @property
+    def records(self):
+        """What this event recorded with ``context.record``, by name.
+
+        Each record is a :class:`rocketpy.Function` of time that holds its
+        value until the next one was recorded. Records exist only at the times
+        the event ran, and start empty at every flight.
+
+        Returns
+        -------
+        dict
+            Record name to :class:`rocketpy.Function`.
+        """
+        return {
+            name: history_function(points, name)
+            for name, points in self._records.items()
+        }
+
+    def _record(self, time, values):
+        """Store named numbers at ``time``."""
+        for name, value in values.items():
+            self._records.setdefault(name, []).append((time, float(value)))
+
+    def _drop_records_after(self, time):
+        """Forget what was recorded after ``time``, a moment the flight went
+        back to."""
+        for points in self._records.values():
+            while points and points[-1][0] > time:
+                points.pop()
 
     def _forget_previous_check(self):
         """Drop what this event saw the last time it was checked.
@@ -376,8 +409,10 @@ class Event:
             before = dict(controls)
             callback_log = self.callback(context)
             limits = flight._control_limits  # pylint: disable=protected-access
+            changes = check_writes(controls, before, limits)
+            self.commands.control_changes.update(changes)
             # An event that changes the dynamics already runs at its exact time
-            if check_writes(controls, before, limits) and not self.changes_dynamics:
+            if changes and not self.changes_dynamics:
                 self.commands.wrote_controls = True
 
         self.callback_log.append(callback_log)

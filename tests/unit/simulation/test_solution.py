@@ -1224,3 +1224,34 @@ def test_a_replayed_row_is_given_the_controls_stored_with_it():
     # a rolled-back row loses its controls until they are stored again
     solution._replace_last(descent_row(1.5))
     assert solution._controls[-1] is None
+
+
+def test_a_control_channel_reads_like_a_state():
+    solution = build_mixed_solution()
+    for index, deflection in enumerate([0.0, 0.0, 0.1, 0.1, 0.2, 0.2]):
+        solution._set_controls(index, {"canards.deflection": deflection})
+
+    assert solution.control_names == ("canards.deflection",)
+    history = solution["canards.deflection"]
+    assert history.shape == (len(solution), 2)
+    assert history[:, 0].tolist() == solution.time.tolist()
+    assert history[:, 1].tolist() == [0.0, 0.0, 0.1, 0.1, 0.2, 0.2]
+
+
+def test_a_solution_without_controls_has_no_channels():
+    solution = build_mixed_solution()
+    assert solution.control_names == ()
+    with pytest.raises(KeyError):
+        _ = solution["canards.deflection"]
+    assert "controls" not in solution.to_dict()
+
+
+def test_controls_round_trip_through_dict():
+    solution = build_mixed_solution()
+    for index in range(len(solution)):
+        solution._set_controls(index, {"a.x": float(index), "b.y": -1.0})
+
+    restored = Solution.from_dict(solution.to_dict())
+
+    assert restored._controls == solution._controls
+    assert restored["a.x"].tolist() == solution["a.x"].tolist()

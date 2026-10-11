@@ -9,7 +9,7 @@ from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
 from .._logging import enable_logging, logger
-from ..control.control_signal import initial_controls
+from ..control.control_signal import control_key, history_function, initial_controls
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix
 from ..motors.solid_motor import SolidMotor
@@ -1143,6 +1143,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
     def __execute_solver_step(self, phase):
         """Execute one solver step and update simulation history."""
+        # The controls in force over the step, so a rollback inside it can
+        # undo what was written after the time it goes back to
+        self._step_controls = dict(self.control_signal)
         # Execute solver step, log solution and function evaluations
         phase.solver.step()
         self.solution._append([phase.solver.t, *phase.solver.y])
@@ -1463,6 +1466,50 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         heading_rad = self.heading * np.pi / 180
 
         return -wind_u * np.cos(heading_rad) + wind_v * np.sin(heading_rad)
+
+    @property
+    def control_history(self):
+        """The control inputs over the flight, by channel name.
+
+        Each channel is a :class:`rocketpy.Function` of time that holds its
+        value until it was written again, read from the values stored with the
+        rows. ``flight.control_history["air_brakes.deployment_level"](5.0)`` is
+        the deployment level in force at 5 s. Empty for a flight without
+        controls.
+
+        Returns
+        -------
+        dict
+            Channel name to :class:`rocketpy.Function`.
+        """
+        solution = self.solution
+        return {
+            name: history_function(solution.series(name), name)
+            for name in solution.control_names
+        }
+
+    @property
+    def records(self):
+        """What the events of the flight recorded with ``context.record``.
+
+        Named ``<event>.<record>``, the event's name in snake_case, such as
+        ``"roll_damper.error"``. Each is a :class:`rocketpy.Function` of time
+        that holds its value until the next record.
+
+        Returns
+        -------
+        dict
+            Record name to :class:`rocketpy.Function`.
+        """
+        loaded = getattr(self, "_loaded_records", None)
+        if loaded is not None:
+            return loaded
+        records = {}
+        for event in getattr(self, "events", ()):
+            prefix = control_key(event.name)
+            for name, function in event.records.items():
+                records[f"{prefix}.{name}"] = function
+        return records
 
     @cached_property
     @deprecated(
@@ -3077,6 +3124,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "M2": self.M2,
             "M3": self.M3,
             "net_thrust": self.net_thrust,
+            "records": self.records,
         }
 
         if kwargs.get("include_outputs", False):

@@ -9,7 +9,7 @@ from matplotlib.ticker import MaxNLocator, MultipleLocator
 from .plot_helpers import show_or_save_plot
 
 
-class _FlightPlots:
+class _FlightPlots:  # pylint: disable=too-many-public-methods
     """Class that holds plot methods for Flight class.
 
     Attributes
@@ -654,6 +654,80 @@ class _FlightPlots:
         ax4.grid(True)
 
         plt.subplots_adjust(hspace=0.5)
+        show_or_save_plot(filename)
+
+    def controls(self, *, filename=None):
+        """Plot the control inputs over the flight: one plot per part of the
+        rocket that has controls, one line per control. Each value is drawn
+        held until it was written again.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        solution = self.flight.solution
+        groups = {}
+        for name in solution.control_names:
+            groups.setdefault(name.split(".")[0], []).append(name)
+        if not groups:
+            print("This flight has no controls.")
+            return
+        _, axes = plt.subplots(
+            len(groups), 1, figsize=(9, 3 * len(groups)), squeeze=False
+        )
+        for ax, (key, names) in zip(axes[:, 0], groups.items()):
+            for name in names:
+                history = solution[name]
+                ax.step(
+                    history[:, 0],
+                    history[:, 1],
+                    where="post",
+                    label=name.split(".", 1)[1],
+                )
+            ax.set_title(key)
+            ax.set_xlabel("Time (s)")
+            ax.legend()
+            ax.grid(True)
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def records(self, *, filename=None):
+        """Plot what the events of the flight recorded with
+        ``context.record``, one plot per record, as the recorded points.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        records = self.flight.records
+        if not records:
+            print("No event of this flight recorded anything.")
+            return
+        _, axes = plt.subplots(
+            len(records), 1, figsize=(9, 3 * len(records)), squeeze=False
+        )
+        for ax, (name, record) in zip(axes[:, 0], records.items()):
+            ax.step(record.x_array, record.y_array, where="post", marker=".")
+            ax.set_title(name)
+            ax.set_xlabel("Time (s)")
+            ax.grid(True)
+        plt.tight_layout()
         show_or_save_plot(filename)
 
     def flight_path_angle_data(self, *, filename=None):
@@ -1953,3 +2027,11 @@ class _FlightPlots:
         if self.flight.sensors:
             print("\n\nSensor Data Plots\n")
             self.sensor_data()
+
+        if self.flight.solution.control_names:
+            print("\n\nControl Inputs Plots\n")
+            self.controls()
+
+        if self.flight.records:
+            print("\n\nRecords Plots\n")
+            self.records()

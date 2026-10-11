@@ -272,6 +272,38 @@ def initial_controls(actuators):
     return controls, channels, limits
 
 
+def history_function(points, name):
+    """Return a sampled history as a Function of time that holds each value
+    until the next sample.
+
+    Parameters
+    ----------
+    points : sequence of (float, float)
+        ``(time, value)`` pairs, in time order. A later pair at the same time
+        replaces an earlier one, since it is what held from that time on.
+    name : str
+        Name of the value, for the Function's output.
+
+    Returns
+    -------
+    Function
+    """
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,
+    )
+
+    held = {}
+    for time, value in points:
+        held[float(time)] = float(value)
+    return Function(
+        [[time, value] for time, value in held.items()],
+        inputs="Time (s)",
+        outputs=name,
+        interpolation="previous",
+        extrapolation="constant",
+    )
+
+
 def check_writes(controls, before, limits):
     """Check the writes an event made to the control inputs.
 
@@ -289,8 +321,9 @@ def check_writes(controls, before, limits):
 
     Returns
     -------
-    bool
-        Whether any value changed.
+    dict
+        The channels whose value changed, with their new value. Empty when
+        nothing changed.
 
     Raises
     ------
@@ -308,10 +341,9 @@ def check_writes(controls, before, limits):
                 f"{', '.join(before) or 'none'}."
             )
         raise KeyError("Control channels cannot be removed during a flight.")
-    changed = False
+    changed = {}
     for name, value in controls.items():
         if value != before[name]:
             bounds, clamp = limits[name]
-            controls[name] = limited_value(value, bounds, clamp, name)
-            changed = True
+            controls[name] = changed[name] = limited_value(value, bounds, clamp, name)
     return changed

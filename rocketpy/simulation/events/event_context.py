@@ -134,6 +134,25 @@ class EventContext(dict):
         self["event"] = event
         self["sampling_rate"] = event.sampling_rate
 
+    def record(self, **values):
+        """Record named numbers at the current time, to read after the flight.
+
+        ::
+
+            context.record(estimated_apogee=3012.0, error=0.4)
+
+        After the flight, ``event.records["estimated_apogee"]`` is a
+        :class:`rocketpy.Function` of time, and ``flight.records`` holds the
+        records of every event. Unlike ``context.event.memory``, which keeps
+        what the next call needs, a record keeps every value with its time.
+
+        Parameters
+        ----------
+        **values : float
+            The numbers to record, by name.
+        """
+        self["event"]._record(self["time"], values)  # pylint: disable=protected-access
+
     def own(self, **values):
         """Add values that belong to the event being evaluated alone.
 

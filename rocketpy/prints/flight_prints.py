@@ -703,6 +703,29 @@ class _FlightPrints:
         roll_rate = abs(flight.w3.get_value_opt(burn_out_time)) / two_pi
         print(f"Roll Rate at Burnout: {roll_rate:.2f} Hz")
 
+    def controls(self):
+        """Prints the smallest, largest and final value of each control input
+        over the flight.
+
+        Returns
+        -------
+        None
+        """
+        solution = self.flight.solution
+        names = solution.control_names
+        print("\nControl Inputs\n")
+        if not names:
+            print("This flight has no controls.")
+            return
+        width = max(len(name) for name in names)
+        print(f"{'Channel':{width}s}  {'Min':>10s}  {'Max':>10s}  {'Final':>10s}")
+        for name in names:
+            values = solution[name][:, 1]
+            print(
+                f"{name:{width}s}  {min(values):10.4g}  "
+                f"{max(values):10.4g}  {values[-1]:10.4g}"
+            )
+
     def all(self):
         """Prints out all data available about the Flight. This method invokes
         all other print methods in the class.
@@ -766,6 +789,10 @@ class _FlightPrints:
 
         if self.flight.custom_events:
             self.custom_events()
+            print()
+
+        if self.flight.solution.control_names:
+            self.controls()
             print()
 
         self.numerical_integration_settings()

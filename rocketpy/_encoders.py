@@ -221,6 +221,8 @@ def set_minimal_flight_attributes(flight, obj):
                 )
 
     flight.t_initial = flight.initial_solution[0]
+    # The events are not saved, so what they recorded is kept with the flight
+    flight._loaded_records = obj.get("records", {})
 
     # Integration settings serialized by to_dict. Defaults cover older .rpy
     # files saved before these fields existed.

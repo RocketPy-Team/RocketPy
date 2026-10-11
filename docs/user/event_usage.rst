@@ -250,8 +250,14 @@ Both are ``None`` in an event that is not a controller.
 **Keeping your own data:**
 
 - The event's own dictionary is ``context.event.memory``. It is kept from
-  one check to the next, so keep counters, thresholds and anything shared
-  between trigger and callback there.
+  one check to the next, so keep what the next call needs there: counters,
+  thresholds, a filter state, anything shared between trigger and callback. It
+  is restored to its starting values at every flight.
+- To see a value after the flight, record it: ``context.record(error=0.4)``
+  stores named numbers at the current time. After the flight,
+  ``event.records["error"]`` is a :class:`rocketpy.Function` of time, and
+  ``flight.records`` holds the records of every event, named
+  ``<event>.<record>``. ``flight.plots.records()`` plots them.
   Do not add values to the ``context`` passed to your function: it is shared by
   every event checked in the same solver step.
 
@@ -424,21 +430,25 @@ practical examples and demonstrate proper activation.
   flight.
 
   .. note::
-    ``memory`` is not logged: what the callback writes there is **not**
-    persisted to output logs or files.
+    ``memory`` holds what the next call needs, not a history: what the
+    callback writes there is **not** kept over time nor saved. To see a value
+    after the flight, record it with ``context.record`` instead.
+
+  Here the count is what the next call needs, so it lives in ``memory``. The
+  time of each call is only wanted afterwards, so it is recorded:
 
   .. jupyter-execute::
 
       def counting_callback(context):
           event = context.event
           event.memory["count"] += 1
-          event.memory["last_time"] = context.time
+          context.record(count=event.memory["count"])
           return None
 
       counter_event = Event(
           callback=counting_callback,
           name="Counting event",
-          memory={"count": 0, "last_time": None},
+          memory={"count": 0},
       )
       
       counter_flight = Flight(
@@ -459,6 +469,8 @@ practical examples and demonstrate proper activation.
           f"{len(counter_event.triggered_times)} time(s)\n"
       )
       print(f"Final event memory: {counter_event.memory}")
+      count = counter_event.records["count"]
+      print(f"Calls recorded from {count.x_array[0]:.2f} s to {count.x_array[-1]:.2f} s")
 
 **disable_on** (optional)
   Automatically disable the event based on a condition. Can be:

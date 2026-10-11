@@ -15,7 +15,9 @@ from rocketpy.control.control_signal import (
     initial_controls,
 )
 from rocketpy.simulation.events import Event
+from rocketpy.simulation.events.commands import Commands
 from rocketpy.simulation.events.event_context import EventContext
+from rocketpy.simulation.events.event_execution import restore_controls
 from rocketpy.simulation.helpers.flight_derivatives import u_dot_generalized
 
 
@@ -162,7 +164,10 @@ def test_a_write_outside_the_limits_is_clamped_or_warned():
 
     controls["canards.deflection"] = 0.5
     controls["gimbal.yaw"] = -3.0  # no limits
-    assert check_writes(controls, before, limits) is True
+    assert check_writes(controls, before, limits) == {
+        "canards.deflection": 0.2,
+        "gimbal.yaw": -3.0,
+    }
     assert controls["canards.deflection"] == 0.2
     assert controls["gimbal.yaw"] == -3.0
 
@@ -177,7 +182,7 @@ def test_writing_the_same_value_changes_nothing():
     controls, limits = _controls(_canard())
     before = dict(controls)
     controls["canards.deflection"] = 0.0
-    assert check_writes(controls, before, limits) is False
+    assert check_writes(controls, before, limits) == {}
 
 
 def test_a_misspelled_channel_is_refused_and_undone():
@@ -333,3 +338,100 @@ def test_the_air_brakes_drag_follows_their_channel(
     deployed = _coasting_forces(rocket, example_plain_env, controls)[2]
     assert deployed < retracted  # more drag, toward the tail
     assert rocket.air_brakes[0].deployment_level == 0
+
+
+# ---------------------------------------------------------------------------
+# Rollbacks and records
+# ---------------------------------------------------------------------------
+
+
+def _flight_in_a_step(controls, events=(), t=2.0):
+    """A stand-in flight at the end of a solver step that began with
+    ``controls``, holding only what a rollback reads."""
+    return SimpleNamespace(
+        t=t,
+        control_signal=dict(controls),
+        _step_controls=dict(controls),
+        events=list(events),
+    )
+
+
+def test_a_rollback_undoes_writes_made_after_the_time_it_goes_back_to():
+    flight = _flight_in_a_step({"canards.deflection": 0.0})
+    flight.control_signal["canards.deflection"] = 0.1  # written at the step end
+
+    restore_controls(flight, 1.5)
+
+    assert flight.control_signal == {"canards.deflection": 0.0}
+
+
+def test_a_rollback_keeps_the_writes_of_the_event_that_asks_for_it():
+    """The event wrote at the time the flight goes back to, so its writes
+    stand."""
+    flight = _flight_in_a_step({"canards.deflection": 0.0, "tab.trim": 0.0})
+    flight.control_signal.update({"canards.deflection": 0.1, "tab.trim": 0.3})
+    commands = Commands()
+    commands.control_changes = {"tab.trim": 0.3}
+
+    restore_controls(flight, 1.5, commands)
+
+    assert flight.control_signal == {"canards.deflection": 0.0, "tab.trim": 0.3}
+
+
+def test_going_back_to_the_current_time_cuts_nothing():
+    flight = _flight_in_a_step({"canards.deflection": 0.0})
+    flight.control_signal["canards.deflection"] = 0.1
+
+    restore_controls(flight, flight.t)
+
+    assert flight.control_signal == {"canards.deflection": 0.1}
+
+
+def test_the_controls_object_is_kept_through_a_rollback():
+    """``context.controls`` is the same dict before and after."""
+    flight = _flight_in_a_step({"canards.deflection": 0.0})
+    controls = flight.control_signal
+    controls["canards.deflection"] = 0.1
+    restore_controls(flight, 1.0)
+    assert flight.control_signal is controls
+
+
+def test_an_event_records_named_values_with_their_time():
+    def callback(context):
+        context.record(error=context.time * 2, gain=1.0)
+
+    event = Event(callback=callback, name="Recorder")
+    for time in (0.0, 0.5, 1.0):
+        event(EventContext(time=time), callback_only=True)
+
+    error = event.records["error"]
+    assert list(error.x_array) == [0.0, 0.5, 1.0]
+    assert list(error.y_array) == [0.0, 1.0, 2.0]
+    assert error(0.7) == 1.0  # held until the next record
+    assert set(event.records) == {"error", "gain"}
+
+    event.reset()
+    assert event.records == {}
+
+
+def test_a_rollback_drops_the_records_made_after_its_time():
+    event = Event(callback=lambda context: context.record(x=1.0), name="Recorder")
+    for time in (0.5, 1.0, 1.8):
+        event(EventContext(time=time), callback_only=True)
+    flight = _flight_in_a_step({}, events=[event])
+
+    restore_controls(flight, 1.5)
+
+    assert list(event.records["x"].x_array) == [0.5, 1.0]
+
+
+def test_an_event_keeps_what_its_callback_changed():
+    controls, limits = _controls(_canard())
+
+    def deploy(context):
+        context.controls["canards.deflection"] = 0.1
+
+    event = _run_callback(deploy, controls, limits)
+    assert event.commands.control_changes == {"canards.deflection": 0.1}
+    event.commands.reset()
+    assert event.commands.control_changes == {}

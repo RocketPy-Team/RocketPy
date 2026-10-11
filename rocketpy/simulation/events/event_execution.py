@@ -38,7 +38,7 @@ def process_overshootable_event(
         changed = event.commands.changes_trajectory
         if changed:
             apply_rollback_command(
-                flight, event_kwargs["time"], event_kwargs["raw_state"]
+                flight, event_kwargs["time"], event_kwargs["raw_state"], event.commands
             )
         apply_event_commands(
             flight=flight,
@@ -56,7 +56,9 @@ def process_overshootable_event(
         return rolled_back or changed, False
 
     if not rolled_back:
-        apply_rollback_command(flight, event_kwargs["time"], event_kwargs["raw_state"])
+        apply_rollback_command(
+            flight, event_kwargs["time"], event_kwargs["raw_state"], event.commands
+        )
         return True, True
 
     return rolled_back, False
@@ -176,7 +178,7 @@ def apply_surface_switches(flight, event_results, time):
         flight._surface_switches.setdefault(surface, []).append((time, active))
 
 
-def apply_rollback_command(flight, time, state):
+def apply_rollback_command(flight, time, state, event_results=None):
     """Apply a rollback request returned by an event trigger.
 
     Parameters
@@ -187,15 +189,48 @@ def apply_rollback_command(flight, time, state):
         Interpolated simulation time to restore.
     state : array_like
         Interpolated flight state vector to restore.
+    event_results : Commands, optional
+        The commands of the event that asked for the rollback. The controls
+        its callback wrote are kept.
 
     Returns
     -------
     None
         This function updates flight state/history in place.
     """
+    restore_controls(flight, time, event_results)
     flight.t = time
     flight.y_sol = state
     flight.solution._replace_last([time, *state])
+
+
+def restore_controls(flight, time, event_results=None):
+    """Undo what happened to the controls after ``time`` in the step being cut.
+
+    Nothing is done when ``time`` is not before the flight's current time,
+    since nothing is cut then. Otherwise the control inputs go back to what
+    they were when the step began, then the writes of the event that cuts the
+    step, which happened at ``time``, are applied again. Records made after
+    ``time`` are dropped.
+
+    Parameters
+    ----------
+    flight : Flight
+        Flight instance being updated.
+    time : float
+        The time the flight goes back to, in seconds.
+    event_results : Commands, optional
+        The commands of the event that cuts the step.
+    """
+    step_controls = getattr(flight, "_step_controls", None)
+    if step_controls is None or not time < flight.t:
+        return
+    controls = flight.control_signal
+    controls.update(step_controls)
+    if event_results is not None:
+        controls.update(event_results.control_changes)
+    for event in flight.events:
+        event._drop_records_after(time)  # pylint: disable=protected-access
 
 
 def apply_disable_commands(_, event_results, node_index, event, phase, time):
@@ -314,6 +349,7 @@ def apply_exact_time_result(flight, event_results):
     solution = flight.solution
     previous_time = solution.raw_row(-2)[0] if len(solution) > 1 else None
     if event_results.changes_trajectory:
+        restore_controls(flight, time, event_results)
         if time == previous_time:
             # The event happened right where the step began, which is stored.
             solution._drop_last()
@@ -404,7 +440,9 @@ def apply_new_phase_or_dynamics(
     )
 
     # Rollback solution to the trigger time
-    apply_rollback_command(flight, when_time, flight.solution.raw_row(-1)[1:])
+    apply_rollback_command(
+        flight, when_time, flight.solution.raw_row(-1)[1:], event_results
+    )
 
     if lag == 0:
         # Prepare to leave loops and start new flight phase

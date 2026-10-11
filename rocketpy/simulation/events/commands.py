@@ -25,6 +25,9 @@ class Commands:
         # Set when the event's callback changes a value of the flight's
         # control inputs, through ``context.controls``
         self.wrote_controls = False
+        # The control channels the event's callback changed, with their new
+        # values. A rollback the event causes keeps them.
+        self.control_changes = {}
 
     def disable(self):
         self._disabled = True

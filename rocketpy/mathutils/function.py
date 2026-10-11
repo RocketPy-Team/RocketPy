@@ -7,7 +7,7 @@ carefully as it may impact all the rest of the project.
 
 import operator
 import warnings
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
@@ -37,6 +37,7 @@ INTERPOLATION_TYPES = {
     "spline": 3,
     "shepard": 4,
     "rbf": 5,
+    "previous": 6,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
 
@@ -99,8 +100,9 @@ class Function:  # pylint: disable=too-many-public-methods
             representation and graphing (axis names). Scalar is default.
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, linear, shepard and rbf are
+            For 1-D functions, linear, polynomial, akima, spline and previous
+            are supported. ``"previous"`` holds each value until the next
+            point, as a sampled signal does. For N-D functions, linear, shepard and rbf are
             supported. N-D data on a regular grid is interpolated on the
             grid, where linear, nearest, slinear, cubic, quintic and pchip
             are supported, unless shepard or rbf is asked for.
@@ -343,8 +345,9 @@ class Function:  # pylint: disable=too-many-public-methods
         ----------
         method : string, optional
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, linear, shepard and rbf are
+            For 1-D functions, linear, polynomial, akima, spline and previous
+            are supported. ``"previous"`` holds each value until the next
+            point, as a sampled signal does. For N-D functions, linear, shepard and rbf are
             supported. N-D data on a regular grid is interpolated on the
             grid, where linear, nearest, slinear, cubic, quintic and pchip
             are supported, unless shepard or rbf is asked for.
@@ -528,6 +531,13 @@ class Function:  # pylint: disable=too-many-public-methods
 
                 self._interpolation_func = rbf_interpolation
 
+            case 6:  # previous: hold the last value until the next point
+
+                def previous_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    return y_data[bisect_right(x_data, x) - 1]
+
+                self._interpolation_func = previous_interpolation
+
             case _:
                 raise ValueError(
                     f"Interpolation {interpolation} method not recognized."
@@ -636,6 +646,13 @@ class Function:  # pylint: disable=too-many-public-methods
                             x, x_min, x_max, x_data, y_data, coeffs
                         ):  # pylint: disable=unused-argument
                             return interpolator(x)
+
+                    case 6:  # previous: the edge value, as constant does
+
+                        def natural_extrapolation(  # pylint: disable=function-redefined
+                            x, x_min, x_max, x_data, y_data, coeffs
+                        ):  # pylint: disable=unused-argument
+                            return y_data[0] if x < x_min else y_data[-1]
 
                     case _:
                         raise ValueError(
@@ -888,8 +905,9 @@ class Function:  # pylint: disable=too-many-public-methods
             Number of samples to be taken from inside range. Default is 200.
         interpolation : string
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, linear, shepard and rbf are
+            For 1-D functions, linear, polynomial, akima, spline and previous
+            are supported. ``"previous"`` holds each value until the next
+            point, as a sampled signal does. For N-D functions, linear, shepard and rbf are
             supported. N-D data on a regular grid is interpolated on the
             grid, where linear, nearest, slinear, cubic, quintic and pchip
             are supported, unless shepard or rbf is asked for.
@@ -4003,7 +4021,8 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def __validate_interpolation(self, interpolation):
         if self.__dom_dim__ == 1:
-            # possible interpolation values: linear, polynomial, akima and spline
+            # possible interpolation values: linear, polynomial, akima, spline
+            # and previous
             if interpolation is None:
                 interpolation = "spline"
             elif interpolation.lower() not in [
@@ -4011,6 +4030,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 "linear",
                 "polynomial",
                 "akima",
+                "previous",
             ]:
                 warnings.warn(
                     "Interpolation method set to 'spline' because the "

@@ -331,7 +331,7 @@ class Solution:
         # The control inputs in force from each row's time on (a dictionary of
         # channel name to value), one entry per row, kept beside the rows the
         # same way. A row worked out again after the flight is given its own.
-        # ``None`` where nothing was stored. Not saved to file yet.
+        # ``None`` where nothing was stored. Saved with the rows.
         self._controls = [None] * len(self._rows)
         # Set by a flight that records its post-process values as it runs. Such
         # a flight changes the rocket mid-flight, so working the values out
@@ -1002,18 +1002,21 @@ class Solution:
     # -- Queries by name ---------------------------------------------------
 
     def series(self, name):
-        """Return the ``[t, value]`` history of one state over the flight.
+        """Return the ``[t, value]`` history of one state, or of one control
+        channel, over the flight.
 
         The history spans only the phases that define the state. A canonical
         state is defined in every phase (rebuilt or held where a phase does not
         integrate it), so its history covers the whole flight. A phase-specific
         state's history covers only the phases that integrate it, and a warning
-        names the phases left out.
+        names the phases left out. A control channel, such as
+        ``"air_brakes.deployment_level"``, gives the value in force from each
+        row's time on.
 
         Parameters
         ----------
         name : str
-            The state name (for example ``"vz"``).
+            The state name (for example ``"vz"``) or control channel name.
 
         Returns
         -------
@@ -1047,6 +1050,8 @@ class Solution:
             else:
                 parts.append(part)
         if not parts:
+            if name in self.control_names:
+                return self._control_series(name)
             raise KeyError(
                 f"State '{name}' is not defined in any flight phase of this solution."
             )
@@ -1060,6 +1065,28 @@ class Solution:
         result = parts[0] if len(parts) == 1 else np.concatenate(parts, axis=0)
         self._series_cache[name] = (self._version, result)
         return result
+
+    @property
+    def control_names(self):
+        """Names of the control channels stored with the rows, in order.
+
+        Returns
+        -------
+        tuple of str
+        """
+        for controls in self._controls:
+            if controls is not None:
+                return tuple(controls)
+        return ()
+
+    def _control_series(self, name):
+        """The ``(n, 2)`` time and value history of one control channel."""
+        times = self.time
+        values = [
+            np.nan if controls is None else controls[name]
+            for controls in self._controls
+        ]
+        return np.column_stack([times, values])
 
     def at(self, t, atol=1e-3):
         """Return the flight state at the stored time nearest ``t``.
@@ -1201,15 +1228,25 @@ class Solution:
         Returns
         -------
         dict
-            A format marker, the flight's rows, and one entry per phase as
-            produced by :meth:`_PhaseSolution.to_dict`. Pass it to
+            A format marker, the flight's rows, one entry per phase as
+            produced by :meth:`_PhaseSolution.to_dict` and, for a flight with
+            controls, the control values stored with each row. Pass it to
             :meth:`from_dict` to rebuild the solution.
         """
-        return {
+        data = {
             "format": "rocketpy/solution",
             "phases": [phase.to_dict() for phase in self.phases],
             "rows": self._rows,
         }
+        if any(controls for controls in self._controls):
+            # Channel names once, then one list of values per row
+            names = self.control_names
+            data["control_names"] = list(names)
+            data["controls"] = [
+                None if controls is None else [controls[name] for name in names]
+                for controls in self._controls
+            ]
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -1228,7 +1265,14 @@ class Solution:
         """
         phases = [_PhaseSolution.from_dict(entry) for entry in data.get("phases", [])]
         rows = [list(row) for row in data.get("rows", [])]
-        return cls(phases, rows)
+        solution = cls(phases, rows)
+        names = data.get("control_names")
+        if names:
+            solution._controls = [
+                None if values is None else dict(zip(names, values))
+                for values in data["controls"]
+            ]
+        return solution
 
     @classmethod
     def from_legacy_list(cls, rows):
