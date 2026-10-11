@@ -215,10 +215,7 @@ def _brake(context):
 
 def _glide_flight(rocket, environment, open_at):
     rocket.add_actuator(_Canopy())
-    # The controller samples at 4 Hz so it never runs at the same time as the
-    # opening event: two events that change the dynamics at the same sampling
-    # time lose the second one (a bug older than the controls)
-    rocket.add_controller(Controller(_brake, sampling_rate=4))
+    rocket.add_controller(Controller(_brake, sampling_rate=10))
     opening = Event(
         callback=_open_canopy,
         trigger=lambda context: context["time"] >= open_at,
@@ -227,9 +224,8 @@ def _glide_flight(rocket, environment, open_at):
         changes_dynamics=True,
         name="Open canopy",
     )
-    # No max_time: with one, a flight with an event that changes the
-    # dynamics stops at that event's first sample (a bug older than the
-    # controls)
+    # No max_time: with a short one and no max_time_step, the solver can step
+    # over the whole burn while the rocket waits on the pad
     return _fly(rocket, environment, custom_events=[opening], terminate_on_apogee=False)
 
 

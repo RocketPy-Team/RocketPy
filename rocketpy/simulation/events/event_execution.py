@@ -55,13 +55,14 @@ def process_overshootable_event(
         # from the crossing if the phase goes on (a new phase after a lag).
         return rolled_back or changed, False
 
+    # The flight goes back to this sampling time and the callback runs there,
+    # with the other events of the step. An earlier event at the same time may
+    # have rolled the flight back already; this one still runs.
     if not rolled_back:
         apply_rollback_command(
             flight, event_kwargs["time"], event_kwargs["raw_state"], event.commands
         )
-        return True, True
-
-    return rolled_back, False
+    return True, True
 
 
 def call_events(

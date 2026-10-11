@@ -1191,9 +1191,15 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         )
 
         # 4. If the flight was rolled back, or a command moved this phase's
-        # end, and the phase is still being flown, restart the solver from
-        # the flight's current state.
-        if (rolled_back or trajectory_changed) and phase.solver.status == "running":
+        # end, and the flight is now short of the end of this node, restart
+        # the solver from the flight's current state. The solver's own status
+        # cannot tell: a step that reached the node's end marks it finished
+        # even when a rollback then cuts that step short. A command that ends
+        # the phase or the flight here puts the node's end at the flight's
+        # time, so no restart follows.
+        if (rolled_back or trajectory_changed) and (
+            self.t < phase.time_nodes[node_index + 1].t
+        ):
             self.__restart_phase_solver(phase, node_index)
 
     def __process_overshootable_nodes(self, phase, phase_index, node_index):

@@ -744,3 +744,66 @@ def test_an_event_switches_a_surface_off_and_another_on_mid_flight(
     # from the switch on (az is more negative with the brake on)
     assert switched.az(fired - 0.5) == pytest.approx(plain.az(fired - 0.5), rel=1e-2)
     assert switched.az(fired + 0.5) < plain.az(fired + 0.5) - 1.0
+
+
+def _fly_calisto(rocket, environment, events, **options):
+    return Flight(
+        rocket=rocket,
+        environment=environment,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        custom_events=events,
+        **options,
+    )
+
+
+def test_an_event_that_changes_the_dynamics_flies_to_max_time(
+    calisto_robust, example_plain_env
+):
+    """A solver step that runs to max_time and is cut back to the event's
+    sampling time goes on from the cut to max_time.
+
+    On the pad the solver sees no motion until the thrust beats the weight, so
+    with max_time=8 and no max_time_step its first long step runs straight to
+    8 s and the event cuts it back to 0.1 s. That flight used to end at 0.1 s.
+    """
+    calls = []
+    event = Event(
+        callback=lambda context: calls.append(context["time"]),
+        sampling_rate=10,
+        changes_dynamics=True,
+        name="Changes the dynamics",
+    )
+    flight = _fly_calisto(calisto_robust, example_plain_env, [event], max_time=8)
+
+    assert flight.t_final == pytest.approx(8.0)
+    assert flight.solution.raw_row(-1)[0] == pytest.approx(8.0)
+    assert len(calls) == pytest.approx(80, abs=1)
+    assert flight.z(8.0) - example_plain_env.elevation > 1000
+
+
+@pytest.mark.parametrize("time_overshoot", [True, False])
+def test_events_that_change_the_dynamics_at_the_same_time_all_run(
+    calisto_robust, example_plain_env, time_overshoot
+):
+    calls = {"First": [], "Second": []}
+
+    def changes_the_dynamics(name):
+        return Event(
+            callback=lambda context: calls[name].append(context["time"]),
+            trigger=lambda context: context["time"] > 2.0,
+            sampling_rate=10,
+            changes_dynamics=True,
+            name=name,
+        )
+
+    _fly_calisto(
+        calisto_robust,
+        example_plain_env,
+        [changes_the_dynamics("First"), changes_the_dynamics("Second")],
+        time_overshoot=time_overshoot,
+        max_time=6,
+    )
+    assert len(calls["First"]) == pytest.approx(40, abs=1)
+    assert calls["Second"] == calls["First"]
