@@ -18,28 +18,25 @@ def controller_function():
     def controller_function(context):
         time = context.time
         sampling_rate = context.sampling_rate
-        air_brakes = context.controlled.air_brakes
+        controls = context.controls
         z = context.state.z
         vz = context.state.vz
         previous_state = context.previous_state
         previous_vz = previous_state.vz if previous_state is not None else vz
         if time < 3.9:
             return None
+        deployment_level = controls["air_brakes.deployment_level"]
         if z < 1500:
-            air_brakes.deployment_level = 0
+            controls["air_brakes.deployment_level"] = 0
         else:
-            new_deployment_level = (
-                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
-            )
-            if new_deployment_level > air_brakes.deployment_level + 0.2 / sampling_rate:
-                new_deployment_level = air_brakes.deployment_level + 0.2 / sampling_rate
-            elif (
-                new_deployment_level < air_brakes.deployment_level - 0.2 / sampling_rate
-            ):
-                new_deployment_level = air_brakes.deployment_level - 0.2 / sampling_rate
+            new_deployment_level = deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+            if new_deployment_level > deployment_level + 0.2 / sampling_rate:
+                new_deployment_level = deployment_level + 0.2 / sampling_rate
+            elif new_deployment_level < deployment_level - 0.2 / sampling_rate:
+                new_deployment_level = deployment_level - 0.2 / sampling_rate
             else:
-                new_deployment_level = air_brakes.deployment_level
-            air_brakes.deployment_level = new_deployment_level
+                new_deployment_level = deployment_level
+            controls["air_brakes.deployment_level"] = new_deployment_level
 
     return controller_function
 

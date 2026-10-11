@@ -235,7 +235,7 @@ def set_minimal_flight_attributes(flight, obj):
     # serialized separately. Mirror that derivation here so prints/plots that
     # iterate them work on flights loaded from .rpy files (which bypass
     # __init__).
-    flight._controllers = getattr(flight.rocket, "_controllers", [])[:]
+    flight.controllers = getattr(flight.rocket, "_controllers", [])[:]
     flight.sensors = flight.rocket.sensors.get_components()
     flight.sensors_by_name = flight.rocket.sensors_by_name
     # No simulation was run, so there is no recorded sensor data. Set an empty
@@ -307,8 +307,13 @@ def get_class_from_signature(signature):
 
 # Classes that no longer exist, with the class that loads what they saved.
 # ControllableGenericSurface was folded into GenericSurface, which takes the
-# same ``controls`` and keeps the same coefficients.
+# same ``controls`` and keeps the same coefficients. _Controller became the
+# public Controller, which loads the function, rate, memory and gates it saved.
 _REPLACED_CLASSES = {
+    (
+        "rocketpy.control.controller",
+        "_Controller",
+    ): ("rocketpy.control.controller", "Controller"),
     (
         "rocketpy.rocket.aero_surface.controllable_generic_surface",
         "ControllableGenericSurface",

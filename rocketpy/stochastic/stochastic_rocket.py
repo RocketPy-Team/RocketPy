@@ -1,9 +1,9 @@
 """Defines the StochasticRocket class."""
 
 import warnings
+from copy import deepcopy
 from random import choice
 
-from rocketpy.control import _Controller
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import GenericMotor, Motor
@@ -420,8 +420,10 @@ class StochasticRocket(StochasticModel):
         ----------
         air_brakes : StochasticAirBrakes or Airbrakes
             The air brake to be added to the stochastic rocket.
-        controller : _Controller
-            Deterministic air brake controller.
+        controller : Controller
+            The controller of the air brakes, as returned by
+            ``Rocket.add_air_brakes(..., return_controller=True)``. Every
+            sampled rocket flies a copy of it.
         """
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
             raise TypeError(
@@ -798,18 +800,12 @@ class StochasticRocket(StochasticModel):
                 rocket.add_surfaces(surface, position)
 
         for air_brake in self.air_brakes:
-            air_brake = self._create_air_brake(air_brake)
-            base_controller = self.air_brake_controller
-            _controller = _Controller(
-                controller_function=base_controller.controller_function,
-                controlled_objects=air_brake,
-                controlled_objects_name=base_controller.controlled_objects_name,
-                sampling_rate=base_controller.sampling_rate,
-                memory=base_controller.memory.copy(),
-                name=base_controller.name,
-            )
-            rocket.air_brakes.append(air_brake)
-            rocket._add_controllers(_controller)
+            rocket.air_brakes.append(self._create_air_brake(air_brake))
+
+        if self.air_brakes:
+            # A controller sets the air brakes by the name of their channel and
+            # points at no object, so each sampled rocket flies a copy of it
+            rocket.add_controller(deepcopy(self.air_brake_controller))
 
         for component_rail_buttons in self.rail_buttons:
             (

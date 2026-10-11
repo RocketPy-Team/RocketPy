@@ -314,7 +314,15 @@ class Event:
     def _record(self, time, values):
         """Store named numbers at ``time``."""
         for name, value in values.items():
-            self._records.setdefault(name, []).append((time, float(value)))
+            try:
+                value = float(value)
+            except (TypeError, ValueError) as error:
+                raise TypeError(
+                    f"The event '{self.name}' recorded {name}={value!r}, but a "
+                    "record must be a single number. Keep other values in "
+                    "`context.event.memory`."
+                ) from error
+            self._records.setdefault(name, []).append((time, value))
 
     def _drop_records_after(self, time):
         """Forget what was recorded after ``time``, a moment the flight went

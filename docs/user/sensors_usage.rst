@@ -236,7 +236,7 @@ brakes:
         time = context.time
         sampling_rate = context.sampling_rate
         state = context.state  # the states, by name
-        air_brakes = context.controlled.air_brakes
+        controls = context.controls  # the control inputs, by name
         sensors = context.sensors
 
         # Read the sensor measurement instead of the true state.
@@ -250,22 +250,20 @@ brakes:
 
         altitude_AGL = context.height_agl
         vz = state.vz
+        deployment_level = controls["air_brakes.deployment_level"]
 
         # Below 1500 m AGL, keep the air brakes closed
         if altitude_AGL < 1500:
-            air_brakes.deployment_level = 0
+            controls["air_brakes.deployment_level"] = 0
         else:
-            new_deployment_level = air_brakes.deployment_level + 0.1 * vz
+            new_deployment_level = deployment_level + 0.1 * vz
             # Limit the deployment rate to 0.2 per second
             max_change = 0.2 / sampling_rate
-            lower_bound = air_brakes.deployment_level - max_change
-            upper_bound = air_brakes.deployment_level + max_change
-            new_deployment_level = min(
+            lower_bound = deployment_level - max_change
+            upper_bound = deployment_level + max_change
+            controls["air_brakes.deployment_level"] = min(
                 max(new_deployment_level, lower_bound), upper_bound
             )
-            air_brakes.deployment_level = new_deployment_level
-
-        return time, air_brakes.deployment_level
 
 .. note::
 
@@ -286,7 +284,6 @@ arguments.
         sampling_rate=10,
         reference_area=None,
         clamp=True,
-        initial_observed_variables=[0, 0],
         override_rocket_drag=False,
         name="AirBrakes",
     )

@@ -769,13 +769,13 @@ def test_air_brakes_with_environment_parameter(
 
     # Verify controller was called and observed variables were stored
     # Controller is attached to the rocket, not the air brakes object
-    controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
+    controllers = [c for c in flight.controllers if "AirBrakes" in c.name]
     assert len(controllers) > 0
     controller = controllers[0]
-    assert len(controller.log) > 0
+    assert len(controller.callback_log) > 0
 
     # Verify observed variables contain expected data (time, deployment_level, mach_number)
-    for observed in controller.log:
+    for observed in controller.callback_log:
         if observed is not None:
             assert len(observed) == 3
             time, deployment_level, mach_number = observed
@@ -885,7 +885,7 @@ def test_backward_compatibility_5_parameter_controller(
     assert flight.apogee > 0
 
     # Verify controller exists
-    controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
+    controllers = [c for c in flight.controllers if "AirBrakes" in c.name]
     assert len(controllers) > 0
 
 
@@ -1165,7 +1165,7 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
         sampling_rate = context.sampling_rate
         state = context.state
         previous_state = context.previous_state
-        air_brakes = context.controlled.air_brakes
+        controls = context.controls
         environment = context.environment
 
         altitude_agl = context.height_agl
@@ -1180,19 +1180,18 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
         if time < 3.9:
             return None
 
+        level = controls["air_brakes.deployment_level"]
         previous_vz = previous_state.vz if previous_state is not None else vz
         if altitude_agl < 1500:
-            air_brakes.deployment_level = 0
+            controls["air_brakes.deployment_level"] = 0
         else:
-            new_level = air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+            new_level = level + 0.1 * vz + 0.01 * previous_vz**2
             max_change = 0.2 / sampling_rate
-            new_level = max(
-                air_brakes.deployment_level - max_change,
-                min(air_brakes.deployment_level + max_change, new_level),
+            controls["air_brakes.deployment_level"] = max(
+                level - max_change, min(level + max_change, new_level)
             )
-            air_brakes.deployment_level = new_level
 
-        return (time, air_brakes.deployment_level, mach_number)
+        return {"mach_number": mach_number}
 
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
@@ -1213,3 +1212,7 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
 
     assert flight.t_final > 0
     assert flight.apogee > 0
+    # the returned dict is recorded, from burnout on
+    mach = flight.records["air_brakes_controller.mach_number"]
+    assert mach.x_array[0] == pytest.approx(3.9, abs=0.1)
+    assert max(flight.solution["air_brakes.deployment_level"][:, 1]) > 0

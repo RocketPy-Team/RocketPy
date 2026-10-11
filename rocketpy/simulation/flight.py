@@ -77,8 +77,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         the beginning of the rail.
     Flight.name: str
         Name of the flight.
-    Flight._controllers : list
-        List of controllers to be used during simulation.
+    Flight.controllers : list
+        The controllers that flew with the rocket, from
+        ``rocket.add_controller`` and ``rocket.add_air_brakes``.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -719,8 +720,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.events = [*build_core_events()]
 
         # Sensor events (position-specific, created when sensors added to rocket)
-        if hasattr(self.rocket, "_sensor_events"):
-            self.events.extend(self.rocket._sensor_events)
+        for _, event in getattr(self.rocket, "_sensor_events", ()):
+            self.events.append(event)
 
         # Parachute events
         for parachute in self.parachutes:
@@ -728,8 +729,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.events.append(parachute.event)
 
         # Controller events
-        for controller in self._controllers:
-            self.events.append(controller.event)
+        self.events.extend(self.controllers)
 
         # User-defined events are appended last
         self.events.extend(user_events)
@@ -767,7 +767,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self._control_channels,
             self._control_limits,
         ) = initial_controls(self.rocket.actuators)
-        self._controllers = self.rocket._controllers[:]
+        self.controllers = self.rocket._controllers[:]
         self.sensors = self.rocket.sensors.get_components()
         self.sensors_by_name = self.rocket.sensors_by_name
 
@@ -1354,6 +1354,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def __finalize_simulation(self):
         """Finalize and cache simulation outputs."""
         self.t_final = self.t
+        # Copied, since the events are reset if the rocket flies again
+        self._recorded = self.__recorded_points()
         if self.sensors:
             self.__cache_sensor_data()
         logger.info("Simulation completed at time: %.4f s", self.t)
@@ -1504,12 +1506,20 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         loaded = getattr(self, "_loaded_records", None)
         if loaded is not None:
             return loaded
-        records = {}
+        points = getattr(self, "_recorded", None)
+        if points is None:  # still flying
+            points = self.__recorded_points()
+        return {name: history_function(values, name) for name, values in points.items()}
+
+    def __recorded_points(self):
+        """Return the ``(time, value)`` pairs every event recorded, by record
+        name."""
+        points = {}
         for event in getattr(self, "events", ()):
             prefix = control_key(event.name)
-            for name, function in event.records.items():
-                records[f"{prefix}.{name}"] = function
-        return records
+            for name, values in event._records.items():
+                points[f"{prefix}.{name}"] = list(values)
+        return points
 
     @cached_property
     @deprecated(
@@ -3190,21 +3200,23 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @deprecated(
         reason="Controller observed variables are no longer supported.",
         version="v1.16.0",
-        alternative="Access the desired variables via controller.log",
+        alternative="Record values with `context.record(...)` in the controller "
+        "function and read them as `flight.records`",
     )
     def get_controller_observed_variables(self):
-        """Retrieve the observed variables from each controller.
+        """Retrieve what each controller function returned.
 
-        If there is only one controller, its log is returned directly. If
-        there are multiple controllers, a list of logs is returned.
+        If there is only one controller, its list is returned directly. If
+        there are multiple controllers, a list of lists is returned.
 
         Returns
         -------
         list
-            Controller log(s) containing the return values of each
-            controller function call.
+            The return values of each controller function call.
         """
-        observed_variables = [controller.log for controller in self._controllers]
+        observed_variables = [
+            controller.callback_log for controller in self.controllers
+        ]
         return (
             observed_variables[0]
             if len(observed_variables) == 1

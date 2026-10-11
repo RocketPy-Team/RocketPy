@@ -236,17 +236,6 @@ The following values are available:
   The rocket itself is never changed, so the next flight starts from the
   defaults again.
 
-**Inside a controller function only:**
-
-- ``controller``: The controller being run. Its own dictionary, kept from one
-  run to the next, is ``context.controller.memory``.
-- ``controlled``: The objects the controller drives. Read one by the name it
-  was given, such as ``context.controlled.air_brakes``, or by its position,
-  such as ``context.controlled[0]``. Looping over ``context.controlled`` gives
-  all of them, in the order they were passed to the controller.
-
-Both are ``None`` in an event that is not a controller.
-
 **Keeping your own data:**
 
 - The event's own dictionary is ``context.event.memory``. It is kept from

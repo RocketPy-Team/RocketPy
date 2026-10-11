@@ -193,10 +193,6 @@ class Sensor(ABC):
             state_dot = context["canonical_state_dot"]
             rocket = context["rocket"]
             environment = context["environment"]
-            event = context["event"]
-
-            # Get position from event memory (set when sensor added to rocket)
-            position = event.memory.get("position")
 
             relative_position = position - rocket._csys * Vector(
                 [0, 0, rocket.center_of_dry_mass_position]
@@ -218,7 +214,6 @@ class Sensor(ABC):
             callback=sensor_callback,
             name=f"{self.name} Measurement",
             sampling_rate=self.sampling_rate,
-            memory={"position": position, "sensor": self},
             trigger_only_once=False,
             priority=1,
             time_overshootable=True,

@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Event, Flight, GenericSurface
+from rocketpy import Controller, Event, Flight, GenericSurface
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 
 
@@ -130,3 +130,94 @@ def test_controls_are_plotted_and_printed(mock_show, damped_flight, capsys):  # 
     assert flight.plots.records() is None
     flight.prints.controls()
     assert "canards.deflection" in capsys.readouterr().out
+
+
+def _canards(rocket):
+    canards = GenericSurface(
+        rocket.area,
+        2 * rocket.radius,
+        {"cl": lambda mach, deflection: 2.0 * deflection},
+        name="Canards",
+        controls=("deflection",),
+        control_limits={"deflection": (-0.15, 0.15)},
+    )
+    rocket.add_surfaces(canards, 0.7)
+    return canards
+
+
+def _fly(rocket, environment, **options):
+    return Flight(
+        rocket=rocket,
+        environment=environment,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        **options,
+    )
+
+
+def _profile_deflection(time):
+    return 0.01 * time
+
+
+def _follow_profile(context):
+    context.controls["canards.deflection"] = _profile_deflection(context.time)
+
+
+def test_an_open_loop_profile_is_flown_at_the_sampling_times(
+    calisto_robust, example_plain_env
+):
+    calisto_robust.parachutes = []
+    _canards(calisto_robust)
+    controller = Controller(_follow_profile, sampling_rate=10, writes="canards")
+    calisto_robust.add_controller(controller)
+    flight = _fly(calisto_robust, example_plain_env)
+
+    assert flight.controllers == [controller]
+    history = flight.control_history["canards.deflection"]
+    times = sorted(set(controller.triggered_times))
+    assert times[:2] == pytest.approx([0.1, 0.2])
+    for t in times[:30]:
+        # the value flown from each sampling time on, and held until the next
+        assert history(t) == _profile_deflection(t)
+        assert history(t + 0.05) == _profile_deflection(t)
+
+
+def test_a_write_outside_writes_stops_the_flight(calisto_robust, example_plain_env):
+    calisto_robust.parachutes = []
+    _canards(calisto_robust)
+    calisto_robust.add_controller(
+        Controller(_follow_profile, sampling_rate=10, writes="air_brakes")
+    )
+    with pytest.raises(ValueError, match="no control channel or actuator"):
+        _fly(calisto_robust, example_plain_env)
+
+
+def test_a_rocket_with_a_controller_flies_the_same_after_saving(
+    calisto_robust, example_plain_env
+):
+    calisto_robust.parachutes = []
+    _canards(calisto_robust)
+    calisto_robust.add_controller(
+        Controller(_follow_profile, sampling_rate=10, name="Profile")
+    )
+    flight = _fly(calisto_robust, example_plain_env)
+    loaded = json.loads(
+        json.dumps(calisto_robust, cls=RocketPyEncoder), cls=RocketPyDecoder
+    )
+    again = _fly(loaded, example_plain_env)
+
+    assert [c.name for c in loaded._controllers] == ["Profile"]
+    assert again.apogee == flight.apogee
+    assert np.array_equal(
+        again.solution["canards.deflection"], flight.solution["canards.deflection"]
+    )
+
+
+def test_records_stay_with_the_flight_that_made_them(damped_flight, example_plain_env):
+    flight, damper_event = damped_flight
+    first = flight.records["roll_damper.roll_rate"]
+    # the same event flies again in a second flight
+    _fly(flight.rocket, example_plain_env, custom_events=[damper_event])
+    assert list(flight.records["roll_damper.roll_rate"].x_array) == list(first.x_array)

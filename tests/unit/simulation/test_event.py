@@ -1200,20 +1200,6 @@ def test_binding_swaps_the_values_that_belong_to_one_event():
     assert "previous_time" not in context
 
 
-def test_owned_values_leave_with_the_event_that_added_them():
-    context = _context(time=1.0, state=[0.0] * 13)
-    first = _tracking_event("first")
-    second = _tracking_event("second")
-
-    context.bind(first)
-    assert context.controller is None  # not a controller's event
-    context.own(controller="mine")
-    assert context.controller == "mine"
-
-    context.bind(second)
-    assert "controller" not in context
-
-
 def test_expanding_the_context_gives_the_event_exactly_its_own_keys():
     seen = {}
 

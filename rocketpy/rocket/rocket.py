@@ -7,7 +7,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from rocketpy.control.control_signal import check_actuator, control_channels
-from rocketpy.control.controller import _Controller
+from rocketpy.control.controller import Controller, _PositionalController
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
@@ -45,11 +45,7 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSurface
 from rocketpy.rocket.components import Components, position_vector
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import (
-    deprecated,
-    find_obj_from_hash,
-    parallel_axis_theorem_from_com,
-)
+from rocketpy.tools import deprecated, parallel_axis_theorem_from_com
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
@@ -149,7 +145,7 @@ class Rocket:
     Rocket.air_brakes : list
         Collection of air brakes of the rocket.
     Rocket._controllers : list
-        Collection of controllers of the rocket.
+        Controllers of the rocket, added with :meth:`add_controller`.
     Rocket.aerodynamic_center : Function
         Position of the rocket's aerodynamic center, in meters, as a function
         of Mach number, in the user defined rocket reference system. It is the
@@ -2259,24 +2255,29 @@ class Rocket:
             surfaces.append(surface)
         return surfaces
 
-    def _add_controllers(self, controllers):
-        """Adds a controller to the rocket.
+    def add_controller(self, controller):
+        """Add a controller to the rocket. It runs in every flight of the
+        rocket, at its sampling rate, and sets the rocket's controls.
 
         Parameters
         ----------
-        controllers : list of Controller objects
-            List of controllers to be added to the rocket. If a single
-            Controller object is passed, outside of a list, a try/except block
-            will be used to try to append the controller to the list.
+        controller : Controller
+            The controller, such as
+            ``Controller(controller_function, sampling_rate=10)``.
 
         Returns
         -------
         None
+
+        See Also
+        --------
+        rocketpy.Controller
         """
-        try:
-            self._controllers.extend(controllers)
-        except TypeError:
-            self._controllers.append(controllers)
+        if not isinstance(controller, Controller):
+            raise TypeError(
+                f"add_controller takes a rocketpy.Controller, got {controller!r}."
+            )
+        self._controllers.append(controller)
 
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
@@ -2813,8 +2814,8 @@ class Rocket:
         if not hasattr(self, "_sensor_events"):
             self._sensor_events = []
 
-        event = sensor.to_event(position)
-        self._sensor_events.append(event)
+        # Kept with the sensor it measures for, so the prints can name it
+        self._sensor_events.append((sensor, sensor.to_event(position)))
 
     def add_air_brakes(
         self,
@@ -2864,21 +2865,20 @@ class Rocket:
                 the drag of the rocket.
 
         controller_function : callable
-            Function that executes the control logic, with signature
-            ``controller_function(context) -> dict or None``. Invoked once per
-            sample; its return value is appended to the controller log. Set
-            ``air_brakes.deployment_level`` to apply the control action.
-            ``context`` holds the values listed in :class:`rocketpy.Event`
-            (``context.time``, ``context.state``, ``context.height_agl``,
-            ``context.sensors``, ``context.environment``, ``context.rocket``,
-            ``context.flight``, ``context.state_dot``, ``context.pressure``,
-            ``context.previous_state`` and so on) plus ``context.controller``
-            (the :class:`_Controller`) and ``context.controlled.air_brakes``
-            (the :class:`AirBrakes` being controlled).
-            The legacy positional form
-            ``controller_function(time, sampling_rate, state, state_history,
-            observed_variables, interactive_objects[, sensors[, environment]])``
-            is deprecated.
+            The control logic, ``controller_function(context)``, called once
+            per sample. It sets the deployment level by writing
+            ``context.controls["air_brakes.deployment_level"]``, a value from
+            0 (retracted) to 1 (fully deployed); the channel is named after
+            ``name`` (see below). ``context`` holds the values listed in
+            :class:`rocketpy.Event` (``context.time``, ``context.state``,
+            ``context.height_agl``, ``context.sensors``,
+            ``context.environment`` and so on). The function may return a
+            dictionary of numbers, which is recorded as if passed to
+            ``context.record``. See :class:`rocketpy.Controller`.
+            The positional form
+            ``controller_function(time, sampling_rate, state,
+            observed_variables, air_brakes[, sensors[, environment]])`` is
+            deprecated.
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
@@ -2893,21 +2893,18 @@ class Rocket:
             from the drag coefficient curve. If None, which is default, use
             rocket section area. Must be given in squared meters.
         initial_observed_variables : list, optional
-            A list of the initial values of the variables that the controller
-            function returns. This list is used to initialize the
-            `observed_variables` argument of the controller function. The
-            default value is None, which initializes the list as an empty list.
+            The list a positional controller function receives as
+            ``observed_variables``. Defaults to an empty list.
 
             .. deprecated:: 1.13
-                Passing `initial_observed_variables` directly to
-                ``add_air_brakes`` is deprecated. Provide initial observed
-                variables via the ``memory`` parameter as
-                ``memory={'observed_variables': [...]}`` instead. Support
-                for the positional argument will be removed in v1.14.
+                Record the values you want to see after the flight with
+                ``context.record(...)`` and read them as ``flight.records``.
+                Support for this argument will be removed in v1.14.
         memory : dict, optional
-            The controller's own dictionary, kept from one run to the next.
-            Read and write it as ``context.controller.memory`` inside
-            ``controller_function``. Defaults to an empty dict.
+            Values the controller keeps from one run to the next, read and
+            written as ``context.event.memory`` inside
+            ``controller_function``. It starts again from this dictionary at
+            every flight. Defaults to an empty dict.
         override_rocket_drag : bool, optional
             If False, the air brakes drag coefficient will be added to the
             rocket's power off drag coefficient curve. If True, during the
@@ -2940,27 +2937,18 @@ class Rocket:
             deployment_level=0,
             name=name,
         )
-        # Prepare controller memory and compatibility wrapper for
-        # controller_function. The signature is `controller_function(context)`.
-        # To avoid breaking existing user code, wrap legacy functions that
-        # accept positional args.
         controller_memory = memory.copy() if memory is not None else {}
-
-        # Map initial_observed_variables into controller memory for the
-        # new API while emitting a deprecation warning for the positional
-        # argument usage.
         if initial_observed_variables is not None:
             warnings.warn(
                 "Passing `initial_observed_variables` to `add_air_brakes` is "
-                "deprecated; supply them via `memory={'observed_variables': ...}` "
-                "instead. Support for this argument will be removed in v1.14.",
+                "deprecated: record the values you want to see after the flight "
+                "with `context.record(...)` and read them as `flight.records`. "
+                "Support for this argument will be removed in v1.14.",
                 DeprecationWarning,
             )
             controller_memory["observed_variables"] = initial_observed_variables
 
-        orig_controller = controller_function
-        signature = inspect.signature(orig_controller)
-        parameters = tuple(signature.parameters.values())
+        parameters = tuple(inspect.signature(controller_function).parameters.values())
         accepts_var_args = any(
             p.kind == inspect.Parameter.VAR_POSITIONAL for p in parameters
         )
@@ -2972,10 +2960,7 @@ class Rocket:
             )
             for p in parameters
         )
-
-        if positional_parameter_count == 1 and not accepts_var_args:
-            controller_wrapper = orig_controller
-        else:
+        if positional_parameter_count != 1 or accepts_var_args:
             # A legacy positional controller must accept one of the supported
             # signatures (5, 6 or 7 arguments). Reject any other count early so
             # the user gets a clear error instead of a runtime failure mid-flight.
@@ -2994,41 +2979,22 @@ class Rocket:
                 DeprecationWarning,
                 stacklevel=2,
             )
+            controller_function = _PositionalController(
+                controller_function, sampling_rate, actuator_name=name
+            )
 
-            def controller_wrapper(context):
-                # Build positional args in the historical order described in
-                # the docs.
-                pos_args = [
-                    context["time"],
-                    sampling_rate,
-                    context["canonical_state"],
-                    controller_memory.get("observed_variables", []),
-                    context["controlled"][0],
-                    context["sensors"],
-                    context["environment"],
-                ]
-                if accepts_var_args:
-                    legacy_args = pos_args
-                else:
-                    legacy_args = pos_args[:positional_parameter_count]
-                return orig_controller(*legacy_args)
-
-        # TODO: should this be in the airbrakes object instead?
-        _controller = _Controller(
-            controller_function=controller_wrapper,
-            controlled_objects=air_brakes,
-            controlled_objects_name="air_brakes",
+        controller = Controller(
+            controller_function=controller_function,
             sampling_rate=sampling_rate,
             memory=controller_memory,
             name=controller_name,
         )
         self._check_new_actuators(air_brakes)
         self.air_brakes.append(air_brakes)
-        self._add_controllers(_controller)
+        self.add_controller(controller)
         if return_controller:
-            return air_brakes, _controller
-        else:
-            return air_brakes
+            return air_brakes, controller
+        return air_brakes
 
     def set_rail_buttons(
         self,
@@ -3404,35 +3370,9 @@ class Rocket:
         for air_brake in data["air_brakes"]:
             rocket.air_brakes.append(air_brake)
 
+        # A controller points at no object of the rocket: it writes control
+        # channels by name, so there is nothing to reconnect
         for controller in data["_controllers"]:
-            # Reconnect the controller to the rocket's own reconstructed objects
-            # by matching the hash(es) it stored for its controlled objects
-            # against the reconstructed objects (see _Controller.to_dict).
-            controlled_objects_hash = getattr(
-                controller, "_serialized_controlled_objects_hash", None
-            )
-            if controlled_objects_hash is not None:
-                is_iterable = isinstance(controlled_objects_hash, Iterable)
-                hashes = (
-                    controlled_objects_hash
-                    if is_iterable
-                    else [controlled_objects_hash]
-                )
-                found = []
-                for hash_ in hashes:
-                    if hash_ is None:  # unhashable controlled object; cannot match
-                        continue
-                    if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
-                        found.append(hashed_obj)
-                    else:
-                        warnings.warn(
-                            "Could not find controller controlled objects. "
-                            "Deserialization will proceed, results may not be accurate."
-                        )
-                if found:
-                    controller.rebind_controlled_objects(
-                        found if is_iterable else found[0]
-                    )
-            rocket._add_controllers(controller)
+            rocket.add_controller(controller)
 
         return rocket

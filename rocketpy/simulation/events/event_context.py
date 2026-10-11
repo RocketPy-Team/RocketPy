@@ -53,14 +53,7 @@ class EventContext(dict):
     # current phase integrates, which ``phase_names`` names in order. The
     # properties below are the documented way in.
 
-    __slots__ = ("_owned",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Keys the event currently being evaluated owns, which are cleared
-        # before the next event is bound. Keys every event writes are not
-        # listed, since they are overwritten rather than left behind.
-        self._owned = ()
+    __slots__ = ()
 
     def __missing__(self, key):
         if key in _PREVIOUS_KEYS:
@@ -128,9 +121,6 @@ class EventContext(dict):
         event : Event
             The event being checked.
         """
-        for key in self._owned:
-            del self[key]
-        self._owned = ()
         self["event"] = event
         self["sampling_rate"] = event.sampling_rate
 
@@ -153,16 +143,6 @@ class EventContext(dict):
         """
         self["event"]._record(self["time"], values)  # pylint: disable=protected-access
 
-    def own(self, **values):
-        """Add values that belong to the event being evaluated alone.
-
-        They are removed again when the next event is bound, so no other event
-        of the step sees them. A controller uses this for ``controller`` and
-        the names of the objects it drives.
-        """
-        self.update(values)
-        self._owned = self._owned + tuple(values)
-
     def at(self, time, raw_state):
         """Return a copy of this context describing another moment of the step.
 
@@ -182,7 +162,6 @@ class EventContext(dict):
         EventContext
         """
         moved = EventContext(self)
-        moved._owned = self._owned
         return refresh_event_kwargs(self["flight"], moved, time, raw_state)
 
     @property
@@ -280,16 +259,6 @@ class EventContext(dict):
     def sensors_by_name(self):
         """The rocket's sensors, by name."""
         return self["sensors_by_name"]
-
-    @property
-    def controller(self):
-        """The controller being run, or ``None`` outside a controller."""
-        return self.get("controller")
-
-    @property
-    def controlled(self):
-        """The objects the controller drives, or ``None`` outside one."""
-        return self.get("controlled")
 
 
 def infer_step_size(flight, time):
