@@ -1,23 +1,26 @@
 """The hooks that bring thrust actuators, effectors and mass actuators into
 the equations of motion, checked on Calisto flights."""
 
+import warnings
+
 import numpy as np
 import pytest
 
-from rocketpy import Controller, Flight, GenericEffector
+from rocketpy import Controller, Event, Flight, GenericEffector
+from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS, _PhaseDynamics
 from rocketpy.simulation.helpers.flight_derivatives import _thrust_at
 from tests.fixtures.actuators.actuator_fixtures import PassThrough
 
 
 def _fly(rocket, environment, **options):
     rocket.parachutes = []
+    options.setdefault("terminate_on_apogee", True)
     return Flight(
         rocket=rocket,
         environment=environment,
         rail_length=5.2,
         inclination=85,
         heading=0,
-        terminate_on_apogee=True,
         **options,
     )
 
@@ -172,3 +175,84 @@ def test_a_controller_drives_an_effector(
     assert history(3.0) == 0.0 and history(6.0) == 1.0
     # 0.5 N m about the axis, from 4 s on: the roll rate keeps growing
     assert abs(flight.w3(10.0)) > abs(flight.w3(5.0)) > abs(flight.w3(3.9))
+
+
+class _Canopy:
+    """The brake of a steerable canopy: no physics of its own, read only by
+    the glide phase below."""
+
+    name = "Canopy"
+    controls = ("brake",)
+    control_defaults = {"brake": 0.0}
+    control_limits = {"brake": (0.0, 1.0)}
+    clamp = True
+
+
+def _glide_derivative(_flight, _t, x, u, post_processing=False):
+    """Fall, and turn at the rate the brake sets, in rad/s."""
+    if post_processing:
+        return ()
+    return [x[3], x[4], x[5], 0.0, 0.0, -9.80665, u["canopy.brake"]]
+
+
+GLIDE_DYNAMICS = _PhaseDynamics(
+    "test_glide",
+    _glide_derivative,
+    ("x", "y", "z", "vx", "vy", "vz", "heading"),
+    initial_state=lambda _flight, _t, canonical: [*canonical[:6], 0.0],
+    reads=("canopy",),
+)
+
+
+def _open_canopy(context):
+    context["event"].commands.set_dynamics(GLIDE_DYNAMICS)
+    context["event"].commands.start_flight_phase("glide")
+
+
+def _brake(context):
+    context.controls["canopy.brake"] = 1.0 if context.time >= 6.0 else 0.0
+
+
+def _glide_flight(rocket, environment, open_at):
+    rocket.add_actuator(_Canopy())
+    # The controller samples at 4 Hz so it never runs at the same time as the
+    # opening event: two events that change the dynamics at the same sampling
+    # time lose the second one (a bug older than the controls)
+    rocket.add_controller(Controller(_brake, sampling_rate=4))
+    opening = Event(
+        callback=_open_canopy,
+        trigger=lambda context: context["time"] >= open_at,
+        sampling_rate=10,
+        trigger_only_once=True,
+        changes_dynamics=True,
+        name="Open canopy",
+    )
+    # No max_time: with one, a flight with an event that changes the
+    # dynamics stops at that event's first sample (a bug older than the
+    # controls)
+    return _fly(rocket, environment, custom_events=[opening], terminate_on_apogee=False)
+
+
+def test_only_the_phase_that_names_a_part_reads_it(calisto_robust, example_plain_env):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        flight = _glide_flight(calisto_robust, example_plain_env, open_at=5.05)
+    (canopy,) = calisto_robust.phase_actuators
+
+    assert canopy not in SIX_DOF_DYNAMICS.actuators_read(calisto_robust)
+    assert GLIDE_DYNAMICS.actuators_read(calisto_robust) == (canopy,)
+    assert [phase.name for phase in flight.solution.phases][-1] == "glide"
+    # the control inputs carry the brake for the whole flight
+    brake = flight.solution["canopy.brake"]
+    assert brake[0, 0] == 0.0 and brake[-1, 1] == 1.0
+    # the glide phase turns at the rate the brake sets: 1 rad/s from 6 s
+    with pytest.warns(UserWarning, match="not defined during"):
+        heading = flight.solution["heading"]
+    late = heading[heading[:, 0] >= 6.5]
+    rate = (late[-1, 1] - late[0, 1]) / (late[-1, 0] - late[0, 0])
+    assert rate == pytest.approx(1.0, rel=1e-6)
+
+
+def test_a_part_no_phase_read_is_reported(calisto_robust, example_plain_env):
+    with pytest.warns(UserWarning, match="'Canopy' were never read"):
+        _glide_flight(calisto_robust, example_plain_env, open_at=100.0)

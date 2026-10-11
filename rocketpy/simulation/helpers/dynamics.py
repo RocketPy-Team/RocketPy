@@ -1,5 +1,6 @@
 import numpy as np
 
+from ...control.control_signal import control_key
 from .flight_derivatives import (
     u_dot,
     u_dot_generalized,
@@ -75,6 +76,7 @@ class _PhaseDynamics:
         to_canonical=None,
         to_canonical_dot=None,
         initial_state=None,
+        reads=(),
     ):
         """Describe one kind of flight phase.
 
@@ -142,6 +144,14 @@ class _PhaseDynamics:
             phase. It must return exactly one value per state in ``states``.
             Defaults to picking this phase's states out of the canonical state,
             which works whenever every state it integrates is a canonical one.
+        reads : sequence of str, optional
+            Which of the rocket's actuators the derivative reads the controls
+            of: ``"surfaces"`` (the aerodynamic surfaces), ``"air_brakes"``,
+            ``"thrust"`` (the thrust actuators), ``"effectors"``, ``"mass"``
+            (the mass actuators), or the name of one actuator in snake_case,
+            such as ``"canopy"`` for a part only this phase flies. The control
+            inputs carry every channel whatever the phase reads; this says
+            which ones matter to it. Default is none.
 
         """
         self.name = name
@@ -157,6 +167,7 @@ class _PhaseDynamics:
         self.to_canonical = to_canonical
         self.to_canonical_dot = to_canonical_dot
         self._initial_state = initial_state
+        self.reads = tuple(reads)
         # (canonical slot, own index) for each canonical state this phase
         # integrates: the default way to fill the canonical state.
         self._own_fills = tuple(
@@ -167,6 +178,32 @@ class _PhaseDynamics:
 
     def __repr__(self):
         return f"_PhaseDynamics(name={self.name!r}, states={self.states!r})"
+
+    def actuators_read(self, rocket):
+        """Return the actuators of ``rocket`` whose controls this phase's
+        derivative reads, in the order of ``rocket.actuators``."""
+        kinds = {
+            "surfaces": [surface for surface, _ in rocket.aerodynamic_surfaces],
+            "air_brakes": rocket.air_brakes,
+            "thrust": rocket.thrust_actuators,
+            "effectors": rocket.effectors,
+            "mass": rocket.mass_actuators,
+        }
+        read = []
+        for entry in self.reads:
+            if entry in kinds:
+                read.extend(kinds[entry])
+            else:
+                read.extend(
+                    actuator
+                    for actuator in rocket.actuators
+                    if control_key(actuator.name) == entry
+                )
+        return tuple(
+            actuator
+            for actuator in rocket.actuators
+            if any(actuator is other for other in read)
+        )
 
     # -- Canonical view ----------------------------------------------------
 
@@ -457,17 +494,38 @@ class _BoundDynamics:
         return f"_BoundDynamics(name={self.dynamics.name!r})"
 
 
+# What the free-flight equations read: every kind of actuator the rocket can
+# have, except a part only a phase of its own flies
+_FREE_FLIGHT_READS = ("surfaces", "air_brakes", "thrust", "effectors", "mass")
+
 RAIL_DYNAMICS = _PhaseDynamics(
-    "rail", udot_rail1, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
+    "rail",
+    udot_rail1,
+    CANONICAL_STATE_NAMES,
+    FULL_POST_PROCESS_VARS,
+    # On the rail the surfaces make no force; the air brakes add drag
+    reads=("air_brakes", "thrust", "effectors", "mass"),
 )
 SOLID_PROPULSION_DYNAMICS = _PhaseDynamics(
-    "solid_propulsion", u_dot, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
+    "solid_propulsion",
+    u_dot,
+    CANONICAL_STATE_NAMES,
+    FULL_POST_PROCESS_VARS,
+    reads=_FREE_FLIGHT_READS,
 )
 SIX_DOF_DYNAMICS = _PhaseDynamics(
-    "six_dof", u_dot_generalized, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
+    "six_dof",
+    u_dot_generalized,
+    CANONICAL_STATE_NAMES,
+    FULL_POST_PROCESS_VARS,
+    reads=_FREE_FLIGHT_READS,
 )
 THREE_DOF_DYNAMICS = _PhaseDynamics(
-    "three_dof", u_dot_generalized_3dof, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
+    "three_dof",
+    u_dot_generalized_3dof,
+    CANONICAL_STATE_NAMES,
+    FULL_POST_PROCESS_VARS,
+    reads=_FREE_FLIGHT_READS,
 )
 PARACHUTE_DYNAMICS = _PhaseDynamics(
     "parachute",

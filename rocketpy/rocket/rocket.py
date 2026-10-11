@@ -392,6 +392,8 @@ class Rocket:
         self.thrust_actuators = []
         self.effectors = []
         self.mass_actuators = []
+        # Read only by a flight phase that names them, such as a canopy's brakes
+        self.phase_actuators = []
         # The same, each once and in the order they were added
         self._added_actuators = []
         self.sensors = Components()
@@ -634,6 +636,11 @@ class Rocket:
           m, and its own inertia tensor about its center of mass, in kg m², or
           ``None`` for a point mass. The mass is added to the rocket's.
 
+        A part with none of these methods is only read by a flight phase of
+        its own that lists it, by its name in snake_case, in the ``reads`` of
+        its dynamics, such as the brakes of a steerable canopy. It is kept in
+        ``rocket.phase_actuators``.
+
         Like a surface with controls, the part also has a ``name``,
         ``controls``, ``control_defaults``, ``control_limits`` and ``clamp``
         (see :class:`rocketpy.Actuator`). A controller sets its controls as
@@ -654,8 +661,7 @@ class Rocket:
         Raises
         ------
         TypeError
-            If it has none of the three methods, or lacks the attributes of
-            an actuator.
+            If it lacks the attributes of an actuator.
         """
         kinds = [
             target
@@ -665,14 +671,7 @@ class Rocket:
                 ("mass_properties", self.mass_actuators),
             )
             if callable(getattr(actuator, method, None))
-        ]
-        if not kinds:
-            raise TypeError(
-                f"{actuator!r} cannot be added with add_actuator: it has none of "
-                "the methods thrust_vector, force_and_moment and "
-                "mass_properties. An aerodynamic surface is added with "
-                "add_surfaces."
-            )
+        ] or [self.phase_actuators]
         self._check_new_actuators(actuator)
         for target in kinds:
             target.append(actuator)

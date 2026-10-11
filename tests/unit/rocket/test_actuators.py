@@ -65,9 +65,24 @@ def test_a_part_that_acts_in_two_ways_has_its_channels_once(calisto):
     assert calisto.control_channels.count("ballast.position") == 1
 
 
-def test_add_actuator_refuses_a_part_that_does_nothing(calisto):
-    with pytest.raises(TypeError, match="none of the methods"):
+def test_add_actuator_refuses_what_is_not_an_actuator(calisto):
+    with pytest.raises(TypeError, match="control_defaults"):
         calisto.add_actuator(SimpleNamespace(name="x", controls=()))
+
+
+class _Canopy:
+    name = "Canopy"
+    controls = ("brake",)
+    control_defaults = {"brake": 0.0}
+    control_limits = {}
+    clamp = True
+
+
+def test_a_part_with_no_physics_is_left_to_a_phase(calisto):
+    canopy = _Canopy()
+    calisto.add_actuator(canopy)
+    assert calisto.phase_actuators == [canopy]
+    assert calisto.control_channels[-1] == "canopy.brake"
 
 
 def test_add_actuator_refuses_a_name_already_used(calisto, gimbal):

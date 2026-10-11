@@ -1356,9 +1356,26 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.t_final = self.t
         # Copied, since the events are reset if the rocket flies again
         self._recorded = self.__recorded_points()
+        self.__warn_unread_actuators()
         if self.sensors:
             self.__cache_sensor_data()
         logger.info("Simulation completed at time: %.4f s", self.t)
+
+    def __warn_unread_actuators(self):
+        """Warn about the actuators with controls that no phase of this flight
+        read, such as a part only a phase of its own flies when that phase
+        never started, or a part whose physics method is misspelled."""
+        read = []
+        for phase in self.solution.phases:
+            read.extend(phase.dynamics.actuators_read(self.rocket))
+        for actuator in self._control_channels:
+            if not any(actuator is other for other in read):
+                flown = ", ".join(phase.dynamics.name for phase in self.solution.phases)
+                warnings.warn(
+                    f"The controls of '{actuator.name}' were never read: no phase "
+                    f"of this flight reads them (it flew: {flown}).",
+                    UserWarning,
+                )
 
     def __cache_sensor_data(self):
         """Cache sensor data for simulations with sensors."""
