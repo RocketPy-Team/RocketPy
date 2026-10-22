@@ -10,6 +10,8 @@ AeroSurface Classes
    Tail
    Fins
    TrapezoidalFins
+   DatcomFins
+   DatcomFreeFormFins
    EllipticalFins
    FreeFormFins
    TubeFins

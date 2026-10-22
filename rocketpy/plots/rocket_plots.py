@@ -319,6 +319,10 @@ class _RocketPlots:
     def _draw_fins(self, ax, surface, position, drawn_surfaces, vis_args, plane):
         """Draws the fins and saves the position of the points of interest
         for the tubes."""
+        if hasattr(surface, "draw_on_rocket"):
+            return surface.draw_on_rocket(
+                ax, position, drawn_surfaces, vis_args, plane, self.rocket._csys
+            )
         num_fins = surface.n
         x_fin = -self.rocket._csys * surface.shape_vec[0] + position
         y_fin = surface.shape_vec[1] + surface.rocket_radius

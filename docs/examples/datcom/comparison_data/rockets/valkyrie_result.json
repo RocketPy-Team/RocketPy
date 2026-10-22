@@ -1,0 +1,13 @@
+{
+  "rocket": "valkyrie",
+  "actual_agl_m": 2098.02,
+  "reported_agl_m": 2098.02,
+  "saved_first_agl_m": 2247.849,
+  "reference_kind": "notebook reported apogee",
+  "telemetry_max_agl_m": 2059.0244140625,
+  "notes": "Telemetry maximum 2059.024 m differs from notebook reported value 2098.020 m; both retained. | Valkyrie prose says 2025 but source environment says 2026 and fetches live Windy weather; no archived profile is supplied.",
+  "status": "unavailable source model",
+  "reason": "SourceUnavailable: Source requests live weather with no archived profile; not replaced by invented weather.",
+  "telemetry_qa_max_agl_m": 2059.0244140625,
+  "telemetry_qa_rejected_count": 0
+}
