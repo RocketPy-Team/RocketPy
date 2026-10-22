@@ -1,0 +1,11 @@
+{
+  "rocket": "hedy",
+  "actual_agl_m": 5231.53,
+  "reported_agl_m": null,
+  "saved_first_agl_m": 5246.918,
+  "reference_kind": "saved measured-apogee summary",
+  "telemetry_max_agl_m": null,
+  "notes": "Referenced telemetry file is absent: data/rockets/tust/cats_tust/filteredDataInfo.csv (cell 24). | Referenced telemetry file is absent: data/rockets/tust/cats_tust/gnssInfo.csv (cell 24). | Referenced telemetry file is absent: data/rockets/tust/cats_tust/flightInfo.csv (cell 24). | Referenced telemetry file is absent: data/rockets/tust/cats_tust/imu.csv (cell 24). | Referenced telemetry file is absent: data/rockets/tust/cats_tust/baro.csv (cell 24). | Hedy end comparison uses simulated ASL 5406.918 m against measured AGL 5231.53 m; saved simulated AGL is 5246.918 m, a 160 m datum discrepancy.",
+  "status": "archived comparison only",
+  "reason": "Source data/rockets/tust is absent; CoolProp is not installed, and the negative-span fin root cutout requires geometry support."
+}

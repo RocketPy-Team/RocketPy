@@ -1,0 +1,20 @@
+{
+  "rocket": "defiance",
+  "actual_agl_m": 9308.318,
+  "reported_agl_m": 9308.318,
+  "saved_first_agl_m": 9238.009,
+  "reference_kind": "notebook reported apogee",
+  "telemetry_max_agl_m": null,
+  "notes": "Source fin root centre is z=-0.025 m, aft of the tail base z=0.0403 m; native root attachment is outside the declared body.",
+  "status": "ordinary only",
+  "reason": "ValueError: DATCOM fin root chord centers must lie within the body's axial extent; leading edges must be aft of the nose tip",
+  "ordinary_agl_m": 9243.891367330605,
+  "ordinary_apogee_time_s": 44.18119446865966,
+  "ordinary_peak_vertical_velocity_m_s": 438.71139566437614,
+  "ordinary_initial_static_margin_cal": 7.9601902493275025,
+  "ordinary_coast_cd_mach06": 0.668,
+  "ordinary_max_mach": 1.3681759374499065,
+  "source_adaptations": "",
+  "ordinary_error_m": -64.42663266939417,
+  "ordinary_error_pct": -0.6921404347100536
+}

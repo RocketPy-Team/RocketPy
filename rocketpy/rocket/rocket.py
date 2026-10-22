@@ -35,6 +35,7 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
+from rocketpy.rocket.datcom_rocket import DatcomRocketMixin
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
@@ -46,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
-class Rocket:
+class Rocket(DatcomRocketMixin):
     """Keeps rocket information.
 
     Attributes
@@ -373,6 +374,9 @@ class Rocket:
         self.air_brakes = []
         self.sensors = Components()
         self.aerodynamic_surfaces = Components()
+        self._datcom_model = None
+        self._datcom_signature = None
+        self._datcom_original_drag = None
         self.surfaces_cp_to_cdm = {}
         self.rail_buttons = Components()
 
@@ -661,6 +665,9 @@ class Rocket:
             See :doc:`Positions and Coordinate Systems </user/positions>`
             for more information.
         """
+        if self._evaluate_datcom_center_of_pressure():
+            return self.cp_position
+
         # Re-Initialize total lift coefficient derivative and center of pressure position
         self.total_lift_coeff_der.set_source(lambda mach: 0)
         self.cp_position.set_source(lambda mach: 0)
@@ -774,6 +781,9 @@ class Rocket:
             Static margin is defined as the distance between the center of
             pressure and the center of mass, divided by the rocket's diameter.
         """
+        if self._set_undefined_datcom_static_margin():
+            return self._static_margin
+
         # Calculate static margin; fold _csys into the source so we do not
         # rebind a property when multiplying.
         self._static_margin.set_source(
@@ -1140,6 +1150,7 @@ class Rocket:
                     "Only one motor per rocket is currently supported. "
                     "Overwriting previous motor."
                 )
+        self._invalidate_datcom()
         self.motor = motor
         self.motor_position = position
         _ = self._csys * self.motor._csys
@@ -1175,6 +1186,7 @@ class Rocket:
         """Adds a single aerodynamic surface to the rocket. Makes checks for
         rail buttons case, and position type.
         """
+        self._validate_datcom_tail(surface)
         if isinstance(surface, (TrapezoidalFin, EllipticalFin, FreeFormFin)):
             # TODO: the leading edge position should be recomputed whenever cant
             # angle of the fin changes, but currently it is only computed at the
@@ -1238,6 +1250,7 @@ class Rocket:
         -------
         None
         """
+        self._invalidate_datcom()
         if isinstance(surfaces, Iterable):
             if isinstance(positions, Iterable):
                 if len(surfaces) != len(positions):
@@ -1276,7 +1289,15 @@ class Rocket:
             self._controllers.append(controllers)
 
     def add_tail(
-        self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
+        self,
+        top_radius,
+        bottom_radius,
+        length,
+        position,
+        radius=None,
+        name="Tail",
+        *,
+        kind="conical",
     ):
         """Create a new tail or rocket diameter change, storing its
         parameters as part of the aerodynamic_surfaces list. Its
@@ -1305,6 +1326,10 @@ class Rocket:
             be used.
         name : string
             Tail name. Default is "Tail".
+        kind : string, optional
+            Tail profile, ``"conical"`` (default) or ``"ogive"``. Ogive tails
+            require a DATCOM fin set to be added first; otherwise ValueError is
+            raised. Conical tails retain the original component model.
 
         See Also
         --------
@@ -1318,7 +1343,9 @@ class Rocket:
         # Modify reference radius if not provided
         radius = self.radius if radius is None else radius
         # Create tail, adds it to the rocket and returns it
-        tail = Tail(top_radius, bottom_radius, length, radius, name)
+        tail = self._create_datcom_or_conical_tail(
+            top_radius, bottom_radius, length, radius, name, kind
+        )
         self.add_surfaces(tail, position)
         return tail
 
@@ -2247,6 +2274,9 @@ class Rocket:
 
         power_off_drag = self.power_off_drag_7d
         power_on_drag = self.power_on_drag_7d
+        if self._datcom_original_drag is not None:
+            power_off_drag = self._datcom_original_drag["power_off_drag_7d"]
+            power_on_drag = self._datcom_original_drag["power_on_drag_7d"]
 
         rocket_dict = {
             "radius": self.radius,
@@ -2270,6 +2300,8 @@ class Rocket:
             "_controllers": self._controllers,
             "sensors": self.sensors,
         }
+        if hasattr(self, "_datcom_calibration"):
+            rocket_dict["datcom_calibration"] = self.datcom_calibration
 
         if kwargs.get("include_outputs", False):
             thrust_to_weight = self.thrust_to_weight
@@ -2377,6 +2409,9 @@ class Rocket:
         # it from the surface's own radius.
         for surface, position, *_ in data["aerodynamic_surfaces"]:
             rocket.add_surfaces(surfaces=surface, positions=position)
+
+        if "datcom_calibration" in data:
+            rocket.add_datcom_calibration(**data["datcom_calibration"])
 
         for button, position, *_ in data["rail_buttons"]:
             rocket.set_rail_buttons(

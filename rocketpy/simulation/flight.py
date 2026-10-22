@@ -26,6 +26,7 @@ from ..tools import (
     quaternions_to_precession,
     quaternions_to_spin,
 )
+from .datcom import DatcomFlightMixin, datcom_derivative
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ ODE_SOLVER_MAP = {
 
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-instance-attributes
-class Flight:
+class Flight(DatcomFlightMixin):
     """Keeps all flight information and has a method to simulate flight.
 
     Attributes
@@ -653,6 +654,7 @@ class Flight:
         # Save arguments
         self.env = environment
         self.rocket = rocket
+        self.rocket.prepare_datcom()
         # Warn about an aerodynamically unstable rocket now that it is fully
         # assembled and about to be simulated. Doing it here (instead of on every
         # add_surfaces call during construction) avoids spurious warnings for
@@ -1998,6 +2000,9 @@ class Flight:
             0,
         )
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        R3 = self._datcom_rail_force(
+            t, stream_velocity_body, free_stream_speed, mach, rho, reynolds, R3
+        )
 
         # Calculate Linear acceleration
         a3 = (R3 + net_thrust) / total_mass_at_t - (
@@ -2018,6 +2023,7 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
+    @datcom_derivative
     def udot_rail2(self, t, u, post_processing=False):
         """Calculates the derivative of the u state vector with respect to time
         for the intermediate 3-DOF "tip-off" rail phase: the upper rail button
@@ -2165,6 +2171,7 @@ class Flight:
         u_dot[10:13] = [w_dot.x, w_dot.y, w_dot.z]
         return u_dot
 
+    @datcom_derivative
     def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
@@ -2311,6 +2318,8 @@ class Flight:
                 omega2,
                 omega3,
             )
+        if self.rocket._datcom_model is not None:
+            drag_coeff = 0.0
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
@@ -2338,9 +2347,9 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
         w = Vector([omega1, omega2, omega3])
-        for aero_surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
+        for aero_surface, _, _ref_factor in self.rocket._flight_aerodynamic_surfaces:
             # Component cp relative to CDM in body frame
-            comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
+            comp_cp = self._surface_cp_at_time(aero_surface, t)
             # Component absolute velocity in body frame
             comp_vb = velocity_in_body_frame + (w ^ comp_cp)
             # Wind velocity at component altitude
@@ -2364,7 +2373,9 @@ class Flight:
                 / comp_dynamic_viscosity
             )
             # Forces and moments
-            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+            X, Y, Z, M, N, L = self._datcom_surface_loads(
+                aero_surface,
+                t,
                 comp_stream_velocity,
                 comp_stream_speed,
                 comp_stream_mach,
@@ -2381,6 +2392,8 @@ class Flight:
             M3 += L
         # Off center moment
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
+
+        M1, M2, M3 = self._datcom_moment_at_cm(t, [R1, R2, R3], [M1, M2, M3])
 
         # Calculate derivatives
         # Angular acceleration
@@ -2511,6 +2524,7 @@ class Flight:
             )
         return u_dot
 
+    @datcom_derivative
     def u_dot_generalized_3dof(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 3 DOF motion in space and significant mass variation
@@ -2576,6 +2590,8 @@ class Flight:
             )
 
         R1, R2 = 0, 0
+        if self.rocket._datcom_model is not None:
+            cd = 0.0
         R3 = -0.5 * rho * free_stream_speed**2 * self.rocket.area * cd
 
         for air_brake in self.rocket.air_brakes:
@@ -2594,8 +2610,8 @@ class Flight:
         # Velocity in body frame
         vb_body = Kt @ v
 
-        for surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
-            cp = self.rocket.surfaces_cp_to_cdm[surface]
+        for surface, _, _ref_factor in self.rocket._flight_aerodynamic_surfaces:
+            cp = self._surface_cp_at_time(surface, t)
             vb_component = vb_body + (w ^ cp)
 
             comp_z = z + (K @ cp).z
@@ -2616,8 +2632,8 @@ class Flight:
                 / comp_dynamic_viscosity
             )
 
-            fx, fy, fz, *_ = surface.compute_forces_and_moments(
-                rel_velocity, rel_speed, rel_mach, rho, cp, w, reynolds
+            fx, fy, fz, *_ = self._datcom_surface_loads(
+                surface, t, rel_velocity, rel_speed, rel_mach, rho, cp, w, reynolds
             )
             R1 += fx
             R2 += fy
@@ -2731,6 +2747,7 @@ class Flight:
 
         return u_dot
 
+    @datcom_derivative
     def u_dot_generalized(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 6 DOF motion in space and significant mass variation
@@ -2846,6 +2863,8 @@ class Flight:
                 omega2,
                 omega3,
             )
+        if self.rocket._datcom_model is not None:
+            drag_coeff = 0.0
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
@@ -2866,9 +2885,9 @@ class Flight:
         # Get rocket velocity in body frame
         velocity_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
+        for aero_surface, _, _ref_factor in self.rocket._flight_aerodynamic_surfaces:
             # Component cp relative to CDM in body frame
-            comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
+            comp_cp = self._surface_cp_at_time(aero_surface, t)
             # Component absolute velocity in body frame
             comp_vb = velocity_in_body_frame + (w ^ comp_cp)
             # Wind velocity at component altitude
@@ -2892,7 +2911,9 @@ class Flight:
                 / comp_dynamic_viscosity
             )
             # Forces and moments
-            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+            X, Y, Z, M, N, L = self._datcom_surface_loads(
+                aero_surface,
+                t,
                 comp_stream_velocity,
                 comp_stream_speed,
                 comp_stream_mach,
@@ -2949,7 +2970,12 @@ class Flight:
         )
 
         # Angular velocity derivative
-        w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
+        if self.rocket._datcom_model is None:
+            w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
+        else:
+            w_dot = self._datcom_angular_acceleration(
+                I_CM, T20, T21, r_CM, [R1, R2, R3], [M1, M2, M3]
+            )
 
         # Euler parameters derivative
         e_dot = [

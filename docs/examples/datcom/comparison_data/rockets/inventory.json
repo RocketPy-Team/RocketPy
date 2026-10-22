@@ -1,0 +1,487 @@
+[
+  {
+    "rocket": "andromeda",
+    "source_notebook": "docs/examples/andromeda_flight_sim.ipynb",
+    "source_sha256": "af60f6b41668aa41f90885324cd7e316c87053660da8f2eb8a755c6e29a83a0d",
+    "actual_agl_m": 3443.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3443.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 3614.946,
+    "saved_apogees": [
+      {
+        "cell": 15,
+        "agl_m": 3614.946
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry maximum 3438.549 m differs from notebook reported value 3443.000 m; both retained."
+    ],
+    "telemetry": {
+      "path": "data/rockets/andromeda/flight_data.csv",
+      "cell": 17,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "ebd3b757555b564c63937b69d2c222d6596355fc6e938d49537af293a9d48d14",
+      "raw_max_agl_m": 3438.549384,
+      "qa_max_agl_m": 3438.549384,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "astra",
+    "source_notebook": "docs/examples/astra_flight_sim.ipynb",
+    "source_sha256": "7e708a54ec4c1d3c2f7c4ec015ac1d537431a33dde79a4b91bb5e1602097731a",
+    "actual_agl_m": 3250.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3250.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 3043.066,
+    "saved_apogees": [
+      {
+        "cell": 14,
+        "agl_m": 3043.066
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry maximum 3249.460 m differs from notebook reported value 3250.000 m; both retained.",
+      "Source fin trailing edge overhangs the nozzle-inferred body base by 1.216 mm. Native DATCOM accepts this; the integration now validates root-chord centre attachment instead of rejecting all overhang. Geometry is unchanged."
+    ],
+    "telemetry": {
+      "path": "data/rockets/astra/flight_data.csv",
+      "cell": 16,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "dd5287b375e84be8961a7c867dc9af764a42752af3109c25086d228978e4acae",
+      "raw_max_agl_m": 3249.46,
+      "qa_max_agl_m": 3249.46,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "bella_lui",
+    "source_notebook": "docs/examples/bella_lui_flight_sim.ipynb",
+    "source_sha256": "1402eee9b084da9307acd9ec84e3f730118d0f6897f25943f2d8a691749061af",
+    "actual_agl_m": 458.971,
+    "reference_kind": "telemetry AGL maximum (QA)",
+    "reported_agl_m": null,
+    "reported_cell": null,
+    "saved_first_agl_m": 460.54,
+    "saved_apogees": [
+      {
+        "cell": 30,
+        "agl_m": 460.54
+      }
+    ],
+    "measured_summaries": [
+      {
+        "cell": 46,
+        "agl_m": 458.97
+      }
+    ],
+    "notes": [],
+    "telemetry": {
+      "path": "data/rockets/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv",
+      "cell": 33,
+      "conversion": "metres AGL, first 573 rows as used in source cell 35",
+      "sha256": "ccf8bcecd91d5b912e8f8b3bcf9efe13248453e1a81dc79d2b4daea4e985de2d",
+      "raw_max_agl_m": 458.971,
+      "qa_max_agl_m": 458.971,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "camoes",
+    "source_notebook": "docs/examples/camoes_flight_sim.ipynb",
+    "source_sha256": "dca32f4603c1acfdce58ffaf6ffce0355767d99da1db2a3ee88c5f60dd50140b",
+    "actual_agl_m": 3015.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3015.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 3003.284,
+    "saved_apogees": [
+      {
+        "cell": 21,
+        "agl_m": 3003.284
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry maximum 3015.996 m differs from notebook reported value 3015.000 m; both retained."
+    ],
+    "telemetry": {
+      "path": "data/rockets/camoes/flight_data.csv",
+      "cell": 26,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "8ceb1a196901569e32a6e9f09067feebb5ca1406d686e402f726e715a1be1dcc",
+      "raw_max_agl_m": 3015.996337890625,
+      "qa_max_agl_m": 3015.996337890625,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "cavour",
+    "source_notebook": "docs/examples/cavour_flight_sim.ipynb",
+    "source_sha256": "9d407019f0a22f7e19bad163131c44dfc10295b1c2290e06035ef968616b83be",
+    "actual_agl_m": 2789.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 2789.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 2817.405,
+    "saved_apogees": [
+      {
+        "cell": 15,
+        "agl_m": 2817.405
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [],
+    "telemetry": {
+      "path": "data/rockets/polito/altimeter_cavour.csv",
+      "cell": 17,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "f912724676eea0ca9ba031c3779e48f861538814170b050b7bda2887c31f29a8",
+      "raw_max_agl_m": 2789.0,
+      "qa_max_agl_m": 2789.0,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "defiance",
+    "source_notebook": "docs/examples/defiance_flight_sim.ipynb",
+    "source_sha256": "0348a6fc8de79458cbc4a48fec1ef3489f5c6a511fd7a215289c34b03aea939b",
+    "actual_agl_m": 9308.318,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 9308.318,
+    "reported_cell": 0,
+    "saved_first_agl_m": 9238.009,
+    "saved_apogees": [
+      {
+        "cell": 10,
+        "agl_m": 9238.009
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Source fin root centre is z=-0.025 m, aft of the tail base z=0.0403 m; native root attachment is outside the declared body."
+    ],
+    "telemetry": null
+  },
+  {
+    "rocket": "erebus",
+    "source_notebook": "docs/examples/erebus_flight_sim.ipynb",
+    "source_sha256": "85d34d7f05a2c3653864b9fdfda2347bfae916c350d480edb7c030c365fd67b4",
+    "actual_agl_m": 3020.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3020.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 2750.904,
+    "saved_apogees": [
+      {
+        "cell": 16,
+        "agl_m": 2750.904
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry maximum 3001.751 m differs from notebook reported value 3020.000 m; both retained."
+    ],
+    "telemetry": {
+      "path": "data/rockets/erebus11/flight_data_filtered.csv",
+      "cell": 18,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "045f5b9ed473b80095805d3ca7b831ca4b67c5afbe9156d58d1e91df9fc0b4a9",
+      "raw_max_agl_m": 3001.75136,
+      "qa_max_agl_m": 3001.75136,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "genesis",
+    "source_notebook": "docs/examples/genesis_flight_sim.ipynb",
+    "source_sha256": "7ee71c93b82327814be4d0874ad83db8d4eca2877f8421025f718d87b511e854",
+    "actual_agl_m": 2916.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 2916.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 3044.091,
+    "saved_apogees": [
+      {
+        "cell": 15,
+        "agl_m": 3044.091
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry maximum 2916.692 m differs from notebook reported value 2916.000 m; both retained."
+    ],
+    "telemetry": {
+      "path": "data/rockets/genesis/flight_data_faraday.csv",
+      "cell": 17,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "d88a7fc53cbd55d1dafeed5d5c6fcfcad27c7cf8e0a15221e67aae97eaa05a74",
+      "raw_max_agl_m": 2916.691650390625,
+      "qa_max_agl_m": 2916.691650390625,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "halcyon",
+    "source_notebook": "docs/examples/halcyon_flight_sim.ipynb",
+    "source_sha256": "ee4e85b91244c95bd4ae0381521aa077e817018e386f2afa9384918dbc453f25",
+    "actual_agl_m": 3450.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3450.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 3212.856,
+    "saved_apogees": [
+      {
+        "cell": 18,
+        "agl_m": 3212.856
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry QA flags 5 samples with altitude jumps above 2000 m/s; raw maximum 3470.825 m is retained separately.",
+      "Telemetry maximum 3470.825 m differs from notebook reported value 3450.000 m; both retained."
+    ],
+    "telemetry": {
+      "path": "data/rockets/astg/altimeter_halcyon.csv",
+      "cell": 20,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "7f1fec2faa53f63a183c97d8a9b692763e7b53d60eab15cc6f42ab646afa85a0",
+      "raw_max_agl_m": 3470.8251953125,
+      "qa_max_agl_m": 3470.8251953125,
+      "qa_rejected_count": 5
+    }
+  },
+  {
+    "rocket": "hedy",
+    "source_notebook": "docs/examples/hedy_flight_sim.ipynb",
+    "source_sha256": "0feb477c3e254afa5ade9bcfb6a44c31f21416e7c1585900a2c90f427b628fe5",
+    "actual_agl_m": 5231.53,
+    "reference_kind": "saved measured-apogee summary",
+    "reported_agl_m": null,
+    "reported_cell": null,
+    "saved_first_agl_m": 5246.918,
+    "saved_apogees": [
+      {
+        "cell": 21,
+        "agl_m": 5246.918
+      }
+    ],
+    "measured_summaries": [
+      {
+        "cell": 26,
+        "agl_m": 5231.53
+      }
+    ],
+    "notes": [
+      "Referenced telemetry file is absent: data/rockets/tust/cats_tust/filteredDataInfo.csv (cell 24).",
+      "Referenced telemetry file is absent: data/rockets/tust/cats_tust/gnssInfo.csv (cell 24).",
+      "Referenced telemetry file is absent: data/rockets/tust/cats_tust/flightInfo.csv (cell 24).",
+      "Referenced telemetry file is absent: data/rockets/tust/cats_tust/imu.csv (cell 24).",
+      "Referenced telemetry file is absent: data/rockets/tust/cats_tust/baro.csv (cell 24).",
+      "Hedy end comparison uses simulated ASL 5406.918 m against measured AGL 5231.53 m; saved simulated AGL is 5246.918 m, a 160 m datum discrepancy."
+    ],
+    "telemetry": null
+  },
+  {
+    "rocket": "juno3",
+    "source_notebook": "docs/examples/juno3_flight_sim.ipynb",
+    "source_sha256": "fd9327a71280f23fb7baedbf50fc8b78fe68845426ffa2d59308f1343d39f112",
+    "actual_agl_m": 3213.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3213.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 2976.849,
+    "saved_apogees": [
+      {
+        "cell": 17,
+        "agl_m": 2976.849
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry QA flags 2 samples with altitude jumps above 2000 m/s; raw maximum 10700.590 m is retained separately.",
+      "Telemetry maximum 10700.590 m differs from notebook reported value 3213.000 m; both retained.",
+      "Source fin airfoil is an empirical lift curve (cell 10), not a supplied section contour. The generic 2% HEX DATCOM assumption does not reproduce that curve; source-drag substitution therefore still has a lateral-model discrepancy."
+    ],
+    "telemetry": {
+      "path": "data/rockets/juno3/cots_altimeter.csv",
+      "cell": 18,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "eef81b3bcc4c285667727c1e2c9ca502a67cb374f5e31bc4f87ed76b8a04c1ee",
+      "raw_max_agl_m": 10700.59,
+      "qa_max_agl_m": 3213.375,
+      "qa_rejected_count": 2
+    }
+  },
+  {
+    "rocket": "lince",
+    "source_notebook": "docs/examples/lince_flight_sim.ipynb",
+    "source_sha256": "a6c5f7094cb8c21d19090feb0c39d2b0df7a307b8160bc03e523a8d10127ce14",
+    "actual_agl_m": 3587.0,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3587.0,
+    "reported_cell": 0,
+    "saved_first_agl_m": 3284.107,
+    "saved_apogees": [
+      {
+        "cell": 20,
+        "agl_m": 3284.107
+      },
+      {
+        "cell": 22,
+        "agl_m": 528.631
+      },
+      {
+        "cell": 24,
+        "agl_m": 528.631
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry QA flags 69 samples with altitude jumps above 2000 m/s; raw maximum 3668.521 m is retained separately.",
+      "Telemetry maximum 3668.521 m differs from notebook reported value 3587.000 m; both retained.",
+      "Lince has three saved trajectories. Compare first/pre-deployment ascent only; retain all saved apogees separately."
+    ],
+    "telemetry": {
+      "path": "data/rockets/lince/main_data.csv",
+      "cell": 26,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "a9cf47fe2b2e5be03168d36b1c41f0a5651a0c3b6db4ed091e1afc274bd7473e",
+      "raw_max_agl_m": 3668.5205078125,
+      "qa_max_agl_m": 3628.76416015625,
+      "qa_rejected_count": 69
+    }
+  },
+  {
+    "rocket": "ndrt_2020",
+    "source_notebook": "docs/examples/ndrt_2020_flight_sim.ipynb",
+    "source_sha256": "ac6ac18064b7297c2f272035bb9e555902aad816add0b7860f6641ad033591b2",
+    "actual_agl_m": 1316.736,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 1316.736,
+    "reported_cell": 0,
+    "saved_first_agl_m": 1293.43,
+    "saved_apogees": [
+      {
+        "cell": 28,
+        "agl_m": 1293.43
+      }
+    ],
+    "measured_summaries": [
+      {
+        "cell": 45,
+        "agl_m": 1320.29
+      }
+    ],
+    "notes": [
+      "NDRT source uses approximate ft conversion /3.281; comparison uses exact 0.3048 m/ft.",
+      "Telemetry maximum 1320.357 m differs from notebook reported value 1316.736 m; both retained.",
+      "Source transition is internal at z=1.2..1.327 m with fins near z=3.05 m. The current DATCOM builder represents only an aft tail, not the required downstream smaller cylinder."
+    ],
+    "telemetry": {
+      "path": "data/rockets/NDRT_2020/ndrt_2020_flight_data.csv",
+      "cell": 31,
+      "conversion": "feet AGL multiplied by exactly 0.3048; source uses division by 3.281",
+      "sha256": "5e64b446199988ac183b2f3965d76da27e57496bb2a33f78df73aa23fd18d7b8",
+      "raw_max_agl_m": 1320.3570240000001,
+      "qa_max_agl_m": 1320.3570240000001,
+      "qa_rejected_count": 0
+    }
+  },
+  {
+    "rocket": "prometheus_2022",
+    "source_notebook": "docs/examples/prometheus_2022_flight_sim.ipynb",
+    "source_sha256": "44e5dfd07323771d54dec3bfb596f943620915d81f162a6b8cc25c3ea1438186",
+    "actual_agl_m": 3898.37,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 3898.37,
+    "reported_cell": 0,
+    "saved_first_agl_m": 4188.81,
+    "saved_apogees": [
+      {
+        "cell": 13,
+        "agl_m": 4188.81
+      }
+    ],
+    "measured_summaries": [
+      {
+        "cell": 17,
+        "agl_m": 3903.77
+      }
+    ],
+    "notes": [
+      "Telemetry QA flags 2 samples with altitude jumps above 2000 m/s; raw maximum 3903.770 m is retained separately.",
+      "Telemetry maximum 3903.770 m differs from notebook reported value 3898.370 m; both retained.",
+      "Prometheus prose says June 2022; source environment and local reanalysis are June 2023. Both reruns preserve source conditions."
+    ],
+    "telemetry": {
+      "path": "data/rockets/prometheus/2022-06-24-serial-5115-flight-0001-TeleMetrum.csv",
+      "cell": 15,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "9fe8d17a25e7944267b34a45ed955303afd5818b3f18479a5f7ffb31a574cecf",
+      "raw_max_agl_m": 3903.77,
+      "qa_max_agl_m": 3903.77,
+      "qa_rejected_count": 2
+    }
+  },
+  {
+    "rocket": "valetudo",
+    "source_notebook": "docs/examples/valetudo_flight_sim.ipynb",
+    "source_sha256": "2b86db6b4846f1badf9d99a7d6825526c889e64303bee4d3c487a72ba3e69c47",
+    "actual_agl_m": 860.0,
+    "reference_kind": "saved measured-apogee summary",
+    "reported_agl_m": 860.0,
+    "reported_cell": 31,
+    "saved_first_agl_m": 815.26,
+    "saved_apogees": [
+      {
+        "cell": 28,
+        "agl_m": 815.26
+      }
+    ],
+    "measured_summaries": [
+      {
+        "cell": 33,
+        "agl_m": 860.0
+      }
+    ],
+    "notes": [
+      "Valetudo flight recordings were lost; only recovered scalar apogee/drift values remain."
+    ],
+    "telemetry": null
+  },
+  {
+    "rocket": "valkyrie",
+    "source_notebook": "docs/examples/valkyrie_flight_sim.ipynb",
+    "source_sha256": "78aacf4df26933a87d28bfc71ad16e94828933672df20dce87545f0ce43267d3",
+    "actual_agl_m": 2098.02,
+    "reference_kind": "notebook reported apogee",
+    "reported_agl_m": 2098.02,
+    "reported_cell": 0,
+    "saved_first_agl_m": 2247.849,
+    "saved_apogees": [
+      {
+        "cell": 11,
+        "agl_m": 2247.849
+      }
+    ],
+    "measured_summaries": [],
+    "notes": [
+      "Telemetry maximum 2059.024 m differs from notebook reported value 2098.020 m; both retained.",
+      "Valkyrie prose says 2025 but source environment says 2026 and fetches live Windy weather; no archived profile is supplied."
+    ],
+    "telemetry": {
+      "path": "data/rockets/valkyrie/flightInfo_merged.csv",
+      "cell": 13,
+      "conversion": "metres AGL, notebook columns_map",
+      "sha256": "0c7808a84fb39c83908ba9caa1d2d3ccb609d6db46c3d660b85977e6917795bc",
+      "raw_max_agl_m": 2059.0244140625,
+      "qa_max_agl_m": 2059.0244140625,
+      "qa_rejected_count": 0
+    }
+  }
+]
