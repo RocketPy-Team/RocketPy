@@ -1024,35 +1024,184 @@ class Rocket:
         return self.nozzle_gyration_tensor
 
     def evaluate_com_to_cdm_function(self):
-        """Evaluates the z-coordinate of the center of mass (COM) relative to
-        the center of dry mass (CDM).
+        """Calculate the signed COM-to-CDM offset used by the flight equations.
 
-        Notes
-        -----
-        1. The `com_to_cdm_function` plus `center_of_mass` should be equal
-        to `center_of_dry_mass_position` at every time step.
-        2. The `com_to_cdm_function` is a function of time and will usually
-        already be discretized.
+        Keep the mass-fraction formula as a callable. Sampling the quotient
+        and then linearly interpolating it would remove its curvature.
 
         Returns
         -------
-        self.com_to_cdm_function : Function
-            Function of time expressing the z-coordinate of the center of mass
-            relative to the center of dry mass.
+        Function
+            Axial offset in meters, including the rocket's coordinate-system
+            sign factor.
         """
-        self.com_to_cdm_function = (
-            -1
-            * (
-                (self.center_of_propellant_position - self.center_of_dry_mass_position)
-                * self._csys
+
+        def source(t):
+            propellant_mass = self.motor.propellant_mass(t)
+            if np.isscalar(propellant_mass) and propellant_mass == 0:
+                return 0.0
+            return (
+                -self._csys
+                * (
+                    self.center_of_propellant_position(t)
+                    - self.center_of_dry_mass_position
+                )
+                * propellant_mass
+                / self.total_mass(t)
             )
-            * self.motor.propellant_mass
-            / self.total_mass
+
+        self.com_to_cdm_function = Function(
+            source,
+            inputs="Time (s)",
+            outputs="Z Coordinate COM to CDM (m)",
         )
-        self.com_to_cdm_function.set_inputs("Time (s)")
-        self.com_to_cdm_function.set_outputs("Z Coordinate COM to CDM (m)")
         self.com_to_cdm_function.set_title("Z Coordinate COM to CDM")
+
+        # A hybrid or cluster combines other motors. Include their data points
+        # so derivative samples cannot cross an underlying interpolation knot.
+        motors = [self.motor]
+        functions = [self.center_of_propellant_position]
+        boundaries = list(self.motor.burn_time)
+        visited = set()
+        for motor in motors:
+            if id(motor) in visited:
+                continue
+            visited.add(id(motor))
+            functions.extend((motor.propellant_mass, motor.center_of_propellant_mass))
+            for name in ("solid", "liquid", "motor"):
+                component = getattr(motor, name, None)
+                if component is not None:
+                    motors.append(component)
+            for positioned_tank in getattr(motor, "positioned_tanks", ()):
+                tank = positioned_tank["tank"]
+                boundaries.extend(tank.flux_time)
+                functions.extend((tank.fluid_mass, tank.center_of_mass))
+
+        for function in functions:
+            grid = getattr(function, "x_array", None)
+            if grid is not None:
+                boundaries.extend(grid)
+
+        boundaries = np.asarray(boundaries, dtype=float)
+        self._com_to_cdm_rate_boundaries = np.unique(
+            boundaries[np.isfinite(boundaries)]
+        )
         return self.com_to_cdm_function
+
+    def _get_com_to_cdm_rates(self, t, dx=1e-4):
+        """Calculate the CM offset and its first two time derivatives.
+
+        Use samples from a single smooth time interval. At an exact boundary,
+        select the interval just after it; this gives a finite one-sided rate,
+        not the impulse associated with an abrupt change in slope.
+
+        Callable mass and position inputs must accept complex perturbations
+        and be smooth between known boundaries. Their internal discontinuities
+        cannot be discovered automatically. After changing these inputs, call
+        ``evaluate_com_to_cdm_function`` to rebuild the boundary list.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+        dx : float, optional
+            Maximum time spacing for derivative samples, in seconds.
+
+        Returns
+        -------
+        tuple of float
+            Signed offset and its first two time derivatives, in m, m/s and m/s².
+        """
+        if not math.isfinite(t) or not math.isfinite(dx) or dx <= 0:
+            raise ValueError("Time must be finite and dx must be positive and finite.")
+
+        boundaries = self._com_to_cdm_rate_boundaries
+        index = np.searchsorted(boundaries, t, side="right")
+        left = boundaries[index - 1] if index else -math.inf
+        right = boundaries[index] if index < len(boundaries) else math.inf
+        h = min(dx, (right - left) / 4)
+        # Move the smallest possible step past a knot so the interpolator
+        # evaluates the segment after it, not the segment before it.
+        anchor = math.nextafter(t, right) if t == left else t
+
+        # Use centered samples when possible. Near an edge, take both samples
+        # inward instead of shrinking the spacing until roundoff dominates.
+        if left < t - h and t + h < right:
+            sample_times = (t - h, t + h)
+            direction = 0
+        elif t + 2 * h < right:
+            sample_times = (t + h, t + 2 * h)
+            direction = 1
+        else:
+            sample_times = (t - h, t - 2 * h)
+            direction = -1
+
+        def input_rates(function):
+            # Interpolated inputs already know their polynomial derivatives.
+            # Use those directly; only callable inputs need extra samples.
+            if getattr(function, "x_array", None) is not None:
+                return (
+                    function(t),
+                    function.differentiate(anchor, order=1),
+                    function.differentiate(anchor, order=2),
+                )
+            if isinstance(function.source, numbers.Number):
+                return function(t), 0.0, 0.0
+            if (
+                not left < anchor < right
+                or not all(left < sample < right for sample in sample_times)
+                or len({anchor, *sample_times}) != 3
+            ):
+                raise ValueError(
+                    "CM branch is too narrow for distinct derivative samples."
+                )
+            # Differentiate the first rate within this interval. A second
+            # difference of values across an ignition kink would create 1/dx.
+            derivative = function.differentiate_complex_step
+            first = derivative(anchor)
+            first_sample, second_sample = (
+                derivative(sample) for sample in sample_times
+            )
+            if direction:
+                second = (
+                    direction
+                    * (-3 * first + 4 * first_sample - second_sample)
+                    / (2 * h)
+                )
+            else:
+                second = (second_sample - first_sample) / (2 * h)
+            return function(t), first, second
+
+        mass, mass_rate, mass_second = input_rates(self.motor.propellant_mass)
+        total_mass = self.dry_mass + mass
+        if total_mass <= 0:
+            raise ValueError("Total rocket mass must be positive.")
+        # With no propellant and no mass change, its center position is
+        # irrelevant and may be undefined (for example, in an empty tank).
+        if mass == 0 and mass_rate == 0 and mass_second == 0:
+            return 0.0, 0.0, 0.0
+
+        position, position_rate, position_second = input_rates(
+            self.center_of_propellant_position
+        )
+        distance = -self._csys * (position - self.center_of_dry_mass_position)
+        distance_rate = -self._csys * position_rate
+        distance_second = -self._csys * position_second
+
+        # The offset is distance * mass_fraction. Apply the quotient rule to
+        # that fraction, then the product rule to the complete offset.
+        fraction = mass / total_mass
+        fraction_rate = self.dry_mass * mass_rate / total_mass**2
+        fraction_second = self.dry_mass * (
+            mass_second / total_mass**2 - 2 * mass_rate**2 / total_mass**3
+        )
+        return (
+            distance * fraction,
+            distance_rate * fraction + distance * fraction_rate,
+            distance_second * fraction
+            + 2 * distance_rate * fraction_rate
+            + distance * fraction_second,
+        )
 
     def get_inertia_tensor_at_time(self, t):
         """Returns a Matrix representing the inertia tensor of the rocket with
