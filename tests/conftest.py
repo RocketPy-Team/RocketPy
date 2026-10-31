@@ -35,6 +35,7 @@ pytest_plugins = [
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
+    "tests.fixtures.surfaces.datcom_fixtures",
     "tests.fixtures.units.numerical_fixtures",
     "tests.fixtures.monte_carlo.monte_carlo_fixtures",
     "tests.fixtures.monte_carlo.stochastic_fixtures",

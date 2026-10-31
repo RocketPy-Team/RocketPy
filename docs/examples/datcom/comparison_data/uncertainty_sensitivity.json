@@ -1,0 +1,866 @@
+{
+  "source": "https://doi.org/10.1088/1757-899X/612/3/032096",
+  "interpretation": "CD excursions are at least 20%; larger native-relative Wu CA discrepancies are used inside Mach 0.8\u20133.02 and alpha \u00b16 degrees. Outside that envelope use 20%. Nose-to-CP distance varies by 2%, with static moments transferred consistently. Native damping is unchanged. These are engineering scenarios, not confidence intervals.",
+  "design_reference": "https://doi.org/10.2514/6.1995-1893",
+  "executable_sha256": "96dfeae8a1ffca2eb82c44be5245f45da0dddfcfbcb5250653f07cfeefa5c22b",
+  "rockets": {
+    "genesis": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 3457.2391270686403,
+          "apogee_agl": 3297.2391270686403,
+          "max_speed": 302.76345699678905,
+          "apogee_speed": 28.75625451927401,
+          "initial_stability_margin": 3.7682700796928534,
+          "out_of_rail_stability_margin": 3.9264865888424123,
+          "apogee_stability_margin": 4.89132068731712,
+          "min_stability_margin": 3.7682700796928534,
+          "max_stability_margin": 5.107551986205654,
+          "outside_paper_fraction": 0.9300699300699301
+        },
+        "upper": {
+          "apogee": 3227.920091987003,
+          "apogee_agl": 3067.920091987003,
+          "max_speed": 299.19067534933924,
+          "apogee_speed": 26.98499209494155,
+          "initial_stability_margin": 4.180282740876794,
+          "out_of_rail_stability_margin": 4.338642667850079,
+          "apogee_stability_margin": 5.3031496581919155,
+          "min_stability_margin": 4.180282740876794,
+          "max_stability_margin": 5.5138976511956885,
+          "outside_paper_fraction": 0.939060939060939
+        },
+        "lower": {
+          "apogee": 3744.4220980788755,
+          "apogee_agl": 3584.4220980788755,
+          "max_speed": 306.69184690874613,
+          "apogee_speed": 30.9702239280247,
+          "initial_stability_margin": 3.356257418508913,
+          "out_of_rail_stability_margin": 3.5143304305810785,
+          "apogee_stability_margin": 4.479543847622946,
+          "min_stability_margin": 3.356257418508913,
+          "max_stability_margin": 4.70667443611118,
+          "outside_paper_fraction": 0.9180819180819181
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 287.1829710102352,
+      "native_envelope": {
+        "nominal": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 3.3632935153000667,
+          "max_abs_beta_deg": 11.894942323656261,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 496,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 2.5952301682283445,
+          "max_abs_beta_deg": 9.231956495818485,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 3.104487131018566,
+          "max_abs_beta_deg": 11.00242402501676,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "astra": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 3855.9340692825294,
+          "apogee_agl": 3695.9340692825294,
+          "max_speed": 319.41090455698634,
+          "apogee_speed": 12.707452224565113,
+          "initial_stability_margin": 3.477476916191179,
+          "out_of_rail_stability_margin": 3.5822049870991735,
+          "apogee_stability_margin": 4.223154479281372,
+          "min_stability_margin": 3.477476916191179,
+          "max_stability_margin": 4.341038533442044,
+          "outside_paper_fraction": 0.9050949050949051
+        },
+        "upper": {
+          "apogee": 3596.8854594405384,
+          "apogee_agl": 3436.8854594405384,
+          "max_speed": 315.99891235458557,
+          "apogee_speed": 11.928479489057194,
+          "initial_stability_margin": 3.801425564491684,
+          "out_of_rail_stability_margin": 3.9062747010897243,
+          "apogee_stability_margin": 4.5470181923502135,
+          "min_stability_margin": 3.801425564491684,
+          "max_stability_margin": 4.66426594578798,
+          "outside_paper_fraction": 0.916083916083916
+        },
+        "lower": {
+          "apogee": 4191.678268358711,
+          "apogee_agl": 4031.6782683587107,
+          "max_speed": 323.267910392008,
+          "apogee_speed": 13.764896118872846,
+          "initial_stability_margin": 3.153528267890674,
+          "out_of_rail_stability_margin": 3.258135223766243,
+          "apogee_stability_margin": 3.899324724968288,
+          "min_stability_margin": 3.153528267890674,
+          "max_stability_margin": 4.0175536067107185,
+          "outside_paper_fraction": 0.8901098901098901
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 335.7441990761813,
+      "native_envelope": {
+        "nominal": {
+          "samples": 480,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 8.95582043567763,
+          "max_abs_beta_deg": 9.383306642057704,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 478,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 8.85578898511313,
+          "max_abs_beta_deg": 9.852063914146145,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 483,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 9.983595517309167,
+          "max_abs_beta_deg": 8.861176709598803,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "andromeda": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 4330.733199067169,
+          "apogee_agl": 4170.733199067169,
+          "max_speed": 354.39862138926986,
+          "apogee_speed": 22.294729425887013,
+          "initial_stability_margin": 4.585569601745527,
+          "out_of_rail_stability_margin": 4.703484196749381,
+          "apogee_stability_margin": 5.544774000773899,
+          "min_stability_margin": 4.585569601745527,
+          "max_stability_margin": 6.103755146564495,
+          "outside_paper_fraction": 0.8541458541458542
+        },
+        "upper": {
+          "apogee": 3953.820927076927,
+          "apogee_agl": 3793.820927076927,
+          "max_speed": 345.63980602248245,
+          "apogee_speed": 19.094045247537714,
+          "initial_stability_margin": 4.8423373972310015,
+          "out_of_rail_stability_margin": 4.960459667722839,
+          "apogee_stability_margin": 5.800869961025899,
+          "min_stability_margin": 4.8423373972310015,
+          "max_stability_margin": 6.215226210974819,
+          "outside_paper_fraction": 0.8721278721278721
+        },
+        "lower": {
+          "apogee": 4991.850019075376,
+          "apogee_agl": 4831.850019075376,
+          "max_speed": 366.9375213055923,
+          "apogee_speed": 22.941698334214752,
+          "initial_stability_margin": 4.328801806260052,
+          "out_of_rail_stability_margin": 4.446513643098465,
+          "apogee_stability_margin": 5.288101071468726,
+          "min_stability_margin": 4.328801806260052,
+          "max_stability_margin": 5.877752518518684,
+          "outside_paper_fraction": 0.8181818181818182
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 661.1168200082066,
+      "native_envelope": {
+        "nominal": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 4.455101471012898,
+          "max_abs_beta_deg": 3.9438542480866237,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 4.852837863335084,
+          "max_abs_beta_deg": 4.296298213273789,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 3.9455237434713717,
+          "max_abs_beta_deg": 3.4924242541360213,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "bella_lui": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 872.8765076067215,
+          "apogee_agl": 465.8765076067215,
+          "max_speed": 86.536415843975,
+          "apogee_speed": 4.528607697641297,
+          "initial_stability_margin": 3.303739452169553,
+          "out_of_rail_stability_margin": 3.3479226761391003,
+          "apogee_stability_margin": 3.535913567929713,
+          "min_stability_margin": 3.303739452169553,
+          "max_stability_margin": 3.559565279795501,
+          "outside_paper_fraction": 1.0
+        },
+        "upper": {
+          "apogee": 864.8178245852426,
+          "apogee_agl": 457.81782458524265,
+          "max_speed": 86.23870354927371,
+          "apogee_speed": 4.548944611027178,
+          "initial_stability_margin": 3.5721444905549093,
+          "out_of_rail_stability_margin": 3.616407091405336,
+          "apogee_stability_margin": 3.804340029126984,
+          "min_stability_margin": 3.5721444905549093,
+          "max_stability_margin": 3.828176106932127,
+          "outside_paper_fraction": 1.0
+        },
+        "lower": {
+          "apogee": 881.2391393227877,
+          "apogee_agl": 474.23913932278765,
+          "max_speed": 86.82127606740399,
+          "apogee_speed": 4.49705681739157,
+          "initial_stability_margin": 3.0353344137841964,
+          "out_of_rail_stability_margin": 3.079438254661712,
+          "apogee_stability_margin": 3.267482064031507,
+          "min_stability_margin": 3.0353344137841964,
+          "max_stability_margin": 3.2909313893946317,
+          "outside_paper_fraction": 1.0
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 8.362631716066176,
+      "native_envelope": {
+        "nominal": {
+          "samples": 427,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 4.441613641629917,
+          "max_abs_beta_deg": 2.9112883549730375,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 426,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 4.488475131122724,
+          "max_abs_beta_deg": 2.942045897409694,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 428,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 4.394128948566002,
+          "max_abs_beta_deg": 2.8801240709456746,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "cavour": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 3401.608548140568,
+          "apogee_agl": 3251.608548140568,
+          "max_speed": 323.4340006101309,
+          "apogee_speed": 24.88986296960189,
+          "initial_stability_margin": 5.465305853006995,
+          "out_of_rail_stability_margin": 5.7013708284471125,
+          "apogee_stability_margin": 7.283772765423224,
+          "min_stability_margin": 5.465305853006995,
+          "max_stability_margin": 7.5399109720635575,
+          "outside_paper_fraction": 0.8961038961038961
+        },
+        "upper": {
+          "apogee": 3118.7222252341453,
+          "apogee_agl": 2968.7222252341453,
+          "max_speed": 316.6957507772502,
+          "apogee_speed": 23.537819610844814,
+          "initial_stability_margin": 5.903796410533909,
+          "out_of_rail_stability_margin": 6.140070732441672,
+          "apogee_stability_margin": 7.722100271251423,
+          "min_stability_margin": 5.903796410533909,
+          "max_stability_margin": 7.983382270974631,
+          "outside_paper_fraction": 0.9080919080919081
+        },
+        "lower": {
+          "apogee": 3810.194984348673,
+          "apogee_agl": 3660.194984348673,
+          "max_speed": 331.85871238372357,
+          "apogee_speed": 26.942891288921942,
+          "initial_stability_margin": 5.02681529548008,
+          "out_of_rail_stability_margin": 5.262670757624004,
+          "apogee_stability_margin": 6.845551020016127,
+          "min_stability_margin": 5.02681529548008,
+          "max_stability_margin": 7.0963216343758955,
+          "outside_paper_fraction": 0.8751248751248751
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 408.58643620810517,
+      "native_envelope": {
+        "nominal": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 1.9473736165566062,
+          "max_abs_beta_deg": 12.065683729942409,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 2.129580272691611,
+          "max_abs_beta_deg": 13.157896775646057,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 1.7458636221776556,
+          "max_abs_beta_deg": 10.847616737384975,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "erebus": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 3413.422625182214,
+          "apogee_agl": 3253.422625182214,
+          "max_speed": 308.5198638691156,
+          "apogee_speed": 15.664867044551544,
+          "initial_stability_margin": 4.4503224821337275,
+          "out_of_rail_stability_margin": 4.6405402957036745,
+          "apogee_stability_margin": 5.702648575972274,
+          "min_stability_margin": 4.4503224821337275,
+          "max_stability_margin": 5.873889545164355,
+          "outside_paper_fraction": 0.9070929070929071
+        },
+        "upper": {
+          "apogee": 3148.004855920229,
+          "apogee_agl": 2988.004855920229,
+          "max_speed": 302.86239456742123,
+          "apogee_speed": 14.485549651824414,
+          "initial_stability_margin": 4.824888899953575,
+          "out_of_rail_stability_margin": 5.01538340599054,
+          "apogee_stability_margin": 6.076992057927276,
+          "min_stability_margin": 4.824888899953575,
+          "max_stability_margin": 6.2519313210398435,
+          "outside_paper_fraction": 0.9170829170829171
+        },
+        "lower": {
+          "apogee": 3772.9959689910174,
+          "apogee_agl": 3612.9959689910174,
+          "max_speed": 315.4670808161504,
+          "apogee_speed": 17.265909652883064,
+          "initial_stability_margin": 4.07575606431388,
+          "out_of_rail_stability_margin": 4.265696969274982,
+          "apogee_stability_margin": 5.3283920495862995,
+          "min_stability_margin": 4.07575606431388,
+          "max_stability_margin": 5.495786616195357,
+          "outside_paper_fraction": 0.8911088911088911
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 359.57334380880366,
+      "native_envelope": {
+        "nominal": {
+          "samples": 498,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 12.023825633907418,
+          "max_abs_beta_deg": 9.12247497249757,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 488,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 12.863719989379279,
+          "max_abs_beta_deg": 8.335969260511183,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 498,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 11.093372453157416,
+          "max_abs_beta_deg": 6.876124765242702,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "halcyon": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 3660.231782008296,
+          "apogee_agl": 3530.231782008296,
+          "max_speed": 284.79196487454544,
+          "apogee_speed": 22.28831495017391,
+          "initial_stability_margin": 4.410248384571101,
+          "out_of_rail_stability_margin": 4.501576140160219,
+          "apogee_stability_margin": 5.426387099501152,
+          "min_stability_margin": 4.403754068364298,
+          "max_stability_margin": 5.624957324721769,
+          "outside_paper_fraction": 0.973026973026973
+        },
+        "upper": {
+          "apogee": 3464.1995082721137,
+          "apogee_agl": 3334.1995082721137,
+          "max_speed": 281.7541128300012,
+          "apogee_speed": 21.616295110807116,
+          "initial_stability_margin": 4.763215565653098,
+          "out_of_rail_stability_margin": 4.854744369200055,
+          "apogee_stability_margin": 5.779233819859947,
+          "min_stability_margin": 4.756722121040066,
+          "max_stability_margin": 5.981855976381463,
+          "outside_paper_fraction": 0.981018981018981
+        },
+        "lower": {
+          "apogee": 3887.6088313281516,
+          "apogee_agl": 3757.6088313281516,
+          "max_speed": 287.9040440588603,
+          "apogee_speed": 24.481084745257697,
+          "initial_stability_margin": 4.0572812034891035,
+          "out_of_rail_stability_margin": 4.148406636523434,
+          "apogee_stability_margin": 5.074044214225203,
+          "min_stability_margin": 4.050786008569865,
+          "max_stability_margin": 5.267863909431595,
+          "outside_paper_fraction": 0.965034965034965
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 227.37704931985581,
+      "native_envelope": {
+        "nominal": {
+          "samples": 495,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 7.051663487140428,
+          "max_abs_beta_deg": 14.276458017233338,
+          "solver_mach_excursion": false,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 495,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 7.421276011579826,
+          "max_abs_beta_deg": 14.999686407796483,
+          "solver_mach_excursion": false,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 495,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 6.674591236561544,
+          "max_abs_beta_deg": 13.535015697830659,
+          "solver_mach_excursion": false,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "juno3": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 4536.549606738187,
+          "apogee_agl": 3056.5496067381873,
+          "max_speed": 250.8063284271083,
+          "apogee_speed": 57.48122903189963,
+          "initial_stability_margin": 4.008594996785594,
+          "out_of_rail_stability_margin": 4.094195462883622,
+          "apogee_stability_margin": 5.338310321893494,
+          "min_stability_margin": 4.008594996785594,
+          "max_stability_margin": 5.397745458575622,
+          "outside_paper_fraction": 1.0
+        },
+        "upper": {
+          "apogee": 4387.190741370203,
+          "apogee_agl": 2907.190741370203,
+          "max_speed": 248.7712829023005,
+          "apogee_speed": 57.843074253310824,
+          "initial_stability_margin": 4.340702472953844,
+          "out_of_rail_stability_margin": 4.426376550344119,
+          "apogee_stability_margin": 5.6706177293209015,
+          "min_stability_margin": 4.340702472953844,
+          "max_stability_margin": 5.7311784989082835,
+          "outside_paper_fraction": 1.0
+        },
+        "lower": {
+          "apogee": 4703.819339385335,
+          "apogee_agl": 3223.8193393853353,
+          "max_speed": 252.90841683422335,
+          "apogee_speed": 56.974466806308385,
+          "initial_stability_margin": 3.6764875206173433,
+          "out_of_rail_stability_margin": 3.7620139997171846,
+          "apogee_stability_margin": 5.005978221658281,
+          "min_stability_margin": 3.6764875206173433,
+          "max_stability_margin": 5.064292888954693,
+          "outside_paper_fraction": 1.0
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 167.26973264714798,
+      "native_envelope": {
+        "nominal": {
+          "samples": 486,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 43.59273692070459,
+          "max_abs_beta_deg": 5.480286417702728,
+          "solver_mach_excursion": false,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 486,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 45.94846265203522,
+          "max_abs_beta_deg": 5.09075477377063,
+          "solver_mach_excursion": false,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 487,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 46.446439642116566,
+          "max_abs_beta_deg": 5.8681595487055995,
+          "solver_mach_excursion": false,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "lince": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 4412.30425999591,
+          "apogee_agl": 4254.30425999591,
+          "max_speed": 347.0940731984339,
+          "apogee_speed": 32.98716076124619,
+          "initial_stability_margin": 3.962666916625163,
+          "out_of_rail_stability_margin": 4.12996224993943,
+          "apogee_stability_margin": 5.575817418038545,
+          "min_stability_margin": 3.962666916625163,
+          "max_stability_margin": 6.131460425080713,
+          "outside_paper_fraction": 0.8521478521478522
+        },
+        "upper": {
+          "apogee": 4047.101707098463,
+          "apogee_agl": 3889.101707098463,
+          "max_speed": 339.2818018348115,
+          "apogee_speed": 30.710825671833465,
+          "initial_stability_margin": 4.275640542135408,
+          "out_of_rail_stability_margin": 4.443136776520599,
+          "apogee_stability_margin": 5.888287982276191,
+          "min_stability_margin": 4.275640542135408,
+          "max_stability_margin": 6.399334718246965,
+          "outside_paper_fraction": 0.8691308691308691
+        },
+        "lower": {
+          "apogee": 5007.011561829239,
+          "apogee_agl": 4849.011561829239,
+          "max_speed": 357.6190498314763,
+          "apogee_speed": 35.85280474203033,
+          "initial_stability_margin": 3.6496932911149185,
+          "out_of_rail_stability_margin": 3.8167876689758504,
+          "apogee_stability_margin": 5.2633064922815835,
+          "min_stability_margin": 3.6496932911149185,
+          "max_stability_margin": 5.806755914874441,
+          "outside_paper_fraction": 0.8201798201798202
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 594.7073018333294,
+      "native_envelope": {
+        "nominal": {
+          "samples": 498,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 3.100325929162926,
+          "max_abs_beta_deg": 3.920227060235464,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 2.404255311909931,
+          "max_abs_beta_deg": 3.040785153597855,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 498,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 2.8539643185582393,
+          "max_abs_beta_deg": 3.609035646060776,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "prometheus_2022": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 5630.19676461329,
+          "apogee_agl": 4229.19676461329,
+          "max_speed": 332.2965115237052,
+          "apogee_speed": 36.42082131487423,
+          "initial_stability_margin": 1.7889093089472907,
+          "out_of_rail_stability_margin": 1.8377492349529205,
+          "apogee_stability_margin": 2.518445209117559,
+          "min_stability_margin": 1.7889093089472907,
+          "max_stability_margin": 2.6467415686542166,
+          "outside_paper_fraction": 0.8691308691308691
+        },
+        "upper": {
+          "apogee": 5314.979327730014,
+          "apogee_agl": 3913.979327730014,
+          "max_speed": 326.87595439526086,
+          "apogee_speed": 34.971275095920255,
+          "initial_stability_margin": 2.0388086871863798,
+          "out_of_rail_stability_margin": 2.087683531105383,
+          "apogee_stability_margin": 2.7681857426437437,
+          "min_stability_margin": 2.0388086871863798,
+          "max_stability_margin": 2.883078435113149,
+          "outside_paper_fraction": 0.8841158841158842
+        },
+        "lower": {
+          "apogee": 6066.186108382249,
+          "apogee_agl": 4665.186108382249,
+          "max_speed": 338.6532645140468,
+          "apogee_speed": 38.2414051393605,
+          "initial_stability_margin": 1.539009930708202,
+          "out_of_rail_stability_margin": 1.587814932959005,
+          "apogee_stability_margin": 2.2687552586846875,
+          "min_stability_margin": 1.539009930708202,
+          "max_stability_margin": 2.4123877488337864,
+          "outside_paper_fraction": 0.8471528471528471
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 435.98934376895886,
+      "native_envelope": {
+        "nominal": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 0.7103949840277883,
+          "max_abs_beta_deg": 0.745924092897197,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 496,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 0.6822439088840412,
+          "max_abs_beta_deg": 0.6137104827345524,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 497,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 0.729535374572074,
+          "max_abs_beta_deg": 0.6988787884025948,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    },
+    "valetudo": {
+      "policy": "CD: at least \u00b120%, larger Wu CA discrepancies inside its envelope; nose-to-CP distance: \u00b12%. Engineering scenarios, not confidence intervals.",
+      "cases": {
+        "nominal": {
+          "apogee": 1611.619007322401,
+          "apogee_agl": 943.6190073224011,
+          "max_speed": 126.83406577404007,
+          "apogee_speed": 12.245755336519384,
+          "initial_stability_margin": 4.156583455241121,
+          "out_of_rail_stability_margin": 4.360037597957584,
+          "apogee_stability_margin": 5.252556214138524,
+          "min_stability_margin": 4.156583455241121,
+          "max_stability_margin": 5.361022277859971,
+          "outside_paper_fraction": 1.0
+        },
+        "upper": {
+          "apogee": 1589.1450730019071,
+          "apogee_agl": 921.1450730019071,
+          "max_speed": 126.41599706040827,
+          "apogee_speed": 11.972107522469505,
+          "initial_stability_margin": 4.5418365323120655,
+          "out_of_rail_stability_margin": 4.7456077885826655,
+          "apogee_stability_margin": 5.637714570036948,
+          "min_stability_margin": 4.5418365323120655,
+          "max_stability_margin": 5.746759492472915,
+          "outside_paper_fraction": 1.0
+        },
+        "lower": {
+          "apogee": 1634.867844154012,
+          "apogee_agl": 966.8678441540119,
+          "max_speed": 127.22896610139178,
+          "apogee_speed": 12.532444379679278,
+          "initial_stability_margin": 3.771330378170176,
+          "out_of_rail_stability_margin": 3.9744673966573947,
+          "apogee_stability_margin": 4.867399635557609,
+          "min_stability_margin": 3.771330378170176,
+          "max_stability_margin": 4.975170519567735,
+          "outside_paper_fraction": 1.0
+        }
+      },
+      "errors": {},
+      "apogee_uncertainty_m": 23.248836831610788,
+      "native_envelope": {
+        "nominal": {
+          "samples": 448,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 15.80193704194847,
+          "max_abs_beta_deg": 5.1181201273022525,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "upper": {
+          "samples": 446,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 14.992419060908908,
+          "max_abs_beta_deg": 4.727047873671721,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        },
+        "lower": {
+          "samples": 450,
+          "outside_mach": 0,
+          "outside_alpha": 0,
+          "outside_beta": 0,
+          "max_abs_alpha_deg": 17.20684807746054,
+          "max_abs_beta_deg": 6.145879075165148,
+          "solver_mach_excursion": true,
+          "solver_alpha_excursion": true,
+          "solver_beta_excursion": true
+        }
+      }
+    }
+  }
+}

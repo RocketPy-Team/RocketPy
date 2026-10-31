@@ -1,0 +1,71 @@
+{
+  "source": "Zero-clamp replay of opt-out/ga_best_params.json using configured forecast and saved aerodynamic tables",
+  "altitude_reference": "metres above sea level",
+  "unreached_mach_policy": "Use burnout altitude above the maximum simulated Mach; these points are outside this trajectory.",
+  "trajectory": {
+    "burnout_s": 7.594817071602963,
+    "apogee_asl_m": 3059.248509712067,
+    "apogee_time_s": 27.877298335405182,
+    "release_s": 0.34044468170422326
+  },
+  "mach": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+    1.5,
+    1.6
+  ],
+  "power_on": {
+    "altitude_m": [
+      132,
+      182,
+      263,
+      373,
+      511,
+      676,
+      866,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895
+    ],
+    "max_simulated_mach": 0.7140579159791377
+  },
+  "power_off": {
+    "altitude_m": [
+      3043,
+      2884,
+      2626,
+      2287,
+      1884,
+      1439,
+      966,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895,
+      895
+    ],
+    "max_simulated_mach": 0.7140579159791377
+  }
+}

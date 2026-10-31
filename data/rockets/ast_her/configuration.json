@@ -1,0 +1,171 @@
+{
+  "rocket": {
+    "center_of_mass_without_motor": 3.16,
+    "center_of_mass_with_motor": 3.27,
+    "coordinate_system_orientation": "nose_to_tail",
+    "drag_curve": "input_data/drag_curve.CSV",
+    "inertia": [
+      81.7,
+      82.7,
+      0.237
+    ],
+    "radius": 0.0895,
+    "rocket_dry_mass": 47.25,
+    "rocket_fuel_volume_for_mass_and_xle": 26.2,
+    "rocket_length_without_boattail_and_nosecone": 4.329,
+    "mass-cost-kg-per-liter-fuel": 0.36,
+    "extra_length_meter_per_liter_fuel": 0.0445
+  },
+  "motors": {
+    "position": 5.262,
+    "clamp_force": 2000,
+    "clamp_force_mode": "fixed",
+    "max_impulse": 40960,
+    "lox_density": 1141,
+    "lox_density_gas": 1.429,
+    "eth_density": 789,
+    "eth_density_gas": 1.59,
+    "pressurant_density_300bar": 303,
+    "pressurant_density_40bar_cold": 95,
+    "pressurant_density_60bar": 60,
+    "ullage_volume": 0.2,
+    "pressurant_tank_volume": 0.0068,
+    "fuel_tank_volume": 0.0128,
+    "oxidizer_tank_volume": 0.0131,
+    "maximum_thrust": 2700,
+    "minimum_thrust": 1750,
+    "throttle_rate": 800,
+    "throttle_rate_up": 1000,
+    "of": 1.5,
+    "reference_pressure": 101325,
+    "thrust_source": "input/thrust-curves/opt-ThrustCurve.csv",
+    "isp_degradation_factor": 0.74,
+    "tank_optimization": false,
+    "ramp_up_time": 1.5,
+    "tank_radius": 0.0845,
+    "prnt_tank_radius": 0.0775,
+    "tank_spherical_caps": false,
+    "numeric_stab_mass": 0.18,
+    "lox_tank_height": 0.52,
+    "lox_tank_position": 1.07,
+    "eth_tank_height": 0.62,
+    "eth_tank_position": 2.09,
+    "pressure_tank_height": 0.50051981,
+    "pressure_tank_position": 3.05,
+    "nozzle_exit_radius": 0.0413,
+    "nozzle_position": 0.0,
+    "motor_dry_inertia": [
+      3900,
+      3970,
+      9304
+    ],
+    "casing_diameter": 100,
+    "center_of_dry_mass_position": 0,
+    "coordinate_system_orientation": "nozzle_to_combustion_chamber",
+    "dry_inertia_lxx": 65.035,
+    "dry_inertia_lyy": 64.931,
+    "dry_inertia_lzz": 0.744,
+    "dry_mass": 0,
+    "nozzle_radius": 0.051115125,
+    "throat_radius": 0.034076749999999996
+  },
+  "nosecones": {
+    "base_radius": 0.0895,
+    "kind": "Von Karman",
+    "length": 0.81,
+    "name": "Nose Cone with tip",
+    "position": 0.0
+  },
+  "fins": {
+    "SECTYP": "HEX",
+    "XLE": [
+      4.37,
+      4.652
+    ],
+    "SSPAN": [
+      0.0895,
+      0.235
+    ],
+    "CHORD": [
+      0.53,
+      0.2
+    ],
+    "ZUPPER": [
+      0.005622641509433962,
+      0.01192
+    ],
+    "LMAXU": [
+      0.023962264150943394,
+      0.0508
+    ],
+    "LFLATU": [
+      0.9041509433962265,
+      0.7968
+    ],
+    "cant_angle": 0.0,
+    "NPANEL": 4,
+    "ZLOWER": [
+      0.0,
+      0.0149
+    ],
+    "LER": 0.0025,
+    "position": 4.37
+  },
+  "tails": {
+    "DAFT": 0.167,
+    "LAFT": 0.125,
+    "position": 5.137
+  },
+  "rail_buttons": {
+    "angular_position": 0.0,
+    "lower_position": 4.3,
+    "name": "Rail Button",
+    "upper_position": 2.4
+  },
+  "flight": {
+    "minimum_rail_exit_velocity": 31.8,
+    "velocity_safety_factor": 1.01,
+    "heading": 144.0,
+    "inclination": 75.0,
+    "rail_length": 15,
+    "apogee_expectation": 850
+  },
+  "environment": {
+    "timezone": "Europe/Lisbon",
+    "atmospheric_model": "Forecast",
+    "weather_file": "train-weather-data/EuroC_pressure_levels_reanalysis_2021-2024.nc",
+    "weather_dictionary": "ECMWF",
+    "year": 2026,
+    "month": 10,
+    "day": 20,
+    "hour": 15,
+    "minute": 30,
+    "forecast_file": "input/forecast_sweep/environment_20261020T1530Z.json",
+    "elevation": 160.0,
+    "latitude": 39.3897,
+    "longitude": -8.288964,
+    "max_height": 2600
+  },
+  "provenance": {
+    "repository": "Asteria-Flight-Dynamics",
+    "snapshot_date": "2026-10-21",
+    "configuration_files": [
+      "input/input_parameters.json",
+      "input/input_visualization_parameters.json"
+    ],
+    "data_files": {
+      "thrust_curve.csv": "input/thrust-curves/Optimized_ThrustCurve.csv",
+      "performance.csv": "input/throttle_performance_MARK_VI_b.csv",
+      "atmosphere.json": "input/forecast_sweep/environment_20261020T1530Z.json",
+      "flight_conditions.json": "input/datcom_flight_conditions.json"
+    },
+    "sha256": {
+      "thrust_curve.csv": "610081e56c5c465daf7a69b2f9ea947a0d7e4869520436b5b6ecba7b342fb08b",
+      "performance.csv": "bd24c698dae2f932a33e8192b1b6e3ee1836b4d278ca84af7bc3d49ede6d9e28",
+      "atmosphere.json": "4102eabfe54ca1929d95237c2c08f8dd0daf4b2247035d093f2008a3217f8be1",
+      "flight_conditions.json": "cfbfc05db1fec48c23134b077be5c2997559e2a7121fe0d1e2ab9e35aea0ec06"
+    },
+    "thrust_note": "Configured input/thrust-curves/opt-ThrustCurve.csv is absent; use existing Optimized_ThrustCurve.csv. No thrust optimization is performed.",
+    "simulation_note": "Native RocketPy Flight; Asteria hold-down clamp and PROTUB aerocover are excluded. Configured dry mass and dry inertias are preserved, including nonzero motor inertia with zero motor dry mass."
+  }
+}

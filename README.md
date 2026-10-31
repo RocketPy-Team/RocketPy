@@ -40,6 +40,11 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 3. **Aerodynamic Models**
    - Optional Barrowman equations for lift coefficients
    - Easy import of drag coefficients from other sources (e.g., CFD simulations)
+   - Experimental Missile DATCOM integration with nominal, upper and lower
+     coefficient sensitivity flights for apogee, ascent speed and stability.
+     Flight reports show apogee ± the largest scenario departure in meters.
+     [Usage, assumptions and limitations](docs/user/rocket/datcom.rst) and
+     [comparison examples](docs/examples/datcom/README.md).
 
 4. **Parachutes with External Trigger Functions**
    - Test the exact code that will fly
@@ -64,6 +69,41 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
    - Convert RocketPy results to MATLAB® variables for further processing
 
 These powerful features make RocketPy an indispensable tool for high-power rocket trajectory simulation, catering to enthusiasts, researchers, and engineers in the field of rocketry.
+
+DATCOM flights include two engineering sensitivity ascents around the nominal
+prediction. Static wind-axis **CD varies by at least ±20% at every Mach and
+AoA**. Within Mach 0.8–3.02 and alpha ±6°, larger axial-force discrepancies
+from Wu et al. are used as a CD-error proxy after converting them to the native
+prediction's denominator; outside that envelope the excursion is 20%.
+**CP varies by ±2% of its distance from the nose**, with static pitching/yawing
+moments transferred consistently. Drag is varied along the airflow, preserving
+perpendicular force; native damping derivatives are retained. These replace
+the earlier independent CN/CM-alpha variations. CP uncertainty is not a
+percentage of stability margin. Both powered and coast tables use this rule.
+
+The reference for the design-accuracy discussion is J. T. White (1995),
+*An assessment of missile DATCOM prediction accuracy relative to generic
+Body+Wing+Tail missile pitch aerodynamics*, AIAA 95-1893,
+[doi:10.2514/6.1995-1893](https://doi.org/10.2514/6.1995-1893).
+White evaluates CN/CP for Mach 1.5–5.0; his cited preliminary-design criteria
+concern normal force and CP relative to body length. **He does not establish
+a universal ±20% CD uncertainty or ±2% nose-to-CP uncertainty.** Applying these
+two percentages throughout rocket flight is an explicit engineering assumption,
+not a result validated by that paper.
+
+The larger drag discrepancies adapt Table 2 of Hanzhou Wu, Min Gao, Weidong
+Song, Zhao Jie and Yi Wang (2019), *Accuracy Analysis of Aerodynamic Calculation
+of Two-dimensional Ballistic correction Projectile based on Missile Datcom*,
+**IOP Conference Series: Materials Science and Engineering 612**, 032096,
+[doi:10.1088/1757-899X/612/3/032096](https://doi.org/10.1088/1757-899X/612/3/032096),
+under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+
+Printed apogee ± uncertainty is the largest departure from nominal in the two
+correlated scenarios, **not a confidence interval or a guaranteed envelope**.
+The comparison discrepancies remain unresolved. See the
+[method and limitations](docs/user/rocket/datcom.rst) and
+[comparison charts](docs/examples/datcom/README.md). Use
+`Flight(..., datcom_uncertainty=False)` to skip the two extra ascents.
 
 ## Validation
 

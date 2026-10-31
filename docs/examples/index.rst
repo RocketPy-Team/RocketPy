@@ -113,5 +113,6 @@ In the next sections you will find the simulations of the rockets listed above.
    defiance_flight_sim.ipynb
    hedy_flight_sim.ipynb
    valkyrie_flight_sim.ipynb
-
+   datcom/rocket_comparison.ipynb
+   datcom/asteria_comparison.ipynb
 

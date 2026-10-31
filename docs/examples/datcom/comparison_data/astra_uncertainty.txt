@@ -1,0 +1,29 @@
+
+Apogee State
+
+Apogee Time: 26.806 s
+Apogee Altitude: 3855.934 ± 335.744 m (ASL) | 3695.934 ± 335.744 m (AGL)
+Apogee Freestream Speed: 12.707 m/s
+DATCOM nominal: peak ascent speed 319.411 ± 3.857 m/s
+DATCOM coefficient upper: apogee 3436.885 m (AGL) | peak ascent speed 315.999 m/s | apogee freestream speed 11.928 m/s
+DATCOM coefficient lower: apogee 4031.678 m (AGL) | peak ascent speed 323.268 m/s | apogee freestream speed 13.765 m/s
+DATCOM ±: largest departure from nominal in two engineering sensitivity runs; not a confidence interval. Upper/lower mean more/less drag and farther-aft/forward CP, not guaranteed altitude bounds.
+DATCOM sensitivity: CD at least ±20%; nose-to-CP distance ±2%.
+DATCOM nominal: 90.5% of ascent time outside Wu Mach 0.8–3.02 / incidence ±6° coverage; 20% CD floor used outside its alpha/Mach envelope.
+DATCOM upper: 91.6% of ascent time outside Wu Mach 0.8–3.02 / incidence ±6° coverage; 20% CD floor used outside its alpha/Mach envelope.
+DATCOM lower: 89.0% of ascent time outside Wu Mach 0.8–3.02 / incidence ±6° coverage; 20% CD floor used outside its alpha/Mach envelope.
+Apogee X position: 337.021 m
+Apogee Y position: -321.485 m
+Apogee latitude: 39.3868081°
+Apogee longitude: -8.2850414°
+
+Stability Margin
+
+Initial Stability Margin: 3.477 ± 0.324 c at 0.00 s
+Out of Rail Stability Margin: 3.582 ± 0.324 c at 0.47 s
+Maximum Stability Margin: 4.341 c at 3.17 s
+Minimum Stability Margin: 3.477 c at 0.00 s
+DATCOM nominal stability at apogee: 4.223 ± 0.324 c
+DATCOM nominal ascent stability min/max: 3.477 ± 0.324 / 4.341 ± 0.323 c
+DATCOM coefficient upper stability: initial 3.801 c | rail exit 3.906 c | apogee 4.547 c | ascent min/max 3.801 / 4.664 c
+DATCOM coefficient lower stability: initial 3.154 c | rail exit 3.258 c | apogee 3.899 c | ascent min/max 3.154 / 4.018 c

@@ -1,5 +1,6 @@
 from rocketpy.rocket.aero_surface.aero_surface import AeroSurface
 from rocketpy.rocket.aero_surface.air_brakes import AirBrakes
+from rocketpy.rocket.aero_surface.datcom_fins import DatcomFins, DatcomFreeFormFins
 from rocketpy.rocket.aero_surface.fins import (
     EllipticalFin,
     EllipticalFins,

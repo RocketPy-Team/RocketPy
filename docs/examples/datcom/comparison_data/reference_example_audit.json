@@ -1,0 +1,226 @@
+{
+  "executable_sha256": "96dfeae8a1ffca2eb82c44be5245f45da0dddfcfbcb5250653f07cfeefa5c22b",
+  "scope": "Reference-example audit; original flight comparisons and production defaults unchanged",
+  "manual_source": "Missile DATCOM Users Guide, Figures 19-21, printed pp. 65-67",
+  "manual_source_units": "DIM IN; REN per foot",
+  "generated_units": "DIM M; REN per metre; identical physical reference area/length/CG",
+  "manual_comparison": {
+    "CA": {
+      "alpha_deg": [
+        0.0,
+        4.0,
+        8.0,
+        12.0,
+        16.0,
+        20.0,
+        24.0,
+        28.0
+      ],
+      "published": [
+        0.466,
+        0.465,
+        0.463,
+        0.458,
+        0.453,
+        0.445,
+        0.436,
+        0.426
+      ],
+      "generated_default": [
+        0.46,
+        0.459,
+        0.457,
+        0.453,
+        0.447,
+        0.44,
+        0.431,
+        0.421
+      ],
+      "generated_with_sose": [
+        0.466,
+        0.465,
+        0.463,
+        0.458,
+        0.453,
+        0.445,
+        0.436,
+        0.426
+      ],
+      "max_difference_same_method": 0.0
+    },
+    "CN": {
+      "alpha_deg": [
+        0.0,
+        4.0,
+        8.0,
+        12.0,
+        16.0,
+        20.0,
+        24.0,
+        28.0
+      ],
+      "published": [
+        0.0,
+        1.179,
+        2.476,
+        3.992,
+        5.582,
+        7.151,
+        8.601,
+        10.093
+      ],
+      "generated_default": [
+        0.0,
+        1.154,
+        2.427,
+        3.92,
+        5.488,
+        7.038,
+        8.472,
+        9.949
+      ],
+      "generated_with_sose": [
+        0.0,
+        1.179,
+        2.476,
+        3.992,
+        5.582,
+        7.151,
+        8.601,
+        10.093
+      ],
+      "max_difference_same_method": 0.0
+    },
+    "CM": {
+      "alpha_deg": [
+        0.0,
+        4.0,
+        8.0,
+        12.0,
+        16.0,
+        20.0,
+        24.0,
+        28.0
+      ],
+      "published": [
+        0.0,
+        -1.577,
+        -3.194,
+        -5.056,
+        -6.962,
+        -8.904,
+        -10.792,
+        -12.692
+      ],
+      "generated_default": [
+        0.0,
+        -1.462,
+        -2.967,
+        -4.723,
+        -6.531,
+        -8.383,
+        -10.194,
+        -12.031
+      ],
+      "generated_with_sose": [
+        0.0,
+        -1.577,
+        -3.194,
+        -5.056,
+        -6.962,
+        -8.904,
+        -10.792,
+        -12.692
+      ],
+      "max_difference_same_method": 0.0
+    }
+  },
+  "ansys_source": "https://ansyshelp.ansys.com/public/Views/Secured/ModelCenter/v252/en/ModelCenter_Rem_Exec/ModelCenter_Rem_Exec/mcre_functions/wrappers_components/FileWrapper/examples/ref_fileWrapper_example_missiledatcom.html",
+  "ansys_sections": [
+    {
+      "variant": "root_only_as_published",
+      "zupper": [
+        0.04
+      ],
+      "effective_total_thickness_to_chord": 0.066,
+      "output_kind": "trimmed coefficients; unsupported by the passive whole-vehicle table parser"
+    },
+    {
+      "variant": "root_and_tip_explicit",
+      "zupper": [
+        0.04,
+        0.04
+      ],
+      "effective_total_thickness_to_chord": 0.08,
+      "output_kind": "trimmed coefficients; unsupported by the passive whole-vehicle table parser"
+    }
+  ],
+  "low_mach_method_checks": [
+    {
+      "rocket": "genesis",
+      "mach": [
+        0.3,
+        0.6,
+        0.9,
+        1.05,
+        1.2
+      ],
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "max_cm_difference": 0.0
+    },
+    {
+      "rocket": "andromeda",
+      "mach": [
+        0.3,
+        0.6,
+        0.9,
+        1.05,
+        1.2
+      ],
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "max_cm_difference": 0.0
+    },
+    {
+      "rocket": "astra",
+      "mach": [
+        0.3,
+        0.6,
+        0.9,
+        1.05,
+        1.2
+      ],
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "max_cm_difference": 0.0
+    }
+  ],
+  "manual_damping_grid_effect": {
+    "change": "Add alpha=-4 degrees ahead of the published 0..28 schedule; extra Mach 2.35 alone was checked to have no effect",
+    "cna_at_zero_original_per_degree": 0.2802,
+    "cna_at_zero_signed_per_degree": 0.2948,
+    "max_dynamic_difference_by_channel": {
+      "CNQ": 0.08300000000000018,
+      "CMQ": 0.367,
+      "CAQ": 0.0,
+      "CNAD": 0.07300000000000006,
+      "CMAD": 0.04800000000000004,
+      "CYR": 0.04700000000000015,
+      "CLNR": 0.2060000000000004,
+      "CLLR": 0.0,
+      "CYP": 0.0,
+      "CLNP": 0.0,
+      "CLLP": 0.0
+    }
+  },
+  "manual_damping_max_difference_same_method_and_grid": 0.001000000000000334,
+  "ansys_reference_normalization": {
+    "area_ratio": 1.1026254457406508,
+    "example_ca_alpha0": 0.611,
+    "frontal_area_ca_alpha0": 0.673,
+    "untrimmed_cd_alpha10": 0.711,
+    "published_trimmed_cd_alpha10": 0.736,
+    "note": "Three-decimal coefficient printing limits normalization comparisons; trimmed and untrimmed CD are different states"
+  }
+}

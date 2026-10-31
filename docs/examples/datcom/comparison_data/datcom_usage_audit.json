@@ -1,0 +1,951 @@
+{
+  "manual": "Missile DATCOM Users Guide, revision 5/97",
+  "native": "local revision 3/99 executable",
+  "executable_sha256": "96dfeae8a1ffca2eb82c44be5245f45da0dddfcfbcb5250653f07cfeefa5c22b",
+  "controlled_conditions": {
+    "mach": [
+      0.3,
+      0.6,
+      0.9,
+      1.2,
+      3.0
+    ],
+    "alpha_deg": [
+      -2,
+      0,
+      2
+    ],
+    "beta_deg": 0,
+    "reynolds_per_meter": "Mach * 2e7",
+    "note": "encoding probes use controlled conditions, not flight fits"
+  },
+  "manual_reference": {
+    "source": "Figures 19-21, printed pp. 65-67",
+    "mach": 2.36,
+    "published_ca_alpha0": 0.466,
+    "native_ca_alpha0": 0.466,
+    "published_cn_alpha4": 1.179,
+    "native_cn_alpha4": 1.179
+  },
+  "part_checks": [
+    {
+      "rocket": "andromeda",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "astra",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "bella_lui",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "cavour",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "erebus",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "genesis",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "halcyon",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "juno3",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "lince",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "prometheus_2022",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    },
+    {
+      "rocket": "valetudo",
+      "max_body_difference": 0.0,
+      "max_damping_difference": 0.0,
+      "diagnostics": [
+        "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+      ]
+    }
+  ],
+  "encoding_checks": [
+    {
+      "rocket": "andromeda",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.373,
+        0.345,
+        0.396,
+        0.689,
+        0.383
+      ],
+      "zero_alpha_ca_alternative": [
+        0.373,
+        0.345,
+        0.396,
+        0.689,
+        0.383
+      ]
+    },
+    {
+      "rocket": "andromeda",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.008000000000000007,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.373,
+        0.345,
+        0.396,
+        0.689,
+        0.383
+      ],
+      "zero_alpha_ca_alternative": [
+        0.373,
+        0.345,
+        0.404,
+        0.689,
+        0.383
+      ]
+    },
+    {
+      "rocket": "andromeda",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "astra",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.463,
+        0.423,
+        0.503,
+        0.747,
+        0.378
+      ],
+      "zero_alpha_ca_alternative": [
+        0.463,
+        0.423,
+        0.503,
+        0.747,
+        0.378
+      ]
+    },
+    {
+      "rocket": "astra",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0020000000000000018,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.463,
+        0.423,
+        0.503,
+        0.747,
+        0.378
+      ],
+      "zero_alpha_ca_alternative": [
+        0.463,
+        0.423,
+        0.505,
+        0.747,
+        0.378
+      ]
+    },
+    {
+      "rocket": "astra",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "bella_lui",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.377,
+        0.348,
+        0.441,
+        0.757,
+        0.499
+      ],
+      "zero_alpha_ca_alternative": [
+        0.377,
+        0.348,
+        0.441,
+        0.757,
+        0.499
+      ]
+    },
+    {
+      "rocket": "bella_lui",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.377,
+        0.348,
+        0.441,
+        0.757,
+        0.499
+      ],
+      "zero_alpha_ca_alternative": [
+        0.377,
+        0.348,
+        0.441,
+        0.757,
+        0.499
+      ]
+    },
+    {
+      "rocket": "bella_lui",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "cavour",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.485,
+        0.446,
+        0.482,
+        0.537,
+        0.311
+      ],
+      "zero_alpha_ca_alternative": [
+        0.485,
+        0.446,
+        0.482,
+        0.537,
+        0.311
+      ]
+    },
+    {
+      "rocket": "cavour",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.485,
+        0.446,
+        0.482,
+        0.537,
+        0.311
+      ],
+      "zero_alpha_ca_alternative": [
+        0.485,
+        0.446,
+        0.482,
+        0.537,
+        0.311
+      ]
+    },
+    {
+      "rocket": "cavour",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "erebus",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.408,
+        0.373,
+        0.411,
+        0.485,
+        0.274
+      ],
+      "zero_alpha_ca_alternative": [
+        0.408,
+        0.373,
+        0.411,
+        0.485,
+        0.274
+      ]
+    },
+    {
+      "rocket": "erebus",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.408,
+        0.373,
+        0.411,
+        0.485,
+        0.274
+      ],
+      "zero_alpha_ca_alternative": [
+        0.408,
+        0.373,
+        0.411,
+        0.485,
+        0.274
+      ]
+    },
+    {
+      "rocket": "erebus",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "genesis",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.516,
+        0.472,
+        0.535,
+        0.687,
+        0.395
+      ],
+      "zero_alpha_ca_alternative": [
+        0.516,
+        0.472,
+        0.535,
+        0.687,
+        0.395
+      ]
+    },
+    {
+      "rocket": "genesis",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0020000000000000018,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.516,
+        0.472,
+        0.535,
+        0.687,
+        0.395
+      ],
+      "zero_alpha_ca_alternative": [
+        0.516,
+        0.472,
+        0.537,
+        0.687,
+        0.395
+      ]
+    },
+    {
+      "rocket": "genesis",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "halcyon",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.348,
+        0.317,
+        0.345,
+        0.462,
+        0.282
+      ],
+      "zero_alpha_ca_alternative": [
+        0.348,
+        0.317,
+        0.345,
+        0.462,
+        0.282
+      ]
+    },
+    {
+      "rocket": "halcyon",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.348,
+        0.317,
+        0.345,
+        0.462,
+        0.282
+      ],
+      "zero_alpha_ca_alternative": [
+        0.348,
+        0.317,
+        0.345,
+        0.462,
+        0.282
+      ]
+    },
+    {
+      "rocket": "halcyon",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "juno3",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.399,
+        0.366,
+        0.433,
+        0.609,
+        0.281
+      ],
+      "zero_alpha_ca_alternative": [
+        0.399,
+        0.366,
+        0.433,
+        0.609,
+        0.281
+      ]
+    },
+    {
+      "rocket": "juno3",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.399,
+        0.366,
+        0.433,
+        0.609,
+        0.281
+      ],
+      "zero_alpha_ca_alternative": [
+        0.399,
+        0.366,
+        0.433,
+        0.609,
+        0.281
+      ]
+    },
+    {
+      "rocket": "juno3",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "lince",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.408,
+        0.375,
+        0.407,
+        0.551,
+        0.33
+      ],
+      "zero_alpha_ca_alternative": [
+        0.408,
+        0.375,
+        0.407,
+        0.551,
+        0.33
+      ]
+    },
+    {
+      "rocket": "lince",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.408,
+        0.375,
+        0.407,
+        0.551,
+        0.33
+      ],
+      "zero_alpha_ca_alternative": [
+        0.408,
+        0.375,
+        0.407,
+        0.551,
+        0.33
+      ]
+    },
+    {
+      "rocket": "lince",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "prometheus_2022",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.352,
+        0.326,
+        0.313,
+        0.502,
+        0.247
+      ],
+      "zero_alpha_ca_alternative": [
+        0.352,
+        0.326,
+        0.313,
+        0.502,
+        0.247
+      ]
+    },
+    {
+      "rocket": "prometheus_2022",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.352,
+        0.326,
+        0.313,
+        0.502,
+        0.247
+      ],
+      "zero_alpha_ca_alternative": [
+        0.352,
+        0.326,
+        0.313,
+        0.502,
+        0.247
+      ]
+    },
+    {
+      "rocket": "prometheus_2022",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    },
+    {
+      "rocket": "valetudo",
+      "encoding": "explicit_trailing_edge_sweep",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0,
+      "zero_alpha_ca_reference": [
+        0.471,
+        0.434,
+        0.437,
+        0.559,
+        0.325
+      ],
+      "zero_alpha_ca_alternative": [
+        0.471,
+        0.434,
+        0.437,
+        0.559,
+        0.325
+      ]
+    },
+    {
+      "rocket": "valetudo",
+      "encoding": "inch_geometry_feet_reynolds",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0030000000000000027,
+      "zero_alpha_ca_reference": [
+        0.471,
+        0.434,
+        0.437,
+        0.559,
+        0.325
+      ],
+      "zero_alpha_ca_alternative": [
+        0.471,
+        0.434,
+        0.437,
+        0.559,
+        0.325
+      ]
+    },
+    {
+      "rocket": "valetudo",
+      "encoding": "Mach 0.6 alone versus larger Mach grid",
+      "max_ca_difference": 0.0,
+      "max_cn_difference": 0.0
+    }
+  ],
+  "nozzle_inputs": [
+    {
+      "rocket": "andromeda",
+      "motor_description": [],
+      "source_nozzle_radius_m": 0.028125,
+      "assumed_datcom_exit_diameter_m": 0.05625,
+      "listed_motor_case_diameter_m": null,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "astra",
+      "motor_description": [
+        "4263-L1350-CS-P",
+        "75",
+        "486",
+        "P",
+        "2.0245",
+        "3.5707",
+        "CTI"
+      ],
+      "source_nozzle_radius_m": 0.028125,
+      "assumed_datcom_exit_diameter_m": 0.05625,
+      "listed_motor_case_diameter_m": 0.075,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "bella_lui",
+      "motor_description": [
+        "K828FJ",
+        "54.0",
+        "579.00",
+        "6-10-14-18",
+        "1.45000",
+        "2.25500",
+        "AT"
+      ],
+      "source_nozzle_radius_m": 0.04445,
+      "assumed_datcom_exit_diameter_m": 0.0889,
+      "listed_motor_case_diameter_m": 0.054,
+      "exceeds_listed_case": true,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "cavour",
+      "motor_description": [
+        "L995-RL",
+        "75",
+        "486",
+        "0",
+        "1.996",
+        "3.591",
+        "CTI"
+      ],
+      "source_nozzle_radius_m": 0.0335,
+      "assumed_datcom_exit_diameter_m": 0.067,
+      "listed_motor_case_diameter_m": 0.075,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "erebus",
+      "motor_description": [],
+      "source_nozzle_radius_m": 0.02025,
+      "assumed_datcom_exit_diameter_m": 0.0405,
+      "listed_motor_case_diameter_m": null,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "genesis",
+      "motor_description": [
+        "L995-RL",
+        "75",
+        "486",
+        "0",
+        "1.996",
+        "3.591",
+        "CTI"
+      ],
+      "source_nozzle_radius_m": 0.042354,
+      "assumed_datcom_exit_diameter_m": 0.084708,
+      "listed_motor_case_diameter_m": 0.075,
+      "exceeds_listed_case": true,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "halcyon",
+      "motor_description": [],
+      "source_nozzle_radius_m": 0.0141,
+      "assumed_datcom_exit_diameter_m": 0.0282,
+      "listed_motor_case_diameter_m": null,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "juno3",
+      "motor_description": [],
+      "source_nozzle_radius_m": 0.0335,
+      "assumed_datcom_exit_diameter_m": 0.067,
+      "listed_motor_case_diameter_m": null,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "lince",
+      "motor_description": [
+        "\ufeff0",
+        "0"
+      ],
+      "source_nozzle_radius_m": 0.0335,
+      "assumed_datcom_exit_diameter_m": 0.067,
+      "listed_motor_case_diameter_m": null,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "prometheus_2022",
+      "motor_description": [
+        "M1520-BS",
+        "98",
+        "548",
+        "P",
+        "3.737",
+        "6.718",
+        "CTI"
+      ],
+      "source_nozzle_radius_m": 0.027,
+      "assumed_datcom_exit_diameter_m": 0.054,
+      "listed_motor_case_diameter_m": 0.098,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    },
+    {
+      "rocket": "valetudo",
+      "motor_description": [],
+      "source_nozzle_radius_m": 0.021641999999999998,
+      "assumed_datcom_exit_diameter_m": 0.043283999999999996,
+      "listed_motor_case_diameter_m": null,
+      "exceeds_listed_case": false,
+      "note": "case diameter is not a measured nozzle exit diameter"
+    }
+  ],
+  "nozzle_sensitivity": [
+    {
+      "rocket": "andromeda",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 4170.733199067169,
+      "alternative_apogee_agl_m": 4155.710032872648,
+      "recorded_apogee_agl_m": 3443.0,
+      "alternative_error_pct": 20.700262354709498,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.028125
+    },
+    {
+      "rocket": "astra",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 3695.9340692825294,
+      "alternative_apogee_agl_m": 3669.239301757876,
+      "recorded_apogee_agl_m": 3250.0,
+      "alternative_error_pct": 12.899670823319266,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.028125
+    },
+    {
+      "rocket": "bella_lui",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 465.8765076067215,
+      "alternative_apogee_agl_m": 464.3511095001862,
+      "recorded_apogee_agl_m": 458.971,
+      "alternative_error_pct": 1.1722112072846125,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.04445
+    },
+    {
+      "rocket": "cavour",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 3251.608548140568,
+      "alternative_apogee_agl_m": 3204.985152018102,
+      "recorded_apogee_agl_m": 2789.0,
+      "alternative_error_pct": 14.915208032201566,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.0335
+    },
+    {
+      "rocket": "erebus",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 3253.422625182214,
+      "alternative_apogee_agl_m": 3232.7619663411715,
+      "recorded_apogee_agl_m": 3020.0,
+      "alternative_error_pct": 7.045098223217594,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.02025
+    },
+    {
+      "rocket": "genesis",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 3297.2391270686403,
+      "alternative_apogee_agl_m": 3223.251514478237,
+      "recorded_apogee_agl_m": 2916.0,
+      "alternative_error_pct": 10.53674603834831,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.042354
+    },
+    {
+      "rocket": "genesis",
+      "scenario": "exit equal to listed case diameter (upper bound)",
+      "assumed_exit_diameter_m": 0.075,
+      "source_native_apogee_agl_m": 3297.2391270686403,
+      "alternative_apogee_agl_m": 3281.110730740635,
+      "recorded_apogee_agl_m": 2916.0,
+      "alternative_error_pct": 12.520944126907917,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.042354
+    },
+    {
+      "rocket": "genesis",
+      "scenario": "source radius treated as diameter (unverified hypothesis)",
+      "assumed_exit_diameter_m": 0.042354,
+      "source_native_apogee_agl_m": 3297.2391270686403,
+      "alternative_apogee_agl_m": 3241.721673242308,
+      "recorded_apogee_agl_m": 2916.0,
+      "alternative_error_pct": 11.17015340337133,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.042354
+    },
+    {
+      "rocket": "halcyon",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 3530.231782008296,
+      "alternative_apogee_agl_m": 3527.7657672110763,
+      "recorded_apogee_agl_m": 3450.0,
+      "alternative_error_pct": 2.2540802090166956,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.0141
+    },
+    {
+      "rocket": "juno3",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 3056.4921836297026,
+      "alternative_apogee_agl_m": 3038.7362605522867,
+      "recorded_apogee_agl_m": 3213.0,
+      "alternative_error_pct": -5.423708043813047,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.0335
+    },
+    {
+      "rocket": "lince",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 4254.30425999591,
+      "alternative_apogee_agl_m": 4198.898835085533,
+      "recorded_apogee_agl_m": 3587.0,
+      "alternative_error_pct": 17.05879105340211,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.0335
+    },
+    {
+      "rocket": "prometheus_2022",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 4229.19676461329,
+      "alternative_apogee_agl_m": 4204.01504615547,
+      "recorded_apogee_agl_m": 3898.37,
+      "alternative_error_pct": 7.840329321112938,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.027
+    },
+    {
+      "rocket": "valetudo",
+      "scenario": "full powered base (bound)",
+      "assumed_exit_diameter_m": null,
+      "source_native_apogee_agl_m": 943.6190073224012,
+      "alternative_apogee_agl_m": 936.5094014874567,
+      "recorded_apogee_agl_m": 860.0,
+      "alternative_error_pct": 8.896442033425188,
+      "fitted": false,
+      "motor_nozzle_radius_unchanged_m": 0.021641999999999998
+    }
+  ],
+  "unit_sensitivity": [
+    {
+      "rocket": "andromeda",
+      "metric_apogee_agl_m": 4170.733199067169,
+      "inch_apogee_agl_m": 4158.67688441827,
+      "change_m": -12.056314648899388,
+      "recorded_apogee_agl_m": 3443.0,
+      "fitted": false
+    },
+    {
+      "rocket": "astra",
+      "metric_apogee_agl_m": 3695.9340692825294,
+      "inch_apogee_agl_m": 3695.155893462332,
+      "change_m": -0.778175820197248,
+      "recorded_apogee_agl_m": 3250.0,
+      "fitted": false
+    },
+    {
+      "rocket": "genesis",
+      "metric_apogee_agl_m": 3297.2391270686403,
+      "inch_apogee_agl_m": 3297.2284116874466,
+      "change_m": -0.010715381193676876,
+      "recorded_apogee_agl_m": 2916.0,
+      "fitted": false
+    },
+    {
+      "rocket": "valetudo",
+      "metric_apogee_agl_m": 943.6190073224012,
+      "inch_apogee_agl_m": 943.7086282024495,
+      "change_m": 0.08962088004830093,
+      "recorded_apogee_agl_m": 860.0,
+      "fitted": false
+    }
+  ]
+}

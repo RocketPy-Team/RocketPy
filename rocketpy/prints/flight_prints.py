@@ -236,11 +236,13 @@ class _FlightPrints:
         """
         print("\nApogee State\n")
         print(f"Apogee Time: {self.flight.apogee_time:.3f} s")
+        uncertainty = self._datcom_uncertainty_suffix("apogee")
         print(
-            f"Apogee Altitude: {self.flight.apogee:.3f} m (ASL) | "
-            f"{self.flight.altitude(self.flight.apogee_time):.3f} m (AGL)"
+            f"Apogee Altitude: {self.flight.apogee:.3f}{uncertainty} m (ASL) | "
+            f"{self.flight.altitude(self.flight.apogee_time):.3f}{uncertainty} m (AGL)"
         )
         print(f"Apogee Freestream Speed: {self.flight.apogee_freestream_speed:.3f} m/s")
+        self._print_datcom_uncertainty("apogee")
         print(f"Apogee X position: {self.flight.x(self.flight.apogee_time):.3f} m")
         print(f"Apogee Y position: {self.flight.y(self.flight.apogee_time):.3f} m")
         print(f"Apogee latitude: {self.flight.latitude(self.flight.apogee_time):.7f}°")
@@ -324,6 +326,7 @@ class _FlightPrints:
             f"Maximum Speed: {self.flight.max_speed:.3f} m/s "
             f"at {self.flight.max_speed_time:.2f} s"
         )
+        self._print_datcom_uncertainty("velocity")
         print(
             f"Maximum Mach Number: {self.flight.max_mach_number:.3f} Mach "
             f"at {self.flight.max_mach_number_time:.2f} s"
@@ -427,12 +430,14 @@ class _FlightPrints:
         """
         print("\nStability Margin\n")
         print(
-            f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c "
+            f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f}"
+            f"{self._datcom_uncertainty_suffix('initial_stability_margin')} c "
             f"at {self.flight.time[0]:.2f} s"
         )
         print(
             "Out of Rail Stability Margin: "
-            f"{self.flight.out_of_rail_stability_margin:.3f} c "
+            f"{self.flight.out_of_rail_stability_margin:.3f}"
+            f"{self._datcom_uncertainty_suffix('out_of_rail_stability_margin')} c "
             f"at {self.flight.out_of_rail_time:.2f} s"
         )
         print(
@@ -443,6 +448,90 @@ class _FlightPrints:
             f"Minimum Stability Margin: {self.flight.min_stability_margin:.3f} c "
             f"at {self.flight.min_stability_margin_time:.2f} s"
         )
+        self._print_datcom_uncertainty("stability")
+
+    def _datcom_uncertainty_suffix(self, metric):
+        """Format an already calculated scenario excursion; never run flights."""
+        report = getattr(self.flight, "datcom_uncertainty", None)
+        delta = None if report is None else report.uncertainty(metric)
+        return "" if delta is None else f" ± {delta:.3f}"
+
+    def _print_datcom_uncertainty(self, section):
+        """Report nominal/upper/lower ascent results and their interpretation."""
+        report = getattr(self.flight, "datcom_uncertainty", None)
+        if report is None:
+            status = getattr(self.flight, "datcom_uncertainty_status", None)
+            if status and section == "apogee":
+                print(status)
+            return
+
+        def value(case, metric):
+            number = report.cases.get(case, {}).get(metric)
+            return "unavailable" if number is None else f"{number:.3f}"
+
+        if section == "velocity":
+            print(
+                "DATCOM nominal peak ascent speed: "
+                f"{value('nominal', 'max_speed')}"
+                f"{self._datcom_uncertainty_suffix('max_speed')} m/s"
+            )
+            for case in ("upper", "lower"):
+                print(
+                    f"DATCOM coefficient {case} peak ascent speed: "
+                    f"{value(case, 'max_speed')} m/s"
+                )
+        elif section == "apogee":
+            print(
+                "DATCOM nominal: peak ascent speed "
+                f"{value('nominal', 'max_speed')}"
+                f"{self._datcom_uncertainty_suffix('max_speed')} m/s"
+            )
+            for case in ("upper", "lower"):
+                print(
+                    f"DATCOM coefficient {case}: apogee "
+                    f"{value(case, 'apogee_agl')} m (AGL) | peak ascent speed "
+                    f"{value(case, 'max_speed')} m/s | apogee freestream speed "
+                    f"{value(case, 'apogee_speed')} m/s"
+                )
+            print(
+                "DATCOM ±: largest departure from nominal in two engineering "
+                "sensitivity runs; not a confidence interval. "
+                "Upper/lower mean more/less drag and farther-aft/forward CP, "
+                "not guaranteed altitude bounds."
+            )
+            print("DATCOM sensitivity: CD at least ±20%; nose-to-CP distance ±2%.")
+            for case in ("nominal", "upper", "lower"):
+                fraction = report.cases.get(case, {}).get("outside_paper_fraction")
+                if fraction is not None:
+                    print(
+                        f"DATCOM {case}: {100 * fraction:.1f}% of ascent time "
+                        "outside Wu Mach 0.8–3.02 / incidence ±6° coverage; "
+                        "20% CD floor used outside its alpha/Mach envelope."
+                    )
+            for case, error in report.errors.items():
+                print(f"DATCOM {case} uncertainty unavailable: {error}")
+        else:
+            print(
+                "DATCOM nominal stability at apogee: "
+                f"{value('nominal', 'apogee_stability_margin')}"
+                f"{self._datcom_uncertainty_suffix('apogee_stability_margin')} c"
+            )
+            print(
+                "DATCOM nominal ascent stability min/max: "
+                f"{value('nominal', 'min_stability_margin')}"
+                f"{self._datcom_uncertainty_suffix('min_stability_margin')} / "
+                f"{value('nominal', 'max_stability_margin')}"
+                f"{self._datcom_uncertainty_suffix('max_stability_margin')} c"
+            )
+            for case in ("upper", "lower"):
+                print(
+                    f"DATCOM coefficient {case} stability: initial "
+                    f"{value(case, 'initial_stability_margin')} c | rail exit "
+                    f"{value(case, 'out_of_rail_stability_margin')} c | apogee "
+                    f"{value(case, 'apogee_stability_margin')} c | ascent min/max "
+                    f"{value(case, 'min_stability_margin')} / "
+                    f"{value(case, 'max_stability_margin')} c"
+                )
 
     def all(self):
         """Prints out all data available about the Flight. This method invokes

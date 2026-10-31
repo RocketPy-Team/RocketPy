@@ -36,6 +36,8 @@ from .rocket import (
     AeroSurface,
     AirBrakes,
     Components,
+    DatcomFins,
+    DatcomFreeFormFins,
     EllipticalFin,
     EllipticalFins,
     Fin,
