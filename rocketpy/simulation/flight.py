@@ -889,7 +889,7 @@ class Flight:
         Parameters
         ----------
         component_sensors : list
-            List of (sensor, position, ref_factor) component tuples.
+            List of (sensor, position) tuples.
         u_dot : array_like
             State derivative vector.
         t : float, optional
@@ -902,7 +902,7 @@ class Flight:
         if y_sol is None:
             y_sol = self.y_sol
 
-        for sensor, position, _ref_factor in component_sensors:
+        for sensor, position in component_sensors:
             relative_position = position - self.rocket._csys * Vector(
                 [0, 0, self.rocket.center_of_dry_mass_position]
             )
@@ -2338,7 +2338,7 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
         w = Vector([omega1, omega2, omega3])
-        for aero_surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
+        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
             # Component cp relative to CDM in body frame
             comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
@@ -2594,7 +2594,7 @@ class Flight:
         # Velocity in body frame
         vb_body = Kt @ v
 
-        for surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
+        for surface, _ in self.rocket.aerodynamic_surfaces:
             cp = self.rocket.surfaces_cp_to_cdm[surface]
             vb_component = vb_body + (w ^ cp)
 
@@ -2866,7 +2866,7 @@ class Flight:
         # Get rocket velocity in body frame
         velocity_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
+        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
             # Component cp relative to CDM in body frame
             comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
