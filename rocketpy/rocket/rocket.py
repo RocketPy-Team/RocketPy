@@ -670,8 +670,7 @@ class Rocket:
             for aero_surface, position in self.aerodynamic_surfaces:
                 if isinstance(aero_surface, GenericSurface):
                     continue
-                # ref_factor corrects lift for different reference areas
-                ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
+                ref_factor = self._reference_area_factor(aero_surface)
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
                 self.cp_position += (
                     ref_factor
@@ -682,6 +681,11 @@ class Rocket:
             if self.total_lift_coeff_der.get_value(0) != 0:
                 self.cp_position /= self.total_lift_coeff_der
         return self.cp_position
+
+    def _reference_area_factor(self, surface):
+        """Scales a surface's lift coefficient from its own reference area to
+        the rocket's. Computed on demand so it follows later radius changes."""
+        return (surface.rocket_radius / self.radius) ** 2
 
     def evaluate_surfaces_cp_to_cdm(self):
         """Calculates the relative position of each aerodynamic surface center
