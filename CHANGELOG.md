@@ -37,7 +37,6 @@ Attention: The newest changes should be on top -->
 - ENH: Support fixed-time parachute deployment triggers [#1133](https://github.com/RocketPy-Team/RocketPy/pull/1133) [#437](https://github.com/RocketPy-Team/RocketPy/issues/437)
 - DOC: Add SIL parachute ejection integration example [#1131](https://github.com/RocketPy-Team/RocketPy/pull/1131) [#524](https://github.com/RocketPy-Team/RocketPy/issues/524)
 - ENH: Model unbonded solid-motor grain CM shift [#1138](https://github.com/RocketPy-Team/RocketPy/pull/1138) [#340](https://github.com/RocketPy-Team/RocketPy/issues/340)
-- ENH: Add `Flight` post-step callback across all phases [#1128](https://github.com/RocketPy-Team/RocketPy/pull/1128) [#758](https://github.com/RocketPy-Team/RocketPy/issues/758)
 - DOC: Document angle-of-attack drag inputs [#1142](https://github.com/RocketPy-Team/RocketPy/pull/1142)
 - ENH: Create ensembles from user-defined profiles [#1141](https://github.com/RocketPy-Team/RocketPy/pull/1141)
 - ENH: Add tube-fin aerodynamic surface [#1144](https://github.com/RocketPy-Team/RocketPy/pull/1144)
