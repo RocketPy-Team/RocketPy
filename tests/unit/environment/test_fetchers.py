@@ -501,3 +501,14 @@ def test_resolve_noaa_collection_path_rejects_unknown_model():
     """Unknown shortcuts must fail with an actionable ValueError."""
     with pytest.raises(ValueError, match="Unknown NOAA model collection"):
         fetchers.resolve_noaa_collection_path("not-a-model")
+
+
+def test_fetch_open_elevation_error_payload_raises_runtime_error(monkeypatch):
+    """An error payload (no ``results``) must surface as the documented RuntimeError."""
+    payload = {"code": "temporarily_unavailable", "error": "Retry shortly."}
+    monkeypatch.setattr(
+        fetchers.requests, "get", lambda *a, **k: _FakeResponse(payload)
+    )
+    monkeypatch.setattr("rocketpy.tools.time.sleep", lambda _: None)
+    with pytest.raises(RuntimeError, match="Open-Elevation"):
+        fetchers.fetch_open_elevation(48.858844, 2.294351)
