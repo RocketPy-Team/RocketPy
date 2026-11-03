@@ -501,6 +501,7 @@ disable=raw-checker-failed,
         method-cache-max-size-none,
         no-else-raise, # pointless
         unnecessary-lambda-assignment, # ruff already checks this
+        abstract-method, # NotImplementedError marks optional methods (polations, sensors, plots)
 
 
 
