@@ -39,5 +39,7 @@ def fetch_open_elevation(lat, lon):
     except (
         requests.exceptions.RequestException,
         requests.exceptions.JSONDecodeError,
+        KeyError,
+        IndexError,
     ) as e:
         raise RuntimeError("Unable to reach Open-Elevation API servers.") from e
