@@ -47,7 +47,9 @@ class CustomSampler(ABC):
         Parameters
         ----------
         seed : int, optional
-            Seed for the random number generator. The default is None
+            Seed for the random number generator. The default is None.
+            Stochastic models supply a non-negative 32-bit integer, compatible
+            with both NumPy RandomState and Generator.
 
         Returns
         -------

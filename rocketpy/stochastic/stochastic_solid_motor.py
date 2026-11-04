@@ -220,4 +220,5 @@ class StochasticSolidMotor(StochasticMotorModel):
                 "coordinate_system_orientation"
             ],
             interpolation_method=generated_dict["interpolate"],
+            grains_bonded=self.obj.grains_bonded,
         )

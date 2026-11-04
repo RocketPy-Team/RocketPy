@@ -30,8 +30,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- These are the changes that were not released yet, please add them correctly.
 Attention: The newest changes should be on top -->
 
+### Breaking changes
+
+- New serial Monte Carlo studies use indices `0..n-1` instead of `1..n`, matching parallel studies. Legacy logs retain their existing numbering when extended. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187)
+- Monte Carlo reseeds stochastic objects for every simulation in both execution modes. Pass a non-negative integer `random_seed` to reproduce a study; individual object seeds are overridden, and fixed-seed results from v1.13 change. New input rows record one integer `seed`, while output rows contain only the index and requested results. Metadata is excluded from statistical results and plots. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
+
 ### Added
 
+- ENH: Accept `random_seed` in `MonteCarlo.simulate_convergence`, including across batches. [#1198](https://github.com/RocketPy-Team/RocketPy/pull/1198) [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - ENH: Reproducible Monte Carlo seeding, and an append that continues the same study [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1053](https://github.com/RocketPy-Team/RocketPy/issues/1053) [#1075](https://github.com/RocketPy-Team/RocketPy/issues/1075)
 - ENH: 3-DOF single rail button flight phase (tip-off analysis), enabled with the opt-in `Flight(use_udot_rail2=True)`. Between the upper rail button leaving the rail and the lower one following it, the rocket pivots about the lower button under a solved constraint wrench instead of jumping straight to free 6-DOF flight. The window is reported as `between_rails_time`, `between_rails_velocity` and `tip_off_duration`, printed by `Flight.info()` and shaded in the attitude plots. Requires `simulation_mode="6 DOF"` and `equations_of_motion="standard"`. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - ENH: Support fixed-time parachute deployment triggers [#1133](https://github.com/RocketPy-Team/RocketPy/pull/1133) [#437](https://github.com/RocketPy-Team/RocketPy/issues/437)
@@ -50,7 +56,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- ENH: Number the simulations of a serial Monte Carlo run from zero, as the parallel path already did — the two used to name the same simulation `1, 2, 3` and `0, 1, 2`. The `index` field written into the inputs and outputs rows shifts by one for serial runs, so code reading indices off those files has to expect a run of `n` simulations to be numbered `0` to `n - 1`. An append onto a study written before this release is refused rather than continued, since its rows do not record which root drew them. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187)
+- ENH: Number new serial and parallel Monte Carlo runs from zero. Legacy checkpoints retain their numbering when extended, with a warning that their original random draws cannot be reproduced. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - ENH: Compute the rocket static margin lazily [#1135](https://github.com/RocketPy-Team/RocketPy/pull/1135) [#780](https://github.com/RocketPy-Team/RocketPy/issues/780)
 - DOC: Tighten the comments that came with the sampler seed groups [#1154](https://github.com/RocketPy-Team/RocketPy/pull/1154)
 - CI: make the Gemini PR reviewer actually review [#1140](https://github.com/RocketPy-Team/RocketPy/pull/1140)
@@ -61,6 +67,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Keep checkpoint metadata out of Monte Carlo plots and statistics, recover missing simulation indices without repeating completed flights, and warn when appending v1.13 logs. Preserve explicit initial flight states and solid-motor grain bonding in stochastic models. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - BUG: A `Flight` continued from another `Flight` object now records `t_initial`, so a rocket carrying sensors or controllers no longer raises `AttributeError` on that path. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
 - BUG: Report a Monte Carlo worker that fails instead of hanging or passing for a finished run [#1182](https://github.com/RocketPy-Team/RocketPy/pull/1182)
@@ -84,7 +91,7 @@ Attention: The newest changes should be on top -->
 - BUG: Restore the UTC fallback without timezonefinder [#1143](https://github.com/RocketPy-Team/RocketPy/pull/1143)
 - BUG: Pick between the candidate values of a list input with the stochastic model's own seeded generator. `random.choice` was used, which draws from the interpreter-wide stream that `_set_stochastic` does not reseed, so a fixed seed did not reproduce the values chosen from a list, and Monte Carlo workers forked from one process walked a single shared stream instead of sampling independently. Fixed-seed baselines that vary a list input change. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - BUG: Report the atmospheric model time period and ensemble member count for lower-case model types. `set_atmospheric_model` documents `type` as case-insensitive, but `Environment.info()` and `all_info()` compared against capitalised literals, so `type="ensemble"` printed no time period and no member count, and skipped the ensemble comparison plot. [#520](https://github.com/RocketPy-Team/RocketPy/issues/520)
-- BUG: Give each `CustomSampler` input its own deterministic stream, and seed samplers sharing one generator once as a group. Existing fixed-seed `CustomSampler` baselines change, and samplers built on the legacy `RandomState` must move to `default_rng` because seeds now carry the full 128 bits. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102)
+- BUG: Give each `CustomSampler` input its own deterministic stream, and seed samplers sharing one generator once as a group. Reset callbacks receive a 32-bit integer compatible with both `RandomState` and `default_rng`; existing fixed-seed baselines change. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102) [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - BUG: Accept the callable parachute triggers `StochasticParachute` documents, and reject the ones it cannot mean. An invalid string, an empty list or a boolean now fails during validation instead of reaching `Parachute` or becoming a one-metre height trigger. [#1103](https://github.com/RocketPy-Team/RocketPy/pull/1103)
 - BUG: Accept a deterministic aerodynamic surface in `StochasticRocket.add_nose`, `add_trapezoidal_fins`, `add_elliptical_fins` and `add_tail`. Each wrapped the surface with a `component=` keyword none of the stochastic classes accept, so passing anything other than an already-stochastic surface raised a `TypeError`. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - BUG: rocket with a late-starting thrust curve never leaves the rail [#1085](https://github.com/RocketPy-Team/RocketPy/pull/1085)

@@ -815,6 +815,9 @@ class _InterruptingMonteCarlo(MonteCarlo):
         self._initial_sim_idx = 0
         self.interrupt_after = interrupt_after
         self.completed = 0
+        self.environment = types.SimpleNamespace()
+        self.rocket = types.SimpleNamespace()
+        self.flight = types.SimpleNamespace()
 
     def _MonteCarlo__seed_this_simulation(self, sim_idx):
         pass
@@ -826,36 +829,10 @@ class _InterruptingMonteCarlo(MonteCarlo):
         return object()
 
     def _MonteCarlo__evaluate_flight_inputs(self, index):
-        # The root goes in because an append reads it back to check the rows
-        # it is continuing were drawn by the same stream; a row without it is
-        # what a study written before that check looks like, and is refused.
-        return (
-            json.dumps(
-                {
-                    "index": index,
-                    mc_module._SIMULATION_ROOT_KEY: (
-                        mc_module._root_written_into_a_row(self._MonteCarlo__root_state)
-                    ),
-                }
-            )
-            + "\n"
-        )
+        return json.dumps({"index": index, "seed": self._MonteCarlo__study_seed}) + "\n"
 
     def _MonteCarlo__evaluate_flight_outputs(self, flight, index):
-        # The outputs rows name the same root by its digest, which is what
-        # an append checks them against.
-        return (
-            json.dumps(
-                {
-                    "index": index,
-                    "apogee": 1000.0 + index,
-                    mc_module._SIMULATION_ROOT_KEY: mc_module._root_digest(
-                        mc_module._root_written_into_a_row(self._MonteCarlo__root_state)
-                    ),
-                }
-            )
-            + "\n"
-        )
+        return json.dumps({"index": index, "apogee": 1000.0 + index}) + "\n"
 
 
 def test_interrupted_serial_run_reaches_the_caller(tmp_path):
@@ -1034,6 +1011,9 @@ class _FakeSimMonitor:
 
     def print_final_status(self):
         self.final_status_calls += 1
+
+    def skip_completed(self, indices):
+        pass
 
 
 def test_interrupted_parallel_run_signals_joins_and_reaches_the_caller(
