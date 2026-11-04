@@ -130,13 +130,14 @@ You can bypass the cache by setting ``no_cache=True``:
 .. note::
 
     This method performs network requests to the ThrustCurve API unless a cached
-    version exists. For automated testing or fully reproducible workflows, prefer
-    local `.eng` files or set ``no_cache=True`` explicitly.
+    version exists. If the service is unavailable or blocks the request, use
+    ``load_from_eng_file`` with a local ``.eng`` file instead. Local files are also
+    preferred for automated testing and fully reproducible workflows.
 
 Example
 -------
 
-.. jupyter-execute::
+.. code-block:: python
 
     from rocketpy.motors import GenericMotor
 
@@ -152,7 +153,7 @@ Using the no_cache option
 If you want to force RocketPy to ignore the cache and download a fresh copy
 every time, use:
 
-.. jupyter-execute::
+.. code-block:: python
 
     motor = GenericMotor.load_from_thrustcurve_api("M1670", no_cache=True)
     motor.info()
