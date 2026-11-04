@@ -274,9 +274,8 @@ def test_a_sampler_that_refuses_its_seed_is_named_in_the_error(failure):
     assert raised.value.__cause__ is failure
 
 
-def test_a_legacy_random_state_sampler_is_named_rather_than_raising_bare():
-    """The concrete case, not a stand-in: RandomState really does refuse the
-    128-bit seed this hands out."""
+def test_a_legacy_random_state_sampler_is_reproducible():
+    """CustomSampler receives an integer within RandomState's 32-bit range."""
 
     class LegacySampler(CustomSampler):
         """Built on RandomState rather than default_rng."""
@@ -285,12 +284,15 @@ def test_a_legacy_random_state_sampler_is_named_rather_than_raising_bare():
             return list(self.rng.normal(size=n_samples))
 
         def reset_seed(self, seed=None):
+            assert isinstance(seed, int) and 0 <= seed < 2**32
             self.rng = np.random.RandomState(seed)
 
-    with pytest.raises(RuntimeError, match="mass") as raised:
-        StochasticModel(SimpleNamespace(mass=0.0), mass=LegacySampler())
+    model = StochasticModel(SimpleNamespace(mass=0.0), seed=42, mass=LegacySampler())
+    expected = next(model.dict_generator())["mass"]
 
-    assert isinstance(raised.value.__cause__, ValueError)
+    model._set_stochastic(42)
+
+    assert next(model.dict_generator())["mass"] == expected
 
 
 class _CountingShared(_SharedPair):

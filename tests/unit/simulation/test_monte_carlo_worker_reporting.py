@@ -86,11 +86,7 @@ def _a_worker(tmp_path, model, event=None):
         rocket=model,
         flight=model,
     )
-    # simulate() settles the root before any worker starts, and the producer
-    # derives each index's seed from it, so a worker driven directly needs one.
-    study._MonteCarlo__root_state = mc_module._root_state_of(
-        mc_module._root_seed_sequence(42)
-    )
+    study._MonteCarlo__study_seed = 42
     return study, event or _ErrorEvent()
 
 

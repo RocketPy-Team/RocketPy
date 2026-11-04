@@ -64,10 +64,13 @@ class StochasticFlight(StochasticModel):
             The inclination of the launch rail.
         heading : int, float, tuple, list, optional
             The heading of the launch rail.
-        initial_solution : tuple, list, optional
+        initial_solution : tuple, list, Flight, optional
             The initial solution of the flight. This is a tuple of 14 elements
             that represent the initial conditions of the flight. This attribute
-            can not be randomized.
+            can not be randomized. A Flight supplies its final state, copied
+            when this stochastic model is constructed. If omitted, an explicit
+            initial state from the base flight is preserved; rail launches
+            retain their randomized launch orientation.
         terminate_on_apogee : bool, optional
             Whether or not the flight should terminate on apogee. This attribute
             can not be randomized.
@@ -78,9 +81,10 @@ class StochasticFlight(StochasticModel):
             The maximum time of the flight simulation. If the flight simulation
             reaches this time, it will terminate. This attribute can not be randomized.
         """
-        if terminate_on_apogee is not None:
-            if not isinstance(terminate_on_apogee, bool):
-                raise AssertionError("`terminate_on_apogee` must be a boolean")
+        if terminate_on_apogee is not None and not isinstance(
+            terminate_on_apogee, bool
+        ):
+            raise AssertionError("`terminate_on_apogee` must be a boolean")
         if time_overshoot is not None:
             if not isinstance(time_overshoot, bool):
                 raise TypeError("`time_overshoot` must be a boolean")
@@ -94,6 +98,10 @@ class StochasticFlight(StochasticModel):
             heading=heading,
         )
 
+        if initial_solution is None and flight.initial_derivative != flight.udot_rail1:
+            initial_solution = list(flight.solution[0])
+        elif isinstance(initial_solution, Flight):
+            initial_solution = list(initial_solution.solution[-1])
         self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
         self.terminate_on_apogee = terminate_on_apogee
