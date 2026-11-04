@@ -25,14 +25,14 @@ UNITS_CONVERSION_DICT = {
     # Units of acceleration. Meter per square second "m/s^2" is the base unit.
     "m/s^2": 1,
     "gs": 1 / 9.80665,
-    "ft/s^2": 1 / 3.2808399,
+    "ft/s^2": 1 / 0.3048,
     # Units of pressure. Pascal "Pa" is the base unit.
     "Pa": 1,
     "hPa": 1e-2,
     "kPa": 1e-3,
     "MPa": 1e-6,
     "bar": 1e-5,
-    "atm": 1.01325e-5,
+    "atm": 1 / 101325,
     "mmHg": 1 / 133.322,
     "inHg": 1 / 3386.389,
     # Units of time. Seconds "s" is the base unit.
@@ -41,14 +41,14 @@ UNITS_CONVERSION_DICT = {
     "h": 1 / 3600,
     "d": 1 / 86400,
     # Units of mass. Kilogram "kg" is the base unit.
-    "mg": 1e-6,
-    "g": 1e-3,
+    "mg": 1e6,
+    "g": 1e3,
     "kg": 1,
     "lb": 2.20462,
     # Units of angle. Radian "rad" is the base unit.
     "rad": 1,
-    "deg": 1 / 180 * np.pi,
-    "grad": 1 / 200 * np.pi,
+    "deg": 180 / np.pi,
+    "grad": 200 / np.pi,
 }
 
 
