@@ -316,11 +316,9 @@ on equal values, and a specification with no spread always will.
 The reset is what builds the tree, not ``add_parachute`` or ``add_nose``. A
 rocket resets itself once while being constructed, when it has no components
 yet, so anything attached afterwards keeps the generator it was built with until
-something resets it again. A serial ``MonteCarlo`` run does not reset it at
-all. A parallel one tries to, once per worker, but hands the model a
-``SeedSequence`` where an integer is wanted, so that path does not get as far
-as building the tree either. Resetting per simulation, from an integer seed the
-caller chooses, is what the Monte Carlo seeding work adds.
+something resets it again. ``MonteCarlo`` resets the tree before every
+simulation in both serial and parallel runs, using the study seed and the
+simulation index to derive independent streams.
 
 Each collection is spawned separately, so adding an aerodynamic surface does not
 move what the parachutes draw. Within a collection the stream follows insertion
@@ -348,10 +346,12 @@ draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
     split over any number of workers, and whether it was reached first or last.
     A run of ``n`` simulations numbers them 0 to ``n - 1`` either way, which is
     what makes one index name one simulation.
-    Every input row records the root it came from, so appending carries that
+    Every input row records one integer ``seed``, so appending carries that
     study on whether or not the seed is given again, and a different one is
-    refused rather than mixed in. Without a seed a run draws fresh entropy and
-    reproduces nothing.
+    refused rather than mixed in. Without a seed, a new run generates and prints
+    one. Pass that integer as ``random_seed`` to reproduce the study. Seeds on
+    individual stochastic models are overridden; a new study without
+    ``random_seed`` warns when these models have already been seeded.
 
     An index fixes the draw, not the object it is drawn around. Where the note
     above says a value follows its deterministic object, moving that object
@@ -359,6 +359,25 @@ draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
     ``CustomSampler`` that draws from the process-global ``numpy.random``
     rather than from the generator it is handed sits outside all of this, as
     :ref:`custom_sampler` warns.
+
+    ``simulate_convergence(random_seed=...)`` uses the same study seed for every
+    batch. Changing the batch size does not change the inputs of a given index.
+
+Resuming a study
+----------------
+
+Use ``simulate(number_of_simulations=100, append=True)`` to reach a total of
+100 simulations. A completed index is kept; missing indices below the target
+are simulated, including gaps left by interrupted parallel workers. Keep the
+input and output logs together: they are checked for matching indices and
+duplicate records before any new rows are written. The study's models must
+still describe the same rocket, flight and environment.
+
+Logs from v1.13 have no study seed. Appending preserves their rows and emits a
+warning: the old random stream cannot be recovered. New rows record the reported
+seed. Existing one-based serial numbering is preserved; new studies start at
+zero. Checkpoint fields (``index``, ``seed`` and the earlier ``run_root`` field)
+are excluded from ``results``, summary statistics and plots.
 
 Conclusion
 ----------

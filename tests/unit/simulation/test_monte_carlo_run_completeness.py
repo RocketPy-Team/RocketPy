@@ -120,6 +120,27 @@ def test_a_stray_index_past_the_rows_is_refused(tmp_path):
         _refuse_logs_missing_a_simulation(inputs, outputs, 2)
 
 
+def test_a_stray_is_not_hidden_by_how_long_a_checkpointed_log_is(tmp_path):
+    """With a checkpoint, the rows held do not widen what a run may number."""
+    # The log is longer than the target because of the checkpoint, and sizing
+    # the range off that length let index 3 pass for a simulation of this run.
+    rows = [_row(0), _row(1), _row(3), _row(10)]
+    inputs = _a_log(tmp_path, "gap.inputs.txt", rows)
+    outputs = _a_log(tmp_path, "gap.outputs.txt", rows)
+
+    with pytest.raises(RuntimeError, match="numbers a simulation 3"):
+        _refuse_logs_missing_a_simulation(inputs, outputs, 2, previous_indices={0, 10})
+
+
+def test_a_checkpoint_with_gaps_is_accepted_once_the_gaps_are_filled(tmp_path):
+    """The control: indices of the target plus the checkpoint's own are valid."""
+    rows = [_row(0), _row(10), _row(1)]
+    inputs = _a_log(tmp_path, "fill.inputs.txt", rows)
+    outputs = _a_log(tmp_path, "fill.outputs.txt", rows)
+
+    _refuse_logs_missing_a_simulation(inputs, outputs, 2, previous_indices={0, 10})
+
+
 def test_the_order_a_parallel_run_finishes_in_is_not_a_hole(tmp_path):
     """Rows arrive in completion order, which is not sorted and not wrong."""
     rows = [_row(1), _row(0), _row(2)]

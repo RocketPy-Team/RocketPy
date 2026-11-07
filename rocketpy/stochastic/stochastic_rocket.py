@@ -212,6 +212,7 @@ class StochasticRocket(StochasticModel):
                 component._set_stochastic(
                     _seed_sequence_to_int(roots[name].spawn(1)[0])
                 )
+                component._configured_seed = None
 
     def __reset_components(self, components, root):
         """Creates a new Components whose stochastic structures
@@ -236,6 +237,7 @@ class StochasticRocket(StochasticModel):
         for stochastic_obj, _ in components:
             stochastic_obj_position_info = self.__components_map[stochastic_obj]
             stochastic_obj._set_stochastic(_seed_sequence_to_int(root.spawn(1)[0]))
+            stochastic_obj._configured_seed = None
             new_components.add(
                 stochastic_obj,
                 self._validate_position(stochastic_obj, stochastic_obj_position_info),

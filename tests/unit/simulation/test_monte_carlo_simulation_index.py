@@ -13,15 +13,19 @@ def _indices(analysis):
 
 
 def _a_study(tmp_path, stem, environment, rocket, flight):
+    flight.max_time = 1
+    flight.obj.equations_of_motion = "generalized"
     return MonteCarlo(
         filename=str(tmp_path / stem),
         environment=environment,
         rocket=rocket,
         flight=flight,
+        export_list=["max_speed", "t_final"],
     )
 
 
 @pytest.mark.parametrize("parallel", [False, True])
+@pytest.mark.slow
 def test_a_run_numbers_its_simulations_from_zero(
     stochastic_environment, stochastic_calisto, stochastic_flight, tmp_path, parallel
 ):
@@ -40,11 +44,13 @@ def test_a_run_numbers_its_simulations_from_zero(
         append=False,
         parallel=parallel,
         n_workers=2 if parallel else None,
+        include_function_data=False,
     )
 
     assert _indices(analysis) == [0, 1, 2]
 
 
+@pytest.mark.slow
 def test_both_modes_agree_on_what_a_simulation_is_called(
     stochastic_environment, stochastic_calisto, stochastic_flight, tmp_path
 ):
@@ -59,12 +65,15 @@ def test_both_modes_agree_on_what_a_simulation_is_called(
         tmp_path, "para", stochastic_environment, stochastic_calisto, stochastic_flight
     )
 
-    one.simulate(number_of_simulations=3, append=False, parallel=False)
-    other.simulate(number_of_simulations=3, append=False, parallel=True, n_workers=2)
+    one.simulate(3, append=False, parallel=False, include_function_data=False)
+    other.simulate(
+        3, append=False, parallel=True, n_workers=2, include_function_data=False
+    )
 
     assert _indices(one) == _indices(other)
 
 
+@pytest.mark.slow
 def test_an_appended_run_carries_on_from_the_last_index(
     stochastic_environment, stochastic_calisto, stochastic_flight, tmp_path
 ):
@@ -72,12 +81,13 @@ def test_an_appended_run_carries_on_from_the_last_index(
         tmp_path, "study", stochastic_environment, stochastic_calisto, stochastic_flight
     )
 
-    analysis.simulate(number_of_simulations=2, append=False)
-    analysis.simulate(number_of_simulations=4, append=True)
+    analysis.simulate(2, append=False, include_function_data=False)
+    analysis.simulate(4, append=True, include_function_data=False)
 
     assert _indices(analysis) == [0, 1, 2, 3]
 
 
+@pytest.mark.slow
 def test_a_serial_failure_names_the_simulation_the_way_parallel_would(
     stochastic_environment,
     stochastic_calisto,
@@ -110,7 +120,7 @@ def test_a_serial_failure_names_the_simulation_the_way_parallel_would(
     )
 
     with pytest.raises(RuntimeError, match="the flight would not run"):
-        analysis.simulate(number_of_simulations=3, append=False)
+        analysis.simulate(3, append=False, include_function_data=False)
 
     assert "Error on iteration 1:" in capsys.readouterr().out
 
@@ -162,7 +172,7 @@ def test_a_collector_cannot_take_over_the_simulation_index(
     analysis.export_list = []
     analysis._export_config = {}
     # The row also carries which root drew it, which simulate() would have set.
-    analysis._MonteCarlo__root_state = (42, (), 4, 0)
+    analysis._MonteCarlo__study_seed = 42
     analysis.data_collector = {"index": lambda _flight: 999}
 
     row = json.loads(analysis._MonteCarlo__evaluate_flight_outputs(None, 7))

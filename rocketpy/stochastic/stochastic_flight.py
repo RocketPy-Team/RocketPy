@@ -1,5 +1,9 @@
 """Defines the StochasticFlight class."""
 
+from numbers import Real
+
+import numpy as np
+
 from rocketpy.simulation import Flight
 
 from .stochastic_model import StochasticModel
@@ -28,7 +32,7 @@ class StochasticFlight(StochasticModel):
         be randomized.
     terminate_on_apogee : bool
         Whether or not the flight should terminate on apogee. This attribute
-        can not be randomized.
+        can not be randomized. If omitted, the base flight's value is kept.
     time_overshoot : bool
         If False, the simulation will run at the time step defined by the controller
         sampling rate. Be aware that this will make the simulation run much slower.
@@ -64,13 +68,16 @@ class StochasticFlight(StochasticModel):
             The inclination of the launch rail.
         heading : int, float, tuple, list, optional
             The heading of the launch rail.
-        initial_solution : tuple, list, optional
+        initial_solution : tuple, list, Flight, optional
             The initial solution of the flight. This is a tuple of 14 elements
             that represent the initial conditions of the flight. This attribute
-            can not be randomized.
+            can not be randomized. A Flight supplies its final state, copied
+            when this stochastic model is constructed. If omitted, an explicit
+            initial state from the base flight is preserved; rail launches
+            retain their randomized launch orientation.
         terminate_on_apogee : bool, optional
             Whether or not the flight should terminate on apogee. This attribute
-            can not be randomized.
+            can not be randomized. If omitted, the base flight's value is kept.
         time_overshoot : bool
             If False, the simulation will run at the time step defined by the controller
             sampling rate. Be aware that this will make the simulation run much slower.
@@ -78,9 +85,10 @@ class StochasticFlight(StochasticModel):
             The maximum time of the flight simulation. If the flight simulation
             reaches this time, it will terminate. This attribute can not be randomized.
         """
-        if terminate_on_apogee is not None:
-            if not isinstance(terminate_on_apogee, bool):
-                raise AssertionError("`terminate_on_apogee` must be a boolean")
+        if terminate_on_apogee is not None and not isinstance(
+            terminate_on_apogee, bool
+        ):
+            raise AssertionError("`terminate_on_apogee` must be a boolean")
         if time_overshoot is not None:
             if not isinstance(time_overshoot, bool):
                 raise TypeError("`time_overshoot` must be a boolean")
@@ -94,9 +102,17 @@ class StochasticFlight(StochasticModel):
             heading=heading,
         )
 
+        if initial_solution is None and flight.initial_derivative != flight.udot_rail1:
+            initial_solution = list(flight.solution[0])
+        elif isinstance(initial_solution, Flight):
+            initial_solution = list(initial_solution.solution[-1])
         self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
-        self.terminate_on_apogee = terminate_on_apogee
+        self.terminate_on_apogee = (
+            flight.terminate_on_apogee
+            if terminate_on_apogee is None
+            else terminate_on_apogee
+        )
         if max_time is None:
             self.max_time = flight.max_time
         else:
@@ -116,7 +132,10 @@ class StochasticFlight(StochasticModel):
                         "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
                         "e3_init, w1Init, w2Init, w3Init"
                     )
-                if not all(isinstance(i, (int, float)) for i in initial_solution):
+                if not all(
+                    isinstance(i, Real) and not isinstance(i, (bool, np.bool_))
+                    for i in initial_solution
+                ):
                     raise AssertionError(
                         "`initial_solution` must be a tuple of numbers"
                     )
@@ -164,6 +183,7 @@ class StochasticFlight(StochasticModel):
             heading=generated_dict["heading"],
             initial_solution=self.initial_solution,
             terminate_on_apogee=self.terminate_on_apogee,
+            use_udot_rail2=self.obj.use_udot_rail2,
             max_time=self.max_time,
             max_time_step=self.obj.max_time_step,
             min_time_step=self.obj.min_time_step,
