@@ -240,7 +240,9 @@ class StochasticModel:
         seed : int, optional
             Seed for the random number generator.
         """
-        self._seed = seed
+        # What the caller chose. A parent that derives this seed for a child, or
+        # a Monte Carlo study, clears it again: a derived seed is not a choice.
+        self._configured_seed = seed
         self.__random_number_generator = np.random.default_rng(seed)
         # A stream of its own, derived from the same seed, for picking between
         # the candidate values of a list input. Kept apart from the one above so

@@ -62,3 +62,67 @@ def test_stochastic_flight_preserves_nominal_explicit_state(flight_calisto_robus
     sampled = StochasticFlight(nominal).create_object()
 
     assert sampled.solution[0] == pytest.approx(state)
+
+
+def test_stochastic_flight_keeps_nominal_terminate_on_apogee(flight_calisto_robust):
+    """An omitted ``terminate_on_apogee`` must not reset the nominal flight's."""
+    nominal = Flight(
+        flight_calisto_robust.rocket,
+        flight_calisto_robust.env,
+        rail_length=5.2,
+        terminate_on_apogee=True,
+        max_time=1,
+    )
+
+    kept = StochasticFlight(nominal)
+    overridden = StochasticFlight(nominal, terminate_on_apogee=False)
+
+    assert kept.create_object().terminate_on_apogee is True
+    assert overridden.create_object().terminate_on_apogee is False
+
+
+def test_stochastic_flight_keeps_nominal_tip_off_phase(flight_calisto_robust):
+    """The opt-in single rail button phase must survive stochastic wrapping."""
+    nominal = Flight(
+        flight_calisto_robust.rocket,
+        flight_calisto_robust.env,
+        rail_length=5.2,
+        use_udot_rail2=True,
+        max_time=1,
+    )
+
+    sampled = StochasticFlight(nominal).create_object()
+
+    assert sampled.use_udot_rail2 is True
+
+
+@pytest.mark.parametrize("scalar", [np.float32, np.float64, np.int64])
+def test_stochastic_flight_accepts_numpy_scalars_in_initial_solution(
+    flight_calisto_robust, scalar
+):
+    """A state sliced out of a NumPy array is a state, not a type error."""
+    state = [scalar(value) for value in flight_calisto_robust.solution[0]]
+
+    stochastic = StochasticFlight(flight_calisto_robust, initial_solution=state)
+
+    assert stochastic.initial_solution == state
+
+
+@pytest.mark.parametrize("flag", [True, np.bool_(True)])
+def test_stochastic_flight_rejects_booleans_in_initial_solution(
+    flight_calisto_robust, flag
+):
+    """A boolean compares equal to a number and is still not one."""
+    state = list(flight_calisto_robust.solution[0])
+    state[3] = flag
+
+    with pytest.raises(AssertionError, match="tuple of numbers"):
+        StochasticFlight(flight_calisto_robust, initial_solution=state)
+
+
+def test_stochastic_flight_rejects_a_non_boolean_terminate_on_apogee(
+    flight_calisto_robust,
+):
+    """``terminate_on_apogee`` has to be a real boolean when it is given."""
+    with pytest.raises(AssertionError, match="terminate_on_apogee"):
+        StochasticFlight(flight_calisto_robust, terminate_on_apogee=1)

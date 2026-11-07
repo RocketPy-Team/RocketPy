@@ -608,6 +608,7 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
         equations_of_motion="solid_propulsion",
         ode_solver="RK23",
         simulation_mode="native",
+        use_udot_rail2=True,
     )
     stochastic_flight = types.SimpleNamespace(
         obj=base,
@@ -637,6 +638,7 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
     assert flight.ode_solver == "RK23"
     assert flight.equations_of_motion == "solid_propulsion"
     assert flight.simulation_mode == "native"
+    assert flight.use_udot_rail2 is True
     assert flight.name == "named"
     # and the single draw is what the flight is actually built from
     assert (flight.rail_length, flight.inclination, flight.heading) == (

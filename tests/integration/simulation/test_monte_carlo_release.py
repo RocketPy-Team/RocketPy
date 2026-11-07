@@ -111,6 +111,16 @@ def test_object_seed_without_study_seed_warns_and_reports_replay_seed(
     assert f"Monte Carlo random_seed: {seed}" in capsys.readouterr().out
 
 
+def test_a_second_study_does_not_warn_about_seeds_the_first_one_set(
+    release_study, recwarn
+):
+    """Seeds a study derives for itself are not seeds the caller configured."""
+    release_study.simulate(1, random_seed=42, include_function_data=False)
+    release_study.simulate(1, append=False, include_function_data=False)
+
+    assert not [w for w in recwarn if "object seeds are ignored" in str(w.message)]
+
+
 @pytest.mark.parametrize("parallel", [False, True])
 def test_v113_study_can_be_extended_with_a_warning(release_study, parallel):
     """Keep one-based legacy rows and append without claiming reproducibility."""

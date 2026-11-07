@@ -30,11 +30,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- These are the changes that were not released yet, please add them correctly.
 Attention: The newest changes should be on top -->
 
-### Breaking changes
-
-- New serial Monte Carlo studies use indices `0..n-1` instead of `1..n`, matching parallel studies. Legacy logs retain their existing numbering when extended. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187)
-- Monte Carlo reseeds stochastic objects for every simulation in both execution modes. Pass a non-negative integer `random_seed` to reproduce a study; individual object seeds are overridden, and fixed-seed results from v1.13 change. New input rows record one integer `seed`, while output rows contain only the index and requested results. Metadata is excluded from statistical results and plots. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
-
 ### Added
 
 - ENH: Accept `random_seed` in `MonteCarlo.simulate_convergence`, including across batches. [#1198](https://github.com/RocketPy-Team/RocketPy/pull/1198) [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
@@ -56,7 +51,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- ENH: Number new serial and parallel Monte Carlo runs from zero. Legacy checkpoints retain their numbering when extended, with a warning that their original random draws cannot be reproduced. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
+- ENH: Number new Monte Carlo runs from zero in both execution modes, as the parallel path already did; serial runs used `1..n`, so their `index` shifts by one. Every simulation is now reseeded from one study `random_seed` (a non-negative integer), so individual object seeds are ignored and fixed-seed results from v1.13 change. New input rows record that `seed`; metadata is kept out of results, statistics and plots. Legacy checkpoints keep their numbering when extended, with a warning that their original draws cannot be reproduced. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - ENH: Compute the rocket static margin lazily [#1135](https://github.com/RocketPy-Team/RocketPy/pull/1135) [#780](https://github.com/RocketPy-Team/RocketPy/issues/780)
 - DOC: Tighten the comments that came with the sampler seed groups [#1154](https://github.com/RocketPy-Team/RocketPy/pull/1154)
 - CI: make the Gemini PR reviewer actually review [#1140](https://github.com/RocketPy-Team/RocketPy/pull/1140)
@@ -67,7 +62,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- BUG: Keep checkpoint metadata out of Monte Carlo plots and statistics, recover missing simulation indices without repeating completed flights, and warn when appending v1.13 logs. Preserve explicit initial flight states and solid-motor grain bonding in stochastic models. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
+- BUG: Keep checkpoint metadata out of Monte Carlo plots and statistics, recover missing simulation indices without repeating completed flights, and warn when appending v1.13 logs. Preserve explicit initial flight states, `terminate_on_apogee`, `use_udot_rail2` and solid-motor grain bonding in stochastic models. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - BUG: A `Flight` continued from another `Flight` object now records `t_initial`, so a rocket carrying sensors or controllers no longer raises `AttributeError` on that path. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
 - BUG: Report a Monte Carlo worker that fails instead of hanging or passing for a finished run [#1182](https://github.com/RocketPy-Team/RocketPy/pull/1182)

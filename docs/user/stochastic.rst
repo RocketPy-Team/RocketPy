@@ -353,6 +353,13 @@ draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
     individual stochastic models are overridden; a new study without
     ``random_seed`` warns when these models have already been seeded.
 
+    An index fixes the draw, not the object it is drawn around. Where the note
+    above says a value follows its deterministic object, moving that object
+    between runs still moves what is sampled, however the seed was set. A
+    ``CustomSampler`` that draws from the process-global ``numpy.random``
+    rather than from the generator it is handed sits outside all of this, as
+    :ref:`custom_sampler` warns.
+
     ``simulate_convergence(random_seed=...)`` uses the same study seed for every
     batch. Changing the batch size does not change the inputs of a given index.
 
@@ -371,15 +378,6 @@ warning: the old random stream cannot be recovered. New rows record the reported
 seed. Existing one-based serial numbering is preserved; new studies start at
 zero. Checkpoint fields (``index``, ``seed`` and the earlier ``run_root`` field)
 are excluded from ``results``, summary statistics and plots.
-
-.. note::
-
-    An index fixes the draw, not the object it is drawn around. Where the note
-    above says a value follows its deterministic object, moving that object
-    between runs still moves what is sampled, however the seed was set. A
-    ``CustomSampler`` that draws from the process-global ``numpy.random``
-    rather than from the generator it is handed sits outside all of this, as
-    :ref:`custom_sampler` warns.
 
 Conclusion
 ----------
