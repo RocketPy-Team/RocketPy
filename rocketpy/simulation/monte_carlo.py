@@ -805,15 +805,22 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             models.extend(component for component, _ in getattr(self.rocket, name))
         for name in getattr(self.rocket, "_PLAIN_COLLECTIONS", ()):
             models.extend(getattr(self.rocket, name))
-        return any(getattr(model, "_seed", None) is not None for model in models)
+        return any(
+            getattr(model, "_configured_seed", None) is not None for model in models
+        )
 
     def __seed_this_simulation(self, sim_idx):
         """Derive independent model streams from the study seed and simulation index."""
         child = np.random.SeedSequence([self.__study_seed, sim_idx])
         environment, rocket, flight = child.spawn(3)
-        self.environment._set_stochastic(_seed_sequence_to_int(environment))
-        self.rocket._set_stochastic(_seed_sequence_to_int(rocket))
-        self.flight._set_stochastic(_seed_sequence_to_int(flight))
+        for model, model_seed in (
+            (self.environment, environment),
+            (self.rocket, rocket),
+            (self.flight, flight),
+        ):
+            model._set_stochastic(_seed_sequence_to_int(model_seed))
+            # Derived from the study seed, so not one the caller configured.
+            model._configured_seed = None
 
     def __run_single_simulation(self):
         """Runs a single simulation and returns the inputs and outputs.
@@ -834,6 +841,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             heading=flight_inputs["heading"],
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
+            use_udot_rail2=self.flight.obj.use_udot_rail2,
             time_overshoot=self.flight.time_overshoot,
             # The rest of what StochasticFlight.create_object passes. Left out
             # here, a run ignored the max_time, tolerances, solver, equations of
@@ -2151,16 +2159,19 @@ def _refuse_logs_missing_a_simulation(
                 f"{len(missing)} of {target} simulations, the first being "
                 f"{missing[0]}."
             )
+        # With a checkpoint, only the target and the checkpoint are valid; the
+        # log's own length must not widen the range, or it hides a stray.
+        upper = target if previous_indices else max(target, len(found))
         strays = sorted(
             held
-            - set(range(index_offset, len(found) + index_offset))
+            - set(range(index_offset, upper + index_offset))
             - set(previous_indices)
         )
         if strays:
             raise RuntimeError(
                 f"The run is incomplete: the {label} log numbers a simulation "
                 f"{strays[0]}, past the {len(found)} it holds, so what it "
-                f"records is not one run of consecutive simulations."
+                f"records is not the run, or the checkpoint, that was asked for."
             )
 
     if recorded["input"] != recorded["output"]:

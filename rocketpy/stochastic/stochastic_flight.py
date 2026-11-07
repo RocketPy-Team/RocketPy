@@ -1,5 +1,9 @@
 """Defines the StochasticFlight class."""
 
+from numbers import Real
+
+import numpy as np
+
 from rocketpy.simulation import Flight
 
 from .stochastic_model import StochasticModel
@@ -28,7 +32,7 @@ class StochasticFlight(StochasticModel):
         be randomized.
     terminate_on_apogee : bool
         Whether or not the flight should terminate on apogee. This attribute
-        can not be randomized.
+        can not be randomized. If omitted, the base flight's value is kept.
     time_overshoot : bool
         If False, the simulation will run at the time step defined by the controller
         sampling rate. Be aware that this will make the simulation run much slower.
@@ -73,7 +77,7 @@ class StochasticFlight(StochasticModel):
             retain their randomized launch orientation.
         terminate_on_apogee : bool, optional
             Whether or not the flight should terminate on apogee. This attribute
-            can not be randomized.
+            can not be randomized. If omitted, the base flight's value is kept.
         time_overshoot : bool
             If False, the simulation will run at the time step defined by the controller
             sampling rate. Be aware that this will make the simulation run much slower.
@@ -104,7 +108,11 @@ class StochasticFlight(StochasticModel):
             initial_solution = list(initial_solution.solution[-1])
         self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
-        self.terminate_on_apogee = terminate_on_apogee
+        self.terminate_on_apogee = (
+            flight.terminate_on_apogee
+            if terminate_on_apogee is None
+            else terminate_on_apogee
+        )
         if max_time is None:
             self.max_time = flight.max_time
         else:
@@ -124,7 +132,10 @@ class StochasticFlight(StochasticModel):
                         "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
                         "e3_init, w1Init, w2Init, w3Init"
                     )
-                if not all(isinstance(i, (int, float)) for i in initial_solution):
+                if not all(
+                    isinstance(i, Real) and not isinstance(i, (bool, np.bool_))
+                    for i in initial_solution
+                ):
                     raise AssertionError(
                         "`initial_solution` must be a tuple of numbers"
                     )
@@ -172,6 +183,7 @@ class StochasticFlight(StochasticModel):
             heading=generated_dict["heading"],
             initial_solution=self.initial_solution,
             terminate_on_apogee=self.terminate_on_apogee,
+            use_udot_rail2=self.obj.use_udot_rail2,
             max_time=self.max_time,
             max_time_step=self.obj.max_time_step,
             min_time_step=self.obj.min_time_step,

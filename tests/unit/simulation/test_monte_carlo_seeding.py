@@ -257,3 +257,58 @@ def test_a_worker_loop_draws_the_study_serial_draws(models, tmp_path):
     )
 
     assert _sampled_inputs(worker) == _sampled_inputs(serial)
+
+
+def _an_unrun_study(tmp_path, models):
+    environment, rocket, flight = models
+    return MonteCarlo(
+        filename=str(tmp_path / "unrun"),
+        environment=environment,
+        rocket=rocket,
+        flight=flight,
+    )
+
+
+def test_a_study_that_nobody_seeded_has_no_object_seed(models, tmp_path):
+    """The control: fresh models carry no seed the caller chose."""
+    assert not _an_unrun_study(tmp_path, models)._MonteCarlo__has_object_seed()
+
+
+@pytest.mark.parametrize("which", ["environment", "rocket", "flight", "motor"])
+def test_a_seed_the_caller_set_counts_as_an_object_seed(models, tmp_path, which):
+    """A seed on any model a run overrides is one the user has to be told of."""
+    environment, rocket, flight = models
+    seeded = {
+        "environment": environment,
+        "rocket": rocket,
+        "flight": flight,
+        "motor": rocket.motors[0][0],
+    }[which]
+    seeded._set_stochastic(42)
+
+    assert _an_unrun_study(tmp_path, models)._MonteCarlo__has_object_seed()
+
+
+def test_the_seeds_a_study_derives_are_not_object_seeds(models, tmp_path):
+    """Reseeding for one simulation must not look like the caller's choice."""
+    # Otherwise a second study without random_seed warned that "object seeds
+    # are ignored" about seeds the first study had put there itself.
+    study = _an_unrun_study(tmp_path, models)
+    study._MonteCarlo__study_seed = 42
+
+    study._MonteCarlo__seed_this_simulation(3)
+
+    assert not study._MonteCarlo__has_object_seed()
+
+
+def test_a_seed_set_on_a_component_is_cleared_by_the_reseed(models, tmp_path):
+    """A component's own seed is replaced by one derived from the rocket's."""
+    _, rocket, _ = models
+    rocket.motors[0][0]._set_stochastic(7)
+    study = _an_unrun_study(tmp_path, models)
+    study._MonteCarlo__study_seed = 42
+    assert study._MonteCarlo__has_object_seed()
+
+    study._MonteCarlo__seed_this_simulation(0)
+
+    assert not study._MonteCarlo__has_object_seed()
