@@ -842,6 +842,41 @@ class _FreeFormFinPlots(_FinPlots):
         show_or_save_plot(filename)
 
 
+class _TubeFinsPlots(_AeroSurfacePlots):
+    """Class that contains all tube-fin plots."""
+
+    def draw(self, *, filename=None):
+        """Draw a side-view envelope of the tube-fin set."""
+        axial, radial = self.aero_surface.shape_vec
+        _, ax = plt.subplots()
+
+        ax.plot(axial, radial, color="#A60628", label="Tube-fin envelope")
+        ax.plot(axial, -radial, color="#A60628")
+        ax.plot(
+            [0, self.aero_surface.length],
+            [0, 0],
+            color="#7A68A6",
+            linestyle="--",
+            label="Rocket centerline",
+        )
+
+        cp_point = (self.aero_surface.cpz, 0)
+        ax.scatter(*cp_point, label="Center of Pressure", color="red", zorder=10)
+        ax.scatter(*cp_point, facecolors="none", edgecolors="red", s=300, zorder=10)
+
+        limit = self.aero_surface.rocket_radius + 2 * self.aero_surface.outer_radius
+        ax.set_xlim(-0.02 * self.aero_surface.length, 1.02 * self.aero_surface.length)
+        ax.set_ylim(-1.05 * limit, 1.05 * limit)
+        ax.set_aspect("equal")
+        ax.set_xlabel("Length (m)")
+        ax.set_ylabel("Radius (m)")
+        ax.set_title("Tube Fin Set Side-View Envelope")
+        ax.grid(True, linestyle="--", linewidth=0.5)
+        ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 

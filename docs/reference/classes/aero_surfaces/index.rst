@@ -12,6 +12,7 @@ AeroSurface Classes
    TrapezoidalFins
    EllipticalFins
    FreeFormFins
+   TubeFins
    Fin
    TrapezoidalFin
    EllipticalFin

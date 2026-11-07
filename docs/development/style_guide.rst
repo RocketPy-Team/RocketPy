@@ -163,9 +163,10 @@ Pull Requests
 ^^^^^^^^^^^^^
 
 When opening a Pull Request, the title should be clear and concise.
-It should contain only a brief desctiption of the changes without the acronym (e.g. ENH:, BUG:).
-The maintainers will label your PR accordingly, which will add a prefix via a workflow to indicate 
-type of the PR in the CHANGELOG file.
+It should contain only a brief description of the changes without the acronym (e.g. ENH:, BUG:).
+The maintainers will label your PR accordingly. After the PR is merged, a workflow
+uses an LLM (Google Gemini) to add the right prefix and place the entry in the
+correct section of the ``CHANGELOG.md`` file automatically.
 
 Here is an example of a good PR name:
 

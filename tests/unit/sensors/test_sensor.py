@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from pytest import approx
 
+from rocketpy import Accelerometer
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler313_to_quaternions
 
@@ -272,7 +273,10 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
 
     # calculate acceleration at sensor position in inertial frame
     relative_position = Vector([0.4, 0.4, 1])
-    inertial_acceleration = Vector(U_DOT[3:6]) + Vector([0, 0, -GRAVITY])
+    # An accelerometer reports proper acceleration: the inertial acceleration
+    # less the local gravitational field. Gravity points down, so the term it
+    # contributes points up, which is why one sitting still reads +g, not 0.
+    inertial_acceleration = Vector(U_DOT[3:6]) - Vector([0, 0, -GRAVITY])
     omega = Vector(U[10:13])
     omega_dot = Vector(U_DOT[10:13])
     acceleration = (
@@ -315,6 +319,48 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
         [ax, ay, az], rel=0.1
     )
     assert noisy_rotated_accelerometer.measured_data[0][0] == TIME
+
+
+def test_accelerometer_at_rest_reads_gravity_upward(example_plain_env):
+    """An accelerometer standing still reads +g along its up axis, not zero.
+
+    The test above recomputes the expression under test, so a flipped gravity
+    term gets mirrored into agreement there instead of being caught. This one
+    says what the instrument does rather than how it is computed: it senses
+    the support force holding it up, so at rest it reports g upward. Reversing
+    the sign in ``Accelerometer.measure`` fails here.
+
+    Every noise, bias and drift parameter is left at its default, all of which
+    are zero, so the measurement is exact rather than bounded.
+    """
+    at_rest = [0.0] * 13
+    at_rest[6] = 1.0  # identity attitude, so sensor axes are the inertial ones
+    still = [0.0] * 13
+    gravity = example_plain_env.gravity.get_value_opt(0)
+
+    sensing_gravity = Accelerometer(sampling_rate=100, consider_gravity=True)
+    sensing_gravity.measure(
+        time=0,
+        u=at_rest,
+        u_dot=still,
+        relative_position=Vector([0, 0, 0]),
+        environment=example_plain_env,
+    )
+
+    assert sensing_gravity.measurement == approx([0, 0, gravity], abs=1e-12)
+
+    # Without the flag the same sensor reports the coordinate acceleration, so
+    # the whole of what the flag contributes is that one upward g.
+    ignoring_gravity = Accelerometer(sampling_rate=100, consider_gravity=False)
+    ignoring_gravity.measure(
+        time=0,
+        u=at_rest,
+        u_dot=still,
+        relative_position=Vector([0, 0, 0]),
+        environment=example_plain_env,
+    )
+
+    assert ignoring_gravity.measurement == approx([0, 0, 0], abs=1e-12)
 
 
 def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):

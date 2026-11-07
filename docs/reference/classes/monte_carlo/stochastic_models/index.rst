@@ -19,6 +19,7 @@ input parameters, enabling robust Monte Carlo simulations.
    stochastic_nose_cone
    stochastic_trapezoidal_fins
    stochastic_elliptical_fins
+   stochastic_free_form_fins
    stochastic_tail
    stochastic_rail_buttons
    stochastic_rocket

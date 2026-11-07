@@ -291,6 +291,21 @@ class _FreeFormFinPrints(_FinPrints):
     """Class that contains all free form fins prints."""
 
 
+class _TubeFinsPrints(_AeroSurfacePrints):
+    """Class that contains all tube-fin prints."""
+
+    def geometry(self):
+        """Print the geometric information of the tube-fin set."""
+        print("Geometric information of the tube-fin set:")
+        print("------------------------------------------")
+        print(f"Number of tubes: {self.aero_surface.n}")
+        print(f"Tube length: {self.aero_surface.length:.3f} m")
+        print(f"Inner tube radius: {self.aero_surface.inner_radius:.3f} m")
+        print(f"Outer tube radius: {self.aero_surface.outer_radius:.3f} m")
+        print(f"Reference rocket radius: {self.aero_surface.rocket_radius:.3f} m")
+        print(f"Ring-airfoil aspect ratio: {self.aero_surface.aspect_ratio:.3f}\n")
+
+
 class _TailPrints(_AeroSurfacePrints):
     """Class that contains all tail prints."""
 

@@ -12,6 +12,7 @@ environment in the :class:`rocketpy.Environment` class.
 
    Standard Atmosphere <standard_atmosphere.rst>
    Custom Atmosphere <custom_atmosphere.rst>
+   Open-Meteo <open_meteo.rst>
    Forecasts <forecast.rst>
    Soundings <soundings.rst>
    Reanalysis <reanalysis.rst>

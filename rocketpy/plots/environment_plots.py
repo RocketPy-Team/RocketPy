@@ -434,6 +434,9 @@ class _EnvironmentPlots:
         self.atmospheric_model()
 
         # Plot ensemble member comparison
-        if self.environment.atmospheric_model_type == "Ensemble":
+        if self.environment.atmospheric_model_type.lower() in (
+            "ensemble",
+            "open_meteo_ensemble",
+        ):
             print("\n\nEnsemble Members Comparison")
             self.ensemble_member_comparison()

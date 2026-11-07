@@ -3,14 +3,12 @@ import os
 from unittest.mock import patch
 
 import matplotlib as plt
-import pytest
 
 from rocketpy import Environment
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
-@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_all_info(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Test the EnvironmentAnalysis.all_info() method, which already invokes
@@ -32,7 +30,6 @@ def test_all_info(mock_show, env_analysis):  # pylint: disable=unused-argument
     os.remove("wind_rose.gif")  # remove the files created by the method
 
 
-@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_exports(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the export methods of the EnvironmentAnalysis class. It
@@ -59,7 +56,6 @@ def test_exports(mock_show, env_analysis):  # pylint: disable=unused-argument
     os.remove("export_env_analysis.json")
 
 
-@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_create_environment_object(mock_show, env_analysis):  # pylint: disable=unused-argument
     assert isinstance(env_analysis.create_environment_object(), Environment)

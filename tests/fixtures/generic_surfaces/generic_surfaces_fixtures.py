@@ -3,10 +3,12 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def filename_valid_coeff(tmpdir_factory):
+def filename_valid_coeff(tmp_path_factory):
     """Creates temporary files used to test if generic surfaces
     initializes correctly from CSV files"""
-    filename = tmpdir_factory.mktemp("aero_surface_data").join("valid_coefficients.csv")
+    filename = tmp_path_factory.mktemp("aero_surface_data").joinpath(
+        "valid_coefficients.csv"
+    )
     pd.DataFrame(
         {
             "alpha": [0, 1, 2, 3, 0.1],
@@ -31,10 +33,10 @@ def filename_valid_coeff(tmpdir_factory):
         },
     )
 )
-def filename_invalid_coeff(tmpdir_factory, request):
+def filename_invalid_coeff(tmp_path_factory, request):
     """Creates temporary CSV files used to test if generic surfaces
     raises errors when initialized incorrectly from CSV files"""
-    filename = tmpdir_factory.mktemp("aero_surface_data").join(
+    filename = tmp_path_factory.mktemp("aero_surface_data").joinpath(
         "tmp_invalid_coefficients.csv"
     )
     pd.DataFrame(request.param).to_csv(filename, index=False)

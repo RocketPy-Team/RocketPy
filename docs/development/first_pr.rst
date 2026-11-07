@@ -95,14 +95,19 @@ Please correct any issues that may arise from the CI checks.
 The CHANGELOG file
 ------------------
 
-We keep track of the changes in the ``CHANGELOG.md`` file.
-When you open a PR, you should see the "Unreleased" section of the file.
-An entry will simply contain the title of your PR if merged.
+We keep track of the changes in the ``CHANGELOG.md`` file, but **you do not
+need to edit it yourself**. When you open a PR you will see the "Unreleased"
+section of the file; you can leave it as is.
 
 .. note::
 
-    The CHANGELOG is auto-updated once a PR is merged based on the associated labels, \
-    which are assigned by the maintainers.
+    Once your PR is merged into ``develop``, the
+    ``.github/workflows/changelog.yml`` workflow uses an LLM (Google Gemini) to
+    write a well-formatted entry into the "Unreleased" section automatically. It
+    picks the right subsection (Added, Changed, Fixed, ...) and prefix from your
+    PR title, labels, and description, and skips duplicates. In practice you only
+    open the PR -- the maintainers review, label, and merge it, and the changelog
+    entry is generated and committed for you.
 
 The review process
 ------------------

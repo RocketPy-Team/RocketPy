@@ -1,10 +1,14 @@
 # pylint: disable=unused-argument
+import json
 import os
 from unittest.mock import patch
 
 import matplotlib as plt
 import numpy as np
 import pytest
+
+from rocketpy.rocket.components import Components
+from rocketpy.simulation import MonteCarlo
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -263,3 +267,44 @@ def test_monte_carlo_simulate_convergence(monte_carlo_calisto):
         assert monte_carlo_calisto.num_of_loaded_sims <= 20
     finally:
         _post_test_file_cleanup()
+
+
+@pytest.mark.slow
+def test_monte_carlo_simulate_free_form_fins(
+    stochastic_environment,
+    stochastic_calisto,
+    stochastic_free_form_fins,
+    stochastic_flight,
+    tmp_path,
+):
+    """A free-form fin set must survive a whole Monte Carlo run: it has to be
+    sampled, flown, and written to the inputs file as an outline rather than as
+    a single point (see #953)."""
+
+    stochastic_calisto.aerodynamic_surfaces = Components()
+    stochastic_calisto.add_free_form_fins(
+        stochastic_free_form_fins, position=(-1.04956, 0.001)
+    )
+
+    filename = str(tmp_path / "monte_carlo_free_form_fins")
+    monte_carlo = MonteCarlo(
+        filename=filename,
+        environment=stochastic_environment,
+        rocket=stochastic_calisto,
+        flight=stochastic_flight,
+    )
+    monte_carlo.simulate(number_of_simulations=2, append=False)
+
+    assert monte_carlo.num_of_loaded_sims == 2
+
+    nominal = np.asarray(stochastic_free_form_fins.obj.shape_points, dtype=float)
+    with open(filename + ".inputs.txt", encoding="utf-8") as file:
+        lines = file.read().splitlines()
+    assert len(lines) == 2
+    for line in lines:
+        surfaces = json.loads(line)["aerodynamic_surfaces"]
+        outlines = [s["shape_points"] for s in surfaces if "shape_points" in s]
+        assert len(outlines) == 1
+        sampled = np.asarray(outlines[0], dtype=float)
+        assert sampled.shape == nominal.shape
+        assert not np.allclose(sampled, nominal)

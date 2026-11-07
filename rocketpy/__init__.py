@@ -52,6 +52,7 @@ from .rocket import (
     Tail,
     TrapezoidalFin,
     TrapezoidalFins,
+    TubeFins,
 )
 from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
@@ -62,6 +63,7 @@ from .stochastic import (
     StochasticEllipticalFins,
     StochasticEnvironment,
     StochasticFlight,
+    StochasticFreeFormFins,
     StochasticNoseCone,
     StochasticParachute,
     StochasticRocket,

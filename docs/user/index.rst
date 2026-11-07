@@ -26,6 +26,7 @@ RocketPy's User Guide
    Compare Flights Class<compare_flights.rst>
    Flight Comparator Class <flight_comparator.rst>
    Parachute Triggers (Acceleration-Based) <parachute_triggers.rst>
+   Software-in-the-Loop Parachute Ejection <sil_parachute_ejection.rst>
    Deployable Payload <deployable.rst>
    Controllers <controllers.rst>
    Air Brakes Example <airbrakes.rst>
