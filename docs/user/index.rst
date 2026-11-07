@@ -30,6 +30,7 @@ RocketPy's User Guide
    Deployable Payload <deployable.rst>
    Controllers <controllers.rst>
    Air Brakes Example <airbrakes.rst>
+   Multistage Mission <../notebooks/multistage_mission.ipynb>
    ../notebooks/sensors.ipynb
    ../matlab/matlab.rst
 
