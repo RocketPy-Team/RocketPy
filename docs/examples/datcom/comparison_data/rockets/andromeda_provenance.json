@@ -373,5 +373,12 @@
   "construction_assumption": "carbon fibre and vinyl when unspecified; no numerical roughness inferred",
   "fin_assumption": "2% HEX, 5% bevels, sharp edges, auto body attachment",
   "powered_base_drag": "nozzle",
-  "damp": true
+  "damp": true,
+  "unmodeled_hardware": [
+    {
+      "feature": "airbrakes",
+      "source": "https://asat.gr/asat-launches-twice-and-takes-7th-place-in-the-european-rocketry-challenge-2022-euroc/",
+      "deployment_history_available": false
+    }
+  ]
 }

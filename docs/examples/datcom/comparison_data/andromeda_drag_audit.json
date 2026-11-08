@@ -1,0 +1,262 @@
+{
+  "fitted": false,
+  "hardware_section_verified": false,
+  "executable_sha256": "96dfeae8a1ffca2eb82c44be5245f45da0dddfcfbcb5250653f07cfeefa5c22b",
+  "drag_source_sha256": "c6c685ebe12de06a448bcf2514658a464179e9bad90a3d7afc9989758b55bbdb",
+  "source_curve": {
+    "minimum_mach": 0.0061078,
+    "maximum_mach": 0.85204,
+    "rows": 534,
+    "descending_mach_steps": 414,
+    "exact_duplicate_mach_rows": 0,
+    "same_file_for_powered_and_coast": true,
+    "extrapolation": "constant; no measured-CD provenance is supplied",
+    "maximum_branch_cd_difference_mach02_to08": 0.0015803198341280411
+  },
+  "manual": "Missile DATCOM Users Guide, rev 5/97: Table 4 (ROUGH/BLAYER), Table 5 (DEXIT), section 3.1.6 (SSPAN), section 4.2.2 (airfoil approximations)",
+  "hypotheses": "No fin thickness, edge shape or roughness measurement is supplied. 6.35 um is the manual's carefully applied matte-paint example, not a carbon/vinyl material assignment. Square USER edges use approximate native section methods.",
+  "native_diagnostics": {
+    "powered/baseline": [
+      "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+    ],
+    "powered/constant_4mm_5mm_bevel": [],
+    "powered/ratio_0.04": [],
+    "powered/user_sharp_both": [],
+    "powered/user_blunt_TE": [],
+    "powered/user_square_edges": [],
+    "powered/rough_6.35um": [],
+    "powered/rough_25.4um": [],
+    "powered/rough_100um": [],
+    "coast/baseline": [
+      "*** CREST CRITICAL MACH NUMBER EXCEEDED ***"
+    ],
+    "coast/constant_4mm_5mm_bevel": [],
+    "coast/ratio_0.04": [],
+    "coast/user_sharp_both": [],
+    "coast/user_blunt_TE": [],
+    "coast/user_square_edges": [],
+    "coast/rough_6.35um": [],
+    "coast/rough_25.4um": [],
+    "coast/rough_100um": []
+  },
+  "geometry": {
+    "reference_area_m2": 0.017836777135856116,
+    "diameter_m": 0.1507,
+    "length_m": 2.4996,
+    "nose_length_m": 0.3,
+    "nose_kind": "von Karman",
+    "fins": {
+      "n": 3,
+      "span_m": 0.185,
+      "root_chord_m": 0.23,
+      "tip_chord_m": 0.11,
+      "sweep_m": 0.12,
+      "root_le_from_nose_m": 2.145,
+      "tip_le_from_nose_m": 2.265
+    },
+    "assumed_section": "2% HEX with sharp ends and 5%-chord bevels: root 4.6 mm thick, tip 2.2 mm"
+  },
+  "flights": [
+    {
+      "variant": "ordinary_supplied_cd",
+      "apogee_agl_m": 3615.880567942097,
+      "recorded_agl_m": 3443,
+      "error_pct": 5.021218935291816,
+      "peak_mach": 1.0053378734543723
+    },
+    {
+      "variant": "baseline",
+      "apogee_agl_m": 4170.733199067169,
+      "recorded_agl_m": 3443,
+      "error_pct": 21.13660177366161,
+      "peak_mach": 1.0332466148611328
+    },
+    {
+      "variant": "supplied_zero_cd_in_datcom",
+      "apogee_agl_m": 3615.046009386481,
+      "recorded_agl_m": 3443,
+      "error_pct": 4.996979651074085,
+      "peak_mach": 1.005126691115953
+    },
+    {
+      "variant": "supplied_powered_cd_in_datcom",
+      "apogee_agl_m": 4069.0355723976263,
+      "recorded_agl_m": 3443,
+      "error_pct": 18.182851362115194,
+      "peak_mach": 1.005126691115953
+    },
+    {
+      "variant": "supplied_coast_cd_in_datcom",
+      "apogee_agl_m": 3715.581282834452,
+      "recorded_agl_m": 3443,
+      "error_pct": 7.916970166553927,
+      "peak_mach": 1.0332466148611328
+    },
+    {
+      "variant": "user_blunt_TE",
+      "apogee_agl_m": 3973.7324070571403,
+      "recorded_agl_m": 3443,
+      "error_pct": 15.414824486120837,
+      "peak_mach": 1.027407212235516
+    },
+    {
+      "variant": "user_square_edges",
+      "apogee_agl_m": 3973.7324070571403,
+      "recorded_agl_m": 3443,
+      "error_pct": 15.414824486120837,
+      "peak_mach": 1.027407212235516
+    },
+    {
+      "variant": "rough_6.35um",
+      "apogee_agl_m": 4021.982118998103,
+      "recorded_agl_m": 3443,
+      "error_pct": 16.816210252631514,
+      "peak_mach": 1.0250966291294208
+    },
+    {
+      "variant": "rough_25.4um",
+      "apogee_agl_m": 3762.9989053962513,
+      "recorded_agl_m": 3443,
+      "error_pct": 9.294188364689271,
+      "peak_mach": 1.0124389829746088
+    }
+  ],
+  "mach06": [
+    {
+      "phase": "powered",
+      "variant": "baseline",
+      "mach": 0.6,
+      "datcom_cd": 0.323,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "constant_4mm_5mm_bevel",
+      "mach": 0.6,
+      "datcom_cd": 0.324,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "ratio_0.04",
+      "mach": 0.6,
+      "datcom_cd": 0.325,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "user_sharp_both",
+      "mach": 0.6,
+      "datcom_cd": 0.323,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "user_blunt_TE",
+      "mach": 0.6,
+      "datcom_cd": 0.388,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "user_square_edges",
+      "mach": 0.6,
+      "datcom_cd": 0.388,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "rough_6.35um",
+      "mach": 0.6,
+      "datcom_cd": 0.361,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "rough_25.4um",
+      "mach": 0.6,
+      "datcom_cd": 0.434,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "powered",
+      "variant": "rough_100um",
+      "mach": 0.6,
+      "datcom_cd": 0.539,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "baseline",
+      "mach": 0.6,
+      "datcom_cd": 0.349,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "constant_4mm_5mm_bevel",
+      "mach": 0.6,
+      "datcom_cd": 0.35,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "ratio_0.04",
+      "mach": 0.6,
+      "datcom_cd": 0.351,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "user_sharp_both",
+      "mach": 0.6,
+      "datcom_cd": 0.349,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "user_blunt_TE",
+      "mach": 0.6,
+      "datcom_cd": 0.414,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "user_square_edges",
+      "mach": 0.6,
+      "datcom_cd": 0.414,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "rough_6.35um",
+      "mach": 0.6,
+      "datcom_cd": 0.38,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "rough_25.4um",
+      "mach": 0.6,
+      "datcom_cd": 0.452,
+      "supplied_cd": 0.4984983643122677
+    },
+    {
+      "phase": "coast",
+      "variant": "rough_100um",
+      "mach": 0.6,
+      "datcom_cd": 0.558,
+      "supplied_cd": 0.4984983643122677
+    }
+  ],
+  "substitution_scope": "Only the native zero-incidence axial-force curve is replaced. Native incidence increments, lateral coefficients, moments, damping, CG, motor and atmosphere are retained. This is a causal diagnostic, not a native DATCOM prediction or calibration.",
+  "external_hardware_evidence": {
+    "checked_date": "2026-11-06",
+    "launch_report": "https://asat.gr/asat-launches-twice-and-takes-7th-place-in-the-european-rocketry-challenge-2022-euroc/",
+    "automatic_control": "https://asat.gr/automatic-control/",
+    "aerodynamics": "https://asat.gr/aerodynamics/",
+    "finding": "The team reports airbrakes used on both 2022 EuRoC flights; neither comparison model reconstructs their geometry or deployment. The boattail was not used. CSV provenance and deployment history remain unknown.",
+    "team_reported_cots_apogee_m": 3446,
+    "notebook_recorded_apogee_m": 3443
+  }
+}

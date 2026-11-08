@@ -239,6 +239,20 @@ the centreline; our `SSPAN(1)=0` convention correctly requests exposed-span
 automatic body attachment. These conversions were checked. The hardware
 section values remain unknown, and no fit or default change is applied.
 
+The [Andromeda drag investigation](comparison_data/andromeda_drag_audit.md)
+isolates its model discrepancy: substituting only the supplied zero-incidence
+CD into DATCOM gives 3615.05 m, versus ordinary RocketPy's 3615.88 m and native
+DATCOM's 4170.73 m. It retains native moments, lateral aerodynamics and damping.
+ASAT's own launch report says both Andromeda flights used **airbrakes**, whose
+geometry and deployment are missing from both comparison models. The flown
+apogee is therefore not a validation of bare-vehicle CD; fitting roughness to
+it could hide missing brake drag. The audit links the primary team sources.
+Native partial output confirms base drag, three fins and the reference area;
+unknown fin edges and roughness materially affect the result. The supplied CD
+file also stops at Mach 0.85204 and uses identical powered/coast drag. The audit
+includes saved input/output files, coefficient breakdowns and sensitivity runs;
+it does not establish measured CD or change the comparison baselines.
+
 ## Published Missile DATCOM examples versus this integration
 
 The [reference-example audit](comparison_data/reference_example_audit.json)

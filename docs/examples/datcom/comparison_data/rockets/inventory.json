@@ -16,7 +16,8 @@
     ],
     "measured_summaries": [],
     "notes": [
-      "Telemetry maximum 3438.549 m differs from notebook reported value 3443.000 m; both retained."
+      "Telemetry maximum 3438.549 m differs from notebook reported value 3443.000 m; both retained.",
+      "ASAT reports airbrakes used on both EuRoC 2022 flights; neither comparison model reconstructs brake geometry or deployment. The supplied CD curve may or may not include their effects; its provenance is unknown. Team report: 3446 m COTS apogee versus notebook 3443 m. Source: https://asat.gr/asat-launches-twice-and-takes-7th-place-in-the-european-rocketry-challenge-2022-euroc/"
     ],
     "telemetry": {
       "path": "data/rockets/andromeda/flight_data.csv",

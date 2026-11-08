@@ -1,0 +1,2400 @@
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS
+
+    CONERR - INPUT ERROR CHECKING
+
+    ERROR CODES - N* DENOTES THE NUMBER OF OCCURENCES OF EACH ERROR
+    A - UNKNOWN VARIABLE NAME
+    B - MISSING EQUAL SIGN FOLLOWING VARIABLE NAME
+    C - NON-ARRAY VARIABLE HAS AN ARRAY ELEMENTDESIGNATION - (N)
+    D - NON-ARRAY VARIABLE HAS MULTIPLE VALUES ASSIGNED
+    E - ASSIGNED VALUES EXCEED ARRAY DIMENSION
+    F - SYNTAX ERROR
+
+    ************************* INPUT DATA CARDS *************************
+
+      1 ** BLANK CARD - IGNORED
+   2 DIM M
+   3  $FLTCON
+   4   NMACH = 8.,
+   5   MACH = 0.1,0.3,0.6,0.8,0.9,1.,1.05,1.2,
+   6   REN = 2194460.36,6571876.13,13023069.6,17180725.7,19184259.8,21077841.2,
+   7     21929330.3,25062091.8,
+   8   NALPHA = 3.,
+   9   ALPHA = -2.,0.,2.,
+  10   BETA = 0.,$
+  11  $REFQ
+  12   XCG = 1.2437,
+  13   SREF = 0.0178367771,
+  14   LREF = 0.1507,$
+  15  $AXIBOD
+  16   TNOSE = KARMAN,
+               ** SUBSTITUTING NUMERIC FOR NAME KARMAN
+  17   LNOSE = 0.3,
+  18   DNOSE = 0.1507,
+  19   LCENTR = 2.1996,
+  20   DCENTR = 0.1507,
+  21   BASE = .FALSE.,
+  22   DEXIT = 0.05625,$
+  23  $FINSET1
+  24   XLE = 2.145,2.265,
+  25   NPANEL = 3.,
+  26   PHIF = 0.,120.,240.,
+  27   GAM = 0.,0.,0.,
+  28   SSPAN = 0.,0.185,
+  29   CHORD = 0.23,0.11,
+  30   SECTYP = HEX,
+               ** SUBSTITUTING NUMERIC FOR NAME HEX
+  31   ZUPPER = 0.01,0.01,
+  32   ZLOWER = 0.01,0.01,
+  33   LER = 0.,0.,
+  34   LMAXU = 0.05,0.05,
+  35   LFLATU = 0.9,0.9,
+  36   LMAXL = 0.05,0.05,
+  37   LFLATL = 0.9,0.9,$
+  38  $DEFLCT
+  39   DELTA1 = -0.,-0.,-0.,$
+  40 DAMP
+  41 PART
+  42 NEXT CASE
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   1
+    CASE INPUTS
+    FOLLOWING ARE THE CARDS INPUT FOR THIS CASE
+
+ DIM M
+  $FLTCON
+   NMACH = 8.,
+   MACH = 0.1,0.3,0.6,0.8,0.9,1.,1.05,1.2,
+   REN = 2194460.36,6571876.13,13023069.6,17180725.7,19184259.8,21077841.2,
+     21929330.3,25062091.8,
+   NALPHA = 3.,
+   ALPHA = -2.,0.,2.,
+   BETA = 0.,$
+  $REFQ
+   XCG = 1.2437,
+   SREF = 0.0178367771,
+   LREF = 0.1507,$
+  $AXIBOD
+   TNOSE = 4.,
+   LNOSE = 0.3,
+   DNOSE = 0.1507,
+   LCENTR = 2.1996,
+   DCENTR = 0.1507,
+   BASE = .FALSE.,
+   DEXIT = 0.05625,$
+  $FINSET1
+   XLE = 2.145,2.265,
+   NPANEL = 3.,
+   PHIF = 0.,120.,240.,
+   GAM = 0.,0.,0.,
+   SSPAN = 0.,0.185,
+   CHORD = 0.23,0.11,
+   SECTYP = 0.,
+   ZUPPER = 0.01,0.01,
+   ZLOWER = 0.01,0.01,
+   LER = 0.,0.,
+   LMAXU = 0.05,0.05,
+   LFLATU = 0.9,0.9,
+   LMAXL = 0.05,0.05,
+   LFLATL = 0.9,0.9,$
+  $DEFLCT
+   DELTA1 = -0.,-0.,-0.,$
+ DAMP
+ PART
+ NEXT CASE
+    THE BOUNDARY LAYER IS ASSUMED TO BE TURBULENT
+    THE INPUT UNITS ARE IN METERS, THE SCALE FACTOR IS   1.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   2
+                        AXISYMMETRIC BODY DEFINITION
+
+                             NOSE   CENTERBODY     AFT BODY        TOTAL
+    SHAPE                VONKARMN     CYLINDER     --------
+    LENGTH                  0.300        2.200        0.000        2.500   M
+    FINENESS RATIO          1.991       14.596        0.000       16.587
+    PLANFORM AREA           0.029        0.331        0.000        0.361   M**2
+    AREA CENTROID           0.186        1.400        0.000        1.301   M
+    WETTED AREA             0.095        1.041        0.000        1.136   M**2
+    VOLUME                  0.003        0.039        0.000        0.042   M**3
+    VOL. CENTROID           0.206        1.400        0.000        1.324   M
+
+                              MOLD LINE CONTOUR
+
+     LONGITUDINAL STATIONS    0.0000     0.0300     0.0600     0.0900     0.1200
+        0.1500     0.1800     0.2100     0.2400     0.2700     0.3000     0.5200
+        0.7399     0.9599     1.1798     1.3998     1.6198     1.8397     2.0597
+        2.2796     2.4996*
+
+                BODY RADII    0.0000     0.0172     0.0284     0.0378     0.0461
+        0.0533     0.0596     0.0652     0.0698     0.0734     0.0754     0.0754
+        0.0754     0.0754     0.0754     0.0754     0.0754     0.0754     0.0754
+        0.0754     0.0754*
+    NOTE - * INDICATES SLOPE DISCONTINUOUS POINTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   3
+                         FIN SET NUMBER 1 AIRFOIL SECTION
+
+                                  NACA S-3-05.0-02.0-90.0
+
+         X/C     X-UPPER   Y-UPPER   X-LOWER   Y-LOWER  MEAN LINE  THICKNESS
+
+       0.00000   0.00000   0.00000   0.00000   0.00000   0.00000   0.00000
+       0.00100   0.00100   0.00020   0.00100  -0.00020   0.00000   0.00040
+       0.00200   0.00200   0.00040   0.00200  -0.00040   0.00000   0.00080
+       0.00300   0.00300   0.00060   0.00300  -0.00060   0.00000   0.00120
+       0.00400   0.00400   0.00080   0.00400  -0.00080   0.00000   0.00160
+       0.00500   0.00500   0.00100   0.00500  -0.00100   0.00000   0.00200
+       0.00600   0.00600   0.00120   0.00600  -0.00120   0.00000   0.00240
+       0.00800   0.00800   0.00160   0.00800  -0.00160   0.00000   0.00320
+       0.01000   0.01000   0.00200   0.01000  -0.00200   0.00000   0.00400
+       0.02000   0.02000   0.00400   0.02000  -0.00400   0.00000   0.00800
+       0.03000   0.03000   0.00600   0.03000  -0.00600   0.00000   0.01200
+       0.04000   0.04000   0.00800   0.04000  -0.00800   0.00000   0.01600
+       0.05000   0.05000   0.01000   0.05000  -0.01000   0.00000   0.02000
+       0.06000   0.06000   0.01000   0.06000  -0.01000   0.00000   0.02000
+       0.08000   0.08000   0.01000   0.08000  -0.01000   0.00000   0.02000
+       0.10000   0.10000   0.01000   0.10000  -0.01000   0.00000   0.02000
+       0.12000   0.12000   0.01000   0.12000  -0.01000   0.00000   0.02000
+       0.14000   0.14000   0.01000   0.14000  -0.01000   0.00000   0.02000
+       0.16000   0.16000   0.01000   0.16000  -0.01000   0.00000   0.02000
+       0.18000   0.18000   0.01000   0.18000  -0.01000   0.00000   0.02000
+       0.20000   0.20000   0.01000   0.20000  -0.01000   0.00000   0.02000
+       0.22000   0.22000   0.01000   0.22000  -0.01000   0.00000   0.02000
+       0.24000   0.24000   0.01000   0.24000  -0.01000   0.00000   0.02000
+       0.26000   0.26000   0.01000   0.26000  -0.01000   0.00000   0.02000
+       0.28000   0.28000   0.01000   0.28000  -0.01000   0.00000   0.02000
+       0.30000   0.30000   0.01000   0.30000  -0.01000   0.00000   0.02000
+       0.32000   0.32000   0.01000   0.32000  -0.01000   0.00000   0.02000
+       0.34000   0.34000   0.01000   0.34000  -0.01000   0.00000   0.02000
+       0.36000   0.36000   0.01000   0.36000  -0.01000   0.00000   0.02000
+       0.38000   0.38000   0.01000   0.38000  -0.01000   0.00000   0.02000
+       0.40000   0.40000   0.01000   0.40000  -0.01000   0.00000   0.02000
+       0.42000   0.42000   0.01000   0.42000  -0.01000   0.00000   0.02000
+       0.45000   0.45000   0.01000   0.45000  -0.01000   0.00000   0.02000
+       0.50000   0.50000   0.01000   0.50000  -0.01000   0.00000   0.02000
+       0.55000   0.55000   0.01000   0.55000  -0.01000   0.00000   0.02000
+       0.60000   0.60000   0.01000   0.60000  -0.01000   0.00000   0.02000
+       0.65000   0.65000   0.01000   0.65000  -0.01000   0.00000   0.02000
+       0.70000   0.70000   0.01000   0.70000  -0.01000   0.00000   0.02000
+       0.75000   0.75000   0.01000   0.75000  -0.01000   0.00000   0.02000
+       0.80000   0.80000   0.01000   0.80000  -0.01000   0.00000   0.02000
+       0.82000   0.82000   0.01000   0.82000  -0.01000   0.00000   0.02000
+       0.84000   0.84000   0.01000   0.84000  -0.01000   0.00000   0.02000
+       0.86000   0.86000   0.01000   0.86000  -0.01000   0.00000   0.02000
+       0.88000   0.88000   0.01000   0.88000  -0.01000   0.00000   0.02000
+       0.90000   0.90000   0.01000   0.90000  -0.01000   0.00000   0.02000
+       0.92000   0.92000   0.01000   0.92000  -0.01000   0.00000   0.02000
+       0.94000   0.94000   0.01000   0.94000  -0.01000   0.00000   0.02000
+       0.96000   0.96000   0.00800   0.96000  -0.00800   0.00000   0.01600
+       0.98000   0.98000   0.00400   0.98000  -0.00400   0.00000   0.00800
+       1.00000   1.00000   0.00000   1.00000   0.00000   0.00000   0.00000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   4
+                      GEOMETRIC RESULTS FOR FIN SETS
+
+                             FIN SET NUMBER  1
+                          (DATA FOR ONE PANEL ONLY)
+
+    SEGMENT   PLAN        ASPECT    TAPER     L.E.     T.E.    M.A.C.    T/C
+    NUMBER    AREA        RATIO     RATIO    SWEEP    SWEEP    CHORD    RATIO
+
+      1      0.0314        1.088    0.478   32.969    0.000    0.177    0.020
+    TOTAL    0.0314        1.088    0.478   32.969    0.000    0.177    0.020
+
+
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   5
+                           FIN SET 1 SECTION AERODYNAMICS
+
+                        IDEAL ANGLE OF ATTACK =    0.0000 DEG.
+                    ZERO LIFT ANGLE OF ATTACK =    0.0000 DEG.
+                       IDEAL LIFT COEFFICIENT =    0.0000
+        ZERO LIFT PITCHING MOMENT COEFFICIENT =    0.0000
+                   MACH ZERO LIFT-CURVE-SLOPE =    0.0935 /DEG.
+                          LEADING EDGE RADIUS =    0.0000 FRACTION CHORD
+                    MAXIMUM AIRFOIL THICKNESS =    0.0200 FRACTION CHORD
+                                      DELTA-Y =    0.9700 PERCENT CHORD
+
+
+    MACH = 0.100   CL-ALPHA = 0.0939 /DEG.   XAC = 0.2621   CL MAX = 0.6367
+
+    MACH = 0.300   CL-ALPHA = 0.0991 /DEG.   XAC = 0.2621   CL MAX = 0.6593
+
+    MACH = 0.600   CL-ALPHA = 0.1227 /DEG.   XAC = 0.2620   CL MAX = 0.6925
+
+                   *** CREST CRITICAL MACH NUMBER EXCEEDED ***
+
+                           CREST CRITICAL MACH =    0.7493
+                                      LOCATION =    0.0703 FRACTION CHORD
+                              LIFT-CURVE-SLOPE =    0.1166 /DEG.
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   6
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.2106     0.0116     0.1182                           0.0001
+       0.00     0.2108     0.0116     0.1179                           0.0000
+       2.00     0.2106     0.0116     0.1182                           0.0001
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.74315
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.096    -0.014              -0.402     0.005             0.742
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.096     0.014               0.402    -0.005             0.742
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   7
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0188
+    SUBSONIC PRESSURE    0.0008
+    TRANSONIC WAVE       0.0000
+    SUPERSONIC WAVE      0.0000
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0195
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.0585
+       0.00              0.0000                      0.0586
+       2.00              0.0000                      0.0585
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   8
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.07884/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.60369 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.2364   -0.0078   -0.2442    1.5611    0.0538    1.6149
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.2364    0.0078    0.2442   -1.5611   -0.0538   -1.6149
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE   9
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.3260     2.1530     0.0586    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.0586     0.0000    -0.0000     0.0000
+       2.00     0.3271    -2.1598     0.0586     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  10
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3040          -0.1882
+      -2.00        3              2.3040           0.1882
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3110           0.1888
+       2.00        3             -2.3110          -0.1888
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  11
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3324   0.4198   0.9363   0.3066   6.6037   6.5184   0.4294
+       0.00   1.3411   0.4198   0.9363   0.3066   6.6037   6.5184   0.4203
+       2.00   1.3324   0.4198   0.9363   0.3066   6.6037   6.5184   0.4294
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  12
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -9.92E-02  9.92E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  9.95E-02 -9.95E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  13
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -2.63E-02  2.63E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  2.63E-02 -2.63E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  14
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.538     2.426     0.399    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.399     0.000    -0.000     0.000
+          2.00     0.540    -2.434     0.399     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.524     0.418    -1.255    -4.507
+          0.00     0.000     0.399     0.000    -4.509
+          2.00     0.525     0.418     1.258    -4.512
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  15
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.2688     -1.2106     -0.2705      1.2221      0.0051
+          0.00      0.2695     -1.2150     -0.2675      1.2020     -0.0008
+          2.00      0.2701     -1.2195     -0.2692      1.2135      0.0051
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  16
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.456     -0.980      0.000      0.655     -0.098
+          0.00      0.456     -0.980      0.000      0.655     -0.098
+          2.00      0.456     -0.980      0.000      0.655     -0.098
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  17
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.456     -0.980      0.000      0.000      0.000      0.000
+          0.00      0.456     -0.980      0.000      0.000      0.000      0.000
+          2.00      0.456     -0.980      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  18
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      3.445    -20.654      0.000      0.892     -1.786
+          0.00      3.324    -19.857      0.000      0.892     -1.786
+          2.00      3.097    -18.366      0.000      0.892     -1.786
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  19
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.10                REYNOLDS NO = 2.194E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      3.229    -19.236     -0.182      0.007     -0.046     -0.560
+          0.00      3.241    -19.314     -0.184      0.000      0.000     -0.552
+          2.00      3.226    -19.215     -0.182      0.007     -0.046     -0.560
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  20
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1750     0.0100     0.1182                           0.0001
+       0.00     0.1753     0.0100     0.1179                          -0.0000
+       2.00     0.1750     0.0100     0.1182                           0.0001
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.74315
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.096    -0.014              -0.402     0.005             0.746
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.096     0.014               0.402    -0.005             0.746
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  21
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0150
+    SUBSONIC PRESSURE    0.0006
+    TRANSONIC WAVE       0.0000
+    SUPERSONIC WAVE      0.0000
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0156
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.0469
+       0.00              0.0000                      0.0469
+       2.00              0.0000                      0.0469
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  22
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.08037/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.60207 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.2410   -0.0075   -0.2484    1.5909    0.0517    1.6426
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.2410    0.0075    0.2484   -1.5909   -0.0517   -1.6426
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  23
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.3317     2.1896     0.0469    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.0469     0.0000    -0.0000     0.0000
+       2.00     0.3327    -2.1965     0.0469     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  24
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3040          -0.1915
+      -2.00        3              2.3040           0.1915
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3110           0.1921
+       2.00        3             -2.3110          -0.1921
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  25
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3324   0.4198   0.9363   0.3066   6.6021   6.5184   0.4292
+       0.00   1.3411   0.4198   0.9363   0.3066   6.6021   6.5184   0.4284
+       2.00   1.3324   0.4198   0.9363   0.3066   6.6021   6.5184   0.4292
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  26
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.01E-01  1.01E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.01E-01 -1.01E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  27
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -2.67E-02  2.67E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  2.68E-02 -2.68E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  28
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.546     2.474     0.350    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.350     0.000    -0.000     0.000
+          2.00     0.547    -2.483     0.350     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.533     0.369    -1.444    -4.533
+          0.00     0.000     0.350     0.000    -4.536
+          2.00     0.535     0.369     1.448    -4.538
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  29
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.2725     -1.2346     -0.2742      1.2460      0.0036
+          0.00      0.2732     -1.2391     -0.2713      1.2270     -0.0005
+          2.00      0.2739     -1.2436     -0.2729      1.2373      0.0036
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  30
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.457     -1.058      0.000      0.655     -0.106
+          0.00      0.457     -1.058      0.000      0.655     -0.106
+          2.00      0.457     -1.058      0.000      0.655     -0.106
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  31
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.457     -1.058      0.000      0.000      0.000      0.000
+          0.00      0.457     -1.058      0.000      0.000      0.000      0.000
+          2.00      0.457     -1.058      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  32
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      3.462    -20.841      0.000      0.892     -1.793
+          0.00      3.321    -19.913      0.000      0.892     -1.793
+          2.00      3.071    -18.264      0.000      0.892     -1.793
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  33
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.30                REYNOLDS NO = 6.572E+06 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      3.227    -19.296     -0.218      0.007     -0.044     -0.569
+          0.00      3.239    -19.373     -0.225      0.000      0.000     -0.563
+          2.00      3.224    -19.274     -0.217      0.007     -0.044     -0.569
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  34
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1547     0.0106     0.1173                           0.0001
+       0.00     0.1549     0.0106     0.1171                          -0.0000
+       2.00     0.1547     0.0106     0.1173                           0.0001
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.74315
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.096    -0.014              -0.402     0.005             0.753
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.096     0.014               0.402    -0.005             0.753
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  35
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0130
+    SUBSONIC PRESSURE    0.0005
+    TRANSONIC WAVE       0.0000
+    SUPERSONIC WAVE      0.0000
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0136
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.0406
+       0.00              0.0000                      0.0407
+       2.00              0.0000                      0.0406
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  36
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.08589/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.59466 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.2576   -0.0064   -0.2639    1.6985    0.0442    1.7427
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.2576    0.0064    0.2639   -1.6985   -0.0442   -1.7427
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  37
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.3521     2.3217     0.0407    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.0407     0.0000    -0.0000     0.0000
+       2.00     0.3532    -2.3290     0.0407     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  38
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3040          -0.2033
+      -2.00        3              2.3040           0.2033
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3110           0.2039
+       2.00        3             -2.3110          -0.2039
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  39
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3324   0.4198   0.9363   0.3066   6.5947   6.5184   0.4279
+       0.00   1.3411   0.4198   0.9363   0.3066   6.5947   6.5184   0.4406
+       2.00   1.3324   0.4198   0.9363   0.3066   6.5947   6.5184   0.4279
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  40
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.07E-01  1.07E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.07E-01 -1.07E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  41
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -4.06E-02  4.06E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  4.07E-02 -4.07E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  42
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.573     2.648     0.323    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.323     0.000    -0.000     0.000
+          2.00     0.574    -2.657     0.323     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.561     0.343    -1.635    -4.624
+          0.00     0.000     0.323     0.000    -4.626
+          2.00     0.562     0.343     1.639    -4.629
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  43
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.2860     -1.3215     -0.2876      1.3326      0.0007
+          0.00      0.2867     -1.3263     -0.2853      1.3171      0.0002
+          2.00      0.2874     -1.3310     -0.2862      1.3233      0.0007
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  44
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.457     -1.350      0.000      0.655     -0.136
+          0.00      0.457     -1.350      0.000      0.655     -0.136
+          2.00      0.457     -1.350      0.000      0.655     -0.136
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  45
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.457     -1.350      0.000      0.000      0.000      0.000
+          0.00      0.457     -1.350      0.000      0.000      0.000      0.000
+          2.00      0.457     -1.350      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  46
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      3.522    -21.509      0.000      0.893     -1.823
+          0.00      3.303    -20.063      0.000      0.893     -1.823
+          2.00      2.945    -17.712      0.000      0.893     -1.823
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  47
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.60                REYNOLDS NO = 1.302E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      3.205    -19.419     -0.346      0.005     -0.036     -0.601
+          0.00      3.214    -19.480     -0.362     -0.000      0.000     -0.599
+          2.00      3.200    -19.389     -0.341      0.005     -0.036     -0.601
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  48
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1457     0.0133     0.1156                           0.0001
+       0.00     0.1458     0.0133     0.1153                          -0.0000
+       2.00     0.1457     0.0133     0.1156                           0.0001
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.74315
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.096    -0.014              -0.402     0.005             0.757
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.096     0.014               0.402    -0.005             0.757
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  49
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0122
+    SUBSONIC PRESSURE    0.0005
+    TRANSONIC WAVE       0.0000
+    SUPERSONIC WAVE      0.0000
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0127
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.0380
+       0.00              0.0000                      0.0381
+       2.00              0.0000                      0.0380
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  50
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.09130/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.58426 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.2738   -0.0057   -0.2794    1.8026    0.0392    1.8418
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.2738    0.0057    0.2794   -1.8026   -0.0392   -1.8418
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  51
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.3726     2.4530     0.0381    -0.0000     0.0000     0.0000
+       0.00     0.0000     0.0000     0.0381     0.0000    -0.0000     0.0000
+       2.00     0.3737    -2.4606     0.0381     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  52
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3042          -0.2151
+      -2.00        3              2.3042           0.2151
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3112           0.2158
+       2.00        3             -2.3112          -0.2158
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  53
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3325   0.4198   0.9363   0.3066   6.5843   6.5184   0.4261
+       0.00   1.3411   0.4198   0.9363   0.3066   6.5843   6.5184   0.4488
+       2.00   1.3325   0.4198   0.9363   0.3066   6.5843   6.5184   0.4260
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  54
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.13E-01  1.13E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.13E-01 -1.13E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  55
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -5.56E-02  5.56E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  5.57E-02 -5.57E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  56
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.600     2.821     0.313    -0.000     0.000     0.000
+          0.00     0.000     0.000     0.312     0.000    -0.000     0.000
+          2.00     0.601    -2.831     0.313     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.588     0.333    -1.765    -4.704
+          0.00     0.000     0.312     0.000    -4.707
+          2.00     0.590     0.333     1.769    -4.709
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  57
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.2995     -1.4081     -0.3011      1.4191     -0.0014
+          0.00      0.3002     -1.4131     -0.2991      1.4060      0.0007
+          2.00      0.3010     -1.4181     -0.2996      1.4093     -0.0014
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  58
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.457     -1.695      0.000      0.656     -0.170
+          0.00      0.457     -1.695      0.000      0.656     -0.170
+          2.00      0.457     -1.695      0.000      0.656     -0.170
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  59
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.457     -1.695      0.000      0.000      0.000      0.000
+          0.00      0.457     -1.695      0.000      0.000      0.000      0.000
+          2.00      0.457     -1.695      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  60
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      3.688    -22.915      0.000      0.893     -1.857
+          0.00      3.500    -21.679      0.000      0.893     -1.857
+          2.00      3.190    -19.646      0.000      0.893     -1.857
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  61
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.80                REYNOLDS NO = 1.718E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      3.409    -21.082     -0.303      0.005     -0.030     -0.633
+          0.00      3.420    -21.152     -0.324     -0.000      0.000     -0.635
+          2.00      3.405    -21.057     -0.297      0.005     -0.031     -0.633
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  62
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1417     0.0349     0.1138                           0.0001
+       0.00     0.1419     0.0350     0.1136                           0.0000
+       2.00     0.1417     0.0349     0.1138                           0.0001
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.74578
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.102    -0.014              -0.391     0.005             0.759
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.102     0.014               0.391    -0.005             0.759
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  63
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0118
+    SUBSONIC PRESSURE    0.0005
+    TRANSONIC WAVE       0.0159
+    SUPERSONIC WAVE      0.0000
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0283
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.0847
+       0.00              0.0000                      0.0848
+       2.00              0.0000                      0.0847
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  64
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.09635/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.57548 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.2889   -0.0051   -0.2940    1.8997    0.0353    1.9350
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.2889    0.0051    0.2940   -1.8997   -0.0353   -1.9350
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  65
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.3918     2.5765     0.0848    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.0848     0.0000    -0.0000     0.0000
+       2.00     0.3930    -2.5845     0.0848     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  66
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3043          -0.2262
+      -2.00        3              2.3043           0.2262
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3113           0.2269
+       2.00        3             -2.3113          -0.2269
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  67
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3326   0.4198   0.9363   0.3066   6.5755   6.5184   0.4282
+       0.00   1.3411   0.4198   0.9363   0.3066   6.5755   6.5184   0.4278
+       2.00   1.3326   0.4198   0.9363   0.3066   6.5755   6.5184   0.4282
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  68
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.19E-01  1.19E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.19E-01 -1.19E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  69
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -7.75E-02  7.75E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  7.77E-02 -7.77E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  70
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.631     2.995     0.375    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.375     0.000    -0.000     0.000
+          2.00     0.633    -3.006     0.375     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.618     0.397    -1.555    -4.746
+          0.00     0.000     0.375     0.000    -4.749
+          2.00     0.619     0.397     1.559    -4.751
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  71
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.3151     -1.4951     -0.3168      1.5061      0.0021
+          0.00      0.3159     -1.5003     -0.3151      1.4949     -0.0003
+          2.00      0.3167     -1.5055     -0.3152      1.4958      0.0021
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  72
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.483     -1.930      0.000      0.675     -0.189
+          0.00      0.483     -1.930      0.000      0.675     -0.189
+          2.00      0.483     -1.930      0.000      0.675     -0.189
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  73
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.483     -1.930      0.000      0.000      0.000      0.000
+          0.00      0.483     -1.930      0.000      0.000      0.000      0.000
+          2.00      0.483     -1.930      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  74
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      3.857    -24.070      0.000      0.913     -1.876
+          0.00      3.679    -22.905      0.000      0.913     -1.876
+          2.00      3.387    -20.990      0.000      0.913     -1.876
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  75
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       0.90                REYNOLDS NO = 1.918E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      3.592    -22.335     -0.312      0.004     -0.026     -0.665
+          0.00      3.604    -22.411     -0.334     -0.000      0.000     -0.664
+          2.00      3.589    -22.311     -0.308      0.004     -0.026     -0.665
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  76
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1381     0.0984     0.1573                           0.0001
+       0.00     0.1383     0.0985     0.1571                          -0.0000
+       2.00     0.1381     0.0984     0.1573                           0.0001
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.87158
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.110    -0.016              -0.347     0.006             0.761
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.110     0.016               0.347    -0.006             0.761
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  77
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0115
+    SUBSONIC PRESSURE    0.0005
+    TRANSONIC WAVE       0.0319
+    SUPERSONIC WAVE      0.0000
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0439
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.1315
+       0.00              0.0000                      0.1316
+       2.00              0.0000                      0.1315
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  78
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.10577/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.51115 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.3171   -0.0046   -0.3218    2.0650    0.0321    2.0970
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.3171    0.0046    0.3218   -2.0650   -0.0321   -2.0970
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  79
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.4285     2.7900     0.1316    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.1316     0.0000    -0.0000     0.0000
+       2.00     0.4298    -2.7986     0.1316     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  80
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3033          -0.2474
+      -2.00        3              2.3033           0.2474
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3103           0.2482
+       2.00        3             -2.3103          -0.2482
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  81
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3320   0.4198   0.9363   0.3066   6.5112   6.5184   0.4267
+       0.00   1.3411   0.4198   0.9363   0.3066   6.5112   6.5184   0.4257
+       2.00   1.3320   0.4198   0.9363   0.3066   6.5112   6.5184   0.4267
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  82
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.30E-01  1.30E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.30E-01 -1.30E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  83
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -6.37E-02  6.37E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  6.39E-02 -6.39E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  84
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.690     3.329     0.526    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.525     0.000    -0.000     0.000
+          2.00     0.692    -3.341     0.526     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.671     0.549    -1.222    -4.825
+          0.00     0.000     0.525     0.000    -4.827
+          2.00     0.673     0.549     1.225    -4.829
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  85
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.3446     -1.6618     -0.3463      1.6730      0.0019
+          0.00      0.3454     -1.6675     -0.3449      1.6643     -0.0003
+          2.00      0.3463     -1.6732     -0.3445      1.6618      0.0019
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  86
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.527     -2.220      0.000      0.697     -0.204
+          0.00      0.527     -2.220      0.000      0.697     -0.204
+          2.00      0.527     -2.220      0.000      0.697     -0.204
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  87
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.527     -2.220      0.000      0.000      0.000      0.000
+          0.00      0.527     -2.220      0.000      0.000      0.000      0.000
+          2.00      0.527     -2.220      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  88
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      4.168    -25.936      0.000      0.935     -1.891
+          0.00      4.002    -24.852      0.000      0.935     -1.891
+          2.00      3.726    -23.051      0.000      0.935     -1.891
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  89
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.00                REYNOLDS NO = 2.108E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      3.916    -24.291     -0.306      0.003     -0.022     -0.724
+          0.00      3.929    -24.377     -0.331     -0.000      0.000     -0.724
+          2.00      3.913    -24.270     -0.298      0.003     -0.022     -0.724
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  90
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1364     0.1342     0.1809                           0.0002
+       0.00     0.1366     0.1343     0.1807                          -0.0000
+       2.00     0.1364     0.1342     0.1809                           0.0002
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.94209
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.113    -0.018              -0.367     0.007             0.762
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.113     0.018               0.367    -0.007             0.762
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  91
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0114
+    SUBSONIC PRESSURE    0.0003
+    TRANSONIC WAVE       0.0000
+    SUPERSONIC WAVE      0.0399
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0516
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.1547
+       0.00              0.0000                      0.1547
+       2.00              0.0000                      0.1547
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  92
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.12307/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.67313 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.3690   -0.0048   -0.3738    2.4625    0.0334    2.4959
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.3690    0.0048    0.3738   -2.4625   -0.0334   -2.4959
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  93
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.4976     3.3206     0.1547    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.1547     0.0000    -0.0000     0.0000
+       2.00     0.4991    -3.3309     0.1547     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  94
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3028          -0.2873
+      -2.00        3              2.3028           0.2873
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3098           0.2882
+       2.00        3             -2.3098          -0.2882
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  95
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3317   0.4198   0.9363   0.3066   6.6731   6.5184   0.4259
+       0.00   1.3411   0.4198   0.9363   0.3066   6.6731   6.5184   0.4246
+       2.00   1.3317   0.4198   0.9363   0.3066   6.6731   6.5184   0.4259
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  96
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.50E-01  1.50E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.51E-01 -1.51E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  97
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -6.07E-02  6.07E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  6.09E-02 -6.09E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  98
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.785     3.983     0.606    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.606     0.000    -0.000     0.000
+          2.00     0.787    -3.996     0.606     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.763     0.633    -1.205    -5.075
+          0.00     0.000     0.606     0.000    -5.077
+          2.00     0.765     0.634     1.208    -5.079
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE  99
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.3919     -1.9881     -0.3938      2.0009      0.0019
+          0.00      0.3929     -1.9948     -0.3926      1.9926     -0.0004
+          2.00      0.3939     -2.0015     -0.3918      1.9877      0.0019
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 100
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.543     -2.378      0.000      0.723     -0.220
+          0.00      0.543     -2.378      0.000      0.723     -0.220
+          2.00      0.543     -2.378      0.000      0.723     -0.220
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 101
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.543     -2.378      0.000      0.000      0.000      0.000
+          0.00      0.543     -2.378      0.000      0.000      0.000      0.000
+          2.00      0.543     -2.378      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 102
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      4.837    -30.870      0.000      0.961     -1.907
+          0.00      4.639    -29.561      0.000      0.961     -1.907
+          2.00      4.321    -27.446      0.000      0.961     -1.907
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 103
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.05                REYNOLDS NO = 2.193E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      4.546    -28.942     -0.380      0.003     -0.022     -0.838
+          0.00      4.564    -29.063     -0.411     -0.000      0.000     -0.839
+          2.00      4.542    -28.913     -0.370      0.003     -0.022     -0.838
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 104
+                             BODY ALONE PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+      ALPHA    CA-FRIC  CA-PRES/WAVE CA-BASE    CA-PROT     CA-SEP     CA-ALP
+      -2.00     0.1310     0.1980     0.1663                           0.0002
+       0.00     0.1312     0.1982     0.1661                          -0.0000
+       2.00     0.1310     0.1980     0.1663                           0.0002
+
+                     CROSS FLOW DRAG PROPORTIONALITY FACTOR = 0.98652
+
+      ALPHA    CN-POTEN  CN-VISC   CN-SEP    CM-POTEN  CM-VISC   CM-SEP    CDC
+      -2.00    -0.108    -0.019              -0.490     0.007             0.766
+       0.00     0.000     0.000               0.000    -0.000             0.740
+       2.00     0.108     0.019               0.490    -0.007             0.766
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 105
+                        FIN SET 1 CA PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    SINGLE FIN PANEL ZERO-LIFT AXIAL FORCE COMPONENTS
+
+    SKIN FRICTION        0.0109
+    SUBSONIC PRESSURE    0.0000
+    TRANSONIC WAVE       0.0000
+    SUPERSONIC WAVE      0.0444
+    LEADING EDGE         0.0000
+    TRAILING EDGE        0.0000
+    TOTAL CAO            0.0553
+
+    FIN AXIAL FORCE DUE TO ANGLE OF ATTACK
+
+    ALPHA      CA DUE TO LIFT (SINGLE PANEL)   CA-TOTAL (3 FINS)
+
+      -2.00              0.0000                      0.1658
+       0.00              0.0000                      0.1659
+       2.00              0.0000                      0.1658
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 106
+                       FIN SET 1 CN, CM PARTIAL OUTPUT
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+    NORMAL FORCE SLOPE AT ALPHA ZERO, CNA =    0.11952/DEG (1 PANEL)
+         CENTER OF PRESSURE FOR LINEAR CN =   -6.77637 (CALIBERS FROM C.G.)
+     CENTER OF PRESSURE FOR NON-LINEAR CN =   -6.91951 (CALIBERS FROM C.G.)
+
+      ALPHA      CN        CN        CN        CM        CM        CM
+               LINEAR  NON-LINEAR  TOTAL     LINEAR  NON-LINEAR  TOTAL
+
+      -2.00   -0.3584   -0.0031   -0.3614    2.4285    0.0212    2.4497
+       0.00    0.0000    0.0000    0.0000   -0.0000   -0.0000    0.0000
+       2.00    0.3584    0.0031    0.3614   -2.4285   -0.0212   -2.4497
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 107
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 IN PRESENCE OF THE BODY----------------
+
+      ALPHA       CN         CM         CA         CY         CLN        CLL
+
+      -2.00    -0.4804     3.2555     0.1659    -0.0000     0.0000    -0.0000
+       0.00     0.0000     0.0000     0.1659     0.0000    -0.0000     0.0000
+       2.00     0.4819    -3.2655     0.1659     0.0000    -0.0000     0.0000
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 108
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+          ---------------FIN SET 1 PANEL CHARACTERISTICS------------------
+
+      ALPHA      PANEL    AEQ (PANEL AXIS SYS.)    PANEL CN
+
+      -2.00        1              0.0000           0.0000
+      -2.00        2             -2.3010          -0.2774
+      -2.00        3              2.3010           0.2774
+
+       0.00        1              0.0000           0.0000
+       0.00        2              0.0000           0.0000
+       0.00        3              0.0000           0.0000
+
+       2.00        1              0.0000           0.0000
+       2.00        2              2.3080           0.2782
+       2.00        3             -2.3080          -0.2782
+
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 109
+                 AERODYNAMIC FORCE AND MOMENT SYNTHESIS
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+             CARRYOVER INTERFERENCE FACTORS - FIN SET 1
+
+      ALPHA   K-W(B)   K-B(W)  KK-W(B)  KK-B(W)  XCP-W(B) XCP-B(W) Y-CP/(B/2)
+
+      -2.00   1.3307   0.3834   0.9363   0.3066   6.7764   7.1283   0.4250
+       0.00   1.3411   0.3834   0.9363   0.3066   6.7764   7.1283   0.4215
+       2.00   1.3307   0.3834   0.9363   0.3066   6.7764   7.1283   0.4250
+
+    NOTE - XCP-W(B) USED FOR STABILITY ONLY DIFFERENT VALUES USED FOR HINGE MOMENTS
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 110
+        FIN SET 1 PANEL BENDING MOMENTS (ABOUT EXPOSED ROOT CHORD)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -1.45E-01  1.45E-01
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  1.45E-01 -1.45E-01
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 111
+            FIN SET 1 PANEL HINGE MOMENTS (ABOUT HINGE LINE)
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+   ALPHA   PANL 1   PANL 2   PANL 3   PANL 4   PANL 5   PANL 6   PANL 7   PANL 8
+
+    -2.0  0.00E+00 -2.63E-02  2.63E-02
+     0.0  0.00E+00  0.00E+00  0.00E+00
+     2.0  0.00E+00  2.64E-02 -2.64E-02
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 112
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ----- LONGITUDINAL -----     -- LATERAL DIRECTIONAL --
+         ALPHA       CN        CM        CA        CY       CLN       CLL
+
+         -2.00    -0.746     3.759     0.661    -0.000     0.000    -0.000
+          0.00     0.000     0.000     0.661     0.000    -0.000     0.000
+          2.00     0.748    -3.772     0.661     0.000    -0.000     0.000
+
+         ALPHA       CL        CD      CL/CD     X-C.P.
+
+         -2.00    -0.722     0.687    -1.051    -5.041
+          0.00     0.000     0.661     0.000    -5.044
+          2.00     0.724     0.687     1.054    -5.046
+
+    X-C.P. MEAS. FROM MOMENT CENTER IN REF. LENGTHS, NEG. AFT OF MOMENT CENTER
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 113
+                   STATIC AERODYNAMICS FOR BODY-FIN SET 1
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                   ---------- DERIVATIVES (PER DEGREE) ----------
+         ALPHA       CNA         CMA         CYB         CLNB        CLLB
+         -2.00      0.3723     -1.8763     -0.3739      1.8875      0.0020
+          0.00      0.3733     -1.8828     -0.3737      1.8855     -0.0004
+          2.00      0.3742     -1.8893     -0.3720      1.8746      0.0020
+
+    PANEL DEFLECTION ANGLES (DEGREES)
+    SET    FIN 1   FIN 2   FIN 3   FIN 4   FIN 5   FIN 6   FIN 7   FIN 8
+      1    0.00    0.00    0.00
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 114
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      0.528     -2.922      0.000      0.770     -0.299
+          0.00      0.528     -2.922      0.000      0.770     -0.299
+          2.00      0.528     -2.922      0.000      0.770     -0.299
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 115
+                           BODY ALONE DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      0.528     -2.922      0.000      0.000      0.000      0.000
+          0.00      0.528     -2.922      0.000      0.000      0.000      0.000
+          2.00      0.528     -2.922      0.000      0.000      0.000      0.000
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 116
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CNQ        CMQ        CAQ       CNAD       CMAD
+         -2.00      4.603    -30.852      0.000      1.007     -1.986
+          0.00      4.449    -29.794      0.000      1.007     -1.986
+          2.00      4.202    -28.102      0.000      1.007     -1.986
+
+    PITCH RATE DERIVATIVES NON-DIMENSIONALIZED BY Q*LREF/2*V
+1         ***** THE USAF AUTOMATED MISSILE DATCOM * REV 3/99 *****     CASE   1
+               AERODYNAMIC METHODS FOR MISSILE CONFIGURATIONS          PAGE 117
+                        BODY + 1 FIN SET DYNAMIC DERIVATIVES
+
+       ******* FLIGHT CONDITIONS AND REFERENCE QUANTITIES *******
+     MACH NO  =       1.20                REYNOLDS NO = 2.506E+07 /M
+     SIDESLIP =       0.00 DEG                   ROLL =      0.00 DEG
+     REF AREA =      0.018 M**2         MOMENT CENTER =     1.244 M
+     REF LENGTH =     0.15 M           LAT REF LENGTH =      0.15 M
+
+                    ------------ DYNAMIC DERIVATIVES (PER DEGREE) -----------
+         ALPHA       CYR       CLNR       CLLR        CYP       CLNP       CLLP
+         -2.00      4.375    -29.293     -0.304      0.001     -0.010     -0.810
+          0.00      4.396    -29.433     -0.324     -0.000      0.000     -0.807
+          2.00      4.372    -29.269     -0.297      0.001     -0.010     -0.810
+
+    YAW AND ROLL RATE DERIVATIVES NON-DIMENSIONALIZED BY R*LATREF/2*V
+    *** END OF JOB ***
