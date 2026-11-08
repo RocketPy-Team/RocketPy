@@ -2747,11 +2747,11 @@ class Flight:
         total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
         total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = self.rocket.com_to_cdm_function
-        r_CM_t = r_CM_z.get_value_opt(t)
+        # Keep the CM derivatives on one side of ignition and other data knots.
+        r_CM_t, r_CM_rate, r_CM_second = self.rocket._get_com_to_cdm_rates(t)
         r_CM = Vector([0, 0, r_CM_t])
-        r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
-        r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
+        r_CM_dot = Vector([0, 0, r_CM_rate])
+        r_CM_ddot = Vector([0, 0, r_CM_second])
         ## Nozzle position vector
         r_NOZ = Vector([0, 0, self.rocket.nozzle_to_cdm])
         ## Nozzle gyration tensor

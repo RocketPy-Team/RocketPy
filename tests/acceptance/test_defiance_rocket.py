@@ -10,7 +10,9 @@ from rocketpy.motors.tank import MassFlowRateBasedTank
 MEASURED_APOGEE_AGL = 9308.32
 MAX_RELATIVE_APOGEE_ERROR = 0.01
 REFERENCE_MAX_SPEED = 444.24
-REFERENCE_MAX_ACCELERATION = 10400.76
+# The old 10400.76 m/s² reference was a numerical CM-derivative spike at
+# burnout, not a measured acceleration. Keep the finite powered-flight peak.
+REFERENCE_MAX_ACCELERATION = 88.89
 REFERENCE_IMPACT_X = 1609.40
 REFERENCE_IMPACT_Y = 87.03
 REFERENCE_METRIC_RELATIVE_TOLERANCE = 0.01
@@ -140,3 +142,14 @@ def test_defiance_rocket_matches_reference_flight_metrics(defiance_flight):
     assert defiance_flight.y_impact == pytest.approx(
         REFERENCE_IMPACT_Y, **impact_tolerance
     )
+
+
+@pytest.mark.parametrize("dx", [1e-3, 1e-4, 1e-5])
+def test_defiance_burnout_cm_rates(defiance_flight, dx):
+    """Burnout must not create a CM-acceleration spike as spacing shrinks."""
+    rocket = defiance_flight.rocket
+
+    _, first, second = rocket._get_com_to_cdm_rates(rocket.motor.burn_out_time, dx=dx)
+
+    assert (first, second) == pytest.approx((0.0, 0.0), abs=1e-12)
+    assert defiance_flight.max_acceleration_time < rocket.motor.burn_out_time

@@ -559,12 +559,15 @@ def test_evaluate_nozzle_gyration_tensor_parallel_axis_term(calisto):
 
 
 def test_evaluate_com_to_cdm_function(calisto):
-    atol = 1e-3  # Equivalent to 1mm
-    assert np.allclose(
-        (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
-        calisto.com_to_cdm_function.source,
-        atol=atol,
-    )
+    """Compare values without requiring a particular source representation."""
+    times = np.linspace(0, calisto.motor.burn_out_time, 101)
+    expected = [
+        calisto._csys
+        * (calisto.center_of_dry_mass_position - calisto.center_of_mass(t))
+        for t in times
+    ]
+    actual = [calisto.com_to_cdm_function(t) for t in times]
+    np.testing.assert_allclose(actual, expected, rtol=0, atol=1e-3)
 
 
 def test_get_inertia_tensor_at_time(calisto):
