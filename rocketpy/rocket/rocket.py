@@ -1617,10 +1617,13 @@ class Rocket:
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
         noise : tuple, list, optional
-            List in the format (mean, standard deviation, time-correlation).
-            The values are used to add noise to the pressure signal which is
-            passed to the trigger function. Default value is (0, 0, 0). Units
-            are in pascal.
+            Deprecated, has no effect and will be removed in v1.16. A list in
+            the format (mean, standard deviation, time-correlation), in Pa.
+            The trigger always receives the pressure and height without noise,
+            and a warning is raised if any of the three values is not zero.
+            To trigger a parachute from a measurement with noise, add a Sensor
+            such as a :class:`rocketpy.Barometer` to the rocket and read it
+            inside the trigger function. Default value is (0, 0, 0).
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
             hemispheroid parachute. If not provided, it is estimated from
@@ -1645,10 +1648,8 @@ class Rocket:
         Returns
         -------
         parachute : Parachute
-            Parachute containing trigger, sampling_rate, lag, cd_s, noise,
-            radius, drag_coefficient, height, porosity and name. Furthermore,
-            it stores clean_pressure_signal, noise_signal and
-            noisyPressureSignal which are filled in during Flight simulation.
+            Parachute containing trigger, sampling_rate, lag, cd_s, radius,
+            drag_coefficient, height, porosity and name.
         """
         parachute = Parachute(
             name,

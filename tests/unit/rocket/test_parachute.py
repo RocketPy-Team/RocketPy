@@ -1,10 +1,12 @@
 """Unit tests for the Parachute class, focusing on the radius and
 drag_coefficient parameters introduced in PR #889."""
 
+import warnings
+
 import numpy as np
 import pytest
 
-from rocketpy import Parachute
+from rocketpy import Parachute, Rocket
 
 
 def _make_parachute(**kwargs):
@@ -153,3 +155,78 @@ def test_a_legacy_positional_trigger_still_goes_through_the_adapter():
             lag=0,
         )
     assert parachute.event.trigger is not parachute.triggerfunc
+
+
+def test_noise_warns_visibly_and_generates_no_signal():
+    """A noise different from zero is ignored, and the user is told so with a
+    warning that Python shows by default."""
+    with pytest.warns(FutureWarning, match="has no effect"):
+        parachute = _make_parachute(noise=(0, 8.3, 0.5))
+
+    assert parachute.noise == (0, 8.3, 0.5)
+    assert parachute.noise_bias == 0
+    assert parachute.noise_deviation == pytest.approx(8.3)
+    assert parachute.noise_signal == []
+    assert parachute.noisy_pressure_signal == []
+    assert parachute.clean_pressure_signal == []
+    assert not hasattr(parachute, "noise_function")
+
+
+def test_noise_warning_is_raised_through_rocket_add_parachute():
+    """The warning must also reach users who add the parachute through the
+    rocket, which is where a DeprecationWarning used to be hidden."""
+    rocket = Rocket(
+        radius=0.0635,
+        mass=14.4,
+        inertia=(6.3, 6.3, 0.03),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0,
+    )
+    with pytest.warns(FutureWarning, match="has no effect"):
+        rocket.add_parachute(
+            name="main",
+            cd_s=10.0,
+            trigger="apogee",
+            sampling_rate=100,
+            noise=(0, 8.3, 0.5),
+        )
+
+
+def test_default_noise_does_not_warn():
+    """The default noise of zero is the supported case and stays silent."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _make_parachute()
+        _make_parachute(noise=(0, 0, 0))
+
+
+def test_parachute_does_not_draw_from_the_global_random_generator():
+    """Creating or resetting a parachute must not move numpy's global
+    generator, with or without a noise given."""
+    np.random.seed(1234)
+    _, keys_before, position_before, *_ = np.random.get_state()
+
+    parachute = _make_parachute()
+    parachute._reset_signals()
+    with pytest.warns(FutureWarning):
+        noisy = _make_parachute(noise=(0, 8.3, 0.5))
+    noisy._reset_signals()
+
+    _, keys_after, position_after, *_ = np.random.get_state()
+    assert position_after == position_before
+    assert np.array_equal(keys_after, keys_before)
+
+
+def test_to_dict_outputs_carry_no_noise_entries():
+    """Nothing about noise is recorded, so nothing about it is saved."""
+    data = _make_parachute().to_dict(include_outputs=True)
+
+    for key in (
+        "noise",
+        "noise_signal",
+        "noise_function",
+        "noisy_pressure_signal",
+        "clean_pressure_signal",
+    ):
+        assert key not in data

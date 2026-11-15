@@ -288,7 +288,6 @@ The fourth step is to add parachutes to the rocket. For that, we need:
 Optionally, we can also define:
 
 - The parachute trigger system lag ``lag``.
-- The parachute trigger system noise ``noise``.
 
 Lets add two parachutes to the rocket, one that will be deployed at
 apogee and another that will be deployed at 800 meters above ground level:
@@ -418,19 +417,21 @@ Legacy positional trigger signature
 Older trigger functions declared the following positional arguments instead of
 reading them from ``context``:
 
-- ``p`` (float): pressure in Pa **considering the parachute noise signal**.
-- ``h`` (float): height above ground level in meters, **considering the
-  parachute noise signal**.
+- ``p`` (float): pressure in Pa, the same value as ``context.pressure``.
+- ``h`` (float): height above ground level in meters, the same value as
+  ``context.height_agl``.
 - ``y`` (list of float): the state vector (the same thirteen values as
   ``context.state``, in the same order).
 - ``sensors`` (list, optional fourth argument): the same list as
   ``context.sensors``.
 
 .. note::
-    The legacy positional ``p`` and ``h`` carry the parachute noise signal,
-    whereas ``context.pressure`` and ``context.height_agl`` are the
-    clean, noise-free values. For pressure or height signals with noise, use
-    Sensor objects instead.
+    The legacy positional ``p`` and ``h`` no longer carry the parachute noise
+    signal. The ``noise`` argument of the parachute is deprecated and has no
+    effect: every trigger receives the pressure and height without noise, and
+    a warning is raised when a ``noise`` different from ``(0, 0, 0)`` is
+    given. For pressure or height signals with noise, use Sensor objects
+    instead.
 
 A legacy trigger therefore looked like this:
 
