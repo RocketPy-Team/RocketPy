@@ -1457,3 +1457,17 @@ def test_rate_derivative_names_are_checked():
     for name in ("cm_alpha", "cN_0", "cL_q"):
         with pytest.raises(ValueError, match="Invalid coefficient name"):
             GenericSurface(1.0, 1.0, {name: 1.0})
+
+
+def test_a_small_residual_at_zero_total_angle_is_let_through():
+    """Measured and computed tables carry a little normal force at zero angle;
+    it is accepted up to the tolerance and refused above it."""
+    fine = GenericSurface(
+        1.0, 0.1, {"cN": lambda alpha_total: 2 * alpha_total + 5e-4}, name="cfd"
+    )
+    assert fine.cN(0, 0, 0.3, 0, 0, 0, 0) == 0.0
+    assert fine.cN(0.1, 0, 0.3, 0, 0, 0, 0) == pytest.approx(0.2 + 5e-4)
+    with pytest.raises(ValueError, match="within 0.001"):
+        GenericSurface(
+            1.0, 0.1, {"cN": lambda alpha_total: 2 * alpha_total + 5e-3}, name="bad"
+        )

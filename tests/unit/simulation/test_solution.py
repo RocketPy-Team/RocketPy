@@ -31,9 +31,9 @@ def descent_row(t, fill=None):
     return [float(t), *state]
 
 
-def stub_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+def stub_derivative(flight, t, u, controls, post_processing=False):  # pylint: disable=unused-argument
     """Stand-in equations of motion. These tests store rows, never integrate."""
-    return [t] if post_processing else list(x)
+    return [t] if post_processing else list(u)
 
 
 # Every phase RocketPy ships integrates the full canonical state, so the
@@ -143,9 +143,6 @@ def test_canonical_array_follows_an_edit():
     assert solution.canonical_array[-1][1] == 5.0
     solution._replace_last(descent_row(5, fill=[9.0] * 6))
     assert solution.canonical_array[-1][1] == 9.0
-    # and again when the row is written by position rather than at the tail
-    solution._set_row(-1, descent_row(5, fill=[7.0] * 6))
-    assert solution.canonical_array[-1][1] == 7.0
     assert solution.time[-1] == 5.0
 
 
@@ -288,9 +285,9 @@ def test_drop_last_removes_and_returns_the_raw_row():
     assert solution.raw_row(-1)[0] == 4.0
 
 
-def test_setitem_replaces_tail_row():
+def test_replace_last_replaces_tail_row():
     solution = build_mixed_solution()
-    solution._set_row(-1, descent_row(9))
+    solution._replace_last(descent_row(9))
     assert solution[-1][0] == 9.0
 
 
@@ -298,27 +295,27 @@ def test_insert_before_tail_first_row():
     """Exact-time insert whose time precedes the tail phase's first row."""
     solution = build_mixed_solution()
     # pop the tail down to a single reduced row
-    solution._pop(-1)
-    solution._pop(-1)
+    solution._drop_last()
+    solution._drop_last()
     assert solution.phase_span(1) == (3, 4)
-    solution._insert(-1, descent_row(2.5))
+    solution._insert_before_last(descent_row(2.5))
     # inserted before the tail's only row, still in the reduced phase
     assert solution.phase_span(1) == (3, 5)
     assert solution.raw_row(3)[0] == 2.5
     assert solution.phases[-1].dynamics.width == 6
 
 
-def test_pop_across_boundary():
+def test_drop_last_across_boundary():
     solution = build_mixed_solution()
-    solution._pop(-1)
-    solution._pop(-1)
-    solution._pop(-1)  # empties the reduced phase
+    solution._drop_last()
+    solution._drop_last()
+    solution._drop_last()  # empties the reduced phase
     assert solution.phase_span(1) == (3, 3)
     # the emptied phase is still the one being flown, but the last row is the
     # canonical one before it
     assert solution.phase_index_at(-1) == 0
-    # popping again removes the last canonical row
-    row = solution._pop(-1)
+    # dropping again removes the last canonical row
+    row = solution._drop_last()
     assert len(row) == 14
 
 
@@ -609,24 +606,9 @@ def assert_starts_agree(solution):
 
 
 def test_phase_starts_follow_inserts_and_drops():
-    """Adding or removing a row moves every phase that begins after it."""
+    """Adding or removing a row at the end leaves the phases' starts alone."""
     solution = build_mixed_solution()
     assert [phase.start for phase in solution.phases] == [0, 3]
-
-    # inserting inside the first phase pushes the second one along
-    solution._insert(1, canonical_row(0.5))
-    assert [phase.start for phase in solution.phases] == [0, 4]
-    assert_starts_agree(solution)
-
-    # ... and removing it puts things back
-    solution._pop(1)
-    assert [phase.start for phase in solution.phases] == [0, 3]
-
-    # a row inserted exactly at a phase's start joins the later phase
-    solution._insert(3, descent_row(2.5))
-    assert [phase.start for phase in solution.phases] == [0, 3]
-    assert solution.raw_row(3)[0] == 2.5
-    solution._pop(3)
 
     # changes at the very end never move anything
     solution._insert_before_last(descent_row(4.5))
@@ -669,79 +651,16 @@ def test_index_resolution_skips_empty_phases():
     assert solution["vz"].shape == (2, 2)
 
 
-# ---------------------------------------------------------------------------
-# Post-process values recorded beside the rows
-# ---------------------------------------------------------------------------
-
-
-def post_values(solution, phase_index):
-    """The values recorded beside one phase's rows, ``None`` where nothing is."""
-    start, stop = solution.phase_span(phase_index)
-    return solution._post_values[start:stop]
-
-
-def test_post_values_track_every_row_mutation():
-    """Values move with their row, so the two can never drift apart."""
-    solution = build_mixed_solution()
-    # one entry per row from the start, empty until something is recorded
-    assert post_values(solution, 0) == [None, None, None]
-    assert post_values(solution, 1) == [None, None, None]
-
-    solution._set_post_values(-1, [1.0, 2.0, 3.0])
-    assert post_values(solution, 1) == [None, None, [1.0, 2.0, 3.0]]
-
-    # overwriting the row's states makes its recorded values stale
-    solution._replace_last(descent_row(5, fill=[9.0] * 6))
-    assert post_values(solution, 1) == [None, None, None]
-
-    solution._set_post_values(-1, [4.0, 5.0, 6.0])
-    # a row inserted just before the last one leaves a gap for its own values,
-    # and the last row keeps the values that belong to it
-    solution._insert_before_last(descent_row(4.5))
-    assert post_values(solution, 1) == [None, None, None, [4.0, 5.0, 6.0]]
-
-    solution._set_post_values(-2, [7.0, 8.0, 9.0])
-    assert post_values(solution, 1) == [
-        None,
-        None,
-        [7.0, 8.0, 9.0],
-        [4.0, 5.0, 6.0],
-    ]
-    solution._drop_last()
-    assert post_values(solution, 1) == [None, None, [7.0, 8.0, 9.0]]
-
-
-def test_post_values_stay_the_same_length_as_the_rows():
+def test_controls_stay_the_same_length_as_the_rows():
     solution = build_mixed_solution()
     for mutate in (
         lambda: solution._append(descent_row(6)),
-        lambda: solution._insert(0, canonical_row(-1)),
-        lambda: solution._pop(0),
         lambda: solution._insert_before_last(descent_row(5.5)),
         solution._drop_last,
-        lambda: solution._set_row(-1, descent_row(9)),
+        lambda: solution._replace_last(descent_row(9)),
     ):
         mutate()
-        assert len(solution._post_values) == len(solution)
         assert len(solution._controls) == len(solution)
-
-
-def test_recording_values_does_not_disturb_the_cached_states():
-    """Values are not part of the flight's states, so nothing is rebuilt."""
-    solution = build_mixed_solution()
-    before = solution.canonical_array
-    solution._set_post_values(-1, [1.0, 2.0, 3.0])
-    assert solution.canonical_array is before
-
-
-def test_set_post_values_outside_the_rows_raises():
-    solution = Solution()
-    solution._start_phase(SIX_DOF_DYNAMICS, tuple([0.0] * 13))
-    with pytest.raises(IndexError):
-        solution._set_post_values(-1, [1.0])
-    solution._append(canonical_row(0))
-    with pytest.raises(IndexError):
-        solution._set_post_values(1, [1.0])
 
 
 def test_the_last_row_is_read_through_the_phase_that_owns_it():
@@ -781,13 +700,13 @@ def test_value_at_unknown_state_raises():
 
 
 # ---------------------------------------------------------------------------
-# PostProcessSolution: reading the post-process variables
+# The post-process variables, read by name like the states
 # ---------------------------------------------------------------------------
 
 
-def replay_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+def replay_derivative(flight, t, u, controls, post_processing=False):  # pylint: disable=unused-argument
     """Report values that say which row they came from, so replay is visible."""
-    return [t, 2 * t, 3 * t] if post_processing else list(x)
+    return [t, 2 * t, 3 * t] if post_processing else list(u)
 
 
 REPLAY_DYNAMICS = _PhaseDynamics(
@@ -798,9 +717,9 @@ REPLAY_DYNAMICS = _PhaseDynamics(
 )
 
 
-def replay_thrust_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+def replay_thrust_derivative(flight, t, u, controls, post_processing=False):  # pylint: disable=unused-argument
     """Like :func:`replay_derivative`, for a phase that also reports thrust."""
-    return [t, 2 * t, 3 * t, 100.0] if post_processing else list(x)
+    return [t, 2 * t, 3 * t, 100.0] if post_processing else list(u)
 
 
 REPLAY_THRUST_DYNAMICS = _PhaseDynamics(
@@ -841,61 +760,26 @@ def build_replay_solution(ascent=False):
 def test_post_names_gather_every_phase_variable():
     """Phases need not compute the same variables, and all of them are listed."""
     solution = build_mixed_solution()
-    assert solution.post.names == FULL_POST_PROCESS_VARS
-    assert "net_thrust" in solution.post
+    assert solution.post_process_names == FULL_POST_PROCESS_VARS
+    assert "net_thrust" in solution
+    assert "net_thrust" in solution.names and "vz" in solution.names
     # the descent computes only three of them
     assert solution.phases[1].dynamics.post_process_vars == ("ax", "ay", "az")
 
 
-def test_values_recorded_during_the_flight_are_read_back_by_name():
+def test_values_are_worked_out_from_the_stored_states():
     solution = build_replay_solution()
-    solution.records_post_values = True
-    for index, values in enumerate([[7.0, 8.0, 9.0], [1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]):
-        solution._set_post_values(index, values)
-    assert solution.post["ay"].tolist() == [[0.0, 8.0], [1.0, 2.0], [2.0, 5.0]]
-
-
-def test_a_recording_flight_is_never_worked_out_again():
-    """Replaying would read the rocket as it ended, so it must not happen."""
-    solution = build_replay_solution()
-    solution.records_post_values = True
-    for index in range(len(solution)):
-        solution._set_post_values(index, [99.0, 99.0, 99.0])
-    # the stub dynamics would give 0, 1, 2 if it were replayed
-    assert solution.post["ax"][:, 1].tolist() == [99.0, 99.0, 99.0]
-
-
-def test_a_gap_in_a_recording_flight_is_an_error():
-    """A row with nothing recorded is a bug, not a reason to replay."""
-    solution = build_replay_solution()
-    solution.records_post_values = True
-    solution._set_post_values(0, [1.0, 2.0, 3.0])
-    with pytest.raises(ValueError, match="row 1 has none"):
-        _ = solution.post["ax"]
-    with pytest.raises(ValueError, match="row 1 has none"):
-        solution.post.at_index(1)
-
-
-def test_values_not_recorded_are_worked_out_from_the_stored_states():
-    """A flight that recorded nothing replays its own states instead."""
-    solution = build_replay_solution()
-    assert solution.post["ax"].tolist() == [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]
-    assert solution.post["az"].tolist() == [[0.0, 0.0], [1.0, 3.0], [2.0, 6.0]]
-
-
-def test_a_partly_recorded_phase_is_worked_out_again():
-    """A flight that does not record is replayed, whatever is left lying in it."""
-    solution = build_replay_solution()
-    solution._set_post_values(1, [99.0, 99.0, 99.0])
-    assert solution.post["ax"].tolist() == [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]
+    assert solution["ax"].tolist() == [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]
+    assert solution.az.tolist() == [[0.0, 0.0], [1.0, 3.0], [2.0, 6.0]]
+    assert "ax" in dir(solution)
 
 
 def test_a_phase_that_does_not_compute_a_variable_reports_zero():
     """A parachute descent really has no thrust, so zero is the right answer."""
     solution = build_replay_solution(ascent=True)
-    assert solution.post.names == ("ax", "ay", "az", "net_thrust")
+    assert solution.post_process_names == ("ax", "ay", "az", "net_thrust")
     # the ascent is the first two rows, the descent the last three
-    assert solution.post["net_thrust"].tolist() == [
+    assert solution.net_thrust.tolist() == [
         [0.0, 100.0],
         [1.0, 100.0],
         [0.0, 0.0],
@@ -907,40 +791,43 @@ def test_a_phase_that_does_not_compute_a_variable_reports_zero():
 def test_the_replay_is_kept_until_something_changes():
     """The replayed tables are cached; a history is a cheap slice of them."""
     solution = build_replay_solution()
-    first = solution.post["ax"]
-    tables = solution.post._phase_tables()
-    assert solution.post._phase_tables() is tables
-    assert solution.post["ax"].tolist() == first.tolist()
-    # recording a value replaces what was worked out for that phase
-    solution.records_post_values = True
-    for index, values in enumerate([[7.0, 8.0, 9.0], [1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]):
-        solution._set_post_values(index, values)
-    assert solution.post._phase_tables() is not tables
-    assert solution.post["ax"].tolist() == [[0.0, 7.0], [1.0, 1.0], [2.0, 4.0]]
-    solution.records_post_values = False
-    # so does storing a new row
+    first = solution.ax
+    tables = solution._phase_tables()
+    assert solution._phase_tables() is tables
+    # a second variable, and the same one again, come from the same tables
+    assert solution.ay.shape == (3, 2)
+    assert solution._phase_tables() is tables
+    assert solution.ax.tolist() == first.tolist()
+    # storing a new row replaces what was worked out
     solution._append(descent_row(3))
-    assert solution.post["ax"].shape == (4, 2)
+    assert solution._phase_tables() is not tables
+    assert solution.ax.shape == (4, 2)
 
 
 def test_reading_one_row_does_not_work_out_the_whole_flight():
     solution = build_replay_solution()
-    solution._set_post_values(-1, [4.0, 5.0, 6.0])
-    assert solution.post.at_index(-1) == {"ax": 4.0, "ay": 5.0, "az": 6.0}
-    # a row with nothing recorded is worked out on its own
-    assert solution.post.at_index(0) == {"ax": 0.0, "ay": 0.0, "az": 0.0}
-    assert solution.post.at(1.0) == {"ax": 1.0, "ay": 2.0, "az": 3.0}
+    assert solution._post_at_index(-1) == {"ax": 2.0, "ay": 4.0, "az": 6.0}
+    assert solution._post_at_index(0) == {"ax": 0.0, "ay": 0.0, "az": 0.0}
+    assert solution._post_tables is None  # nothing worked out for the whole flight
+    # at(t) gives the states and the post-process variables together
+    values = solution.at(1.0)
+    assert {name: values[name] for name in ("ax", "ay", "az")} == {
+        "ax": 1.0,
+        "ay": 2.0,
+        "az": 3.0,
+    }
+    assert values["vz"] == solution.value_at(1, "vz")
 
 
 def test_reading_a_row_outside_the_flight_raises():
     solution = build_replay_solution()
     with pytest.raises(IndexError):
-        solution.post.at_index(3)
+        solution._post_at_index(3)
 
 
 def test_phase_values_gives_one_phase_at_a_time():
     solution = build_replay_solution()
-    assert solution.post.phase_values(0).tolist() == [
+    assert solution.phase_values(0).tolist() == [
         [0.0, 0.0, 0.0],
         [1.0, 2.0, 3.0],
         [2.0, 4.0, 6.0],
@@ -949,8 +836,10 @@ def test_phase_values_gives_one_phase_at_a_time():
 
 def test_an_unknown_variable_says_what_the_flight_computes():
     solution = build_replay_solution()
-    with pytest.raises(KeyError, match="No flight phase computed"):
-        _ = solution.post["not_a_variable"]
+    with pytest.raises(KeyError, match="nothing named 'not_a_variable'. It has: x, y"):
+        _ = solution["not_a_variable"]
+    with pytest.raises(AttributeError, match="nothing named 'not_a_variable'"):
+        _ = solution.not_a_variable
 
 
 def test_a_solution_read_back_from_a_file_cannot_report_them():
@@ -961,17 +850,19 @@ def test_a_solution_read_back_from_a_file_cannot_report_them():
     )
     solution._append(descent_row(0))
     with pytest.raises(KeyError, match="read back from a saved file"):
-        _ = solution.post["ax"]
-    with pytest.raises(KeyError, match="read back from a saved file"):
-        solution.post.at_index(0)
+        _ = solution["ax"]
+    assert solution._post_at_index(0) == {}
+    assert "ax" not in solution.at(0.0)
 
 
 def test_a_flight_with_no_rows_has_nothing_to_report():
     solution = Solution()
     solution._start_phase(REPLAY_DYNAMICS.bind(None), start_canonical=tuple([0.0] * 13))
-    assert solution.post.names == ("ax", "ay", "az")
+    assert solution.post_process_names == ("ax", "ay", "az")
     with pytest.raises(KeyError, match="no stored states yet"):
-        _ = solution.post["ax"]
+        _ = solution["ax"]
+    with pytest.raises(AttributeError, match="no stored states yet"):
+        _ = solution.ax
 
 
 def test_canonical_row_fills_in_what_the_phase_does_not_integrate():
@@ -1198,9 +1089,9 @@ def test_saving_a_flight_keeps_every_phase_width():
         assert restored["heading"][:, 1].tolist() == [4.0, 5.0]
 
 
-def controlled_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
+def controlled_derivative(flight, t, u, controls, post_processing=False):  # pylint: disable=unused-argument
     """Report the row's time and the trim value it was given."""
-    return [t, u["tab.trim"], 0.0] if post_processing else list(x)
+    return [t, controls["tab.trim"], 0.0] if post_processing else list(u)
 
 
 def test_a_replayed_row_is_given_the_controls_stored_with_it():
@@ -1219,30 +1110,39 @@ def test_a_replayed_row_is_given_the_controls_stored_with_it():
         solution._append(descent_row(t))
         solution._set_controls(-1, {"tab.trim": trim})
 
-    assert solution.post["ay"].tolist() == [[0.0, 0.0], [1.0, 0.25], [2.0, 0.5]]
-    assert solution.post.at_index(1)["ay"] == 0.25
+    assert solution.ay.tolist() == [[0.0, 0.0], [1.0, 0.25], [2.0, 0.5]]
+    assert solution.at(1.0)["ay"] == 0.25
     # a rolled-back row loses its controls until they are stored again
     solution._replace_last(descent_row(1.5))
     assert solution._controls[-1] is None
 
 
-def test_a_control_channel_reads_like_a_state():
+def test_the_controls_are_read_apart_from_the_states():
     solution = build_mixed_solution()
     for index, deflection in enumerate([0.0, 0.0, 0.1, 0.1, 0.2, 0.2]):
         solution._set_controls(index, {"canards.deflection": deflection})
 
     assert solution.control_names == ("canards.deflection",)
-    history = solution["canards.deflection"]
+    history = solution.controls.canards.deflection
     assert history.shape == (len(solution), 2)
     assert history[:, 0].tolist() == solution.time.tolist()
     assert history[:, 1].tolist() == [0.0, 0.0, 0.1, 0.1, 0.2, 0.2]
+    # the same series by its name, as given or in parts
+    assert solution["canards.deflection"].tolist() == history.tolist()
+    assert solution.controls["Canards"]["deflection"].tolist() == history.tolist()
+    assert list(solution.controls) == ["canards"]
+    assert list(solution.controls.canards) == ["deflection"]
+    assert "canards.deflection" in solution.names
+    assert solution.at(2.0)["canards.deflection"] == 0.1
+    assert isinstance(solution.controls, dict)
+    assert list(solution.controls.items())[0][0] == "canards"
 
 
-def test_a_solution_without_controls_has_no_channels():
+def test_a_solution_without_controls_has_no_control_inputs():
     solution = build_mixed_solution()
     assert solution.control_names == ()
-    with pytest.raises(KeyError):
-        _ = solution["canards.deflection"]
+    assert len(solution.controls) == 0
+    assert list(solution.controls) == []
     assert "controls" not in solution.to_dict()
 
 
@@ -1254,4 +1154,4 @@ def test_controls_round_trip_through_dict():
     restored = Solution.from_dict(solution.to_dict())
 
     assert restored._controls == solution._controls
-    assert restored["a.x"].tolist() == solution["a.x"].tolist()
+    assert restored.controls.a.x.tolist() == solution.controls.a.x.tolist()

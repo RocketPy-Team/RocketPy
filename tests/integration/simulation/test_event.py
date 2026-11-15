@@ -37,7 +37,7 @@ from rocketpy.simulation.solution import Solution
 
 
 def _callback_return_time(context):
-    return {"time": context["time"]}
+    context.record(time=context["time"])
 
 
 def _docs_root():
@@ -311,8 +311,6 @@ def test_commands_api_records_expected_payloads():
 def test_core_event_builders_update_flight_state_and_commands():
     """The built-in event builders should mutate the flight state as expected."""
 
-    out_of_rail_event, apogee_event, impact_event = build_core_events()
-
     flight = SimpleNamespace(
         env=SimpleNamespace(elevation=0.0),
         effective_1rl=1.0,
@@ -334,19 +332,18 @@ def test_core_event_builders_update_flight_state_and_commands():
         solution=_canonical_solution(_sample_state(0.0, 1.0), _sample_state(1.0, -1.0)),
         u_dot_generalized=lambda *_args, **_kwargs: "new-derivative",
     )
+    out_of_rail_event, apogee_event, impact_event = build_core_events(flight)
 
     out_of_rail_state = _sample_state(0.5, 1.0)
     out_of_rail_state[1] = 1.0
-    assert out_of_rail_trigger(
-        {"flight": flight, "canonical_state": out_of_rail_state[1:]}
-    )
+    assert out_of_rail_trigger(flight, {"canonical_state": out_of_rail_state[1:]})
     out_of_rail_callback(
+        flight,
         {
-            "flight": flight,
             "event": out_of_rail_event,
             "time": 0.5,
             "canonical_state": out_of_rail_state[1:],
-        }
+        },
     )
     assert flight.out_of_rail_time == pytest.approx(0.5)
     assert flight.out_of_rail_time_index == 1
@@ -356,16 +353,14 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert out_of_rail_event.commands.new_flight_phase is True
     assert out_of_rail_event.commands.new_flight_phase_name == "free_flight"
 
-    assert apogee_trigger(
-        {"flight": flight, "canonical_state": _sample_state(1.0, -1.0)[1:]}
-    )
+    assert apogee_trigger(flight, {"canonical_state": _sample_state(1.0, -1.0)[1:]})
     apogee_result = apogee_callback(
+        flight,
         {
-            "flight": flight,
             "event": apogee_event,
             "time": 1.0,
             "canonical_state": _sample_state(1.0, -1.0)[1:],
-        }
+        },
     )
     assert apogee_result is False
     assert flight.apogee_time == pytest.approx(1.0)
@@ -379,14 +374,14 @@ def test_core_event_builders_update_flight_state_and_commands():
     impact_state[2] = -3.0
     impact_state[3] = -4.0
     impact_state[6] = -4.0
-    assert impact_trigger({"flight": flight, "canonical_state": impact_state[1:]})
+    assert impact_trigger({"height_agl": impact_state[3]})
     impact_callback(
+        flight,
         {
-            "flight": flight,
             "event": impact_event,
             "time": 2.0,
             "canonical_state": impact_state[1:],
-        }
+        },
     )
     assert flight.impact_time == pytest.approx(2.0)
     assert flight.x_impact == pytest.approx(2.0)
@@ -396,17 +391,17 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert impact_event.commands._terminate is True
 
     assert out_of_rail_exact_time_function(
-        {"canonical_state": out_of_rail_state[1:], "flight": flight}
+        flight, {"canonical_state": out_of_rail_state[1:]}
     ) == pytest.approx(0.0)
     assert out_of_rail_exact_time_derivative(
-        {"canonical_state": out_of_rail_state[1:], "flight": flight}
+        flight, {"canonical_state": out_of_rail_state[1:]}
     ) == pytest.approx(0.0)
     assert apogee_event_exact_time_function(
         {"canonical_state": _sample_state(1.0, -1.0)[1:]}
     ) == pytest.approx(-1.0)
     assert impact_event_exact_time_function({"height_agl": -4.0}) == pytest.approx(-4.0)
     assert impact_event_exact_time_derivative(
-        {"canonical_state": impact_state[1:], "flight": flight}
+        {"canonical_state": impact_state[1:]}
     ) == pytest.approx(-4.0)
 
 
@@ -426,9 +421,7 @@ def test_apogee_trigger_returns_false_without_complete_history(
     flight = SimpleNamespace(apogee_state=apogee_state, solution=solution)
 
     assert (
-        apogee_trigger(
-            {"flight": flight, "canonical_state": _sample_state(1.0, -1.0)[1:]}
-        )
+        apogee_trigger(flight, {"canonical_state": _sample_state(1.0, -1.0)[1:]})
         is False
     )
 
@@ -437,7 +430,7 @@ def test_flight_with_disable_and_enable_examples_from_docs():
     """The docs-style disable_on and enable_on examples should work in Flight."""
 
     def my_callback(context):
-        return {"time": context["time"]}
+        context.record(time=context["time"])
 
     def disable_above_altitude(context):
         return context["height_agl"] > 700.0
@@ -505,10 +498,8 @@ def test_flight_with_exact_time_example_from_docs():
     """The docs-style exact-time event should be more precise than sampling."""
 
     def altitude_trigger(context):
-        state = context["state"]
-        flight = context["flight"]
         target_altitude = context["event"].memory["target_altitude"]
-        return state[2] - flight.env.elevation > target_altitude
+        return context["height_agl"] > target_altitude
 
     def altitude_exact_time_function(context):
         return context["height_agl"]
@@ -585,7 +576,7 @@ PARAFOIL_DYNAMICS = _PhaseDynamics(
     (*BALLISTIC_STATES, "heading"),
     # A heading is not a canonical state, so it cannot be picked out of the
     # state that ended the previous phase. The phase says where it starts.
-    initial_state=lambda _flight, _t, canonical: [*canonical[:6], 0.0],
+    initial_state=lambda _flight, _t, canonical, _previous: [*canonical[:6], 0.0],
 )
 
 
@@ -603,7 +594,6 @@ def _flight_switching_dynamics_at(time, dynamics, phase_name):
         name=f"Switch to {phase_name}",
         sampling_rate=10,
         trigger_only_once=True,
-        changes_dynamics=True,
     )
     return _docs_style_flight([switch_event]), switch_event
 
@@ -615,7 +605,7 @@ def test_a_phase_narrower_than_the_canonical_state_flies():
     )
     solution = flight.solution
 
-    assert switch_event.callback_log, "the flight never switched dynamics"
+    assert switch_event.triggered_times, "the flight never switched dynamics"
     ballistic = solution.phases[-1]
     assert ballistic.name == "ballistic"
     assert ballistic.dynamics.states == BALLISTIC_STATES
@@ -649,7 +639,7 @@ def test_a_phase_wider_than_the_canonical_state_flies():
     )
     solution = flight.solution
 
-    assert switch_event.callback_log, "the flight never switched dynamics"
+    assert switch_event.triggered_times, "the flight never switched dynamics"
     parafoil = solution.phases[-1]
     assert parafoil.dynamics.states == (*BALLISTIC_STATES, "heading")
 
@@ -758,7 +748,19 @@ def _fly_calisto(rocket, environment, events, **options):
     )
 
 
-def test_an_event_that_changes_the_dynamics_flies_to_max_time(
+def _cutting_callback(calls):
+    """A callback that logs its time and cuts the solver step there, with a
+    command that changes nothing: switching on a surface that is already on."""
+
+    def callback(context):
+        calls.append(context["time"])
+        surface = context.rocket.aerodynamic_surfaces.get_components()[0]
+        context.commands.activate_surface(surface)
+
+    return callback
+
+
+def test_an_event_that_cuts_every_step_flies_to_max_time(
     calisto_robust, example_plain_env
 ):
     """A solver step that runs to max_time and is cut back to the event's
@@ -770,10 +772,9 @@ def test_an_event_that_changes_the_dynamics_flies_to_max_time(
     """
     calls = []
     event = Event(
-        callback=lambda context: calls.append(context["time"]),
+        callback=_cutting_callback(calls),
         sampling_rate=10,
-        changes_dynamics=True,
-        name="Changes the dynamics",
+        name="Cuts every step",
     )
     flight = _fly_calisto(calisto_robust, example_plain_env, [event], max_time=8)
 
@@ -784,26 +785,50 @@ def test_an_event_that_changes_the_dynamics_flies_to_max_time(
 
 
 @pytest.mark.parametrize("time_overshoot", [True, False])
-def test_events_that_change_the_dynamics_at_the_same_time_all_run(
+def test_events_that_cut_the_step_at_the_same_time_all_run(
     calisto_robust, example_plain_env, time_overshoot
 ):
     calls = {"First": [], "Second": []}
 
-    def changes_the_dynamics(name):
+    def cutting(name):
         return Event(
-            callback=lambda context: calls[name].append(context["time"]),
+            callback=_cutting_callback(calls[name]),
             trigger=lambda context: context["time"] > 2.0,
             sampling_rate=10,
-            changes_dynamics=True,
             name=name,
         )
 
     _fly_calisto(
         calisto_robust,
         example_plain_env,
-        [changes_the_dynamics("First"), changes_the_dynamics("Second")],
+        [cutting("First"), cutting("Second")],
         time_overshoot=time_overshoot,
         max_time=6,
     )
     assert len(calls["First"]) == pytest.approx(40, abs=1)
     assert calls["Second"] == calls["First"]
+
+
+def test_an_event_checked_at_every_step_never_runs_past_the_flight(
+    calisto_robust, example_plain_env
+):
+    """An event that happens at an exact time inside a solver step, such as
+    leaving the rail or the impact, takes the flight back to that time. The
+    events checked after it in the same step run there, not at the end of the
+    step that was cut, so their times never go backwards."""
+    times, steps = [], []
+
+    def callback(context):
+        times.append(context["time"])
+        steps.append(context.dt)
+        context.record(time=context["time"])
+
+    event = Event(callback=callback, name="Every step")
+    flight = _fly_calisto(calisto_robust, example_plain_env, [event], max_time=3)
+
+    assert flight.out_of_rail_time in times
+    assert times == sorted(times)
+    assert all(step > 0 for step in steps if step is not None)
+    recorded = [time for time, _ in flight.records["Every step"].time]
+    assert recorded == times
+    assert times[-1] <= flight.t_final

@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Controller, Event, Flight, GenericSurface
+from rocketpy import ContinuousController, Controller, Event, Flight, GenericSurface
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 
 
@@ -25,7 +25,7 @@ def _roll_damped_flight(rocket, environment, **event_options):
     rocket.add_surfaces(canards, 0.7)
 
     def damper(context):
-        context.controls["canards.deflection"] = -0.05 * context.state.w3
+        context.controls.canards.deflection = -0.05 * context.state.w3
         context.record(roll_rate=context.state.w3)
 
     damper_event = Event(
@@ -49,12 +49,13 @@ def damped_flight(calisto_robust, example_plain_env):
     return _roll_damped_flight(calisto_robust, example_plain_env)
 
 
-def test_the_control_history_holds_each_value(damped_flight):
+def test_the_controls_hold_each_value(damped_flight):
     flight, damper_event = damped_flight
-    history = flight.control_history["canards.deflection"]
-    stored = flight.solution["canards.deflection"]
+    history = flight.controls["Canards"].deflection
+    stored = flight.solution.controls.canards.deflection
 
-    assert list(flight.control_history) == ["canards.deflection"]
+    assert list(flight.controls) == ["Canards"]
+    assert stored.tolist() == flight.solution["canards.deflection"].tolist()
     assert stored.shape == (len(flight.solution), 2)
     # between two rows the value in force is the earlier row's
     t0, t1 = stored[100, 0], stored[101, 0]
@@ -71,7 +72,7 @@ def test_a_write_inside_a_step_acts_from_the_event_time(damped_flight):
     """The damper runs on interpolated states inside solver steps; each write
     cuts the step there, so the row at the sampling time carries the value."""
     flight, damper_event = damped_flight
-    stored = flight.solution["canards.deflection"]
+    stored = flight.solution.controls.canards.deflection
     # the first row whose deflection differs from the one before it
     row = int(np.argmax(stored[1:, 1] != stored[:-1, 1])) + 1
     assert stored[row - 1, 1] == 0.0 != stored[row, 1]
@@ -81,54 +82,14 @@ def test_a_write_inside_a_step_acts_from_the_event_time(damped_flight):
 
 def test_records_are_read_after_the_flight(damped_flight):
     flight, damper_event = damped_flight
-    roll_rate = flight.records["roll_damper.roll_rate"]
-    assert list(roll_rate.x_array) == list(damper_event.records["roll_rate"].x_array)
+    roll_rate = flight.records.roll_damper.roll_rate
+    assert roll_rate == damper_event.records["roll_rate"]
     # one record per time the damper ran: the times it ran again after the
     # flight went back to rail exit replaced what it had recorded then
-    assert len(roll_rate.x_array) == len(set(damper_event.triggered_times))
+    assert len(roll_rate) == len(set(damper_event.triggered_times))
     # the recorded roll rate is the flight's, at the recorded times
-    t = roll_rate.x_array[len(roll_rate.x_array) // 2]
-    assert roll_rate(t) == pytest.approx(flight.w3(t), rel=1e-3, abs=1e-6)
-
-
-def test_recorded_outputs_equal_the_rows_worked_out_again(
-    calisto_air_brakes_clamp_on, example_plain_env
-):
-    """A flight with an event that changes the dynamics records its outputs
-    while flying. Working each row out again with the controls stored with it
-    gives the same values, so the stored controls are the ones the row was
-    flown with."""
-    # Never fires; declaring changes_dynamics is what makes the flight record
-    recorder = Event(
-        callback=lambda context: None,
-        trigger=lambda context: False,
-        sampling_rate=7,
-        changes_dynamics=True,
-        name="Recorder",
-    )
-    flight = Flight(
-        rocket=calisto_air_brakes_clamp_on,
-        environment=example_plain_env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=True,
-        custom_events=[recorder],
-    )
-    solution = flight.solution
-    assert solution.records_post_values
-    assert max(solution["air_brakes.deployment_level"][:, 1]) > 0
-    for index in range(len(solution)):
-        phase = solution.phases[solution.phase_index_at(index)]
-        if not phase.dynamics.post_process_vars:
-            continue
-        row = solution.raw_row(index)
-        replayed = phase.dynamics.post_process_values(
-            phase.bound_dynamics.post_process_at(
-                row[0], row[1:], solution._controls[index]
-            )
-        )
-        assert replayed == solution._post_values[index], index
+    t, recorded = roll_rate[len(roll_rate) // 2]
+    assert recorded == pytest.approx(flight.w3(t), rel=1e-3, abs=1e-6)
 
 
 def test_controls_and_records_are_saved_with_the_flight(damped_flight):
@@ -137,10 +98,11 @@ def test_controls_and_records_are_saved_with_the_flight(damped_flight):
 
     assert loaded.solution.control_names == ("canards.deflection",)
     for t in (2.0, 5.0, 10.0):
-        assert loaded.control_history["canards.deflection"](t) == (
-            flight.control_history["canards.deflection"](t)
+        assert loaded.controls["Canards"].deflection(t) == (
+            flight.controls["Canards"].deflection(t)
         )
-    assert list(loaded.records) == ["roll_damper.roll_rate"]
+    assert list(loaded.records) == ["Roll damper"]
+    assert list(loaded.records["Roll damper"]) == ["roll_rate"]
 
 
 @patch("matplotlib.pyplot.show")
@@ -149,7 +111,45 @@ def test_controls_are_plotted_and_printed(mock_show, damped_flight, capsys):  # 
     assert flight.plots.controls() is None
     assert flight.plots.records() is None
     flight.prints.controls()
-    assert "canards.deflection" in capsys.readouterr().out
+    # named as ``flight.controls`` reads it: the name as given, then the control
+    assert "Canards.deflection" in capsys.readouterr().out
+
+
+def _integrate_roll(states, controls, conditions):  # pylint: disable=unused-argument
+    return [conditions.state.w3]
+
+
+def _write_level(context):
+    context.outputs.every_step.level = 0.1
+
+
+@patch("matplotlib.pyplot.show")
+def test_every_kind_of_controller_is_printed_and_plotted(
+    mock_show,  # pylint: disable=unused-argument
+    calisto_robust,
+    example_plain_env,
+    capsys,
+):
+    """A controller run at every solver step, a continuous controller with a
+    state and an output are all in the flight's prints and plots."""
+    calisto_robust.parachutes = []
+    calisto_robust.add_controller(
+        Controller(_write_level, None, outputs=("level",), name="Every Step")
+    )
+    calisto_robust.add_controller(
+        ContinuousController(
+            states=("roll",), state_derivative=_integrate_roll, name="Observer"
+        )
+    )
+    flight = _fly(calisto_robust, example_plain_env)
+
+    flight.prints.controllers()
+    out = capsys.readouterr().out
+    assert "Sampling Rate: every solver step" in out
+    assert "Continuous Controller: Observer" in out and "State roll" in out
+    assert flight.plots.state_history() is None
+    assert flight.plots.event_outputs() is None
+    assert flight.all_info() is None
 
 
 def _canards(rocket):
@@ -182,7 +182,7 @@ def _profile_deflection(time):
 
 
 def _follow_profile(context):
-    context.controls["canards.deflection"] = _profile_deflection(context.time)
+    context.controls.canards.deflection = _profile_deflection(context.time)
 
 
 def test_an_open_loop_profile_is_flown_at_the_sampling_times(
@@ -190,28 +190,18 @@ def test_an_open_loop_profile_is_flown_at_the_sampling_times(
 ):
     calisto_robust.parachutes = []
     _canards(calisto_robust)
-    controller = Controller(_follow_profile, sampling_rate=10, writes="canards")
+    controller = Controller(_follow_profile, sampling_rate=10)
     calisto_robust.add_controller(controller)
     flight = _fly(calisto_robust, example_plain_env)
 
     assert flight.controllers == [controller]
-    history = flight.control_history["canards.deflection"]
+    history = flight.controls["Canards"].deflection
     times = sorted(set(controller.triggered_times))
     assert times[:2] == pytest.approx([0.1, 0.2])
     for t in times[:30]:
         # the value flown from each sampling time on, and held until the next
         assert history(t) == _profile_deflection(t)
         assert history(t + 0.05) == _profile_deflection(t)
-
-
-def test_a_write_outside_writes_stops_the_flight(calisto_robust, example_plain_env):
-    calisto_robust.parachutes = []
-    _canards(calisto_robust)
-    calisto_robust.add_controller(
-        Controller(_follow_profile, sampling_rate=10, writes="air_brakes")
-    )
-    with pytest.raises(ValueError, match="no control channel or actuator"):
-        _fly(calisto_robust, example_plain_env)
 
 
 def test_a_rocket_with_a_controller_flies_the_same_after_saving(
@@ -228,16 +218,17 @@ def test_a_rocket_with_a_controller_flies_the_same_after_saving(
     )
     again = _fly(loaded, example_plain_env)
 
-    assert [c.name for c in loaded._controllers] == ["Profile"]
+    assert [c.name for c in loaded.controllers] == ["Profile"]
     assert again.apogee == flight.apogee
     assert np.array_equal(
-        again.solution["canards.deflection"], flight.solution["canards.deflection"]
+        again.solution.controls.canards.deflection,
+        flight.solution.controls.canards.deflection,
     )
 
 
 def test_records_stay_with_the_flight_that_made_them(damped_flight, example_plain_env):
     flight, damper_event = damped_flight
-    first = flight.records["roll_damper.roll_rate"]
+    first = flight.records.roll_damper.roll_rate
     # the same event flies again in a second flight
     _fly(flight.rocket, example_plain_env, custom_events=[damper_event])
-    assert list(flight.records["roll_damper.roll_rate"].x_array) == list(first.x_array)
+    assert flight.records.roll_damper.roll_rate == first

@@ -6,9 +6,11 @@ import pytest
 
 from rocketpy import AirBrakes, Controller, GenericSurface
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
-from rocketpy.control.control_signal import initial_controls
-from rocketpy.control.controller import _PositionalController
+from rocketpy.control._helpers import initial_controls
+from rocketpy.control._legacy import _PositionalController
 from rocketpy.simulation.events.event_context import EventContext
+from rocketpy.simulation.events.event_execution import call_event
+from rocketpy.simulation.events.views import output_events
 
 
 def _air_brakes(name="AirBrakes"):
@@ -30,31 +32,37 @@ def _canards():
     )
 
 
-def _flight_of(*actuators):
-    """A stand-in flight holding the control inputs of ``actuators``."""
-    controls, channels, limits = initial_controls(actuators)
+def _flight_of(*controllables):
+    """A stand-in flight holding the control inputs of ``controllables``."""
+    controls, channels, limits = initial_controls(controllables)
     return SimpleNamespace(
-        control_signal=controls,
-        _control_channels=channels,
+        t=0.0,
+        _controls=controls,
+        _control_names=channels,
         _control_limits=limits,
-        rocket=SimpleNamespace(actuators=list(actuators)),
+        rocket=SimpleNamespace(controllables=list(controllables)),
+        # The rows a positional controller function receives as state_history
+        solution=SimpleNamespace(_rows=[[0.0] * 14]),
     )
 
 
-def _run(controller, flight, time=0.0):
-    """Run ``controller`` once at ``time`` in the stand-in ``flight``."""
+def _run(controller, flight, time=0.0, sensors=None, sharing=()):
+    """Run ``controller`` once at ``time`` in the stand-in ``flight``, whose
+    events with outputs are among ``sharing``."""
+    flight.t = time
     context = EventContext(
         time=time,
         canonical_state=[0.0] * 13,
         raw_state=[0.0] * 13,
         phase_names=(),
-        flight=flight,
+        controls=flight._controls,
         rocket=flight.rocket,
-        sensors=[],
+        sensors=sensors or {},
         environment=None,
+        solution=flight.solution,
+        output_events=output_events(sharing),
     )
-    controller(context)
-    return controller.callback_log[-1] if controller.callback_log else None
+    call_event(flight, controller, context, None, 0, 0)
 
 
 def test_a_controller_writes_the_flight_controls_not_the_object():
@@ -62,13 +70,13 @@ def test_a_controller_writes_the_flight_controls_not_the_object():
     flight = _flight_of(brakes)
 
     def function(context):
-        context.controls["air_brakes.deployment_level"] = 0.7
+        context.controls.air_brakes.deployment_level = 0.7
 
     controller = Controller(function, sampling_rate=10)
     _run(controller, flight)
 
-    assert flight.control_signal["air_brakes.deployment_level"] == 0.7
-    assert brakes.deployment_level == 0.0
+    assert flight._controls["air_brakes.deployment_level"] == 0.7
+    assert brakes.initial_deployment_level == 0.0
     assert controller.sampling_rate == 10
     assert controller.priority == 3
 
@@ -76,117 +84,161 @@ def test_a_controller_writes_the_flight_controls_not_the_object():
 def test_a_write_is_kept_inside_the_limits():
     flight = _flight_of(_air_brakes())
     controller = Controller(
-        lambda context: context.controls.update({"air_brakes.deployment_level": 3}),
+        lambda context: setattr(context.controls.air_brakes, "deployment_level", 3),
         sampling_rate=10,
     )
     _run(controller, flight)
-    assert flight.control_signal["air_brakes.deployment_level"] == 1.0
+    assert flight._controls["air_brakes.deployment_level"] == 1.0
 
 
-def test_a_returned_dict_is_recorded():
+def test_a_controller_records_with_the_context():
     flight = _flight_of(_air_brakes())
 
     def function(context):
-        return {"estimated_apogee": 3000.0 + context.time}
+        context.record(estimated_apogee=3000.0 + context.time)
 
     controller = Controller(function, sampling_rate=10, name="Apogee Controller")
     _run(controller, flight, time=0.0)
     _run(controller, flight, time=0.1)
 
-    record = controller.records["estimated_apogee"]
-    assert list(record.x_array) == [0.0, 0.1]
-    assert record(0.05) == 3000.0
+    assert controller.records["estimated_apogee"] == [(0.0, 3000.0), (0.1, 3000.1)]
 
 
-def test_a_returned_value_that_is_not_a_number_is_explained():
-    controller = Controller(lambda context: {"state": [1, 2]}, sampling_rate=10)
-    with pytest.raises(TypeError, match="must be a single number"):
-        _run(controller, _flight_of(_air_brakes()))
+def test_an_outer_loop_hands_a_setpoint_to_an_inner_loop():
+    """A controller's outputs are found under its name: the controller writes
+    them and another controller reads them."""
 
+    def guidance_function(context):
+        context.outputs.guidance.pitch_setpoint = 0.2
 
-def test_a_returned_tuple_is_not_recorded():
-    controller = Controller(lambda context: (1.0, 2.0), sampling_rate=10)
-    assert _run(controller, _flight_of(_air_brakes())) == (1.0, 2.0)
-    assert not controller.records
+    def attitude_function(context):
+        context.controls.canards.deflection = context.outputs.guidance.pitch_setpoint
 
-
-@pytest.mark.parametrize(
-    "writes",
-    [
-        "canards.deflection",
-        "canards",
-        ["canards"],
-        ("canards.deflection",),
-    ],
-)
-def test_writes_allows_the_channels_named(writes):
-    flight = _flight_of(_air_brakes(), _canards())
-
-    def function(context):
-        context.controls["canards.deflection"] = 0.1
-
-    controller = Controller(function, sampling_rate=10, writes=writes)
-    _run(controller, flight)
-    assert flight.control_signal["canards.deflection"] == 0.1
-
-
-def test_writes_takes_the_actuator_itself():
-    canards = _canards()
-    flight = _flight_of(_air_brakes(), canards)
-    controller = Controller(
-        lambda context: context.controls.update({"canards.deflection": 0.1}),
+    guidance = Controller(
+        guidance_function,
         sampling_rate=10,
-        writes=canards,
+        name="Guidance",
+        outputs={"pitch_setpoint": 0.05},
     )
-    assert controller.writes == ("canards",)
-    _run(controller, flight)
-    assert flight.control_signal["canards.deflection"] == 0.1
+    attitude = Controller(attitude_function, sampling_rate=100, name="Attitude")
+    assert guidance.outputs == ("pitch_setpoint",)
+    assert guidance.output_defaults == {"pitch_setpoint": 0.05}
+    assert attitude.outputs == ()
+
+    flight = _flight_of(_canards())
+    both = (guidance, attitude)
+    # An output is not a control input of the flight
+    assert list(flight._controls) == ["canards.deflection"]
+    _run(attitude, flight, sharing=both)
+    assert flight._controls["canards.deflection"] == 0.05
+    _run(guidance, flight, time=0.1, sharing=both)
+    # Writing an output does not change the trajectory
+    assert guidance.commands.control_changes == {}
+    _run(attitude, flight, time=0.1, sharing=both)
+    assert flight._controls["canards.deflection"] == 0.2
+    assert guidance.output_history == {"pitch_setpoint": [(0.1, 0.2)]}
 
 
-def test_a_write_outside_writes_raises_and_is_undone():
-    flight = _flight_of(_air_brakes(), _canards())
+def test_a_output_holds_any_value_and_is_written_by_its_event_only():
+    def estimator_function(context):
+        context.outputs.estimator.attitude = [1.0, 0.0, 0.0, 0.0]
+        context.outputs["Estimator"].mode = "coast"
 
-    def function(context):
-        context.controls["canards.deflection"] = 0.1
-        context.controls["air_brakes.deployment_level"] = 0.5
+    def reader_function(context):
+        context.memory["read"] = context.outputs.estimator.mode
+        context.outputs.estimator.mode = "boost"
 
-    controller = Controller(function, sampling_rate=10, writes="canards")
-    with pytest.raises(ValueError, match="'air_brakes.deployment_level'"):
-        _run(controller, flight)
-    assert flight.control_signal == {
-        "air_brakes.deployment_level": 0.0,
-        "canards.deflection": 0.0,
+    estimator = Controller(
+        estimator_function,
+        sampling_rate=10,
+        name="Estimator",
+        outputs=("attitude", "mode"),
+    )
+    reader = Controller(reader_function, sampling_rate=10, name="Reader")
+    flight = _flight_of(_canards())
+    both = (estimator, reader)
+    assert estimator.output_defaults == {"attitude": None, "mode": None}
+    _run(estimator, flight, sharing=both)
+    assert estimator.output_history == {
+        "attitude": [(0.0, [1.0, 0.0, 0.0, 0.0])],
+        "mode": [(0.0, "coast")],
     }
+    with pytest.raises(AttributeError, match="written only by 'Estimator'"):
+        _run(reader, flight, sharing=both)
+    assert reader.memory["read"] == "coast"
+    assert estimator._outputs["mode"] == "coast"
 
 
-def test_writing_an_unchanged_value_outside_writes_is_allowed():
-    flight = _flight_of(_air_brakes(), _canards())
+def test_a_output_goes_back_with_the_flight_and_starts_again():
+    controller = Controller(
+        lambda context: None,
+        sampling_rate=10,
+        name="Guidance",
+        outputs={"setpoint": 0.05, "path": None},
+    )
+    controller._write_output(0.1, "setpoint", 0.2)
+    controller._write_output(0.2, "setpoint", 0.3)
+    controller._write_output(0.2, "path", [1, 2])
+    controller._drop_after(0.1)
+    assert controller._outputs == {"setpoint": 0.2, "path": None}
+    assert controller.output_history == {"setpoint": [(0.1, 0.2)], "path": []}
+    controller.reset()
+    assert controller._outputs == {"setpoint": 0.05, "path": None}
+    assert controller.output_history == {}
+
+
+def test_printing_the_context_lists_what_a_controller_can_use():
+    seen = {}
 
     def function(context):
-        context.controls["air_brakes.deployment_level"] = 0.0
+        seen["text"] = repr(context)
+        seen["names"] = dir(context)
 
-    controller = Controller(function, sampling_rate=10, writes="canards")
-    _run(controller, flight)
-
-
-def test_writes_naming_no_channel_says_which_exist():
-    controller = Controller(lambda context: None, sampling_rate=10, writes="fins")
-    with pytest.raises(ValueError, match="air_brakes.deployment_level"):
-        _run(controller, _flight_of(_air_brakes()))
-
-
-@pytest.mark.parametrize("writes", [3, [""], [None]])
-def test_writes_must_be_names_or_actuators(writes):
-    with pytest.raises((TypeError, ValueError)):
-        Controller(lambda context: None, sampling_rate=10, writes=writes)
+    controller = Controller(
+        function, sampling_rate=10, name="Guidance", outputs=("setpoint",)
+    )
+    _run(controller, _flight_of(_canards()), sharing=(controller,))
+    assert "EventContext at t = 0 s, event 'Guidance'" in seen["text"]
+    assert "canards: deflection" in seen["text"]
+    assert "guidance: setpoint" in seen["text"]
+    assert "x, y, z, vx, vy, vz" in seen["text"]
+    # Only what a function reads, not the methods of the dictionary
+    assert {"time", "state", "controls", "outputs", "record"} <= set(seen["names"])
+    assert not {"pop", "clear", "update", "keys"} & set(seen["names"])
 
 
-def test_writes_is_checked_again_in_the_next_flight():
-    controller = Controller(lambda context: None, sampling_rate=10, writes="canards")
-    _run(controller, _flight_of(_canards()))
-    controller.reset()
-    with pytest.raises(ValueError, match="no control channel"):
-        _run(controller, _flight_of(_air_brakes()))
+def test_output_names_are_checked():
+    with pytest.raises(ValueError, match="letters, digits and underscores"):
+        Controller(lambda context: None, sampling_rate=10, outputs=("1st",))
+
+
+def test_a_rocket_checks_its_controllers_outputs(calisto):
+    controller = Controller(
+        lambda context: None, sampling_rate=10, name="Guidance", outputs=("x", "y")
+    )
+    calisto.add_controller(controller)
+    # Outputs are not control inputs
+    assert calisto.control_names == ()
+    clash = Controller(
+        lambda context: None, sampling_rate=10, name="Guidance", outputs=("z",)
+    )
+    with pytest.raises(ValueError, match="both have outputs"):
+        calisto.add_controller(clash)
+    assert calisto.controllers == (controller,)
+
+
+def test_a_controller_chooses_how_the_flight_reaches_its_samples():
+    assert Controller(lambda context: None, sampling_rate=10).time_overshootable
+    stopped = Controller(
+        lambda context: None, sampling_rate=10, time_overshootable=False
+    )
+    assert stopped.time_overshootable is False
+
+
+def test_what_a_controller_returns_is_ignored():
+    controller = Controller(lambda context: {"state": [1, 2]}, sampling_rate=10)
+    _run(controller, _flight_of(_air_brakes()), time=0.5)
+    assert not controller.records
 
 
 @pytest.mark.parametrize("function", [lambda: None, lambda a, b: None, 3])
@@ -195,15 +247,23 @@ def test_the_function_must_take_the_context(function):
         Controller(function, sampling_rate=10)
 
 
-@pytest.mark.parametrize("sampling_rate", [0, -1, None])
+@pytest.mark.parametrize("sampling_rate", [0, -1])
 def test_the_sampling_rate_must_be_positive(sampling_rate):
     with pytest.raises(ValueError, match="sampling rate"):
         Controller(lambda context: None, sampling_rate=sampling_rate)
 
 
+def test_no_sampling_rate_runs_the_controller_at_every_solver_step():
+    controller = Controller(lambda context: None, sampling_rate=None)
+    assert controller.sampling_rate is None
+    assert not controller.is_discrete
+    assert not controller.time_overshootable
+    assert "every solver step" in str(controller)
+
+
 def test_memory_starts_again_at_every_flight():
     def count(context):
-        context.event.memory["calls"] += 1
+        context.memory["calls"] += 1
 
     controller = Controller(count, sampling_rate=10, memory={"calls": 0})
     flight = _flight_of(_air_brakes())
@@ -220,44 +280,93 @@ def test_a_controller_write_marks_its_commands():
     not."""
     flight = _flight_of(_air_brakes())
     controller = Controller(
-        lambda context: context.controls.update({"air_brakes.deployment_level": 0.5}),
+        lambda context: setattr(context.controls.air_brakes, "deployment_level", 0.5),
         sampling_rate=10,
     )
     _run(controller, flight)
-    assert not controller.changes_dynamics
-    assert controller.commands.wrote_controls is True
     assert controller.commands.control_changes == {"air_brakes.deployment_level": 0.5}
+    assert controller.commands.changes_trajectory is True
     _run(controller, flight)
-    assert controller.commands.wrote_controls is False
+    assert controller.commands.changes_trajectory is False
 
 
 def test_a_positional_function_moves_the_air_brakes_by_name(recwarn):
-    """The deprecated positional form receives the air brakes as an object
-    whose deployment level is the flight's channel."""
+    """The deprecated positional form of v1.13 receives the state history and
+    the air brakes as an object whose deployment level is the flight's
+    channel."""
     brakes = _air_brakes()
     flight = _flight_of(_canards(), brakes)
     received = []
 
-    def legacy(time, sampling_rate, state, observed_variables, air_brakes):  # pylint: disable=unused-argument
-        received.append((sampling_rate, observed_variables))
+    def legacy(  # pylint: disable=unused-argument
+        time, sampling_rate, state, state_history, observed_variables, air_brakes
+    ):
+        received.append((sampling_rate, state_history, list(observed_variables)))
         air_brakes.deployment_level = 0.3
         return air_brakes.deployment_level
 
     controller = Controller(
-        _PositionalController(legacy, 20, actuator_name="AirBrakes"),
+        _PositionalController(
+            legacy, 20, part_name="AirBrakes", initial_observed_variables=1.0
+        ),
         sampling_rate=20,
-        memory={"observed_variables": [1.0]},
     )
-    assert _run(controller, flight) == 0.3
-    assert received == [(20, [1.0])]
-    assert flight.control_signal["air_brakes.deployment_level"] == 0.3
-    assert brakes.deployment_level == 0.0
+    _run(controller, flight)
+    assert received == [(20, flight.solution._rows, [1.0])]
+    assert controller.controller_function.observed_variables == [1.0, 0.3]
+    # Kept on the wrapper, not in the memory copied before every run
+    assert controller.memory == {}
+    assert flight._controls["air_brakes.deployment_level"] == 0.3
+    assert brakes.initial_deployment_level == 0.0
     assert not recwarn.list
 
 
-def test_a_positional_function_without_a_name_needs_one_actuator():
+def test_a_positional_function_gathers_what_it_returns():
+    """As in v1.13, observed_variables starts with the initial value and gains
+    every value returned other than None; it starts again at every flight."""
+    seen = []
+
+    def legacy(t, rate, state, history, observed, air_brakes):  # pylint: disable=unused-argument
+        seen.append(list(observed))
+        return None if len(seen) == 2 else len(seen)
+
     controller = Controller(
-        _PositionalController(lambda t, r, s, o, b: None, 10), sampling_rate=10
+        _PositionalController(legacy, 10, initial_observed_variables="start"),
+        sampling_rate=10,
+    )
+    flight = _flight_of(_air_brakes())
+    for _ in range(3):
+        _run(controller, flight)
+    assert seen == [["start"], ["start", 1], ["start", 1]]
+    assert controller.controller_function.observed_variables == ["start", 1, 3]
+    # A saved controller starts with the initial value again
+    saved = copy.deepcopy(controller.controller_function)
+    assert saved.observed_variables == ["start"]
+    controller.reset()
+    assert controller.controller_function.observed_variables == ["start"]
+
+
+def test_a_positional_function_receives_the_sensor_objects():
+    """As in v1.13, the seventh argument is the list of the rocket's sensors,
+    one per position, in the order they were added."""
+    barometer, gyroscope = SimpleNamespace(name="b"), SimpleNamespace(name="g")
+    received = []
+
+    def legacy(t, rate, state, history, observed, air_brakes, sensors):  # pylint: disable=unused-argument
+        received.append(sensors)
+
+    controller = Controller(_PositionalController(legacy, 10), sampling_rate=10)
+    _run(
+        controller,
+        _flight_of(_air_brakes()),
+        sensors={"barometer_1": (barometer, None), "gyroscope": (gyroscope, None)},
+    )
+    assert received == [[barometer, gyroscope]]
+
+
+def test_a_positional_function_without_a_name_needs_one_part():
+    controller = Controller(
+        _PositionalController(lambda t, r, s, h, o, b: None, 10), sampling_rate=10
     )
     _run(controller, _flight_of(_air_brakes()))
     with pytest.raises(ValueError, match="2 that it could be"):
@@ -271,36 +380,37 @@ def _round_trip(obj, **options):
 
 
 def _saved_function(context):
-    context.controls["canards.deflection"] = 0.1
-    return {"time": context.time}
+    context.controls.canards.deflection = 0.1
+    context.record(time=context.time)
 
 
 def test_a_controller_is_saved_and_loaded():
     controller = Controller(
         _saved_function,
         sampling_rate=25,
-        writes="canards",
         memory={"gain": 2.0},
         name="Roll Damper",
         enabled=False,
         disable_on="apogee",
         enable_on=1.5,
-        priority=5,
+        outputs={"rate_setpoint": 0.3},
+        time_overshootable=False,
     )
     loaded = _round_trip(controller)
 
     assert isinstance(loaded, Controller)
     assert loaded.sampling_rate == 25
-    assert loaded.writes == ("canards",)
     assert loaded.memory == {"gain": 2.0}
     assert loaded.name == "Roll Damper"
     assert loaded.enabled is False
     assert loaded._gates == ("apogee", 1.5)
-    assert loaded.priority == 5
+    assert loaded.output_defaults == {"rate_setpoint": 0.3}
+    assert loaded.time_overshootable is False
     loaded.enabled = True
     flight = _flight_of(_canards())
-    assert _run(loaded, flight) == {"time": 0.0}
-    assert flight.control_signal["canards.deflection"] == 0.1
+    _run(loaded, flight)
+    assert loaded._records == {"time": [(0.0, 0.0)]}
+    assert flight._controls["canards.deflection"] == 0.1
 
 
 def test_a_controller_saved_without_its_function_loads_disabled():
@@ -310,8 +420,8 @@ def test_a_controller_saved_without_its_function_loads_disabled():
     assert loaded.enabled is False
     loaded.enabled = True
     flight = _flight_of(_canards())
-    assert _run(loaded, flight) is None
-    assert flight.control_signal["canards.deflection"] == 0.0
+    _run(loaded, flight)
+    assert flight._controls["canards.deflection"] == 0.0
 
 
 def test_a_controller_saved_by_the_old_class_loads():
@@ -339,19 +449,48 @@ def test_a_controller_saved_by_the_old_class_loads():
 def test_a_controller_can_be_copied():
     controller = Controller(_saved_function, sampling_rate=10, memory={"a": [1]})
     copied = copy.deepcopy(controller)
-    assert copied.callback.__self__ is copied
     flight = _flight_of(_canards())
     _run(copied, flight)
     assert copied.triggered_times == [0.0]
     assert controller.triggered_times == []
 
 
-def test_info_lists_what_the_controller_writes(capsys):
+def test_info_lists_the_function_and_memory(capsys):
     controller = Controller(
-        _saved_function, sampling_rate=10, writes="canards", memory={"gain": 1}
+        _saved_function, sampling_rate=10, memory={"gain": 1}, outputs=("setpoint",)
     )
     controller.info()
     out = capsys.readouterr().out
     assert "_saved_function" in out
-    assert "Writes: canards" in out
+    assert "Outputs: setpoint" in out
     assert "Memory keys: gain" in out
+
+
+def _controller_with_a_gain(context, gain=2.0):  # pylint: disable=unused-argument
+    return None
+
+
+def test_a_function_with_extra_default_arguments_takes_the_context():
+    """Saved and loaded as it is, not read as a v1.13 positional function."""
+    controller = Controller(_controller_with_a_gain, 10, name="Gain")
+    loaded = Controller.from_dict(controller.to_dict())
+    assert not isinstance(loaded.controller_function, _PositionalController)
+    assert loaded.enabled
+
+
+def _gate(context):  # pylint: disable=unused-argument
+    return False
+
+
+def test_a_gate_saved_without_pickling_loads_the_controller_disabled():
+    controller = Controller(lambda context: None, 10, disable_on=_gate)
+    data = controller.to_dict(allow_pickle=False)
+    with pytest.warns(UserWarning, match="could not be loaded"):
+        loaded = Controller.from_dict(data)
+    assert not loaded.enabled
+
+
+def test_a_preset_gate_is_loaded_as_saved():
+    controller = Controller(lambda context: None, 10, disable_on="apogee")
+    loaded = Controller.from_dict(controller.to_dict())
+    assert loaded.enabled and loaded._gates[0] == "apogee"

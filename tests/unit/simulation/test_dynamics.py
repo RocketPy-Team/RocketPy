@@ -6,7 +6,6 @@ These tests use stub flights and stub derivatives, so they never run a Flight.
 import numpy as np
 import pytest
 
-from rocketpy.simulation.events.event_execution import apply_rollback_command
 from rocketpy.simulation.flight import Flight
 from rocketpy.simulation.helpers import dynamics as dynamics_module
 from rocketpy.simulation.helpers.dynamics import (
@@ -29,14 +28,14 @@ class StubFlight:
     def __init__(self):
         self.calls = []
         self.atol = 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3]
-        self.control_signal = {}
+        self._controls = {}
 
 
-def stub_derivative(flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
-    flight.calls.append((t, list(x), post_processing))
+def stub_derivative(flight, t, u, controls, post_processing=False):  # pylint: disable=unused-argument
+    flight.calls.append((t, list(u), post_processing))
     if post_processing:
         return [t]
-    return [value * 2 for value in x]
+    return [value * 2 for value in u]
 
 
 # Every phase RocketPy ships integrates the full canonical state, so the
@@ -48,14 +47,12 @@ TRANSLATION_DYNAMICS = _PhaseDynamics(
 )
 
 
-def stub_flight_shell(live=False):
+def stub_flight_shell():
     """Return a Flight shell with only what post-processing reads."""
     flight = Flight.__new__(Flight)
     flight.calls = []
     flight.solution = Solution()
-    flight.control_signal = {}
-    flight._has_change_dynamics_events = live
-    flight.solution.records_post_values = live
+    flight._controls = {}
     return flight
 
 
@@ -113,6 +110,11 @@ def test_canonicalize_freezes_the_states_a_phase_does_not_integrate():
     assert result[:6] == state
     # quaternion and angular rates keep their start-of-phase values
     assert result[6:] == frozen[6:]
+
+
+def test_canonicalize_needs_the_start_of_phase_state_to_freeze_from():
+    with pytest.raises(ValueError, match="Pass start_canonical"):
+        TRANSLATION_DYNAMICS.canonicalize([10, 11, 12, 13, 14, 15], None)
 
 
 def heading_to_canonical(values):
@@ -208,7 +210,7 @@ def test_bound_dynamics_post_process_at_returns_reported_variables():
 def test_bound_dynamics_forwards_phase_arguments():
     """A phase argument fixed at bind time reaches both call paths."""
 
-    def with_extra(flight, t, x, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
+    def with_extra(flight, t, u, controls, post_processing=False, *, parachute):  # pylint: disable=unused-argument
         flight.calls.append((t, post_processing, parachute))
         return [parachute]
 
@@ -225,7 +227,7 @@ def test_a_phase_reporting_no_variables_never_calls_the_derivative():
     # This derivative has no post_processing parameter, so it raises TypeError if
     # post-processing asks it for variables the phase never declared.
     dynamics = _PhaseDynamics(
-        "silent", lambda flight, t, x, u: list(x), TRANSLATION_STATES
+        "silent", lambda flight, t, u, controls: list(u), TRANSLATION_STATES
     )
     bound = dynamics.bind(StubFlight())
     assert bound(0.0, [1] * 6) == [1] * 6
@@ -241,7 +243,7 @@ def test_bound_dynamics_default_initial_state():
 
 
 def test_bound_dynamics_custom_initial_state():
-    def seed(flight, t, canonical_state):  # pylint: disable=unused-argument
+    def seed(flight, t, canonical_state, previous):  # pylint: disable=unused-argument
         return [canonical_state[2]]  # only altitude
 
     dynamics = _PhaseDynamics(
@@ -264,6 +266,13 @@ def test_select_atol_reduces_a_canonical_vector():
 
 def test_scalar_atol_passthrough():
     assert SIX_DOF_DYNAMICS.select_atol(1e-5) == 1e-5
+
+
+def test_an_atol_vector_of_the_wrong_length_is_refused_for_every_phase():
+    with pytest.raises(ValueError, match="neither the canonical state"):
+        SIX_DOF_DYNAMICS.select_atol([1e-3] * 12)
+    with pytest.raises(ValueError, match="neither the canonical state"):
+        TRANSLATION_DYNAMICS.select_atol([1e-3] * 5)
 
 
 def test_atol_matching_the_phase_width_passes_through():
@@ -323,93 +332,26 @@ def test_build_replays_the_stored_states():
     flight.solution._append([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
 
     # The stub reports the time as its single post-process variable.
-    assert flight.solution.post["ax"].tolist() == [[0.0, 0.0], [0.5, 0.5]]
+    assert flight.solution.ax.tolist() == [[0.0, 0.0], [0.5, 0.5]]
     # Every stored state was replayed, in post-processing mode.
     assert [call[0] for call in flight.calls] == [0.0, 0.5]
     assert all(call[2] is True for call in flight.calls)
-
-
-def test_build_prefers_values_recorded_during_the_simulation():
-    """Live rows win, since a replay cannot reproduce a controller's changes."""
-    flight = stub_flight_shell(live=True)
-    dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution._start_phase(
-        dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
-    )
-    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution._set_post_values(-1, [42.0])
-
-    assert flight.solution.post["ax"].tolist() == [[0.0, 42.0]]
-    assert flight.calls == []  # nothing was replayed
-
-
-def test_a_row_records_the_values_of_its_own_state():
-    """A row added to mark an exact event time gets values of its own.
-
-    The row is written out of order, before the step the solver already took
-    past it, so recording it against the most recent row would put the values
-    on the wrong row and leave this one with nothing.
-    """
-    flight = stub_flight_shell(live=True)
-    dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution._start_phase(
-        dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
-    )
-    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight._Flight__post_process_step()
-    # a step, with an exact-time row wedged in before its end by an event of
-    # that step: the wedged row is recorded as soon as it is inserted, the
-    # step's own row once its events are handled
-    flight.solution._append([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution._insert_before_last([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight._post_process_row(-2)
-    assert flight.solution._post_values[-2] == [0.5]
-    assert flight.solution._post_values[-1] is None
-    flight._Flight__post_process_step()
-
-    # the stub reports the row's own time as its post-process variable
-    assert flight.solution.post["ax"].tolist() == [
-        [0.0, 0.0],
-        [0.5, 0.5],
-        [1.0, 1.0],
-    ]
-
-
-def test_a_replaced_row_records_the_values_of_its_new_state():
-    """Rolling a row back clears its values; the loop then records them anew."""
-    flight = stub_flight_shell(live=True)
-    dynamics = _PhaseDynamics("stub", stub_derivative, TRANSLATION_STATES, ("ax",))
-    flight.solution._start_phase(
-        dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
-    )
-    flight.solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight._Flight__post_process_step()
-    flight.solution._append([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight._Flight__post_process_step()
-    apply_rollback_command(flight, 0.75, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    # the rollback itself records nothing: the solver loop does, once per step
-    assert flight.solution._post_values[-1] is None
-    flight._Flight__post_process_step()
-    recorded_calls = len(flight.calls)
-
-    assert flight.solution.post["ax"].tolist() == [[0.0, 0.0], [0.75, 0.75]]
-    assert len(flight.calls) == recorded_calls  # nothing was replayed
 
 
 def test_a_phase_that_does_not_compute_a_variable_reports_zero():
     flight = stub_flight_shell()
     full = _PhaseDynamics(
         "full",
-        lambda flight, t, x, u, post_processing=False: (
-            [1.0, 2.0] if post_processing else list(x)
+        lambda flight, t, u, controls, post_processing=False: (
+            [1.0, 2.0] if post_processing else list(u)
         ),
         TRANSLATION_STATES,
         ("ax", "M1"),
     )
     partial = _PhaseDynamics(
         "partial",
-        lambda flight, t, x, u, post_processing=False: (
-            [3.0] if post_processing else list(x)
+        lambda flight, t, u, controls, post_processing=False: (
+            [3.0] if post_processing else list(u)
         ),
         TRANSLATION_STATES,
         ("ax",),
@@ -421,9 +363,9 @@ def test_a_phase_that_does_not_compute_a_variable_reports_zero():
     )
     flight.solution._append([1.0, *[0.0] * 6])
 
-    assert flight.solution.post["ax"].tolist() == [[0.0, 1.0], [1.0, 3.0]]
+    assert flight.solution.ax.tolist() == [[0.0, 1.0], [1.0, 3.0]]
     # M1 is not computed by the second phase, so it is zero there.
-    assert flight.solution.post["M1"].tolist() == [[0.0, 2.0], [1.0, 0.0]]
+    assert flight.solution.M1.tolist() == [[0.0, 2.0], [1.0, 0.0]]
 
 
 def test_unknown_post_process_variable_raises():
@@ -433,8 +375,8 @@ def test_unknown_post_process_variable_raises():
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
     flight.solution._append([0.0, *[0.0] * 6])
-    with pytest.raises(KeyError, match="No flight phase computed"):
-        _ = flight.solution.post["nope"]
+    with pytest.raises(KeyError, match="nothing named 'nope'"):
+        _ = flight.solution["nope"]
 
 
 def test_a_phase_with_no_live_dynamics_is_skipped():
@@ -445,7 +387,10 @@ def test_a_phase_with_no_live_dynamics_is_skipped():
     # The variable is one the phase declares, so the error says why it cannot be
     # produced rather than claiming the flight never computes it.
     with pytest.raises(KeyError, match="read back from a saved file"):
-        _ = flight.solution.post["ax"]
+        _ = flight.solution["ax"]
+    # read as an attribute, the same message comes as an AttributeError
+    with pytest.raises(AttributeError, match="read back from a saved file"):
+        _ = flight.solution.ax
 
 
 @pytest.mark.parametrize("name", FULL_POST_PROCESS_VARS)
@@ -459,8 +404,8 @@ def test_every_built_in_variable_has_a_flight_attribute(name):
     """
     flight = stub_flight_shell()
 
-    def report_everything(_flight, t, x, _u, post_processing=False):
-        return [t] * len(FULL_POST_PROCESS_VARS) if post_processing else list(x)
+    def report_everything(_flight, t, u, _controls, post_processing=False):
+        return [t] * len(FULL_POST_PROCESS_VARS) if post_processing else list(u)
 
     dynamics = _PhaseDynamics(
         "all", report_everything, CANONICAL_STATE_NAMES, FULL_POST_PROCESS_VARS
@@ -480,10 +425,10 @@ def test_each_row_stores_a_copy_of_the_controls_after_its_step():
     step's row (and the first row, on the first step), and replaying a row
     reads them, not the flight's controls at the end."""
     flight = stub_flight_shell()
-    flight.control_signal = {"tab.trim": 0.0}
+    flight._controls = {"tab.trim": 0.0}
 
-    def trim_derivative(_flight, t, x, u, post_processing=False):  # pylint: disable=unused-argument
-        return [u["tab.trim"]] if post_processing else list(x)
+    def trim_derivative(_flight, t, u, controls, post_processing=False):  # pylint: disable=unused-argument
+        return [controls["tab.trim"]] if post_processing else list(u)
 
     dynamics = _PhaseDynamics("trim", trim_derivative, TRANSLATION_STATES, ("ax",))
     flight.solution._start_phase(
@@ -491,15 +436,15 @@ def test_each_row_stores_a_copy_of_the_controls_after_its_step():
     )
     flight.solution._append([0.0, *[0.0] * 6])
     flight.solution._append([0.5, *[0.0] * 6])
-    flight.control_signal["tab.trim"] = 0.25
+    flight._controls["tab.trim"] = 0.25
     flight._Flight__store_row_controls()
-    flight.control_signal["tab.trim"] = 0.5
+    flight._controls["tab.trim"] = 0.5
     flight.solution._append([1.0, *[0.0] * 6])
     flight._Flight__store_row_controls()
-    flight.control_signal["tab.trim"] = 0.75
+    flight._controls["tab.trim"] = 0.75
 
     assert flight.solution._controls[0] == {"tab.trim": 0.25}
-    assert flight.solution.post["ax"].tolist() == [
+    assert flight.solution.ax.tolist() == [
         [0.0, 0.25],
         [0.5, 0.25],
         [1.0, 0.5],

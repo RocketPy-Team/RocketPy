@@ -33,7 +33,7 @@ class Parachute:
           so ``context`` holds the same values as any event trigger receives,
           including ``context.state``, ``context.pressure``,
           ``context.height_agl``, ``context.sensors``, ``context.time``,
-          ``context.flight``, ``context.rocket`` and ``context.environment``.
+          ``context.rocket`` and ``context.environment``.
           See :ref:`triggerdetails` for how to write a trigger and the values
           it can read. The function is called according to the specified
           sampling rate.
@@ -153,9 +153,9 @@ class Parachute:
             - A callable function ``trigger(context)`` that returns ``True``
               when the parachute ejection system should be triggered and
               ``False`` otherwise. ``context`` holds the simulation values
-              at the moment of the check, read as ``context.pressure`` (Pa),
-              ``context.height_agl`` (m), ``context.state.vz`` (m/s),
-              ``context.previous_state`` and so on.
+              at the moment of the check, read as
+              ``context.pressure`` (Pa), ``context.height_agl`` (m),
+              ``context.state.vz`` (m/s), ``context.previous_state`` and so on.
               See :ref:`triggerdetails` for how to write a trigger and the
               values it can read.
               The legacy form ``trigger(p, h, y[, sensors])``, taking the
@@ -250,7 +250,7 @@ class Parachute:
                 "The `noise` parameter on Parachute is deprecated and has no "
                 "effect; it will be removed in v1.16. Use a Sensor (e.g. a "
                 "Barometer) with built-in noise instead, and read the noisy "
-                "measurement via `context.sensors_by_name` in your trigger "
+                "measurement via `context.sensors` in your trigger "
                 "function.",
                 DeprecationWarning,
                 stacklevel=3,
@@ -368,20 +368,17 @@ class Parachute:
 
             def trigger_event_wrapper(context):
                 return self.triggerfunc(
-                    context["pressure"],
+                    context.pressure,
                     context["height_agl"],
                     context["canonical_state"],
-                    context["sensors"],
+                    [sensor for sensor, _ in context["sensors"].values()],
                 )
         else:
             trigger_event_wrapper = self.triggerfunc
 
         def trigger_callback(context):
-            time = context["time"]
-            flight = context["flight"]
-
-            flight.parachute_events.append([time, self])
-
+            # The flight notes the deployment in its parachute_events when it
+            # applies this command
             context["event"].commands.set_dynamics(PARACHUTE_DYNAMICS, parachute=self)
             context["event"].commands.start_flight_phase(
                 f"{self.name}_parachute_descent",

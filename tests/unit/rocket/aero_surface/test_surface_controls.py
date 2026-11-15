@@ -15,7 +15,7 @@ from rocketpy import (
     StochasticAirBrakes,
 )
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
-from rocketpy.control.control_signal import initial_controls
+from rocketpy.control._helpers import initial_controls
 from rocketpy.mathutils.vector_matrix import Vector
 
 DENSITY = Function(lambda z: 1.16)
@@ -46,6 +46,16 @@ def _canard(**kwargs):
 
 def _pitch_moment(surface, controls=None):
     return surface.compute_forces_and_moments(*FLOW, controls)[3]
+
+
+@pytest.mark.parametrize("surface_class", [GenericSurface, LinearGenericSurface])
+def test_one_control_name_given_alone_is_one_control(surface_class):
+    surface = surface_class(1, 0.2, {}, name="Canards", controls="deflection")
+    assert surface.controls == ("deflection",)
+    assert surface.independent_vars[-1] == "deflection"
+
+    with pytest.raises(ValueError, match="one of the flow variables"):
+        surface_class(1, 0.2, {}, name="Canards", controls="mach")
 
 
 def test_a_surface_has_no_controls_unless_given():
@@ -118,18 +128,13 @@ def test_several_controls_keep_their_order():
     assert surface.compute_forces_and_moments(*FLOW, [0.5, 0.0])[4] == 0.0
 
 
-def test_defaults_outside_the_limits_are_clamped_or_warned():
+def test_defaults_outside_the_limits_are_clamped():
     clamped = _canard(
         control_defaults={"deflection": 0.5}, control_limits={"deflection": (-0.2, 0.2)}
     )
     assert clamped.control_defaults["deflection"] == 0.2
-    with pytest.warns(UserWarning, match="outside its limits"):
-        kept = _canard(
-            control_defaults={"deflection": 0.5},
-            control_limits={"deflection": (-0.2, 0.2)},
-            clamp=False,
-        )
-    assert kept.control_defaults["deflection"] == 0.5
+    free = _canard(control_defaults={"deflection": 0.5})
+    assert free.control_defaults["deflection"] == 0.5
 
 
 @pytest.mark.parametrize(
@@ -137,7 +142,7 @@ def test_defaults_outside_the_limits_are_clamped_or_warned():
     [
         (("mach",), "one of the flow variables"),
         (("alpha_deg",), "one of the flow variables"),
-        (("deflection", "deflection"), "lists a control twice"),
+        (("deflection", "deflection"), "lists a control more than once"),
         (("2nd",), "must be made of letters"),
         (("_hidden",), "must be made of letters"),
     ],
@@ -179,7 +184,6 @@ def test_controls_round_trip_through_dict():
         controls=("canard", "elevon"),
         control_defaults={"canard": 0.05},
         control_limits={"canard": (-0.3, 0.3)},
-        clamp=False,
         force_convention="wind",
         active_during="power_on",
         active=False,
@@ -189,7 +193,6 @@ def test_controls_round_trip_through_dict():
     assert restored.controls == ("canard", "elevon")
     assert restored.control_defaults == surface.control_defaults
     assert restored.control_limits == surface.control_limits
-    assert restored.clamp is False
     assert restored.active_during == "power_on"
     assert restored.active is False
     args = (0.05, 0.02, 0.3, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0)
@@ -203,27 +206,6 @@ def test_a_surface_without_controls_saves_as_before():
     data = GenericSurface(1, 0.2, {"cA": 0.4}).to_dict()
     assert "controls" not in data
     assert data["active"] is True
-
-
-def test_a_saved_controllable_generic_surface_loads_as_a_generic_surface():
-    """Files saved while ControllableGenericSurface existed keep loading: it
-    saved the same arguments, ``controls`` included."""
-    surface = GenericSurface(
-        1,
-        0.2,
-        {"cm": ([[-0.2, -0.1], [0.0, 0.0], [0.2, 0.1]], ["deflection"])},
-        controls=("deflection",),
-    )
-    saved = json.loads(json.dumps(surface, cls=RocketPyEncoder))
-    saved["signature"].update(
-        module="rocketpy.rocket.aero_surface.controllable_generic_surface",
-        name="ControllableGenericSurface",
-    )
-    loaded = json.loads(json.dumps(saved), cls=RocketPyDecoder)
-
-    assert type(loaded) is GenericSurface  # pylint: disable=unidiomatic-typecheck
-    assert loaded.controls == ("deflection",)
-    assert _pitch_moment(loaded, [0.2]) == pytest.approx(_pitch_moment(surface, [0.2]))
 
 
 def test_from_csv_reads_the_control_column(tmp_path):
@@ -295,18 +277,25 @@ def test_air_brakes_have_one_control_with_limits():
     assert air_brakes.clamp is True
 
 
-def test_the_deployment_level_of_the_object_is_the_default():
+def test_the_initial_deployment_level_is_the_default():
     """It is the level every flight starts at, clamped like a write."""
     air_brakes = _air_brakes()
-    air_brakes.deployment_level = 0.4
+    air_brakes.initial_deployment_level = 0.4
     assert air_brakes.control_defaults["deployment_level"] == 0.4
+    air_brakes.initial_deployment_level = 1.5
+    assert air_brakes.initial_deployment_level == 1
+    loose = _air_brakes(clamp=False)  # no limit at all
+    loose.initial_deployment_level = 1.5
+    assert loose.initial_deployment_level == 1.5
+
+
+def test_deployment_level_is_a_deprecated_name_of_the_initial_level():
+    air_brakes = _air_brakes()
+    with pytest.warns(DeprecationWarning, match="initial_deployment_level"):
+        air_brakes.deployment_level = 0.4
     assert air_brakes.initial_deployment_level == 0.4
-    air_brakes.deployment_level = 1.5
-    assert air_brakes.deployment_level == 1
-    loose = _air_brakes(clamp=False)
-    with pytest.warns(UserWarning, match="outside its limits"):
-        loose.deployment_level = 1.5
-    assert loose.deployment_level == 1.5
+    with pytest.warns(DeprecationWarning, match="flight.controls"):
+        assert air_brakes.deployment_level == 0.4
 
 
 def test_air_brakes_drag_follows_the_deployment_given():
@@ -325,7 +314,7 @@ def test_air_brakes_round_trip_keeps_their_deployment_level():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         restored = AirBrakes.from_dict(air_brakes.to_dict())
-    assert restored.deployment_level == 0.25
+    assert restored.initial_deployment_level == 0.25
     assert restored.clamp is False
 
 

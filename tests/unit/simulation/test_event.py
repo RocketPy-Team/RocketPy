@@ -1,3 +1,4 @@
+import logging
 import warnings
 from types import SimpleNamespace
 
@@ -5,7 +6,11 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation.events import Event
-from rocketpy.simulation.events.event_context import EventContext, build_event_kwargs
+from rocketpy.simulation.events.event_context import (
+    EventContext,
+    build_event_kwargs,
+    refresh_event_kwargs,
+)
 from rocketpy.simulation.events.event_execution import apply_event_list_updates
 from rocketpy.simulation.helpers.dynamics import (
     CANONICAL_STATE_NAMES,
@@ -35,13 +40,17 @@ def _context(**values):
     if "state" in values:
         values["canonical_state"] = values.pop("state")
         values.setdefault("raw_state", values["canonical_state"])
+    # What build_event_kwargs takes from the flight and its current phase
+    flight = values.pop("flight", None)
+    phase = values.pop("phase", None)
+    if hasattr(flight, "env"):
+        values.setdefault("environment", flight.env)
     if "phase_names" not in values:
         try:
-            dynamics = values["flight"].solution.phases[-1].dynamics
-            values["phase_names"] = dynamics.states
-        except (KeyError, AttributeError):
+            values["phase_names"] = flight.solution.phases[-1].dynamics.states
+        except AttributeError:
             values["phase_names"] = CANONICAL_STATE_NAMES
-    return EventContext(values)
+    return EventContext(values, solution=getattr(flight, "solution", None), phase=phase)
 
 
 def _always_true(_context):
@@ -53,14 +62,7 @@ def _trigger_on_positive_vz(context):
 
 
 def _callback_record_kwargs(context):
-    return {
-        "time": context["time"],
-        "state": context["state"],
-    }
-
-
-def _callback_returns_int(_context) -> int:
-    return 1
+    context.record(time=context["time"], vz=context["state"][5])
 
 
 def _trigger_returns_int(_context) -> int:
@@ -162,14 +164,13 @@ def test_trigger_accepts_string_presets_and_numeric_thresholds():
         trigger=3.0,
     )
 
-    apogee_flight = SimpleNamespace(
-        solution=_canonical_solution(_sample_state(0.0, 1.0), _sample_state(1.0, -1.0))
-    )
     burnout_flight = SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0))
 
-    assert apogee_event.trigger(
-        _context(flight=apogee_flight, state=_sample_state(1.0, -1.0)[1:])
-    )
+    # Coming down, above the ground, at the event's first check past apogee
+    falling = {"state": _sample_state(1.0, -1.0)[1:], "height_agl": 100.0}
+    assert apogee_event.trigger(_context(event=apogee_event, **falling))
+    apogee_event._previous_state = falling["state"]
+    assert not apogee_event.trigger(_context(event=apogee_event, **falling))
     assert burnout_event.trigger(_context(time=2.0, rocket=burnout_flight))
     assert time_event.trigger(_context(time=3.0))
     assert time_event.trigger(_context(time=2.9)) is False
@@ -189,10 +190,6 @@ def test_trigger_rejects_unknown_preset():
         (
             {"callback": lambda time, state: None},
             "Callback function must take the event context as its single",
-        ),
-        (
-            {"callback": _callback_returns_int},
-            "Callback function return annotation must be None, dict, or unspecified",
         ),
     ],
 )
@@ -302,7 +299,9 @@ def test_exact_time_configuration_rejects_invalid_solver_and_sampling_mix():
             },
         )
 
-    with pytest.raises(ValueError, match="only supported for continuous hooks"):
+    with pytest.raises(
+        ValueError, match="only supported for an event without a sampling_rate"
+    ):
         Event(
             callback=_callback_record_kwargs,
             trigger=_always_true,
@@ -321,26 +320,22 @@ def test_reset_restores_initial_runtime_state():
         sampling_rate=2.0,
     )
     event.memory["count"] = 99
-    event.verbose_log.append({"time": 1.0})
-    event.callback_log.append({"time": 1.0})
+    event._record(1.0, {"time": 1.0})
     event.triggered_times.append(1.0)
     event.enabled_times.append(2.0)
     event.disabled_times.append(3.0)
     event.commands.disable()
-    event._trigger_checked = True
     event.enabled = True
 
     event.reset()
 
     assert event.enabled is False
     assert event.memory == {"count": 1}
-    assert event.verbose_log == []
-    assert event.callback_log == []
+    assert event._records == {}
     assert event.triggered_times == []
     assert event.enabled_times == []
     assert event.disabled_times == []
     assert event.commands._disabled is None
-    assert event._trigger_checked is False
 
 
 def test_call_supports_trigger_only_callback_only_and_disable_commands():
@@ -352,7 +347,7 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
     def callback(context):
         triggered.append(context["time"])
         context["event"].commands.disable()
-        return {"time": context["time"]}
+        context.record(time=context["time"])
 
     event = Event(
         callback=callback,
@@ -376,7 +371,7 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
 
     assert trigger_only_result is True
     assert triggered == []
-    assert event.callback_log == []
+    assert event._records == {}
 
     callback_only_result = event(
         _context(
@@ -392,7 +387,7 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
 
     assert callback_only_result is True
     assert triggered == [3.0]
-    assert event.callback_log[0]["time"] == 3.0
+    assert event._records["time"] == [(3.0, 3.0)]
     assert event.triggered_times == [3.0]
     assert event.commands._disabled is True
 
@@ -409,7 +404,7 @@ def test_enable_on_is_checked_before_the_trigger_and_disable_on_after():
     )
 
     assert event(_context(time=1.0, state=[0.0] * 13)) is True
-    assert len(event.callback_log) == 1
+    assert len(event._records["time"]) == 1
     # enable_on queued an enable, then disable_on queued a disable: the disable
     # is what the simulation applies
     assert event.commands._disabled is True
@@ -591,8 +586,8 @@ def test_call_refines_exact_time():
 
     assert result is True
     assert event.triggered_times == [pytest.approx(0.5)]
-    assert event.callback_log[0]["time"] == pytest.approx(0.5)
-    assert event.callback_log[0]["state"][5] == pytest.approx(0.0)
+    assert event._records["time"][0][1] == pytest.approx(0.5)
+    assert event._records["vz"][0][1] == pytest.approx(0.0)
     assert event.commands.exact_time == pytest.approx(0.5)
     assert event.commands.exact_state[5] == pytest.approx(0.0)
 
@@ -623,7 +618,7 @@ def test_call_falls_back_to_sampled_time_when_exact_time_solver_fails():
 
     assert result is True
     assert event.triggered_times == [1.0]
-    assert event.callback_log[0]["time"] == 1.0
+    assert event._records["time"][0][1] == 1.0
     assert event.commands.exact_time is None
     assert event.commands.exact_state is None
 
@@ -733,14 +728,10 @@ def _build_event_call_kwargs(time, state):
         "canonical_state": state,
         "raw_state": state,
         "phase_names": CANONICAL_STATE_NAMES,
-        "flight": SimpleNamespace(),
         "rocket": SimpleNamespace(),
         "environment": SimpleNamespace(),
-        "phase": SimpleNamespace(),
-        "step_size": 0.01,
         "height_agl": state[2],
-        "sensors": [],
-        "sensors_by_name": {},
+        "sensors": {},
     }
 
 
@@ -815,6 +806,84 @@ def test_previous_state_detects_a_crossing_across_checks():
     assert fired == [3.0]
 
 
+def test_a_callback_sees_the_check_before_this_one():
+    """The callback runs after the trigger, and still sees the previous
+    check, not the one being made."""
+    seen = []
+    event = Event(
+        callback=lambda context: seen.append(
+            (context.time, context.previous_time, context.previous_state)
+        )
+    )
+    for t in (1.0, 2.0):
+        event(EventContext(_build_event_call_kwargs(t, [t] * 13)))
+
+    assert seen[0] == (1.0, None, None)
+    assert seen[1][:2] == (2.0, 1.0)
+    assert list(seen[1][2]) == [1.0] * 13
+
+
+def test_dt_is_the_time_since_the_previous_check():
+    dts = []
+    event = Event(callback=lambda context: dts.append(context.dt), sampling_rate=20)
+    for t in (0.05, 0.1, 0.25):
+        event(EventContext(_build_event_call_kwargs(t, [0.0] * 13)))
+
+    assert dts == pytest.approx([0.05, 0.05, 0.15])
+
+
+def test_dt_is_none_on_the_first_check_without_a_sampling_rate():
+    dts = []
+    event = Event(callback=lambda context: dts.append(context.dt))
+    for t in (1.0, 1.5):
+        event(EventContext(_build_event_call_kwargs(t, [0.0] * 13)))
+
+    assert dts == [None, 0.5]
+
+
+def test_going_back_in_time_drops_what_happened_after():
+    event = Event(callback=_callback_record_kwargs)
+    for t in (1.0, 2.0, 3.0):
+        event(_context(time=t, state=[0.0] * 13))
+    event.disabled_times.extend([1.5, 2.5])
+    event.enabled_times.append(2.8)
+
+    event._drop_after(2.0)
+
+    assert event.triggered_times == [1.0, 2.0]
+    assert event.disabled_times == [1.5]
+    assert event.enabled_times == []
+    assert [t for t, _ in event._records["time"]] == [1.0, 2.0]
+
+
+def test_a_verbose_event_reports_its_checks_at_info():
+    messages = []
+    handler = logging.Handler(logging.INFO)
+    handler.emit = lambda record: messages.append(record.getMessage())
+    rocketpy_logger = logging.getLogger("rocketpy")
+    level = rocketpy_logger.level
+    rocketpy_logger.addHandler(handler)
+    rocketpy_logger.setLevel(logging.INFO)
+    try:
+        Event(callback=lambda context: None, name="Quiet")(
+            _context(time=1.0, state=[0.0] * 13)
+        )
+        Event(callback=lambda context: None, name="Loud", verbose=True)(
+            _context(time=1.0, state=[0.0] * 13)
+        )
+    finally:
+        rocketpy_logger.removeHandler(handler)
+        rocketpy_logger.setLevel(level)
+
+    assert [message[:12] for message in messages] == ["Event 'Loud'"]
+
+
+def test_what_a_callback_returns_is_ignored():
+    event = Event(callback=lambda context: {"time": context.time})
+    assert event(_context(time=1.0, state=[0.0] * 13)) is True
+    assert event._records == {}
+
+
 def test_reset_clears_previous_state():
     event = Event(callback=lambda context: None, trigger=lambda context: False)
     event(EventContext(_build_event_call_kwargs(1.0, [1.0] * 13)))
@@ -873,8 +942,9 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
             solution=solution,
             t=end,
             y_sol=[end] * 13,
-            sensors=[],
-            sensors_by_name={},
+            _sensors_by_key={},
+            _controls={},
+            _control_limits={},
             env=SimpleNamespace(elevation=0.0),
             rocket=SimpleNamespace(),
         )
@@ -910,16 +980,15 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
 # ---------------------------------------------------------------------------
 
 
-def _flight_shell_for_added_events(records_post_values=False):
+def _flight_shell_for_added_events():
     """A stand-in Flight holding only what apply_event_list_updates reads."""
-    solution = Solution()
-    solution.records_post_values = records_post_values
     return SimpleNamespace(
-        solution=solution,
+        solution=Solution(),
         events=[],
         custom_events=[],
         _overshootable_events=[],
         _non_overshootable_events=[],
+        _output_events={},
         time_overshoot=False,
     )
 
@@ -934,50 +1003,6 @@ def _phase_shell():
         ),
         time_bound=10.0,
     )
-
-
-def test_adding_an_event_that_changes_the_rocket_warns():
-    """Recording is settled before the flight starts, so this arrives too late."""
-    flight = _flight_shell_for_added_events()
-    added = Event(
-        callback=lambda context: None,
-        trigger=_always_true,
-        name="Late controller",
-        changes_dynamics=True,
-    )
-
-    with pytest.warns(
-        UserWarning, match="added with add_event after the flight started"
-    ):
-        apply_event_list_updates(
-            flight,
-            SimpleNamespace(new_events=[added]),
-            _phase_shell(),
-            1.0,
-        )
-
-    # the event is still added: the trajectory it produces is correct
-    assert flight.events == [added]
-    assert flight.custom_events == [added]
-
-
-def test_adding_an_event_that_changes_the_rocket_is_quiet_when_already_recording():
-    """Another such event was there from the start, so recording is already on."""
-    flight = _flight_shell_for_added_events(records_post_values=True)
-    added = Event(
-        callback=lambda context: None,
-        trigger=_always_true,
-        name="Another controller",
-        changes_dynamics=True,
-    )
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        apply_event_list_updates(
-            flight, SimpleNamespace(new_events=[added]), _phase_shell(), 1.0
-        )
-
-    assert flight.events == [added]
 
 
 def test_adding_an_ordinary_event_does_not_warn():
@@ -1003,8 +1028,9 @@ def test_state_is_read_by_name_or_by_position():
     solution = _canonical_solution([0.0, *range(13)], [1.0, *range(1, 14)])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(elevation=0.0),
         rocket=None,
     )
@@ -1032,15 +1058,16 @@ def test_state_carries_a_state_the_canonical_thirteen_cannot_hold():
         "parafoil",
         lambda _flight, _t, u, post_processing=False: [0.0] * 6 + [0.5],
         ("x", "y", "z", "vx", "vy", "vz", "heading"),
-        initial_state=lambda _flight, _t, canonical: [*canonical[:6], 0.0],
+        initial_state=lambda _flight, _t, canonical, _previous: [*canonical[:6], 0.0],
     )
     solution = Solution()
     solution._start_phase(parafoil, start_canonical=tuple([0.0] * 13))
     solution._append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 0.25])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(elevation=0.0),
         rocket=None,
     )
@@ -1066,8 +1093,9 @@ def test_a_name_the_phase_does_not_have_says_which_names_exist():
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(elevation=0.0),
         rocket=None,
     )
@@ -1082,8 +1110,9 @@ def test_state_is_not_built_unless_read():
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(elevation=0.0),
         rocket=None,
     )
@@ -1099,8 +1128,9 @@ def test_state_dot_is_not_computed_unless_read():
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(elevation=0.0),
         rocket=None,
     )
@@ -1124,8 +1154,9 @@ def test_reading_the_rates_twice_costs_one_evaluation():
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(elevation=0.0),
         rocket=None,
     )
@@ -1148,8 +1179,9 @@ def test_moving_the_context_drops_what_was_worked_out_for_the_old_moment():
     solution = _canonical_solution([0.0, *range(13)])
     flight = SimpleNamespace(
         solution=solution,
-        sensors=[],
-        sensors_by_name={},
+        _sensors_by_key={},
+        _controls={},
+        _control_limits={},
         env=SimpleNamespace(
             elevation=0.0, pressure=SimpleNamespace(get_value_opt=lambda z: 10.0 * z)
         ),
@@ -1157,16 +1189,18 @@ def test_moving_the_context_drops_what_was_worked_out_for_the_old_moment():
     )
     phase = SimpleNamespace(dynamics=lambda t, u: [t] * 13)
     context = build_event_kwargs(flight, 0.0, list(range(13)), phase)
-    assert context["pressure"] == 20.0
+    assert context.pressure == 20.0
     assert context["state_dot"][0] == 0.0
 
-    moved = context.at(1.0, [5.0] * 13)
+    moved = refresh_event_kwargs(
+        EventContext(context, solution=solution, phase=phase), 1.0, [5.0] * 13
+    )
 
-    assert moved["pressure"] == 50.0
+    assert moved.pressure == 50.0
     assert moved["state_dot"][0] == 1.0
     assert moved.state.x == 5.0
     # the original is untouched
-    assert context["pressure"] == 20.0
+    assert context.pressure == 20.0
 
 
 # ---------------------------------------------------------------------------
@@ -1376,7 +1410,7 @@ def _parafoil_phase():
         "parafoil_exact",
         lambda _flight, t, u, post_processing=False: bound_dynamics(t, u),
         PARAFOIL_EXACT_STATES,
-        initial_state=lambda _flight, _t, canonical: [*canonical[:6], 0.0],
+        initial_state=lambda _flight, _t, canonical, _previous: [*canonical[:6], 0.0],
     )
     solution = Solution()
     solution._start_phase(parafoil, start_canonical=tuple([0.0] * 13))

@@ -1,13 +1,18 @@
 # pylint: disable=too-many-lines
-import inspect
-import math
 import warnings
 from collections.abc import Iterable
 
 import numpy as np
 
-from rocketpy.control.control_signal import check_actuator, control_channels
-from rocketpy.control.controller import Controller, _PositionalController
+from rocketpy.control._helpers import initial_controls, was_loaded
+from rocketpy.control._legacy import _legacy_controller
+from rocketpy.control.continuous_controller import ContinuousController
+from rocketpy.control.controllable import (
+    Controllable,
+    ForceEffector,
+    ThrustEffector,
+)
+from rocketpy.control.controller import Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
@@ -45,7 +50,12 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSurface
 from rocketpy.rocket.components import Components, position_vector
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import deprecated, parallel_axis_theorem_from_com
+from rocketpy.simulation.events.views import output_events
+from rocketpy.tools import (
+    deprecated,
+    parallel_axis_theorem_from_com,
+    point_around,
+)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
@@ -143,10 +153,13 @@ class Rocket:
     Rocket.parachutes : list
         Collection of parachutes of the rocket.
     Rocket.air_brakes : list
-        The air brakes among the aerodynamic surfaces. Deprecated: read
-        ``Rocket.aerodynamic_surfaces``.
-    Rocket._controllers : list
-        Controllers of the rocket, added with :meth:`add_controller`.
+        The air brakes among the aerodynamic surfaces.
+    Rocket.controllers : tuple
+        Controllers of the rocket, added with :meth:`add_controller` or
+        :meth:`add_air_brakes`. Read-only.
+    Rocket.continuous_controllers : tuple
+        The rocket's :class:`rocketpy.ContinuousController` objects, added with
+        :meth:`add_controller`. Read-only.
     Rocket.aerodynamic_center : Function
         Position of the rocket's aerodynamic center, in meters, as a function
         of Mach number, in the user defined rocket reference system. It is the
@@ -216,6 +229,10 @@ class Rocket:
     Rocket.nozzle_to_cdm : float
         Distance between the nozzle exit and the rocket's center of dry mass
         position, in meters.
+    Rocket.nozzle_exit : Vector
+        Position, in meters, of the motor's nozzle exit in the rocket's body
+        frame, from the rocket's center of dry mass: on the rocket's axis,
+        moved by the thrust eccentricity.
     Rocket.nozzle_gyration_tensor: Matrix
         Matrix representing the nozzle gyration tensor.
     Rocket.center_of_propellant_position : Function
@@ -387,19 +404,22 @@ class Rocket:
         # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
         self._controllers = []
-        # Actuators that are not aerodynamic surfaces, by how they act on the
-        # rocket (see add_actuator)
-        self.thrust_actuators = []
-        self.effectors = []
-        self.mass_actuators = []
-        # Read only by a flight phase that names them, such as a canopy's brakes
-        self.phase_actuators = []
-        # The same, each once and in the order they were added
-        self._added_actuators = []
+        self._continuous_controllers = []
+        self.effectors = Components()
         self.sensors = Components()
         self.sensors_by_name = {}
         self.aerodynamic_surfaces = Components()
+        # The surfaces added without a position: they act at the center of dry
+        # mass, and the position stored for them is moved with it
+        self._surfaces_at_center_of_dry_mass = set()
         self.surfaces_cp_to_cdm = {}
+        # What the equations of motion read of the effectors (see
+        # _evaluate_effectors): the ones that change the thrust, the ones that
+        # push the rocket, and where each was placed, in the body frame from
+        # the center of dry mass, or None for one placed nowhere
+        self._thrust_effectors = ()
+        self._force_effectors = ()
+        self._effector_points = {}
         # What the values derived from the surfaces were last built for (see
         # _refresh_aerodynamics, _refresh_aerodynamic_center, _refresh_margins)
         self._lever_arms_stamp = None
@@ -594,136 +614,116 @@ class Rocket:
         return self.aerodynamic_surfaces.get_by_type(Tail)
 
     @property
-    def actuators(self):
-        """Every part of the rocket a controller can move: the aerodynamic
-        surfaces (air brakes among them), then the parts added with
-        :meth:`add_actuator`, each in the order they were added.
-
-        A flight builds its control inputs from these, one channel per
-        control of each. See :attr:`control_channels`.
-        """
-        return (
-            *(surface for surface, _ in self.aerodynamic_surfaces),
-            *self._added_actuators,
-        )
-
-    @property
-    @deprecated(
-        reason="Air brakes are aerodynamic surfaces",
-        version="v1.16.0",
-        alternative="rocket.aerodynamic_surfaces",
-    )
     def air_brakes(self):
-        """The air brakes among the aerodynamic surfaces, in the order they
-        were added. A new list: adding to it does not add air brakes to the
-        rocket, use :meth:`add_air_brakes` or :meth:`add_surfaces`."""
-        return list(self._air_brakes)
+        """A list with all the air brakes currently added to the rocket."""
+        return self.aerodynamic_surfaces.get_by_type(AirBrakes)
 
     @property
-    def _air_brakes(self):
-        """The air brakes among the aerodynamic surfaces."""
-        return tuple(
-            surface
-            for surface, _ in self.aerodynamic_surfaces
-            if isinstance(surface, AirBrakes)
-        )
+    def controllables(self):
+        """The parts of the rocket a controller can move: the aerodynamic
+        surfaces that have controls (air brakes, control fins, a surface built
+        with ``controls``), then the effectors that have controls, each in the
+        order they were added.
 
-    def add_actuator(self, actuator):
-        """Add a part that acts on the rocket other than through the air,
-        such as a thrust vectoring gimbal, a reaction control thruster or a
-        moving mass.
-
-        What the part does is told by the method it has. It can have more
-        than one:
-
-        - ``thrust_vector(t, thrust, pressure, controls)``: it changes the
-          motor's thrust. ``thrust`` is the thrust force so far, a
-          :class:`rocketpy.Vector` in the rocket's body frame (``[0, 0, T]``
-          for the motor alone, with z along the rocket's axis toward the
-          nose), ``pressure`` the air pressure in Pa, and ``controls`` the
-          values of its controls, in the order of its ``controls``. It
-          returns the new thrust force, in N. The thrust acts at the nozzle,
-          moved by the thrust eccentricity. Example: a throttle returns
-          ``thrust * controls[0]``.
-        - ``force_and_moment(t, state, controls)``: it pushes or turns the
-          rocket directly. ``state`` is ``[x, y, z, vx, vy, vz, e0, e1, e2,
-          e3, w1, w2, w3]``. It returns ``(force, moment)``: the force in N and
-          the moment in N m about the rocket's center of dry mass, both in the
-          body frame. See :class:`rocketpy.GenericEffector`.
-        - ``mass_properties(t, controls)``: it adds mass that can move. It
-          returns ``(mass, position, inertia)``: the mass in kg, its position
-          relative to the rocket's center of dry mass in the body frame, in
-          m, and its own inertia tensor about its center of mass, in kg m², or
-          ``None`` for a point mass. The mass is added to the rocket's.
-
-        A part with none of these methods is only read by a flight phase of
-        its own that lists it, by its name in snake_case, in the ``reads`` of
-        its dynamics, such as the brakes of a steerable canopy. It is kept in
-        ``rocket.phase_actuators``.
-
-        Like a surface with controls, the part also has a ``name``,
-        ``controls``, ``control_defaults``, ``control_limits`` and ``clamp``
-        (see :class:`rocketpy.Actuator`). A controller sets its controls as
-        ``context.controls["<name in snake_case>.<control>"]``.
-
-        These parts are not aerodynamic: they take no part in the static
-        margin, the center of pressure or :meth:`to_surface`.
-
-        Parameters
-        ----------
-        actuator : object
-            The part to add.
+        A flight builds its control inputs from these, one per control of
+        each. See :attr:`control_names`.
 
         Returns
         -------
-        None
-
-        Raises
-        ------
-        TypeError
-            If it lacks the attributes of an actuator.
+        tuple
         """
-        kinds = [
-            target
-            for method, target in (
-                ("thrust_vector", self.thrust_actuators),
-                ("force_and_moment", self.effectors),
-                ("mass_properties", self.mass_actuators),
-            )
-            if callable(getattr(actuator, method, None))
-        ] or [self.phase_actuators]
-        self._check_new_actuators(actuator)
-        for target in kinds:
-            target.append(actuator)
-        self._added_actuators.append(actuator)
+        surfaces = (surface for surface, _ in self.aerodynamic_surfaces)
+        return tuple(
+            part
+            for part in (*surfaces, *self.effectors.get_components())
+            if part.controls
+        )
 
     @property
-    def control_channels(self):
-        """Names of the control channels the next flight of this rocket will
+    def controllers(self):
+        """The controllers of the rocket, in the order they were added, which
+        run in every flight of the rocket. Read-only: add one with
+        :meth:`add_controller` (:meth:`add_air_brakes` adds its own).
+
+        Returns
+        -------
+        tuple of rocketpy.Controller
+        """
+        return tuple(self._controllers)
+
+    @property
+    def continuous_controllers(self):
+        """The continuous controllers of the rocket, in the order they were
+        added: the control laws evaluated inside the equations of motion at
+        every instant. Read-only: add one with :meth:`add_controller`.
+
+        Returns
+        -------
+        tuple of rocketpy.ContinuousController
+        """
+        return tuple(self._continuous_controllers)
+
+    @property
+    def control_names(self):
+        """Names of the control inputs the next flight of this rocket will
         have, in order. Read-only.
 
-        A channel is ``<actuator>.<control>``: the actuator's name in
+        A control input is ``<controllable>.<control>``: the controllable's name in
         snake_case, then the name of the control, one per control of each
-        actuator that has controls, such as ``("canards.deflection",
+        controllable that has controls, such as ``("canards.deflection",
         "air_brakes.deployment_level")``. A rocket with no controls has none.
-        A controller writes these channels as
-        ``context.controls["air_brakes.deployment_level"] = 0.5``.
+        A controller writes them as
+        ``context.controls.air_brakes.deployment_level = 0.5``.
 
         Returns
         -------
         tuple of str
         """
-        channels = control_channels(self.actuators).values()
-        return tuple(name for names in channels for name in names)
+        return tuple(initial_controls(self.controllables)[0])
 
-    def _check_new_actuators(self, *actuators):
-        """Raise if one of ``actuators`` cannot be flown, or if their channels
-        could not be told apart from each other's and from those of the
-        rocket's other actuators. Called before any of them is added, so a
-        failed add leaves the rocket as it was."""
-        for actuator in actuators:
-            check_actuator(actuator)
-        control_channels((*self.actuators, *actuators))
+    @property
+    def _parts_with_states(self):
+        """The parts a flight integrates along with the rocket: the aerodynamic
+        surfaces and effectors with states of their own, or with an
+        ``actual_controls`` of their own, in the order they were added. The
+        continuous controllers are not among them; see
+        ``_continuous_controllers``."""
+        surfaces = (surface for surface, _ in self.aerodynamic_surfaces)
+        return tuple(
+            part
+            for part in (*surfaces, *self.effectors.get_components())
+            if part._acts_on_its_own()
+        )
+
+    def _check_new_controllables(self, *controllables):
+        """Raise if one of ``controllables`` cannot be flown, or if their control
+        inputs or states could not be told apart from each other's and from those
+        of the rocket's other controllables. Called before
+        any of them is added, so a failed add leaves the rocket as it was."""
+        for controllable in controllables:
+            if not isinstance(controllable, Controllable):
+                raise TypeError(
+                    f"{controllable!r} cannot be added to the rocket: it is not one of "
+                    "RocketPy's controllables (a rocketpy.control.Controllable). Use a "
+                    "RocketPy class, such as ForceEffector, or subclass one of "
+                    "the effector classes for a controllable none of them covers."
+                )
+            controllable._check_controls()
+            controllable._check_states()
+        initial_controls((*self.controllables, *controllables))
+        # A flight integrates the controllables' states by name
+        owners = (
+            *self._parts_with_states,
+            *self._continuous_controllers,
+            *controllables,
+        )
+        names = [name for owner in owners for name in owner._state_names()]
+        repeated = sorted({name for name in names if names.count(name) > 1})
+        if repeated:
+            raise ValueError(
+                f"Two controllables of the rocket would have a state named "
+                f"{repeated[0]!r}: give them different names."
+            )
 
     def evaluate_total_mass(self):
         """Calculates and returns the rocket's total mass. The total
@@ -826,7 +826,19 @@ class Rocket:
             self.center_of_mass_without_motor * self.mass
             + self.motor_center_of_dry_mass_position * self.motor.dry_mass
         ) / self.dry_mass
+        # A surface added without a position sits at the center of dry mass:
+        # its stored position, read by the stability analysis, the drawing and
+        # the file saved, moves with it
+        for surface in self._surfaces_at_center_of_dry_mass:
+            self.aerodynamic_surfaces.set_position(
+                surface, self.center_of_dry_mass_position
+            )
         return self.center_of_dry_mass_position
+
+    def _is_at_center_of_dry_mass(self, surface):
+        """Whether ``surface`` was added to this rocket without a position, so
+        its force acts at the center of dry mass, wherever the motor puts it."""
+        return surface in self._surfaces_at_center_of_dry_mass
 
     def evaluate_reduced_mass(self):
         """Calculates and returns the rocket's total reduced mass. The reduced
@@ -890,18 +902,23 @@ class Rocket:
     def _refresh_aerodynamics(self):
         """Bring up to date what the simulation reads from the surfaces: each
         surface's center of pressure relative to the center of dry mass (for an
-        individual fin, its leading edge moves with the cant angle). Returns the
-        surfaces stamp."""
+        individual fin, its leading edge moves with the cant angle), and where
+        each effector was placed. Returns the surfaces stamp."""
         surfaces_stamp = self._surfaces_stamp()
         stamp = (
             surfaces_stamp,
             self.center_of_dry_mass_position,
             self.cm_eccentricity_x,
             self.cm_eccentricity_y,
+            tuple(
+                (effector, None if position is None else tuple(position))
+                for effector, position in self.effectors
+            ),
         )
         if stamp != self._lever_arms_stamp:
             self._lever_arms_stamp = stamp
             self.evaluate_surfaces_cp_to_cdm()
+            self._evaluate_effectors()
         return surfaces_stamp
 
     def _refresh_aerodynamic_center(self):
@@ -1442,6 +1459,46 @@ class Rocket:
             self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
+    def _from_center_of_dry_mass(self, position):
+        """Return a point given in the user's coordinate system as the
+        equations of motion read it: in the body frame, from the center of dry
+        mass, which the center of mass eccentricity moves off the rocket's
+        axis."""
+        return Vector(
+            [
+                (position.x - self.cm_eccentricity_x) * self._csys,
+                (position.y - self.cm_eccentricity_y),
+                (position.z - self.center_of_dry_mass_position) * self._csys,
+            ]
+        )
+
+    def _evaluate_effectors(self):
+        """Store what the equations of motion read of the effectors.
+
+        The effectors are split by what they do, each in the order they were
+        added: ``_thrust_effectors`` (the :class:`ThrustEffector`) and
+        ``_force_effectors`` (the :class:`ForceEffector`). An effector that is
+        both kinds is in each.
+
+        ``_effector_points`` holds where each effector was placed (the
+        position given to :meth:`add_effector`), in the body frame from the
+        center of dry mass, or ``None`` for one placed nowhere, whose force
+        acts at the center of dry mass.
+        """
+        effectors = self.effectors.get_components()
+        self._thrust_effectors = tuple(
+            effector for effector in effectors if isinstance(effector, ThrustEffector)
+        )
+        self._force_effectors = tuple(
+            effector for effector in effectors if isinstance(effector, ForceEffector)
+        )
+        self._effector_points = {
+            effector: None
+            if position is None
+            else self._from_center_of_dry_mass(position)
+            for effector, position in self.effectors
+        }
+
     def _surface_origin(self, surface, position):
         """Where a surface's own frame sits, in the user's coordinate system:
         the position it was added at, except for an individual fin, whose frame
@@ -1458,20 +1515,12 @@ class Rocket:
     def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Store where one surface applies its force, relative to the rocket's
         center of dry mass, in the body axes."""
-        if getattr(surface, "_at_center_of_dry_mass", False):
-            # Air brakes added without a position act at the center of dry
-            # mass, wherever the motor puts it
+        if self._is_at_center_of_dry_mass(surface):
             self.surfaces_cp_to_cdm[surface] = Vector([0, 0, 0])
             return
         position = self._surface_origin(surface, position)
         # position of the surfaces coordinate system origin in body frame
-        pos_origin = Vector(
-            [
-                (position.x - self.cm_eccentricity_x) * self._csys,
-                (position.y - self.cm_eccentricity_y),
-                (position.z - self.center_of_dry_mass_position) * self._csys,
-            ]
-        )
+        pos_origin = self._from_center_of_dry_mass(position)
         # position of the force application point in body frame. Every surface
         # applies its resultant force at its center of pressure and transports
         # the moment geometrically; the surface-local application point is mapped
@@ -1708,26 +1757,53 @@ class Rocket:
         self.nozzle_to_cdm = (
             -(self.nozzle_position - self.center_of_dry_mass_position) * self._csys
         )
+        self.evaluate_nozzle_exit()
         return self.nozzle_to_cdm
+
+    def evaluate_nozzle_exit(self):
+        """Evaluates where the motor's nozzle exit is, in the rocket's body
+        frame (z along the rocket's axis, toward the nose), from the rocket's
+        center of dry mass: on the rocket's axis, moved by the thrust
+        eccentricity. Evaluated again whenever the nozzle's distance to the
+        center of dry mass or the thrust eccentricity changes.
+
+        Returns
+        -------
+        self.nozzle_exit : Vector
+            Position of the nozzle exit, in meters.
+        """
+        self.nozzle_exit = Vector(
+            [
+                self.thrust_eccentricity_x,
+                self.thrust_eccentricity_y,
+                -self.nozzle_to_cdm,
+            ]
+        )
+        return self.nozzle_exit
 
     def evaluate_nozzle_gyration_tensor(self):
         """Calculates and returns the nozzle gyration tensor relative to the
-        rocket's center of dry mass. The gyration tensor is saved and returned
-        in units of kg*m².
+        rocket's center of dry mass: the one of the nozzle exit, a disk at
+        ``nozzle_exit``, which the thrust eccentricity moves off the rocket's
+        axis. The gyration tensor is saved and returned in units of m².
+        Evaluated again whenever the nozzle exit changes.
 
         Returns
         -------
         self.nozzle_gyration_tensor : Matrix
             Matrix containing the nozzle gyration tensor.
         """
+        x, y, z = self.nozzle_exit
         S_noz_33 = 0.5 * self.motor.nozzle_radius**2
-        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + self.nozzle_to_cdm**2
-        S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
+        S_noz_11 = 0.5 * S_noz_33 + y**2 + z**2
+        S_noz_22 = 0.5 * S_noz_33 + x**2 + z**2
+        # Zero for a nozzle on the rocket's axis
+        S_noz_12, S_noz_13, S_noz_23 = -x * y, -x * z, -y * z
         self.nozzle_gyration_tensor = Matrix(
             [
                 [S_noz_11, S_noz_12, S_noz_13],
                 [S_noz_12, S_noz_22, S_noz_23],
-                [S_noz_13, S_noz_23, S_noz_33],
+                [S_noz_13, S_noz_23, S_noz_33 + x**2 + y**2],
             ]
         )
         return self.nozzle_gyration_tensor
@@ -1874,6 +1950,7 @@ class Rocket:
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
         self.evaluate_surfaces_cp_to_cdm()
+        self._evaluate_effectors()
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
@@ -1881,12 +1958,22 @@ class Rocket:
         """Adds a single aerodynamic surface to the rocket. Makes checks for
         rail buttons case, and position type.
         """
+        # Without a position, at the center of dry mass, wherever the motor
+        # puts it: the lever arm stays zero, and the position stored follows
+        # the center of dry mass (see evaluate_center_of_dry_mass)
+        at_center_of_dry_mass = position is None
+        if at_center_of_dry_mass:
+            position = self.center_of_dry_mass_position
         position = position_vector(position)
         if isinstance(surface, RailButtons):
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
         else:
             self.aerodynamic_surfaces.add(surface, position)
+            if at_center_of_dry_mass:
+                self._surfaces_at_center_of_dry_mass.add(surface)
+            else:
+                self._surfaces_at_center_of_dry_mass.discard(surface)
         self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
@@ -1899,13 +1986,18 @@ class Rocket:
         surfaces : list[GenericSurface], GenericSurface
             Aerodynamic surface to be added to the rocket. Can be a list of
             surfaces if more than one surface is to be added.
-        positions : int, float, tuple, list, Vector
+        positions : int, float, tuple, list, Vector, None
             Position(s) of the aerodynamic surface's reference point. Can be:
 
             - a single number (int or float) giving the z-coordinate along
               the rocket axis.
             - a sequence of three numbers (x, y, z) representing the full
               position in the user-defined coordinate system.
+            - ``None``: at the rocket's center of dry mass, following it if
+              the motor or the mass changes later (as in a Monte Carlo). For a
+              surface whose coefficients are already about the center of
+              mass, such as a whole-rocket model from CFD or a wind tunnel, so
+              its moments get no lever arm; also the air brakes' default.
 
             If passing multiple surfaces, provide a list of positions matching
             each surface in order.
@@ -1945,15 +2037,18 @@ class Rocket:
             else:
                 positions = [positions] * len(surfaces)
             # Every surface is checked before any is added
-            self._check_new_actuators(
-                *(s for s in surfaces if not isinstance(s, RailButtons))
-            )
+            self._check_new_controllables(*surfaces)
             for surface, position in zip(surfaces, positions):
                 self.__add_single_surface(surface, position)
         else:
-            if not isinstance(surfaces, RailButtons):
-                self._check_new_actuators(surfaces)
+            self._check_new_controllables(surfaces)
             self.__add_single_surface(surfaces, positions)
+        # Air brakes whose curve is of the whole rocket are compared with the
+        # rocket's own drag, whichever way they were added
+        added = surfaces if isinstance(surfaces, Iterable) else (surfaces,)
+        for surface in added:
+            if isinstance(surface, AirBrakes) and surface.override_rocket_drag:
+                self._check_retracted_drag(surface)
 
     def add_full_body_aerodynamics(self, surfaces, position=None, overwrite=False):
         """Add a prebuilt full-body aerodynamic surface: the whole rocket
@@ -1989,24 +2084,22 @@ class Rocket:
         position : int, float, optional
             Position along the rocket's center axis (in the user coordinate
             system) where the surface's resultant force is applied and about
-            which its moment coefficients are taken. Defaults to the rocket's
-            center of dry mass at the time of the call, so add the motor first
-            (before that, it is the center of mass without the motor).
+            which its moment coefficients are taken. Default ``None``: the
+            rocket's center of dry mass, following it if the motor or the
+            mass changes later.
         overwrite : bool, optional
             If ``True``, make this the rocket's only aerodynamics: every
             aerodynamic surface already on the rocket is removed first, and both
             built-in drag curves (``power_on_drag`` and ``power_off_drag``) are
-            cleared. Default ``False`` (the model is added on top of the
-            existing aerodynamics).
+            cleared. Air brakes are kept, with their controller, and add their
+            drag to the model's. Default ``False`` (the model is added on top
+            of the existing aerodynamics).
 
         Returns
         -------
         GenericSurface or list of GenericSurface
             The surface(s) added.
         """
-        if position is None:
-            position = self.center_of_dry_mass_position
-
         if overwrite:
             self._clear_aerodynamic_surfaces()
 
@@ -2042,12 +2135,21 @@ class Rocket:
 
     def _clear_aerodynamic_surfaces(self):
         """Wipe the rocket's aerodynamics so a full-body model can fully replace
-        them: remove every aerodynamic surface, clear both built-in drag curves,
-        and reset the derived stability caches. Used by
+        them: remove every aerodynamic surface but the air brakes, clear both
+        built-in drag curves, and reset the derived stability caches. Used by
         :meth:`add_full_body_aerodynamics` with ``overwrite=True``.
         """
-        self.aerodynamic_surfaces.clear()
-        self.surfaces_cp_to_cdm.clear()
+        # The air brakes stay: they are a device added on top of the rocket's
+        # aerodynamics, and the controller that sets them stays on the rocket
+        removed = [
+            surface
+            for surface, _ in self.aerodynamic_surfaces
+            if not isinstance(surface, AirBrakes)
+        ]
+        for surface in removed:
+            self.aerodynamic_surfaces.remove(surface)
+            self._surfaces_at_center_of_dry_mass.discard(surface)
+            self.surfaces_cp_to_cdm.pop(surface, None)
         # Clear both built-in drag curves; the supplied surface(s) now provide
         # the complete aerodynamics, including any drag they carry.
         self._set_drag("power_on", 0)
@@ -2056,7 +2158,8 @@ class Rocket:
             "add_full_body_aerodynamics(overwrite=True): the rocket's existing "
             "aerodynamic surfaces and both built-in drag curves (power_on_drag, "
             "power_off_drag) were cleared; the supplied surface(s) now provide "
-            "the complete aerodynamics, including any drag they carry.",
+            "the complete aerodynamics, including any drag they carry. Air "
+            "brakes, if any, are kept.",
             UserWarning,
             stacklevel=3,
         )
@@ -2362,13 +2465,16 @@ class Rocket:
 
     def add_controller(self, controller):
         """Add a controller to the rocket. It runs in every flight of the
-        rocket, at its sampling rate, and sets the rocket's controls.
+        rocket and sets the rocket's controls: a :class:`rocketpy.Controller`
+        at its sampling rate, a :class:`rocketpy.ContinuousController` at
+        every instant, inside the equations of motion.
 
         Parameters
         ----------
-        controller : Controller
+        controller : Controller or ContinuousController
             The controller, such as
-            ``Controller(controller_function, sampling_rate=10)``.
+            ``Controller(controller_function, sampling_rate=10)`` or
+            ``ContinuousController(law)``.
 
         Returns
         -------
@@ -2377,11 +2483,19 @@ class Rocket:
         See Also
         --------
         rocketpy.Controller
+        rocketpy.ContinuousController
         """
+        if isinstance(controller, ContinuousController):
+            self._check_new_controllables(controller)
+            self._continuous_controllers.append(controller)
+            return
         if not isinstance(controller, Controller):
             raise TypeError(
-                f"add_controller takes a rocketpy.Controller, got {controller!r}."
+                "add_controller takes a rocketpy.Controller or a "
+                f"rocketpy.ContinuousController, got {controller!r}."
             )
+        # Raises if its outputs could not be told apart from another's
+        output_events((*self._controllers, controller))
         self._controllers.append(controller)
 
     def add_tail(
@@ -2801,10 +2915,11 @@ class Rocket:
             - A callable function ``trigger(context)`` that returns ``True`` \
                 if the parachute ejection system should be triggered and \
                 ``False`` otherwise. ``context`` holds the simulation values \
-                at the moment of the check, such as ``context.pressure`` \
-                (Pa), ``context.height_agl`` (m), ``context.state`` (the \
-                rocket's states, read by name, such as ``context.state.vz``) \
-                and ``context.previous_state``. See :ref:`triggerdetails` \
+                at the moment of the check, such as \
+                ``context.pressure`` (Pa), ``context.height_agl`` (m), \
+                ``context.state`` (the rocket's states, read by name, \
+                such as ``context.state.vz``) and ``context.previous_state``. \
+                See :ref:`triggerdetails` \
                 for how to write a trigger and the values it can read. The \
                 legacy form ``trigger(p, h, y)`` is deprecated.
             - A float value, representing an absolute height in meters. In this \
@@ -2877,10 +2992,24 @@ class Rocket:
     def add_sensor(self, sensor, position):
         """Adds a sensor to the rocket.
 
+        During a flight, an event or controller function reads the sensor's
+        latest measurement by its name in snake_case, such as
+        ``context.sensors.accelerometer.az`` for a sensor named
+        ``"Accelerometer"``, and ``flight.sensor_history`` gives its readings
+        after the flight by the same names. A name used again, by another
+        sensor or by the same sensor added in another position, is numbered
+        from 2 in the order they were added: ``context.sensors["Barometer"]``
+        and ``context.sensors["Barometer 2"]``, or
+        ``context.sensors.barometer`` and ``context.sensors.barometer_2``.
+        Adding a sensor never renames the ones already there. Giving each
+        sensor its own name, such as ``Barometer(..., name="Backup
+        Barometer")``, keeps the names readable.
+
         Parameters
         ----------
         sensor : Sensor
-            Sensor to be added to the rocket.
+            Sensor to be added to the rocket. The same sensor can be added in
+            more than one position: it then measures at each of them.
         position : int, float, tuple, list, Vector
             Position of the sensor. If a Vector, tuple or list is passed, it
             must be in the format (x, y, z) where x, y, and z are defined in the
@@ -2913,14 +3042,13 @@ class Rocket:
         except KeyError:
             sensor._attached_rockets[self] = 1
 
-        # Create and store a position-specific event for this sensor-position
-        # This allows several objects of the same sensor type to be added to the
-        # rocket in different positions.
+        # One event per position of the sensor, which measures there and
+        # keeps its measurements in the position's own list of measured_data
         if not hasattr(self, "_sensor_events"):
             self._sensor_events = []
-
-        # Kept with the sensor it measures for, so the prints can name it
-        self._sensor_events.append((sensor, sensor.to_event(position)))
+        self._sensor_events.append(
+            (sensor, sensor.to_event(position, sensor._attached_rockets[self] - 1))
+        )
 
     def add_air_brakes(
         self,
@@ -2930,9 +3058,8 @@ class Rocket:
         clamp=True,
         reference_area=None,
         initial_observed_variables=None,
-        memory=None,
         override_rocket_drag=False,
-        return_controller=None,
+        return_controller=False,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
         position=None,
@@ -2944,8 +3071,8 @@ class Rocket:
         Parameters
         ----------
         drag_coefficient_curve : int, float, callable, array, string, Function
-            This parameter represents the drag coefficient associated with the
-            air brakes and/or the entire rocket, depending on the value of
+            The drag coefficient of the air brakes alone, or of the whole
+            rocket at each deployment level, depending on
             ``override_rocket_drag``.
 
             - If a constant, it should be an integer or a float representing a
@@ -2963,92 +3090,100 @@ class Rocket:
             - If a Function, it must take two parameters: deployment level and
               Mach number, and return the drag coefficient.
 
-            .. note:: For ``override_rocket_drag = False``, at
-                deployment level 0, the drag coefficient is assumed to be 0,
-                independent of the input drag coefficient curve. This means that
-                the simulation always considers that at a deployment level of 0,
-                the air brakes are completely retracted and do not contribute to
-                the drag of the rocket.
+            .. note:: At deployment level 0 the air brakes add no drag,
+                whatever the curve says: retracted, the rocket flies with its
+                own drag curves.
 
         controller_function : callable
             The control logic, ``controller_function(context)``, called once
             per sample. It sets the deployment level by writing
-            ``context.controls["air_brakes.deployment_level"]``, a value from
-            0 (retracted) to 1 (fully deployed); the channel is named after
+            ``context.controls.air_brakes.deployment_level``, a value from
+            0 (retracted) to 1 (fully deployed); the control input is named after
             ``name`` (see below). ``context`` holds the values listed in
             :class:`rocketpy.Event` (``context.time``, ``context.state``,
             ``context.height_agl``, ``context.sensors``,
-            ``context.environment`` and so on). The function may return a
-            dictionary of numbers, which is recorded as if passed to
-            ``context.record``. See :class:`rocketpy.Controller`.
-            The positional form
-            ``controller_function(time, sampling_rate, state,
-            observed_variables, air_brakes[, sensors[, environment]])`` is
-            deprecated.
+            ``context.environment`` and so on). Values to look at after the
+            flight are kept with ``context.record(...)``, and values the next
+            call needs in ``context.memory``. See :class:`rocketpy.Controller`.
+            The positional form of v1.13,
+            ``controller_function(time, sampling_rate, state, state_history,
+            observed_variables, air_brakes[, sensors[, environment]])``, is
+            deprecated and will be removed in v1.16.
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
             `1/sampling_rate` seconds.
         clamp : bool, optional
-            If True, the simulation will clamp the deployment level to 0 or 1 if
-            the deployment level is out of bounds. If False, the simulation will
-            not clamp the deployment level and will instead raise a warning if
-            the deployment level is out of bounds. Default is True.
+            Whether the deployment level is kept between 0 (retracted) and 1
+            (fully open): ``True`` (the default) moves a value outside that
+            range to the nearest end, ``False`` puts no limit on it.
         reference_area : float, optional
             Reference area used to calculate the drag force of the air brakes
             from the drag coefficient curve. If None, which is default, use
             rocket section area. Must be given in squared meters.
-        initial_observed_variables : list, optional
-            The list a positional controller function receives as
-            ``observed_variables``. Defaults to an empty list.
+        initial_observed_variables : any, optional
+            The first item of the list a positional controller function
+            receives as ``observed_variables``. Defaults to ``None``: the list
+            starts empty.
 
-            .. deprecated:: 1.13
+            .. deprecated:: 1.15
                 Record the values you want to see after the flight with
                 ``context.record(...)`` and read them as ``flight.records``.
-                Support for this argument will be removed in v1.14.
-        memory : dict, optional
-            Values the controller keeps from one run to the next, read and
-            written as ``context.event.memory`` inside
-            ``controller_function``. It starts again from this dictionary at
-            every flight. Defaults to an empty dict.
-
-            .. deprecated:: 1.14
-                Build the controller yourself with
-                ``Controller(controller_function, sampling_rate, memory=...)``
-                and add it with :meth:`add_controller`, after adding the air
-                brakes with ``add_surfaces(AirBrakes(...), position)``.
+                Support for this argument will be removed in v1.16.
         override_rocket_drag : bool, optional
-            If False, the drag of the air brakes is added to the drag of the
-            rocket. If True, while the air brakes are deployed their drag
-            coefficient curve is the drag of the whole rocket: the rocket's own
-            drag curve is left out. Retracted, the rocket flies with its own
-            drag. Default is False.
-        return_controller : bool, optional
-            If True, return the controller as well as the air brakes.
+            What ``drag_coefficient_curve`` is the drag coefficient of.
 
-            .. deprecated:: 1.14
-                From v1.16 ``add_air_brakes`` always returns
-                ``(air_brakes, controller)``.
+            - ``False`` (the default): the air brakes alone. Their drag is
+              added to the rocket's.
+            - ``True``: the whole rocket at each deployment level, as measured
+              in a wind tunnel or computed for the complete rocket. The air
+              brakes then add the difference between the curve and its value
+              at deployment level 0, at the same Mach number, to the rocket's
+              own drag. The curve is of the rocket with its motor off: while
+              the motor burns, the same difference is added to the rocket's
+              ``power_on_drag``. The curve must include deployment level 0, and
+              the rocket's ``power_off_drag`` should be that retracted drag: the
+              total drag is then the curve. A warning is shown when the two
+              differ by more than 5%, since the rocket's drag curves are then
+              the drag with the air brakes retracted and the curve only gives
+              what opening them adds.
+        return_controller : bool, optional
+            If True, return the controller as well as the air brakes, as
+            ``(air_brakes, controller)``. Default is False: only the air
+            brakes are returned.
+
+            .. deprecated:: 1.15
+                The controller is the last of ``rocket.controllers`` right
+                after this call. Support for this argument will be removed in
+                v1.16.
         name : string, optional
-            AirBrakes name. It also names their control channels: the default
+            AirBrakes name. It also names their control input: the default
             ``"AirBrakes"`` gives ``air_brakes.deployment_level``. Air brakes
             added twice to one rocket need different names.
         controller_name : string, optional
             Controller name. It names the controller's records:
             ``"AirBrakes Controller"`` gives
-            ``flight.records["air_brakes_controller.<record>"]``.
+            ``flight.records["AirBrakes Controller"].<record>``.
         position : int, float, tuple, optional
-            Where the air brakes' drag acts, in the rocket's coordinate
-            system, in meters, as for :meth:`add_surfaces`. The drag acts along
-            the rocket's axis, so the position matters only through where the
-            air meets the brakes while the rocket turns. Default is ``None``:
+            Where the air brakes are on the rocket, in meters, in the rocket's
+            coordinate system: a number along the axis, or ``(x, y, z)``.
+            Their drag acts there, along the rocket's axis. Default ``None``:
             at the rocket's center of dry mass, wherever the motor puts it.
+
         Returns
         -------
         air_brakes : AirBrakes
             AirBrakes object created.
         controller : Controller
-            Controller object created.
+            Controller object created. Only returned if ``return_controller``
+            is True.
+
+        See Also
+        --------
+        rocketpy.AirBrakes : The air brakes and their drag curve.
+        rocketpy.Controller : The controller and what it can read and write.
+        :ref:`airbrakes` : The air brakes guide.
+        :ref:`controllers` : The controllers guide.
         """
         reference_area = reference_area if reference_area is not None else self.area
         air_brakes = AirBrakes(
@@ -3056,87 +3191,174 @@ class Rocket:
             reference_area=reference_area,
             clamp=clamp,
             override_rocket_drag=override_rocket_drag,
-            deployment_level=0,
+            initial_deployment_level=0,
             name=name,
         )
-        if memory is not None:
-            warnings.warn(
-                "Passing `memory` to `add_air_brakes` is deprecated: build the "
-                "controller with `Controller(controller_function, sampling_rate, "
-                "memory=...)`, add it with `rocket.add_controller`, and add the "
-                "air brakes with `rocket.add_surfaces(AirBrakes(...), position)`. "
-                "Support for this argument will be removed in v1.16.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        if return_controller is not None:
-            warnings.warn(
-                "The `return_controller` argument of `add_air_brakes` is "
-                "deprecated: from v1.16 `add_air_brakes` always returns "
-                "`(air_brakes, controller)`.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        controller_memory = memory.copy() if memory is not None else {}
-        if initial_observed_variables is not None:
-            warnings.warn(
-                "Passing `initial_observed_variables` to `add_air_brakes` is "
-                "deprecated: record the values you want to see after the flight "
-                "with `context.record(...)` and read them as `flight.records`. "
-                "Support for this argument will be removed in v1.14.",
-                DeprecationWarning,
-            )
-            controller_memory["observed_variables"] = initial_observed_variables
-
-        parameters = tuple(inspect.signature(controller_function).parameters.values())
-        accepts_var_args = any(
-            p.kind == inspect.Parameter.VAR_POSITIONAL for p in parameters
+        controller_function = _legacy_controller(
+            controller_function, sampling_rate, name, initial_observed_variables
         )
-        positional_parameter_count = sum(
-            p.kind
-            in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            )
-            for p in parameters
-        )
-        if positional_parameter_count != 1 or accepts_var_args:
-            # A legacy positional controller must accept one of the supported
-            # signatures (5, 6 or 7 arguments). Reject any other count early so
-            # the user gets a clear error instead of a runtime failure mid-flight.
-            if not accepts_var_args and positional_parameter_count not in (5, 6, 7):
-                raise ValueError(
-                    "controller_function must take the event context as its "
-                    "single argument, like `def controller(context): ...`. A "
-                    "legacy positional controller_function must have 5, 6, or 7 "
-                    f"arguments, but {positional_parameter_count} were given."
-                )
-            warnings.warn(
-                "Calling controller_function with positional arguments is "
-                "deprecated; use controller_function(context) instead. "
-                "Support for positional controller arguments will be removed "
-                "in v1.16.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            controller_function = _PositionalController(
-                controller_function, sampling_rate, actuator_name=name
-            )
-
         controller = Controller(
             controller_function=controller_function,
             sampling_rate=sampling_rate,
-            memory=controller_memory,
             name=controller_name,
         )
-        if position is None:
-            air_brakes._at_center_of_dry_mass = True
-            position = self.center_of_dry_mass_position
         self.add_surfaces(air_brakes, position)
         self.add_controller(controller)
         if return_controller:
+            warnings.warn(
+                "`return_controller` is deprecated: the controller of the air "
+                "brakes is the last of `rocket.controllers` right after "
+                "`add_air_brakes`. Support for this argument will be removed in "
+                "v1.16.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             return air_brakes, controller
         return air_brakes
+
+    def _check_retracted_drag(self, air_brakes):
+        """Warn when a whole-rocket air brakes curve and the rocket's power-off
+        drag disagree on the drag with the air brakes retracted, by more than
+        5% at any Mach number of the curve (0.1 to 0.9 for a curve that is not
+        a table). Called by ``add_surfaces``, whose caller the warning points
+        at."""
+        source = air_brakes.drag_coefficient.source
+        machs = (
+            np.linspace(0.1, 0.9, 9) if callable(source) else np.unique(source[:, 1])
+        )
+        rocket_drag = self.power_off_drag_7d.get_value_opt
+        for mach in machs:
+            of_rocket = self.area * rocket_drag(0, 0, mach, 0, 0, 0, 0)
+            of_curve = air_brakes.reference_area * air_brakes.drag_coefficient(0, mach)
+            if abs(of_curve - of_rocket) > 0.05 * abs(of_rocket):
+                warnings.warn(
+                    f"The drag coefficient curve of {air_brakes.name} is of the "
+                    "whole rocket (override_rocket_drag=True), but at deployment "
+                    f"level 0 and Mach {mach:.2f} it gives a drag area of "
+                    f"{of_curve:.4g} m², while the rocket's power_off_drag gives "
+                    f"{of_rocket:.4g} m². Retracted, the rocket flies with its own "
+                    "drag curves, and the air brakes add only the difference "
+                    "between the curve and its deployment level 0 values. For the "
+                    "total drag to be the curve, give the rocket the curve's "
+                    "deployment level 0 values as its drag.",
+                    stacklevel=3,
+                )
+                return
+
+    def add_effector(self, effector, position=None, angular_position=0, radius=0):
+        """Add an effector: a :class:`rocketpy.ThrustEffector` or a
+        :class:`rocketpy.ForceEffector`, which acts on the rocket other than
+        through the air: a thrust vectoring gimbal, a reaction control
+        thruster. (Air brakes, control fins and other aerodynamic parts are
+        added with :meth:`add_surfaces`.)
+
+        The effector is kept in ``rocket.effectors`` with its position, as
+        ``rocket.effectors[0].component`` and ``.position``. What it does is
+        told by its class, and an effector can be both of these:
+
+        - a :class:`rocketpy.ThrustEffector` changes the motor's thrust;
+        - a :class:`rocketpy.ForceEffector` pushes or turns the rocket
+          directly.
+
+        A controller sets the effector's controls as
+        ``context.controls.<name in snake_case>.<control>``.
+
+        Parameters
+        ----------
+        effector : ThrustEffector or ForceEffector
+            The effector to add.
+        position : float or array_like, optional
+            Where the effector acts, in m, in the rocket's own coordinate
+            system (the one the surfaces and the motor are placed in, see
+            :ref:`rocket_axes`). One of:
+
+            - ``None`` (the default): at the center of dry mass, wherever the
+              motor puts it, so the function's moment is the whole moment;
+            - a number: the position along the rocket, like a fin's, with
+              ``angular_position`` and ``radius`` placing it around the tube;
+            - three numbers ``(x, y, z)``: the point itself, and
+              ``angular_position`` and ``radius`` are not used.
+
+            A force effector's force acts at this point. A thrust effector
+            has no position: it acts on the motor's
+            thrust at the motor's nozzle (a thruster somewhere else is a force
+            effector).
+        angular_position : float, optional
+            Angle around the rocket, in degrees, from the ``y`` axis of the
+            rocket's coordinate system, positive in the direction of positive
+            roll (the right-hand rule about ``z`` toward the nose), as for fins
+            and rail buttons: ``0`` is on the ``y`` axis, ``90`` on the
+            ``-x`` axis. Defaults to ``0``.
+        radius : float, optional
+            Distance from the rocket's centerline, in m: ``rocket.radius`` for
+            a thruster on the skin. Defaults to ``0``, on the centerline.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        TypeError
+            If it is not one of the two kinds of effector, or it is an
+            aerodynamic surface, which :meth:`add_surfaces` adds; or if a
+            position is given for a thrust effector.
+        ValueError
+            If ``angular_position`` or ``radius`` is given without
+            ``position``, or with a three-number ``position``.
+
+        See Also
+        --------
+        rocketpy.ForceEffector : An effector built from a force and moment
+            function, with a worked example.
+        :ref:`controllers` : The controllers guide, with a roll thruster pair
+            and a gimbal.
+        """
+        if isinstance(effector, GenericSurface):
+            raise TypeError(
+                f"'{effector.name}' is an aerodynamic surface: add it with "
+                "rocket.add_surfaces(surface, position)."
+            )
+        if not isinstance(effector, (ThrustEffector, ForceEffector)):
+            raise TypeError(
+                f"{effector!r} cannot be added as an effector: an effector changes "
+                "the thrust or pushes the rocket, so it is a "
+                "rocketpy.ThrustEffector or ForceEffector."
+            )
+        if any(effector is added for added, _ in self.effectors):
+            raise ValueError(
+                f"The effector '{effector.name}' is already on the rocket. To have "
+                "the same effector twice, build it twice."
+            )
+        placed = angular_position != 0 or radius != 0
+        if position is None:
+            if placed:
+                raise ValueError(
+                    f"The effector '{effector.name}' has an angular_position or a "
+                    "radius but no position: give its position along the rocket "
+                    "too."
+                )
+        elif not isinstance(effector, ForceEffector):
+            raise TypeError(
+                f"The effector '{effector.name}' changes the motor's thrust, which "
+                "acts at the motor's nozzle, so it has no position of its own. A "
+                "thruster somewhere else on the rocket is a ForceEffector."
+            )
+        elif isinstance(position, (Vector, tuple, list, np.ndarray)):
+            if placed:
+                raise ValueError(
+                    f"The position of the effector '{effector.name}' is a point, "
+                    "so angular_position and radius are not used: give one or "
+                    "the other."
+                )
+            position = Vector(position)
+        else:
+            position = Vector(
+                point_around(position, angular_position, radius, self._csys)
+            )
+        self._check_new_controllables(effector)
+        self.effectors.add(effector, position)
+        self._evaluate_effectors()
 
     def set_rail_buttons(
         self,
@@ -3189,11 +3411,7 @@ class Rocket:
         )
         self.rail_buttons = Components()
         position = Vector(
-            [
-                radius * -math.sin(math.radians(angular_position)),
-                radius * math.cos(math.radians(angular_position)),
-                lower_button_position,
-            ]
+            point_around(lower_button_position, angular_position, radius, self._csys)
         )
         self.rail_buttons.add(rail_buttons, position)
         return rail_buttons
@@ -3294,6 +3512,8 @@ class Rocket:
         """
         self.thrust_eccentricity_x = x
         self.thrust_eccentricity_y = y
+        self.evaluate_nozzle_exit()
+        self.evaluate_nozzle_gyration_tensor()
         return self
 
     def draw(self, vis_args=None, plane="xz", *, filename=None):
@@ -3390,11 +3610,20 @@ class Rocket:
             "stability_phase": self.stability_phase,
             "motor": self.motor,
             "motor_position": self.motor_position,
-            "aerodynamic_surfaces": self.aerodynamic_surfaces,
+            # A surface at the center of dry mass, wherever the motor puts it,
+            # is saved without a position
+            "aerodynamic_surfaces": [
+                (
+                    surface,
+                    None if self._is_at_center_of_dry_mass(surface) else position,
+                )
+                for surface, position in self.aerodynamic_surfaces
+            ],
             "rail_buttons": self.rail_buttons,
             "parachutes": self.parachutes,
-            "actuators": list(self._added_actuators),
+            "effectors": self.effectors,
             "_controllers": self._controllers,
+            "continuous_controllers": list(self._continuous_controllers),
             "sensors": self.sensors,
         }
 
@@ -3509,25 +3738,21 @@ class Rocket:
         for sensor, position in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
-        # Saved before air brakes were aerodynamic surfaces
+        # Saved before air brakes were aerodynamic surfaces, when they acted at
+        # the center of dry mass
         for air_brake in data.get("air_brakes", []):
-            air_brake._at_center_of_dry_mass = True
-            rocket.add_surfaces(air_brake, rocket.center_of_dry_mass_position)
+            rocket.add_surfaces(air_brake, None)
 
-        for actuator in data.get("actuators", []):
-            if isinstance(actuator, dict):
-                # Saved by a class this version cannot rebuild
-                warnings.warn(
-                    f"The actuator '{actuator.get('name')}' could not be "
-                    "loaded and was left out of the rocket.",
-                    UserWarning,
-                )
-                continue
-            rocket.add_actuator(actuator)
+        for controllable, position in data.get("effectors", []):
+            if was_loaded(controllable, "effector", "class"):
+                rocket.add_effector(controllable, position)
 
         # A controller points at no object of the rocket: it writes control
-        # channels by name, so there is nothing to reconnect
+        # inputs by name, so there is nothing to reconnect
         for controller in data["_controllers"]:
             rocket.add_controller(controller)
+        for controller in data.get("continuous_controllers", []):
+            if was_loaded(controller, "continuous controller", "law"):
+                rocket.add_controller(controller)
 
         return rocket

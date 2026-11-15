@@ -350,6 +350,26 @@ def test_add_full_body_aerodynamics_single_phase(calisto_robust):
     assert surface.active_during == "power_off"
 
 
+def test_add_full_body_aerodynamics_overwrite_keeps_the_air_brakes(calisto_robust):
+    """The air brakes and the controller that sets them go together: an
+    overwrite keeps both, so the controller still finds its control input."""
+    rocket = calisto_robust
+    air_brakes = rocket.add_air_brakes(
+        drag_coefficient_curve=0.5,
+        controller_function=lambda context: None,
+        sampling_rate=10,
+    )
+    surface = _full_body_surface(rocket, {"cA": 0.4})
+    with pytest.warns(UserWarning, match="Air brakes, if any, are kept"):
+        rocket.add_full_body_aerodynamics(surface, overwrite=True)
+
+    assert rocket.aerodynamic_surfaces.get_components() == [air_brakes, surface]
+    assert rocket.control_names == ("air_brakes.deployment_level",)
+    assert len(rocket.controllers) == 1
+    assert rocket._is_at_center_of_dry_mass(air_brakes)
+    assert set(rocket.surfaces_cp_to_cdm) == {air_brakes, surface}
+
+
 def test_add_full_body_aerodynamics_overwrite_replaces_surfaces_and_drag(
     calisto_robust,
 ):

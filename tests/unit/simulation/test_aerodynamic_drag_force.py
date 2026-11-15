@@ -24,7 +24,9 @@ def _flight_stand_in(power_off_drag, power_on_drag, burn_out_time=3.0):
     )
     rocket.motor = SimpleNamespace(burn_out_time=burn_out_time)
     return SimpleNamespace(
-        rocket=rocket, control_signal={}, _control_channels={}, _drag_overrides=()
+        rocket=rocket,
+        _controls={},
+        _control_names={},
     )
 
 
@@ -47,7 +49,7 @@ def test_rocket_drag_receives_reduced_rates():
     expected_coefficient = reduced * (omega[0] + 10 * omega[1] + 100 * omega[2])
 
     drag_area = _compute_drag_area(
-        flight, 5.0, _head_on(speed), speed, 0.15, 1.2, 0, omega, flight.control_signal
+        flight, 5.0, _head_on(speed), speed, 0.15, 1.2, 0, omega
     )
 
     assert drag_area == pytest.approx(flight.rocket.area * expected_coefficient)
@@ -59,7 +61,7 @@ def test_rocket_drag_rates_are_zero_without_airspeed():
         power_off_drag=lambda mach, roll_rate: 0.5 + roll_rate, power_on_drag=0.0
     )
     drag_area = _compute_drag_area(
-        flight, 5.0, _head_on(0.0), 0.0, 0, 1.2, 0, (0, 0, 8.0), flight.control_signal
+        flight, 5.0, _head_on(0.0), 0.0, 0, 1.2, 0, (0, 0, 8.0)
     )
     assert drag_area == pytest.approx(0.5 * flight.rocket.area)
 
@@ -89,7 +91,6 @@ def test_rocket_drag_reads_the_flow_from_the_stream():
         density,
         viscosity,
         (0, 0, 0),
-        flight.control_signal,
     )
 
     expected = alpha + 10 * beta + 100 * 0.25 + reynolds / 1e6
@@ -108,7 +109,6 @@ def test_rocket_drag_curve_follows_the_motor_burn():
         1.2,
         0,
         (0, 0, 0),
-        flight.control_signal,
     )
     after = _compute_drag_area(
         flight,
@@ -119,7 +119,6 @@ def test_rocket_drag_curve_follows_the_motor_burn():
         1.2,
         0,
         (0, 0, 0),
-        flight.control_signal,
     )
     assert before == pytest.approx(0.4 * flight.rocket.area)
     assert after == pytest.approx(0.6 * flight.rocket.area)
@@ -172,8 +171,7 @@ def test_axial_drag_follows_the_air_moving_along_the_axis(angle_deg, equations):
         env=env,
         rocket=rocket,
         _surface_switches={},
-        _control_channels={},
-        _drag_overrides=(),
+        _control_names={},
     )
     controls = {}
     speed, angle = 80.0, np.radians(angle_deg)
@@ -229,8 +227,7 @@ def test_3dof_drag_acts_against_the_velocity(velocity):
         env=env,
         rocket=rocket,
         _surface_switches={},
-        _control_channels={},
-        _drag_overrides=(),
+        _control_names={},
     )
     controls = {}
     upright = [1.0, 0.0, 0.0, 0.0]

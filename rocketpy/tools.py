@@ -1328,6 +1328,38 @@ def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
     return com_inertia_moment + mass * distance**2
 
 
+def point_around(position, angular_position, radius, csys=1):
+    """Find the point placed around the rocket's axis.
+
+    This is where a fin, a rail button or an effector sits when it is given by
+    its position along the rocket, its distance from the rocket's axis and its
+    angle around the rocket.
+
+    Parameters
+    ----------
+    position : float
+        Position of the point along the rocket's axis, in meters, in the
+        rocket's user coordinate system.
+    angular_position : float
+        Angle of the point around the rocket's axis, in degrees, measured
+        from the y axis. See :ref:`Angular Position Inputs <angular_position>`.
+    radius : float
+        Distance from the rocket's axis to the point, in meters.
+    csys : int, optional
+        Orientation of the rocket's coordinate system: ``1`` for
+        ``"tail_to_nose"`` and ``-1`` for ``"nose_to_tail"``. The x coordinate
+        changes sign with it, the y coordinate does not. Default is ``1``.
+
+    Returns
+    -------
+    tuple of float
+        The ``(x, y, z)`` coordinates of the point, in meters, in the rocket's
+        user coordinate system.
+    """
+    angle = math.radians(angular_position)
+    return (-radius * math.sin(angle) * csys, radius * math.cos(angle), position)
+
+
 # Flight
 def quaternions_to_precession(e0, e1, e2, e3):
     """Calculates the Precession angle
@@ -1551,6 +1583,86 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
             stack.extend((item, current_depth + 1) for item in current_obj)
 
     return None
+
+
+# Name boundaries in a CamelCase name: "AirBrakes" -> "Air_Brakes",
+# "TVCGimbal" -> "TVC_Gimbal"
+_LOWER_TO_UPPER = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+_ACRONYM_END = re.compile(r"(?<=[A-Z])(?=[A-Z][a-z])")
+_NOT_ALPHANUMERIC = re.compile(r"[^0-9a-zA-Z]+")
+
+
+def snake_case_key(name):
+    """Return ``name`` in snake_case, as the control inputs of a controllable,
+    the readings of a sensor and the records of an event are named:
+    ``"Canards"`` gives
+    ``canards``, ``"AirBrakes"`` gives ``air_brakes``, ``"Nose IMU"`` gives
+    ``nose_imu`` and ``"calisto_nose_cone"`` stays as it is.
+
+    Parameters
+    ----------
+    name : str
+        The name of the controllable, sensor or event.
+
+    Returns
+    -------
+    str
+    """
+    text = _ACRONYM_END.sub("_", _LOWER_TO_UPPER.sub("_", str(name)))
+    key = _NOT_ALPHANUMERIC.sub("_", text).strip("_").lower()
+    if not key:
+        key = "controllable"
+    if key[0].isdigit():
+        key = f"controllable_{key}"
+    return key
+
+
+def unique_names(names):
+    """Return ``names`` with repeats numbered from 2, so that no two give the
+    same name in snake_case: ``["Event", "Event"]`` gives ``["Event", "Event
+    2"]``."""
+    used = set()
+    unique = []
+    for name in names:
+        candidate, number = name, 1
+        while snake_case_key(candidate) in used:
+            number += 1
+            candidate = f"{name} {number}"
+        used.add(snake_case_key(candidate))
+        unique.append(candidate)
+    return unique
+
+
+def history_function(points, name):
+    """Return a sampled history as a Function of time that holds each value
+    until the next sample.
+
+    Parameters
+    ----------
+    points : sequence of (float, float)
+        ``(time, value)`` pairs, in time order. A later pair at the same time
+        replaces an earlier one, since it is what held from that time on.
+    name : str
+        Name of the value, for the Function's output.
+
+    Returns
+    -------
+    Function
+    """
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,
+    )
+
+    held = {}
+    for t, value in points:
+        held[float(t)] = float(value)
+    return Function(
+        [[t, value] for t, value in held.items()],
+        inputs="Time (s)",
+        outputs=name,
+        interpolation="previous",
+        extrapolation="constant",
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

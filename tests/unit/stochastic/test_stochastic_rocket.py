@@ -115,29 +115,30 @@ def test_surfaces_with_no_stochastic_version_are_carried_over():
     assert generated.static_margin(0) == pytest.approx(rocket.static_margin(0))
 
 
-def test_added_actuators_are_carried_over(
+def test_added_effectors_are_carried_over(
     stochastic_calisto, calisto_robust, push_effector, gimbal
 ):
-    """Thrust actuators, effectors and mass actuators have no stochastic
+    """Thrust and force effectors have no stochastic
     version; each generated rocket keeps them and their channels."""
-    calisto_robust.add_actuator(gimbal)
-    calisto_robust.add_actuator(push_effector)
+    calisto_robust.add_effector(gimbal)
+    calisto_robust.add_effector(push_effector)
     obj = stochastic_calisto.create_object()
-    assert obj.thrust_actuators == [gimbal]
-    assert obj.effectors == [push_effector]
-    assert obj.control_channels[-2:] == ("gimbal.pitch", "push.on")
+    assert obj.effectors.get_components() == [gimbal, push_effector]
+    assert obj.control_names[-2:] == ("gimbal.pitch", "push.on")
 
 
 def test_air_brakes_are_dispersed_once(stochastic_calisto, calisto_air_brakes_clamp_on):
     """The base rocket's air brakes are a surface; the stochastic rocket
     replaces them with its dispersed copy rather than carrying both over."""
-    (brakes,) = calisto_air_brakes_clamp_on._air_brakes
-    (controller,) = calisto_air_brakes_clamp_on._controllers
+    (brakes,) = calisto_air_brakes_clamp_on.air_brakes
+    (controller,) = calisto_air_brakes_clamp_on.controllers
     stochastic_calisto.add_air_brakes(brakes, controller)
     obj = stochastic_calisto.create_object()
 
-    (dispersed,) = obj._air_brakes
+    (dispersed,) = obj.air_brakes
     assert dispersed is not brakes
-    assert dispersed._at_center_of_dry_mass
-    assert obj.control_channels == ("air_brakes.deployment_level",)
-    assert len(obj._controllers) == 1 and obj._controllers[0] is not controller
+    assert obj._is_at_center_of_dry_mass(
+        dispersed
+    ) == calisto_air_brakes_clamp_on._is_at_center_of_dry_mass(brakes)
+    assert obj.control_names == ("air_brakes.deployment_level",)
+    assert len(obj.controllers) == 1 and obj.controllers[0] is not controller

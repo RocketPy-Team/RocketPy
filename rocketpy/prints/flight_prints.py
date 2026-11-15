@@ -254,7 +254,10 @@ class _FlightPrints:
             )
 
     def sensors(self):
-        """Prints details about sensors registered in the flight.
+        """Prints the sensors of the flight: the name its readings go by in
+        ``flight.sensor_history`` (as given, and in snake_case), its type,
+        sampling rate and number of readings, then the smallest, largest and
+        final reading of each channel.
 
         Returns
         -------
@@ -262,27 +265,34 @@ class _FlightPrints:
         """
         print("\nSensors\n")
 
-        if len(self.flight.sensors) == 0:
+        entries = self.flight._sensors_by_key
+        if not entries:
             print("No sensors were registered.")
             return
 
-        # A flight loaded from a file without being re-simulated has no recorded
-        # measurements, so fall back to an empty mapping instead of raising.
-        sensor_data = getattr(self.flight, "sensor_data", None) or {}
-
-        for sensor in self.flight.sensors:
-            sensor_name = sensor.name if sensor.name else "Unnamed Sensor"
-            print(f"Sensor: {sensor_name}")
+        history = self.flight.sensor_history
+        series = {}
+        for key, (sensor, event) in entries.items():
+            name = event._position_name
+            readings = history[name] if name in history else {}
+            for channel in readings:
+                series[f"{name}.{channel}"] = getattr(readings, channel).y_array
+            first = series.get(f"{name}.{sensor.channels[0][0]}")
+            print(f"Sensor: {name} ({key})")
             print(f"\tType: {sensor.__class__.__name__}")
             print(f"\tSampling Rate: {sensor.sampling_rate:.3f} Hz")
-            measured_data = sensor_data.get(sensor)
-            if not measured_data:
-                print("\tNo measurement data available (flight was not simulated).")
-                print()
-                continue
-            print(f"\tMeasurements Recorded: {len(measured_data)}")
-            sensor.prints.data_summary(data=measured_data)
-            print()
+            print(f"\tReadings: {0 if first is None else len(first)}")
+        print()
+        if not series:
+            print("No readings were recorded.")
+            return
+        width = max(len(name) for name in series)
+        print(f"{'Reading':{width}s}  {'Min':>10s}  {'Max':>10s}  {'Final':>10s}")
+        for name, values in series.items():
+            print(
+                f"{name:{width}s}  {min(values):10.4g}  "
+                f"{max(values):10.4g}  {values[-1]:10.4g}"
+            )
 
     def sensor_events(self):
         """Prints details about sensor-generated events in the flight.
@@ -364,8 +374,8 @@ class _FlightPrints:
                 print(f"\tFirst Trigger Time: {event.triggered_times[0]:.3f} s")
                 print(f"\tLast Trigger Time: {event.triggered_times[-1]:.3f} s")
 
-            if len(event.callback_log) > 0:
-                print(f"\tCallback Log Entries: {len(event.callback_log)}")
+            if event._records:  # pylint: disable=protected-access
+                print(f"\tRecords: {', '.join(event._records)}")
 
             if isinstance(event.memory, dict):
                 print(f"\tMemory Keys: {list(event.memory.keys())}")
@@ -380,15 +390,17 @@ class _FlightPrints:
         """
         print("\nControllers\n")
 
-        if len(self.flight.controllers) == 0:
+        continuous = self.flight.rocket.continuous_controllers
+        if len(self.flight.controllers) == 0 and not continuous:
             print("No controllers were registered.")
             return
 
         for controller in self.flight.controllers:
             print(f"Controller: {controller.name}")
-            print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
-            writes = controller.writes
-            print(f"\tWrites: {'any control' if writes is None else ', '.join(writes)}")
+            if controller.sampling_rate is None:
+                print("\tSampling Rate: every solver step")
+            else:
+                print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
             print(f"\tEnabled at end of simulation: {controller.enabled}")
             print(f"\tRun Count: {len(controller.triggered_times)}")
             if controller.triggered_times:
@@ -397,6 +409,17 @@ class _FlightPrints:
             records = list(controller._records)
             if records:
                 print(f"\tRecords: {', '.join(records)}")
+            if controller.outputs:
+                print(f"\tOutputs: {', '.join(controller.outputs)}")
+            print()
+
+        states = self.flight.state_history
+        for controller in continuous:
+            print(f"Continuous Controller: {controller.name}")
+            print("\tRuns with the equations of motion, at every instant")
+            for state in controller.states:
+                final = states[controller.name][state].y_array[-1]
+                print(f"\tState {state}: {final:.4g} at the end of the flight")
             print()
 
     def impact_conditions(self):
@@ -675,16 +698,19 @@ class _FlightPrints:
         -------
         None
         """
-        solution = self.flight.solution
-        names = solution.control_names
+        controls = self.flight.controls
         print("\nControl Inputs\n")
-        if not names:
+        if not controls:
             print("This flight has no controls.")
             return
-        width = max(len(name) for name in names)
-        print(f"{'Channel':{width}s}  {'Min':>10s}  {'Max':>10s}  {'Final':>10s}")
-        for name in names:
-            values = solution[name][:, 1]
+        series = {
+            f"{name}.{control}": getattr(controls[name], control).y_array
+            for name in controls
+            for control in controls[name]
+        }
+        width = max(len(name) for name in series)
+        print(f"{'Control':{width}s}  {'Min':>10s}  {'Max':>10s}  {'Final':>10s}")
+        for name, values in series.items():
             print(
                 f"{name:{width}s}  {min(values):10.4g}  "
                 f"{max(values):10.4g}  {values[-1]:10.4g}"
@@ -736,7 +762,7 @@ class _FlightPrints:
         self.rail_button_bending_moments()
         print()
 
-        if self.flight.controllers:
+        if self.flight.controllers or self.flight.rocket.continuous_controllers:
             self.controllers()
             print()
 

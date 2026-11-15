@@ -47,7 +47,7 @@ def test_airfoil(
 @patch("matplotlib.pyplot.show")
 def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):  # pylint: disable=unused-argument
     """Test the air brakes class with clamp on configuration. This test checks
-    the basic attributes and the deployment_level setter. It also checks the
+    the basic attributes and the initial_deployment_level setter. It also checks the
     all_info method.
 
     Parameters
@@ -58,7 +58,7 @@ def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):  # pylint:
         A predefined instance of the calisto with air brakes in clamp on
         configuration.
     """
-    air_brakes_clamp_on = calisto_air_brakes_clamp_on._air_brakes[0]
+    air_brakes_clamp_on = calisto_air_brakes_clamp_on.air_brakes[0]
 
     # test basic attributes
     assert air_brakes_clamp_on.drag_coefficient.__dom_dim__ == 2
@@ -66,14 +66,14 @@ def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):  # pylint:
         air_brakes_clamp_on.reference_area
         == calisto_air_brakes_clamp_on.radius**2 * np.pi
     )
-    air_brakes_clamp_on.deployment_level = 0.5
-    assert air_brakes_clamp_on.deployment_level == 0.5
-    air_brakes_clamp_on.deployment_level = 1.5
-    assert air_brakes_clamp_on.deployment_level == 1
-    air_brakes_clamp_on.deployment_level = -1
-    assert air_brakes_clamp_on.deployment_level == 0
-    air_brakes_clamp_on.deployment_level = 0
-    assert air_brakes_clamp_on.deployment_level == 0
+    air_brakes_clamp_on.initial_deployment_level = 0.5
+    assert air_brakes_clamp_on.initial_deployment_level == 0.5
+    air_brakes_clamp_on.initial_deployment_level = 1.5
+    assert air_brakes_clamp_on.initial_deployment_level == 1
+    air_brakes_clamp_on.initial_deployment_level = -1
+    assert air_brakes_clamp_on.initial_deployment_level == 0
+    air_brakes_clamp_on.initial_deployment_level = 0
+    assert air_brakes_clamp_on.initial_deployment_level == 0
 
     assert air_brakes_clamp_on.all_info() is None
 
@@ -83,7 +83,7 @@ def test_air_brakes_clamp_off(  # pylint: disable=unused-argument
     mock_show, calisto_air_brakes_clamp_off
 ):
     """Test the air brakes class with clamp off configuration. This test checks
-    the basic attributes and the deployment_level setter. It also checks the
+    the basic attributes and the initial_deployment_level setter. It also checks the
     all_info method.
 
     Parameters
@@ -94,7 +94,7 @@ def test_air_brakes_clamp_off(  # pylint: disable=unused-argument
         A predefined instance of the calisto with air brakes in clamp off
         configuration.
     """
-    air_brakes_clamp_off = calisto_air_brakes_clamp_off._air_brakes[0]
+    air_brakes_clamp_off = calisto_air_brakes_clamp_off.air_brakes[0]
 
     # test basic attributes
     assert air_brakes_clamp_off.drag_coefficient.__dom_dim__ == 2
@@ -103,14 +103,14 @@ def test_air_brakes_clamp_off(  # pylint: disable=unused-argument
         == calisto_air_brakes_clamp_off.radius**2 * np.pi
     )
 
-    air_brakes_clamp_off.deployment_level = 0.5
-    assert air_brakes_clamp_off.deployment_level == 0.5
-    air_brakes_clamp_off.deployment_level = 1.5
-    assert air_brakes_clamp_off.deployment_level == 1.5
-    air_brakes_clamp_off.deployment_level = -1
-    assert air_brakes_clamp_off.deployment_level == -1
-    air_brakes_clamp_off.deployment_level = 0
-    assert air_brakes_clamp_off.deployment_level == 0
+    air_brakes_clamp_off.initial_deployment_level = 0.5
+    assert air_brakes_clamp_off.initial_deployment_level == 0.5
+    air_brakes_clamp_off.initial_deployment_level = 1.5
+    assert air_brakes_clamp_off.initial_deployment_level == 1.5
+    air_brakes_clamp_off.initial_deployment_level = -1
+    assert air_brakes_clamp_off.initial_deployment_level == -1
+    air_brakes_clamp_off.initial_deployment_level = 0
+    assert air_brakes_clamp_off.initial_deployment_level == 0
 
     assert air_brakes_clamp_off.all_info() is None
 

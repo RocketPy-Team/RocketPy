@@ -112,7 +112,6 @@ class LinearGenericSurface(GenericSurface):
         controls=(),
         control_defaults=None,
         control_limits=None,
-        clamp=True,
     ):
         """Create a linear aerodynamic surface from its coefficient derivatives.
 
@@ -256,7 +255,7 @@ class LinearGenericSurface(GenericSurface):
             Whether the surface starts each flight switched on. Default is
             ``True``. Use ``False`` for a surface that only appears later in
             the flight, and switch it on from an event with
-            ``context.event.commands.activate_surface(surface)``. A surface
+            ``context.commands.activate_surface(surface)``. A surface
             that is on from the start is switched off the same way, with
             ``deactivate_surface``.
         axisymmetric : bool, optional
@@ -282,17 +281,15 @@ class LinearGenericSurface(GenericSurface):
             deflection, set by a controller during the flight. Each name becomes
             one more variable the derivatives can use, for example
             ``controls=("deflection",)`` with
-            ``{"cl_0": lambda mach, deflection: 0.5 * deflection}``. Do not list
-            ``active``: every surface has it. Default is no controls.
+            ``{"cl_0": lambda mach, deflection: 0.5 * deflection}``. Default is
+            no controls.
         control_defaults : dict, optional
             The value of each control at the start of every flight, and outside
             a flight, by name. A control left out starts at 0. Default ``None``.
         control_limits : dict, optional
             The range of each control, as ``(low, high)`` by name. A control
-            left out has no limits. Default ``None``.
-        clamp : bool, optional
-            ``True`` (the default) moves a value outside a control's limits to
-            the nearest limit; ``False`` keeps it and warns.
+            left out has no limits. A value written outside them is moved to
+            the nearest limit. Default ``None``.
 
         Raises
         ------
@@ -328,7 +325,6 @@ class LinearGenericSurface(GenericSurface):
             controls=controls,
             control_defaults=control_defaults,
             control_limits=control_limits,
-            clamp=clamp,
         )
 
         self.compute_all_coefficients()
@@ -375,7 +371,7 @@ class LinearGenericSurface(GenericSurface):
         has_body = bool(prefixes & set(self._BODY_FORCE_NAMES))
         return has_wind, has_body
 
-    def _check_coefficients(self, input_coefficients, default_coefficients):
+    def _check_coefficients(self, input_coefficients, allowed=None):
         """Raise a ``ValueError`` for a name that is not one of the derivatives.
 
         On top of the generic check, a coefficient value such as ``cN`` gets a hint
@@ -391,7 +387,7 @@ class LinearGenericSurface(GenericSurface):
                 "values. For a coefficient given against the angle, use "
                 "GenericSurface."
             )
-        super()._check_coefficients(input_coefficients, default_coefficients)
+        super()._check_coefficients(input_coefficients, allowed)
 
     def _as_coefficient(self, source, name, single_var=None):
         """Wrap a derivative as an :class:`AeroCoefficient`.

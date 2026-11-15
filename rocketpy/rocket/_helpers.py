@@ -1288,8 +1288,7 @@ def full_body_coefficients(  # pylint: disable=too-many-locals
                 )
         return packaged
 
-    # The sweep moves the control defaults of the rocket's surfaces; put them
-    # back
+    # The sweep moves the control of the rocket's surfaces, reset to default
     moved = {
         (surface, control): surface.control_defaults[control]
         for _, targets, _ in control_axes

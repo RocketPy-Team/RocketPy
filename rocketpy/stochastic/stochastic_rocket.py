@@ -421,9 +421,9 @@ class StochasticRocket(StochasticModel):
         air_brakes : StochasticAirBrakes or Airbrakes
             The air brake to be added to the stochastic rocket.
         controller : Controller
-            The controller of the air brakes, as returned by
-            ``Rocket.add_air_brakes(..., return_controller=True)``. Every
-            sampled rocket flies a copy of it.
+            The controller of the air brakes: the last of
+            ``rocket.controllers`` right after ``Rocket.add_air_brakes``.
+            Every sampled rocket flies a copy of it.
         """
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
             raise TypeError(
@@ -724,8 +724,9 @@ class StochasticRocket(StochasticModel):
         dry mass when they are not on it."""
         for surface, position in self.obj.aerodynamic_surfaces:
             if surface is air_brakes:
-                return position
-        return self.obj.center_of_dry_mass_position
+                at_center = self.obj._is_at_center_of_dry_mass(surface)
+                return None if at_center else position
+        return None
 
     def _create_air_brake(self, stochastic_air_brake):
         air_brake = stochastic_air_brake.create_object()
@@ -807,19 +808,27 @@ class StochasticRocket(StochasticModel):
         # flies without them, as it always has
         for surface, position in self.obj.aerodynamic_surfaces:
             if not isinstance(surface, (*_DISPERSED_SURFACES, AirBrakes)):
-                rocket.add_surfaces(surface, position)
+                at_center = self.obj._is_at_center_of_dry_mass(surface)
+                rocket.add_surfaces(surface, None if at_center else position)
 
         for air_brake in self.air_brakes:
             created = self._create_air_brake(air_brake)
-            rocket.add_surfaces(created, self._air_brake_position(air_brake.obj))
+            with warnings.catch_warnings():
+                # The rocket these are sampled from was warned when its air
+                # brakes were added, if their curve and its drag disagree: no
+                # need to say it again at every sample
+                warnings.simplefilter("ignore", UserWarning)
+                rocket.add_surfaces(created, self._air_brake_position(air_brake.obj))
 
-        # Thrust actuators, effectors and mass actuators have no stochastic
+        # Thrust effectors and force effectors have no stochastic
         # version: they are carried over as they are, holding no state
-        for actuator in getattr(self.obj, "_added_actuators", ()):
-            rocket.add_actuator(actuator)
+        for effector, position in self.obj.effectors:
+            rocket.add_effector(effector, position)
+        for controller in self.obj.continuous_controllers:
+            rocket.add_controller(controller)
 
         if self.air_brakes:
-            # A controller sets the air brakes by the name of their channel and
+            # A controller sets the air brakes by the name of their control input and
             # points at no object, so each sampled rocket flies a copy of it
             rocket.add_controller(deepcopy(self.air_brake_controller))
 

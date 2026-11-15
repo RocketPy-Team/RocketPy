@@ -1,4 +1,6 @@
+from rocketpy import AirBrakes
 from rocketpy.rocket.aero_surface import NoseCone, RailButtons, Tail, TrapezoidalFins
+from rocketpy.stochastic import StochasticAirBrakes
 
 ## NOSE CONE
 
@@ -90,3 +92,24 @@ def test_stochastic_rail_buttons_create_object(stochastic_rail_buttons):
     """
     obj = stochastic_rail_buttons.create_object()
     assert isinstance(obj, RailButtons)
+
+
+## AIR BRAKES
+
+
+def test_stochastic_air_brakes_scale_the_drag_and_keep_the_settings():
+    """The drag curve factor reaches the drag flown, and the motor phase the
+    air brakes act in and their switch are carried over."""
+    brakes = AirBrakes(
+        "data/rockets/calisto/air_brakes_cd.csv",
+        0.01,
+        active_during="power_off",
+        active=False,
+    )
+    obj = StochasticAirBrakes(
+        brakes, drag_coefficient_curve_factor=(2.0, 0)
+    ).create_object()
+    assert obj.cA(0, 0, 0.5, 0, 0, 0, 0, 1.0) == 2 * brakes.cA(
+        0, 0, 0.5, 0, 0, 0, 0, 1.0
+    )
+    assert obj.active_during == "power_off" and obj.active is False
