@@ -729,6 +729,16 @@ for example :math:`C_m = C_m(\alpha, Ma) + C_{m_q}\, q^{*}`. Some rules:
   ``cN_q``). This also holds for data against ``alpha_total``.
 - A coefficient that already depends on a rate, through a ``pitch_rate`` column
   for example, cannot take the derivative for that rate too.
+- **Where the surface sits matters.** The flight gives every surface the air at
+  its own position, including the velocity from the rocket's rotation, so a
+  surface placed away from the center of dry mass already damps through its
+  slope times its lever arm, as a real fin does. A rate derivative on such a
+  surface should hold only what that leaves out, usually nothing. A
+  whole-vehicle dataset is the other way round: its :math:`C_{m_q}` already
+  includes the lever arms of the fins and the body, so the surface belongs at
+  the center of dry mass, where the rotation adds nothing. That is the default
+  position of :meth:`rocketpy.Rocket.add_full_body_aerodynamics`. Placed one
+  caliber or more away, the lever term can exceed the derivative itself.
 
 Only the rate derivatives are accepted. A slope against the angle, such as
 ``cm_alpha``, belongs to a :class:`rocketpy.LinearGenericSurface`.
@@ -749,7 +759,7 @@ Once defined, the surface is added to the rocket like any other:
    rocket = Rocket(
       ...
    )
-   rocket.add_surfaces(generic_surface, position=(0,0,0))
+   rocket.add_surfaces(generic_surface, positions=(0,0,0))
 
 The position is given in the User Defined Coordinate System; see
 :ref:`rocket_axes` for more information.
@@ -937,7 +947,7 @@ An example defining **all** the coefficient derivatives:
             "cl_p": "cl_p.csv",
          },
       )
-      rocket.add_surfaces(linear_generic_surface, position=(0,0,0))
+      rocket.add_surfaces(linear_generic_surface, positions=(0,0,0))
 
 .. _lineargenericsurface_axisymmetric:
 
@@ -1159,14 +1169,72 @@ during the flight, such as the deflection of canards. List their names in
        control_limits={"deflection": (-0.2, 0.2)},
    )
 
-During a flight the value of each control is a channel of the flight's
-control inputs, named after the surface: an event or a controller writes it as
-``context.controls["canards.deflection"] = 0.1``. ``rocket.control_channels``
-lists every channel. A value outside ``control_limits`` is moved to the
-nearest limit, or kept with a warning when ``clamp=False``. The surface itself
+A :class:`rocketpy.LinearGenericSurface` takes controls the same way. Its
+derivatives are slopes against the angles and rates, so a control enters
+through the zero-angle terms or through a derivative that depends on it:
+
+.. code-block:: python
+
+   canards = LinearGenericSurface(
+       reference_area=rocket.area,
+       reference_length=2 * rocket.radius,
+       coefficients={
+           "cN_alpha": 2.0,
+           "cl_0": lambda mach, deflection: 0.3 * deflection,
+           "cl_p": -0.5,
+       },
+       name="Canards",
+       controls=("deflection",),
+       control_limits={"deflection": (-0.2, 0.2)},
+   )
+
+A table with a control column works too: name the column after the control in
+a file read with ``from_csv`` and pass ``controls=("deflection",)``.
+
+During a flight the value of each control is a control input of the flight,
+named after the surface: an event or a controller writes it as
+``context.controls.canards.deflection = 0.1``. ``rocket.control_names``
+lists every control input. A value outside ``control_limits`` is moved to the
+nearest limit. The surface itself
 is never changed by a flight: every flight starts from ``control_defaults``,
 and those values are also the ones used outside a flight, for the stability
 margin and the plots.
+
+A controller for the first surface above, which turns the canards against the
+roll rate 50 times a second:
+
+.. code-block:: python
+
+   from rocketpy import Controller
+
+   def roll_function(context):
+       # cl = 0.5 * deflection: a positive deflection rolls toward positive w3
+       context.controls.canards.deflection = -0.05 * context.state.w3
+
+   rocket.add_surfaces(canards, positions=1.2)
+   rocket.add_controller(Controller(roll_function, sampling_rate=50))
+
+.. note::
+   Where the surface is placed decides which moments its coefficients must
+   hold:
+
+   - Placed where it sits on the rocket (the canards at ``positions=1.2``),
+     its force already gives a moment about the center of dry mass, and the
+     rocket's pitch and yaw rotation is already damped through that force.
+     Give the force coefficients and the moments about the surface's own
+     reference point, without a ``cm_q`` or ``cn_r`` that repeats that
+     damping. Roll damping (``cl_p``) is not repeated and still belongs
+     there.
+   - With coefficients measured for the whole rocket about its center of dry
+     mass, with the moment each control causes and damping derivatives
+     (``cm_q``, ``cn_r``, ``cl_p``) included, place the surface at the center
+     of dry mass. Anywhere else the moment of the force and the damping are
+     counted twice.
+
+   See :ref:`generic_surface_damping`.
+
+How to write the controller and read the deflections flown is in
+:ref:`controllers`. A surface that lags is shown in :ref:`controlfins`.
 
 .. _active_during:
 
@@ -1207,9 +1275,9 @@ To switch a surface on or off at any other moment, such as apogee, a given
 altitude or a sensor reading, use an :class:`rocketpy.Event`. Its callback
 switches the surface with one of two commands:
 
-- ``context.event.commands.deactivate_surface(surface)``: the surface stops
+- ``context.commands.deactivate_surface(surface)``: the surface stops
   producing force from that moment on.
-- ``context.event.commands.activate_surface(surface)``: the surface starts
+- ``context.commands.activate_surface(surface)``: the surface starts
   producing force from that moment on.
 
 For example, to switch a surface off at apogee:
@@ -1217,7 +1285,7 @@ For example, to switch a surface off at apogee:
 .. code-block:: python
 
    def switch_off(context):
-       context.event.commands.deactivate_surface(my_surface)
+       context.commands.deactivate_surface(my_surface)
 
    switch_event = Event(
       callback=switch_off,
@@ -1271,6 +1339,38 @@ lowers the base drag). To capture this, build two surfaces, set each one's
 ``active_during`` to ``"power_on"`` and ``"power_off"``, and pass them as a list;
 each then produces force only during its phase.
 
+Whole-vehicle coefficients that depend on a control are given the same way:
+build the surface with ``controls`` (see :ref:`surface_controls`) and write
+the control input from a controller. The surface is placed at the center of
+dry mass, so the coefficients must hold the moment each control causes:
+
+.. code-block:: python
+
+   from rocketpy import Controller
+
+   vehicle = GenericSurface(
+      reference_area=rocket.area,
+      reference_length=2 * rocket.radius,
+      coefficients={
+         "cN": "cN.csv",  # columns: alpha, mach, deflection, cN
+         "cm": "cm.csv",  # columns: alpha, mach, deflection, cm
+         "cl": lambda deflection: 0.5 * deflection,
+         "cm_q": -800,
+         "cl_p": -2.0,
+         ...
+      },
+      name="Vehicle",
+      controls=("deflection",),
+      control_limits={"deflection": (-0.2, 0.2)},
+   )
+   rocket.add_full_body_aerodynamics(vehicle, overwrite=True)
+
+   def roll_function(context):
+      # turn the control against the roll rate
+      context.controls.vehicle.deflection = -0.05 * context.state.w3
+
+   rocket.add_controller(Controller(roll_function, sampling_rate=50))
+
 Which drag is used
 ~~~~~~~~~~~~~~~~~~
 
@@ -1278,10 +1378,15 @@ The drag of a rocket in flight is the sum of two things:
 
 - **The rocket's own drag curves**, ``power_on_drag`` before burnout and
   ``power_off_drag`` after it. They are always used.
-- **The axial force of every surface**, which is added on top. The predefined
-  surfaces (nose cone, fins, tail) have no axial coefficient, so they add no
-  drag. A generic surface adds drag only if it is given a ``cA`` (or ``cD``)
-  coefficient.
+- **The axial force of every surface**, which is added on top. The nose cone
+  and the tail have no axial coefficient, so they add no drag; a fin adds only
+  the part of its force that its cant angle tilts along the axis, which is
+  zero for an uncanted fin. A generic surface adds drag only if it is given a
+  ``cA`` (or ``cD``) coefficient.
+
+The same rule holds on the launch rail, where only the forces along the
+rocket's axis count: the drag curves, the air brakes and a generic surface's
+``cA`` all slow the rocket on the rail.
 
 A full-vehicle surface follows the same rule, since it is an ordinary generic
 surface. What changes is the ``overwrite`` argument:
@@ -1291,7 +1396,8 @@ surface. What changes is the ``overwrite`` argument:
   to the other surfaces.
 - ``overwrite=True``: every surface already on the rocket is removed and both
   drag curves are set to zero, so the new surface is the only source of
-  aerodynamic forces.
+  aerodynamic forces. Air brakes are the exception: they are kept, with their
+  controller, and add their drag to the new surface's.
 
 .. warning::
    If your full-vehicle data already includes drag, use ``overwrite=True``, or

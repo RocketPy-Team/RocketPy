@@ -177,6 +177,11 @@ coordinate system. The position matters for inertial sensors: a sensor mounted
 off the center of mass experiences extra acceleration due to the rocket's
 rotation (see :ref:`sensors_technical`).
 
+Each sensor's readings go by its name in snake_case: the ``"GnssReceiver"``
+above is read as ``gnss_receiver``. Give each sensor its own ``name``: a name
+used again is numbered from 2 in the order the sensors were added
+(``accelerometer``, ``accelerometer_2``).
+
 .. jupyter-execute::
 
     calisto.add_sensor(accelerometer, 1.278)
@@ -220,11 +225,10 @@ Using Sensors With a Controller (Air Brakes)
 
 The main motivation for simulating sensors is to feed their measurements into a
 controller, such as an air brakes system, exactly as the real avionics would.
-Inside a controller function, every sensor attached to the rocket is available
-through ``context.sensors`` (a list, in the order they were added)
-and through ``context.sensors_by_name`` (a dictionary keyed by the sensor
-``name``).
-Each sensor exposes its *latest* reading via the ``measurement`` attribute.
+Inside a controller function, ``context.sensors`` holds the *latest* reading
+of every sensor attached to the rocket. Find a sensor by its name as given, or
+by that name in snake_case as an attribute, then read a channel:
+``context.sensors["Accelerometer"].az`` or ``context.sensors.accelerometer.az``.
 
 The controller below reads the accelerometer to detect motor burnout (measured
 vertical acceleration turning negative) before it starts deploying the air
@@ -233,42 +237,37 @@ brakes:
 .. jupyter-execute::
 
     def controller_function(context):
-        time = context.time
         sampling_rate = context.sampling_rate
         state = context.state  # the states, by name
-        controls = context.controls  # the control inputs, by name
-        sensors = context.sensors
+        air_brakes = context.controls.air_brakes  # the air brakes' controls
 
-        # Read the sensor measurement instead of the true state.
-        # Sensors can also be retrieved by name, e.g.
-        # accelerometer = context.sensors_by_name["Accelerometer"]
-        accelerometer = sensors[0]
+        # Read the sensor measurement instead of the true state
+        measured_az = context.sensors.accelerometer.az
+        context.record(measured_az=measured_az)
 
         # Do not deploy while the motor is still burning (measured az > 0)
-        if accelerometer.measurement[2] > 0:
-            return None
+        if measured_az > 0:
+            return
 
-        altitude_AGL = context.height_agl
-        vz = state.vz
-        deployment_level = controls["air_brakes.deployment_level"]
+        deployment_level = air_brakes.deployment_level
 
         # Below 1500 m AGL, keep the air brakes closed
-        if altitude_AGL < 1500:
-            controls["air_brakes.deployment_level"] = 0
+        if context.height_agl < 1500:
+            air_brakes.deployment_level = 0
         else:
-            new_deployment_level = deployment_level + 0.1 * vz
+            new_deployment_level = deployment_level + 0.1 * state.vz
             # Limit the deployment rate to 0.2 per second
             max_change = 0.2 / sampling_rate
             lower_bound = deployment_level - max_change
             upper_bound = deployment_level + max_change
-            controls["air_brakes.deployment_level"] = min(
+            air_brakes.deployment_level = min(
                 max(new_deployment_level, lower_bound), upper_bound
             )
 
 .. note::
 
-    The controller reads ``accelerometer.measurement`` rather than the true
-    ``state`` vector. This is what makes the test realistic: the controller only
+    The controller reads ``context.sensors.accelerometer.az`` rather than the
+    true ``context.state_dot.az``. This is what makes the test realistic: the controller only
     sees the misaligned, noisy, quantized and biased data the physical sensor
     would actually provide.
 
@@ -286,6 +285,7 @@ arguments.
         clamp=True,
         override_rocket_drag=False,
         name="AirBrakes",
+        position=-0.5,  # where the air brakes are, in meters
     )
 
 Simulating the Flight
@@ -305,67 +305,138 @@ configuration is needed in the :class:`rocketpy.Flight` class.
         terminate_on_apogee=True,
     )
 
+Reading sensors in a controller
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A controller reads the **latest measurement** of each sensor, as a flight
+computer reads the last sample its sensor sent. ``context.sensors`` holds them
+all, read-only, by ``<sensor>.<channel>``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Sensor
+     - Channels
+   * - :class:`rocketpy.Accelerometer`
+     - ``ax``, ``ay``, ``az`` (m/s²)
+   * - :class:`rocketpy.Gyroscope`
+     - ``wx``, ``wy``, ``wz`` (rad/s)
+   * - :class:`rocketpy.Barometer`
+     - ``pressure`` (Pa)
+   * - :class:`rocketpy.GnssReceiver`
+     - ``latitude``, ``longitude`` (°), ``altitude`` (m)
+
+``list(context.sensors)`` gives the names of the sensors on your rocket, as
+given (see above). Every
+sensor reads once on the pad when the flight starts, so there is always a
+reading, even for a sensor that samples more slowly than the controller. The
+sensor objects themselves, with their settings, are in
+``context.rocket.sensors``.
+
+Keep **older measurements yourself**, in ``context.memory``, as the software
+of a flight computer keeps what it needs. For example, a moving average of the
+last five pressures the controller read:
+
+.. code-block:: python
+
+    def controller_function(context):
+        pressures = context.memory.setdefault("pressures", [])
+        pressures.append(context.sensors.barometer.pressure)
+        del pressures[:-5]  # keep the last five
+        average_pressure = sum(pressures) / len(pressures)
+        ...
+
+The memory follows the flight: when the simulation goes back in time (for
+instance to find the exact rail exit or apogee time), the memory, the controls
+and every sensor's reading go back with it, so a controller never sees a
+measurement from a stretch of trajectory that was not flown. Read a sensor's
+``measured_data`` after the flight rather than in a controller.
+
+.. note::
+
+    The controller runs only at its own sampling rate. A sensor sampling
+    faster than the controller makes measurements the controller never sees:
+    with a 100 Hz barometer and a 10 Hz controller, it reads one measurement
+    in ten. To use every measurement, run the controller at the sensor's rate
+    and act on every tenth call.
+
 .. _sensors_flight_data:
 
 Accessing Sensor Data via the Flight Class
 ------------------------------------------
 
-The recorded measurements are stored on the resulting flight, in the
-``sensor_data`` attribute. This is the **canonical, per-flight record** of every
-sensor's output and the recommended way to access sensor data.
-
-.. important::
-
-    A sensor object only retains the measurements of its *most recent* flight in
-    ``sensor.measured_data`` - running another flight with the same rocket (for
-    example in a Monte Carlo analysis, or when comparing two flights) overwrites
-    it. ``flight.sensor_data`` is captured per flight, so always prefer it when a
-    rocket or sensor is reused across simulations.
-
-``flight.sensor_data`` is a dictionary keyed by the sensor object. Each value is
-a list of ``(time, *measurement)`` tuples (or a list of such lists if the same
-sensor object was added to the rocket in more than one position):
+The readings are kept by the resulting flight, in its solution:
+``flight.solution.sensors`` holds them as arrays, and
+``flight.sensor_history`` as functions of time, the same way
+``flight.solution.controls`` and ``flight.controls`` keep the control inputs.
+A sensor is found as a controller finds it in ``context.sensors``: by its
+name as given, ``test_flight.solution.sensors["Barometer"]``, or by that name
+in snake_case, ``test_flight.solution.sensors.barometer``. Looping gives the
+names:
 
 .. jupyter-execute::
 
-    data = test_flight.sensor_data[accelerometer]
-    print("Number of accelerometer samples:", len(data))
-    print("First sample (t, ax, ay, az):", data[0])
+    print(list(test_flight.solution.sensors))
+
+Each channel is an ``(n, 2)`` array with one row per reading, time then
+value, with the sensor's noise and resolution:
+
+.. jupyter-execute::
+
+    pressure = test_flight.solution.sensors.barometer.pressure
+    print("Number of readings:", len(pressure))
+    print("First reading (t, pressure):", pressure[0])
+
+In ``flight.sensor_history`` the same channel is a :class:`rocketpy.Function`
+of time in which a reading holds until the next one, since that is what a
+flight computer reading the sensor sees between two samples. Calling it at
+any time gives the last reading at or before that time:
+
+.. jupyter-execute::
+
+    pressure = test_flight.sensor_history["Barometer"].pressure
+    print("Pressure read at 5 s:", pressure(5.0), "Pa")
+
+.. important::
+
+    The readings are part of the flight: they are saved and loaded with it,
+    and the readings taken on a stretch of trajectory that the simulation went
+    back over (for instance to find the exact rail exit or apogee time) are
+    dropped. A sensor object only keeps the readings of its *most recent*
+    flight in ``sensor.measured_data``, so prefer the flight's readings when a
+    rocket or sensor is used in more than one simulation.
 
 Prints and plots
 ~~~~~~~~~~~~~~~~~
 
-The flight's ``prints`` and ``plots`` objects expose sensor-aware helpers that
-read directly from ``flight.sensor_data``. Use them to summarize and visualize
-every sensor at once.
-
-``flight.prints.sensors()`` prints a per-sensor summary (type, sampling rate,
-number of samples and per-channel min/max/mean):
+``flight.prints.sensors()`` lists each sensor (the name its readings go by,
+type, sampling rate and number of readings), then the smallest, largest and
+final reading of every channel:
 
 .. jupyter-execute::
 
     test_flight.prints.sensors()
 
-``flight.plots.sensor_data()`` plots every channel of every sensor against time:
+``flight.plots.sensors()`` plots every channel of every sensor against time,
+one plot per sensor, each reading held until the next:
 
 .. jupyter-execute::
 
-    test_flight.plots.sensor_data()
+    test_flight.plots.sensors()
 
 Working with the raw data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Because ``flight.sensor_data`` holds plain tuples, the data can be unpacked and
-post-processed directly. For example, to plot the measured vertical
-acceleration:
+The arrays in ``flight.solution.sensors`` are the readings themselves. For
+example, to plot the measured vertical acceleration:
 
 .. jupyter-execute::
 
     import matplotlib.pyplot as plt
 
-    time, ax, ay, az = zip(*test_flight.sensor_data[accelerometer])
+    az = test_flight.solution.sensors["Accelerometer"].az
 
-    plt.plot(time, az, label="Measured az")
+    plt.step(az[:, 0], az[:, 1], where="post", label="Measured az")
     plt.xlabel("Time (s)")
     plt.ylabel("Acceleration az (m/s^2)")
     plt.legend()

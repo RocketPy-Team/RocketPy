@@ -19,6 +19,7 @@ RocketPy's User Guide
    Environment <environment.rst>
    Flight <flight.rst>
    Event Usage <event_usage.rst>
+   Controllers and Effectors <controllers.rst>
 
 .. toctree::
    :maxdepth: 2
@@ -27,6 +28,7 @@ RocketPy's User Guide
    Compare Flights Class<compare_flights.rst>
    Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
+   Control Fins <control_fins.rst>
    Sensors <sensors_usage.rst>
    ../matlab/matlab.rst
 

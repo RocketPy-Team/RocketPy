@@ -12,4 +12,6 @@ AeroSurface Plots and Prints Classes
     EllipticalFins Plots and Prints <EllipticalFins/index>
     Tail Plots and Prints <Tail/index>
     RailButtons Plots and Prints <RailButtons/index>
+    ControlFins Plots and Prints <ControlFins/index>
+    AirBrakes Plots and Prints <AirBrakes/index>
 

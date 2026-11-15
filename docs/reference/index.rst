@@ -18,8 +18,12 @@ This reference manual details functions, modules, methods and attributes include
    classes/sensors/index.rst
    classes/Flight
    classes/Solution
+   classes/FlightDataExporter
    classes/Event
    classes/EventContext
+   classes/Commands
+   classes/EventViews
+   Control Classes <classes/control/index>
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis
    Monte Carlo Analysis <classes/monte_carlo/index> 
