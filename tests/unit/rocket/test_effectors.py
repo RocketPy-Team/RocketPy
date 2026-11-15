@@ -481,10 +481,10 @@ def test_the_rocket_prints_what_controls_it(calisto, gimbal, push_effector, caps
     """Its controllers, each part with controls and where each effector acts."""
     calisto.add_effector(gimbal)
     calisto.add_effector(push_effector, position=0.4)
-    calisto.add_controller(Controller(lambda context: None, None, name="Every Step"))
+    calisto.add_controller(Controller(lambda context: None, 10, name="Sampled"))
     calisto.prints.all()
     out = capsys.readouterr().out
-    assert "Controller 'Every Step' run at every solver step." in out
+    assert "Controller 'Sampled' with sampling rate 10 Hz." in out
     assert "context.controls.gimbal.<control>" in out
     assert "'Gimbal', acting on the motor's thrust" in out
     assert "'Push', at (" in out

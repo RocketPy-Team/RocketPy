@@ -63,12 +63,10 @@ class Controller(Event):
             ``context.controls.<controllable>.<control>``, among the names
             ``rocket.control_names`` lists, and may keep values for after
             the flight with ``context.record``. What it returns is ignored.
-        sampling_rate : float or None
-            How many times per second the controller runs, in Hz. ``None``
-            runs it at the end of every solver step instead, so how often it
-            runs depends on the solver's tolerances; for a law that should
-            be integrated with the dynamics, use
-            :class:`rocketpy.ContinuousController`.
+        sampling_rate : float
+            How many times per second the controller runs, in Hz. Must be
+            positive. For a law that acts at every instant instead of at a
+            fixed rate, use :class:`rocketpy.ContinuousController`.
         memory : dict, optional
             Values the controller keeps from one run to the next, read and
             written as ``context.memory``, such as the integral of a PID
@@ -111,8 +109,7 @@ class Controller(Event):
             solver at the sample only when a control changes. ``False`` stops
             the solver at every sample. The default is faster; the results
             differ only by the solver's choice of steps. Ignored when the
-            flight has ``time_overshoot=False``, and for a controller run at
-            every solver step (``sampling_rate=None``).
+            flight has ``time_overshoot=False``.
 
         See Also
         --------
@@ -125,12 +122,13 @@ class Controller(Event):
         rocketpy.Flight.event_outputs : The outputs written during the flight.
         """
         controller_function = _check_controller_function(controller_function)
-        if sampling_rate is not None and sampling_rate <= 0:
+        # A controller with no rate would run once per solver step, so how
+        # often it ran would depend on the solver's tolerances
+        if sampling_rate is None or not sampling_rate > 0:
             raise ValueError(
                 f"The sampling rate of the controller '{name}' must be a "
-                f"positive number of Hz, got {sampling_rate!r}. Use None to "
-                "run the controller at every solver step, or "
-                "rocketpy.ContinuousController to run it with the dynamics."
+                f"positive number of Hz, got {sampling_rate!r}. For a law that "
+                "acts at every instant, use rocketpy.ContinuousController."
             )
         # Kept as given, for saving: the event turns them into functions
         self._gates = (disable_on, enable_on)
@@ -168,8 +166,6 @@ class Controller(Event):
             self.callback.reset()
 
     def __str__(self):
-        if self.sampling_rate is None:
-            return f"Controller '{self.name}' run at every solver step."
         return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
 
     def info(self):

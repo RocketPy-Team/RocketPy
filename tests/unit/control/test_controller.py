@@ -247,18 +247,12 @@ def test_the_function_must_take_the_context(function):
         Controller(function, sampling_rate=10)
 
 
-@pytest.mark.parametrize("sampling_rate", [0, -1])
+@pytest.mark.parametrize("sampling_rate", [0, -1, None])
 def test_the_sampling_rate_must_be_positive(sampling_rate):
+    """A controller always has a rate: without one it would run once per
+    solver step, as often as the solver's tolerances happen to make it."""
     with pytest.raises(ValueError, match="sampling rate"):
         Controller(lambda context: None, sampling_rate=sampling_rate)
-
-
-def test_no_sampling_rate_runs_the_controller_at_every_solver_step():
-    controller = Controller(lambda context: None, sampling_rate=None)
-    assert controller.sampling_rate is None
-    assert not controller.is_discrete
-    assert not controller.time_overshootable
-    assert "every solver step" in str(controller)
 
 
 def test_memory_starts_again_at_every_flight():

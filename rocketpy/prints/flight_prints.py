@@ -397,10 +397,7 @@ class _FlightPrints:
 
         for controller in self.flight.controllers:
             print(f"Controller: {controller.name}")
-            if controller.sampling_rate is None:
-                print("\tSampling Rate: every solver step")
-            else:
-                print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
+            print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
             print(f"\tEnabled at end of simulation: {controller.enabled}")
             print(f"\tRun Count: {len(controller.triggered_times)}")
             if controller.triggered_times:

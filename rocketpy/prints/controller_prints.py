@@ -88,10 +88,7 @@ class _ControllerPrints:
         function = self.controller.controller_function
         name = getattr(function, "__name__", type(function).__name__)
         print(f"Controller function: {name}")
-        if self.controller.sampling_rate is None:
-            print("Sampling rate: every solver step")
-        else:
-            print(f"Sampling rate: {self.controller.sampling_rate:.3f} Hz")
+        print(f"Sampling rate: {self.controller.sampling_rate:.3f} Hz")
 
     def gates(self):
         """Print when the controller runs."""

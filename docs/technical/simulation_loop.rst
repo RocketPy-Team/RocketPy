@@ -149,8 +149,8 @@ Checking events after a step
    after a lag) moves the solver's bound instead. A control write or a surface
    switch at the step's end does not rebuild it: the solver is already at that time and
    meets the new derivative on its next step. A rebuilt solver begins again
-   with a tiny step, so rebuilding on every write would make a controller
-   checked at every step cripple the integration.
+   with a tiny step, so rebuilding on every write would make an event that
+   writes a control at every step cripple the integration.
 
 .. _time_overshoot_processing:
 

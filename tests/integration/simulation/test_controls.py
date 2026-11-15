@@ -120,7 +120,7 @@ def _integrate_roll(states, controls, conditions):  # pylint: disable=unused-arg
 
 
 def _write_level(context):
-    context.outputs.every_step.level = 0.1
+    context.outputs.sampled.level = 0.1
 
 
 @patch("matplotlib.pyplot.show")
@@ -130,11 +130,11 @@ def test_every_kind_of_controller_is_printed_and_plotted(
     example_plain_env,
     capsys,
 ):
-    """A controller run at every solver step, a continuous controller with a
-    state and an output are all in the flight's prints and plots."""
+    """A sampled controller with an output and a continuous controller with a
+    state are all in the flight's prints and plots."""
     calisto_robust.parachutes = []
     calisto_robust.add_controller(
-        Controller(_write_level, None, outputs=("level",), name="Every Step")
+        Controller(_write_level, 10, outputs=("level",), name="Sampled")
     )
     calisto_robust.add_controller(
         ContinuousController(
@@ -145,7 +145,7 @@ def test_every_kind_of_controller_is_printed_and_plotted(
 
     flight.prints.controllers()
     out = capsys.readouterr().out
-    assert "Sampling Rate: every solver step" in out
+    assert "Sampling Rate: 10.000 Hz" in out
     assert "Continuous Controller: Observer" in out and "State roll" in out
     assert flight.plots.state_history() is None
     assert flight.plots.event_outputs() is None
