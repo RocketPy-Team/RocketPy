@@ -271,22 +271,27 @@ brakes:
     sees the misaligned, noisy, quantized and biased data the physical sensor
     would actually provide.
 
-Register the controller through the air brakes. See the
+Add the air brakes and the controller to the rocket. See the
 :ref:`Air Brakes <airbrakes>` example for a detailed explanation of these
 arguments.
 
 .. jupyter-execute::
 
-    air_brakes = calisto.add_air_brakes(
+    from rocketpy import AirBrakes, Controller
+
+    air_brakes = AirBrakes(
         drag_coefficient_curve="../data/rockets/calisto/air_brakes_cd.csv",
-        controller_function=controller_function,
-        sampling_rate=10,
-        reference_area=None,
-        clamp=True,
-        override_rocket_drag=False,
+        reference_area=calisto.area,
         name="AirBrakes",
-        position=-0.5,  # where the air brakes are, in meters
     )
+    calisto.add_surfaces(air_brakes, positions=-0.5)  # where they are, in meters
+
+    controller = Controller(
+        controller_function,
+        sampling_rate=10,
+        name="AirBrakes Controller",
+    )
+    calisto.add_controller(controller)
 
 Simulating the Flight
 ---------------------
@@ -349,8 +354,9 @@ last five pressures the controller read:
 The memory follows the flight: when the simulation goes back in time (for
 instance to find the exact rail exit or apogee time), the memory, the controls
 and every sensor's reading go back with it, so a controller never sees a
-measurement from a stretch of trajectory that was not flown. Read a sensor's
-``measured_data`` after the flight rather than in a controller.
+measurement from a stretch of trajectory that was not flown. To see every
+reading after the flight, use ``flight.sensor_history`` (see
+:ref:`sensors_flight_data`).
 
 .. note::
 
