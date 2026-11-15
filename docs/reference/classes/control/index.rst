@@ -10,5 +10,5 @@ Controllers, the parts they move and what a part is told about the flight. See
 
    Controller Class <controller>
    ContinuousController Class <continuous_controller>
-   Controllable and Effector Classes <controllable>
+   Effector Classes <effectors>
    FlightConditions Class <flight_conditions>

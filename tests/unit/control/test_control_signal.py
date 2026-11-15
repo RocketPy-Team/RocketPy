@@ -69,7 +69,7 @@ def test_an_object_that_is_not_controllable_is_refused(calisto):
         control_limits = {}
 
     for controllable in (object(), LookAlike()):
-        with pytest.raises(TypeError, match="Controllable"):
+        with pytest.raises(TypeError, match="not one of RocketPy's controllables"):
             calisto._check_new_controllables(controllable)
 
 

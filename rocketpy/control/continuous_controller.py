@@ -31,8 +31,7 @@ class ContinuousController(Controllable):
     Attributes
     ----------
     law_function : callable or None
-        The control law, or ``None`` for a controller with states and no law,
-        or one whose law is defined as a method.
+        The control law, or ``None`` for a controller with states and no law.
     derivative_function : callable or None
         The derivative of the controller's states with respect to time, or
         ``None`` for a controller without states.

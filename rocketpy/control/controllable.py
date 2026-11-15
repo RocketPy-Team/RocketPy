@@ -356,14 +356,12 @@ class ThrustEffector(Controllable):
     returned exit. Several thrust effectors act in turn, in the order they
     were added.
 
-    Built from a function, or subclassed with :meth:`thrust_and_nozzle` as
-    a method. See :ref:`controllers` for examples.
+    Built from a function. See :ref:`controllers` for examples.
 
     Attributes
     ----------
-    thrust_function : callable or None
-        The function the effector was built from, or ``None`` when
-        :meth:`thrust_and_nozzle` is defined as a method.
+    thrust_function : callable
+        The function the effector was built from.
     """
 
     def __init__(
@@ -378,14 +376,13 @@ class ThrustEffector(Controllable):
 
         Parameters
         ----------
-        thrust_and_nozzle : callable, optional
+        thrust_and_nozzle : callable
             ``thrust_and_nozzle(thrust, nozzle, *controls, conditions)``: the
             thrust so far, in N, where the nozzle exit is so far, in m from the
             center of dry mass, one value per control in the order of
             ``controls``, and the flight at this moment, a
             :class:`rocketpy.control.FlightConditions`. Returns ``(thrust,
             nozzle)`` after the effector, each three numbers in the body frame.
-            Leave it out in a subclass that defines :meth:`thrust_and_nozzle`.
         controls : tuple of str, optional
             Names of the controls a controller can set, such as
             ``("pitch", "yaw")``. Default: none.
@@ -462,15 +459,13 @@ class ForceEffector(Controllable):
     aerodynamic: it takes no part in the static margin or the center of
     pressure.
 
-    Built from a function, or subclassed with :meth:`force_and_moment` as a
-    method. See :ref:`controllers` for examples and the frame conventions
-    in full.
+    Built from a function. See :ref:`controllers` for examples and the
+    frame conventions in full.
 
     Attributes
     ----------
-    force_function : callable or None
-        The function the effector was built from, or ``None`` when
-        :meth:`force_and_moment` is defined as a method.
+    force_function : callable
+        The function the effector was built from.
     """
 
     def __init__(
@@ -485,14 +480,13 @@ class ForceEffector(Controllable):
 
         Parameters
         ----------
-        force_and_moment : callable, optional
+        force_and_moment : callable
             ``force_and_moment(*controls, conditions)``: one value per control
             in the order of ``controls``, and the flight at this moment, a
             :class:`rocketpy.control.FlightConditions`. Returns ``(force,
             moment)``, each three numbers in the body frame: the force in N
             and the moment in N m, about the center of dry mass or, for a
-            placed effector, the pure couple. Leave it out in a subclass that
-            defines :meth:`force_and_moment`.
+            placed effector, the pure couple.
         controls : tuple of str, optional
             Names of the controls a controller can set, such as ``("firing",)``.
             Default: none.

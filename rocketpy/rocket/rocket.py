@@ -704,9 +704,8 @@ class Rocket:
             if not isinstance(controllable, Controllable):
                 raise TypeError(
                     f"{controllable!r} cannot be added to the rocket: it is not one of "
-                    "RocketPy's controllables (a rocketpy.control.Controllable). Use a "
-                    "RocketPy class, such as ForceEffector, or subclass one of "
-                    "the effector classes for a controllable none of them covers."
+                    "RocketPy's controllables. Use a RocketPy class, such as "
+                    "ForceEffector or ThrustEffector built from a function."
                 )
             controllable._check_controls()
             controllable._check_states()

@@ -267,8 +267,7 @@ def check_hook(owner, what, function, default, arguments, needed=True):
         if needed and getattr(type(owner), what) is default:
             base = default.__qualname__.partition(".")[0]
             raise TypeError(
-                f"'{owner.name}' needs a {what}: give it a function `{signature}`, "
-                f"or subclass {base} and define the method."
+                f"'{owner.name}' needs a {what}: give {base} a function `{signature}`."
             )
         return None
     if not callable(function):
