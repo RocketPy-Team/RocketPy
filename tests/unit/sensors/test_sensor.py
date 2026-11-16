@@ -383,6 +383,39 @@ def test_accelerometer_reads_gravity_at_its_altitude():
     assert accelerometer.measurement == approx([0, 0, 5], abs=1e-12)
 
 
+def test_accelerometer_prefers_the_gravity_it_is_given():
+    """The ``gravity`` kwarg passed by ``Flight`` wins over ``environment.gravity``."""
+    env = Environment(gravity=lambda height: 10 - height / 1000)
+    hovering = [0.0] * 13
+    hovering[2] = 5000
+    hovering[6] = 1.0
+
+    accelerometer = Accelerometer(sampling_rate=100, consider_gravity=True)
+    accelerometer.measure(
+        time=0,
+        u=hovering,
+        u_dot=[0.0] * 13,
+        relative_position=Vector([0, 0, 0]),
+        environment=env,
+        gravity=7,
+    )
+
+    assert accelerometer.measurement == approx([0, 0, 7], abs=1e-12)
+
+
+def test_accelerometer_without_gravity_does_not_need_environment():
+    """With ``consider_gravity=False`` no gravity is looked up at all."""
+    at_rest = [0.0] * 13
+    at_rest[6] = 1.0
+
+    accelerometer = Accelerometer(sampling_rate=100, consider_gravity=False)
+    accelerometer.measure(
+        time=0, u=at_rest, u_dot=[0.0] * 13, relative_position=Vector([0, 0, 0])
+    )
+
+    assert accelerometer.measurement == approx([0, 0, 0], abs=1e-12)
+
+
 def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):
     """Test the measure method of the Gyroscope class. Checks if saved
     measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
