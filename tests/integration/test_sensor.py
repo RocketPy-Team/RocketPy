@@ -5,6 +5,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+from rocketpy import Environment, Flight
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
 from rocketpy.sensors.accelerometer import Accelerometer
@@ -180,3 +181,34 @@ def test_export_single_sensor_data(flight_calisto_with_sensors):
         sensor_data["Gyroscope"] == flight_calisto_with_sensors.sensors[2].measured_data
     )
     os.remove(filename)
+
+
+def test_accelerometer_gravity_in_flight(
+    calisto, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
+):
+    """In a Flight, ``consider_gravity`` adds exactly ``g(z(t))`` to the reading."""
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_trapezoidal_fins, -1.168)
+    with_gravity = Accelerometer(sampling_rate=10, consider_gravity=True)
+    without_gravity = Accelerometer(sampling_rate=10, consider_gravity=False)
+    calisto.add_sensor(with_gravity, -0.1180124376577797)
+    calisto.add_sensor(without_gravity, -0.1180124376577797)
+    # Height dependent, so reading it at the wrong state index changes the value
+    env = Environment(gravity=lambda height: 9.81 - height / 1000, elevation=1000)
+
+    flight = Flight(
+        rocket=calisto,
+        environment=env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    time, *reading = np.array(with_gravity.measured_data).T
+    _, *reading_without = np.array(without_gravity.measured_data).T
+    gravity_reading = np.linalg.norm(np.subtract(reading, reading_without), axis=0)
+    expected_gravity = 9.81 - np.array(flight.z(time)) / 1000
+    assert len(time) > 10
+    assert np.allclose(gravity_reading, expected_gravity, atol=1e-9)
