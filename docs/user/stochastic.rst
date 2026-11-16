@@ -375,8 +375,7 @@ still describe the same rocket, flight and environment.
 
 Logs from v1.13 have no study seed. Appending preserves their rows and emits a
 warning: the old random stream cannot be recovered. New rows record the reported
-seed. Existing one-based serial numbering is preserved; new studies start at
-zero. Checkpoint fields (``index`` and ``seed``) are excluded from ``results``, summary statistics and plots.
+seed. Indices start at zero, so a one-based v1.13 serial log gains index 0. Checkpoint fields (``index`` and ``seed``) are excluded from ``results``, summary statistics and plots.
 
 Conclusion
 ----------

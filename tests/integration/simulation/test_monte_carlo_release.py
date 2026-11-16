@@ -120,7 +120,7 @@ def test_a_second_study_does_not_warn_about_seeds_the_first_one_set(
 
 @pytest.mark.parametrize("parallel", [False, True])
 def test_v113_study_can_be_extended_with_a_warning(release_study, parallel):
-    """Keep one-based legacy rows and append without claiming reproducibility."""
+    """Keep legacy rows, fill index 0 and warn about the random stream."""
     release_study.simulate(2, random_seed=42, include_function_data=False)
     for path in (release_study.input_file, release_study.output_file):
         rows = _rows(path)
@@ -142,11 +142,13 @@ def test_v113_study_can_be_extended_with_a_warning(release_study, parallel):
         )
 
     assert _rows(release_study.output_file)[:2] == original
+    # v1.13 serial rows were one-based and parallel ones may hold a hole at
+    # 0; the logs cannot tell which, so index 0 is run either way.
     assert sorted(row["index"] for row in _rows(release_study.output_file)) == [
+        0,
         1,
         2,
         3,
-        4,
     ]
 
 

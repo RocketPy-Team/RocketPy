@@ -817,7 +817,6 @@ class _InterruptingMonteCarlo(MonteCarlo):
         self.num_of_loaded_sims = 0
         self.number_of_simulations = 0
         self._export_config = {}
-        self._initial_sim_idx = 0
         self.interrupt_after = interrupt_after
         self.completed = 0
         self.environment = types.SimpleNamespace()
@@ -1025,9 +1024,6 @@ class _FakeSimMonitor:
 
     def print_final_status(self):
         self.final_status_calls += 1
-
-    def skip_completed(self, indices):
-        pass
 
 
 def test_interrupted_parallel_run_signals_joins_and_reaches_the_caller(

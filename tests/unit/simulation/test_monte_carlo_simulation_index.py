@@ -128,7 +128,7 @@ def test_a_serial_failure_names_the_simulation_the_way_parallel_would(
 def test_claim_next_index_hands_out_each_index_once():
     """Claimers racing each other get range(n) between them and nothing past it."""
     n_simulations, n_claimers = 200, 8
-    monitor = _SimMonitor(0, n_simulations, time())
+    monitor = _SimMonitor(range(n_simulations), 0, time())
     ready = threading.Barrier(n_claimers)
     guard = threading.Lock()
     claimed = []
@@ -155,10 +155,18 @@ def test_claim_next_index_hands_out_each_index_once():
 
 def test_claim_next_index_is_empty_once_the_target_is_reached():
     """The control: a checkpoint that already holds the target claims nothing."""
-    monitor = _SimMonitor(3, 3, time())
+    monitor = _SimMonitor([], 3, time())
 
     assert monitor.claim_next_index() is None
-    assert monitor.count == 3
+
+
+def test_claim_next_index_hands_out_the_planned_indices_in_order():
+    """The monitor claims what the study planned, holes first, and no more."""
+    monitor = _SimMonitor([1, 3, 4], 2, time())
+
+    claimed = iter(monitor.claim_next_index, None)
+
+    assert list(claimed) == [1, 3, 4]
 
 
 def test_a_collector_cannot_take_over_the_simulation_index(

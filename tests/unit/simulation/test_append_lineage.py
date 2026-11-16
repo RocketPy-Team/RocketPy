@@ -16,7 +16,6 @@ def checkpoint(tmp_path):
     )
     study._MonteCarlo__study_seed = 42
     study._completed_indices = set()
-    study._index_offset = 0
     _write(study.input_file, [{"index": 0, "seed": 42}, {"index": 1, "seed": 42}])
     _write(
         study.output_file,
@@ -94,7 +93,6 @@ def test_checkpoint_accepts_holes_and_completion_order(checkpoint, numbers):
     checkpoint._MonteCarlo__continue_study(None)
 
     assert checkpoint._completed_indices == set(numbers)
-    assert checkpoint._index_offset == 0
 
 
 def test_checkpoint_rejects_duplicate_indices(checkpoint):

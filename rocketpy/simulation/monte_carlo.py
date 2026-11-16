@@ -418,15 +418,16 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         self._export_config = kwargs
         self.number_of_simulations = number_of_simulations
-        self._initial_sim_idx = 0
         self.__study_seed = _study_seed(random_seed)
         self._completed_indices = set()
-        self._index_offset = 0
         _refuse_logs_this_run_cannot_write(
             self.input_file, self.output_file, self.error_file, kwargs
         )
         if append:
             self.__continue_study(random_seed)
+        self._indices_to_run = _indices_to_run(
+            self._completed_indices, number_of_simulations
+        )
         if (
             random_seed is None
             and not self._completed_indices
@@ -555,13 +556,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         None
         """
         sim_monitor = _SimMonitor(
-            initial_count=self._initial_sim_idx,
-            n_simulations=self.number_of_simulations + self._index_offset,
+            indices=self._indices_to_run,
+            exported_before=len(self._completed_indices),
             start_time=time(),
         )
-        sim_monitor.skip_completed(self._completed_indices)
         inputs_json = ""
-        sim_idx = self._initial_sim_idx
+        sim_idx = None
         try:
             # Counted from zero, as the parallel path already does: the two
             # used to name the same simulation 1, 2, 3 and 0, 1, 2.
@@ -615,12 +615,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             mutex = manager.Lock()
             simulation_error_event = manager.Event()
             sim_monitor = manager._SimMonitor(
-                initial_count=self._initial_sim_idx,
-                n_simulations=self.number_of_simulations + self._index_offset,
+                indices=self._indices_to_run,
+                exported_before=len(self._completed_indices),
                 start_time=time(),
             )
-
-            sim_monitor.skip_completed(self._completed_indices)
             processes = []
 
             try:
@@ -659,9 +657,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 _refuse_logs_missing_a_simulation(
                     self.input_file,
                     self.output_file,
-                    self.number_of_simulations,
-                    index_offset=self._index_offset,
-                    previous_indices=self._completed_indices,
+                    self._completed_indices | set(self._indices_to_run),
                 )
 
                 sim_monitor.print_final_status()
@@ -802,8 +798,6 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 UserWarning,
                 stacklevel=3,
             )
-            self._index_offset = int(all(row["index"] >= 1 for row in legacy))
-        self._initial_sim_idx = self._index_offset
         self._completed_indices = set(held)
 
     def __has_object_seed(self):
@@ -2111,14 +2105,19 @@ def _indices_a_log_holds(path):
     return found
 
 
-def _refuse_logs_missing_a_simulation(
-    input_file, output_file, target, index_offset=0, previous_indices=()
-):
-    """Require paired logs covering the target and all checkpointed indices.
-    Reject unreadable rows, duplicates and unexpected indices; previously
-    completed rows beyond a smaller target remain valid.
+def _indices_to_run(completed, target):
+    """Every index below ``target`` that ``completed`` does not hold.
+
+    One rule for every checkpoint: seeded, legacy one-based, or with holes.
     """
-    wanted = set(range(index_offset, target + index_offset)) | set(previous_indices)
+    return [index for index in range(target) if index not in completed]
+
+
+def _refuse_logs_missing_a_simulation(input_file, output_file, expected):
+    """Require paired logs holding exactly the ``expected`` indices, once each,
+    in the same order. ``expected`` is the checkpoint plus what this run planned.
+    """
+    expected = set(expected)
     recorded = {}
     for label, path in (("input", input_file), ("output", output_file)):
         found = _indices_a_log_holds(path)
@@ -2134,26 +2133,19 @@ def _refuse_logs_missing_a_simulation(
                 f"The run is incomplete: the {label} log records "
                 f"{len(found) - len(held)} simulation(s) more than once."
             )
-        missing = sorted(wanted - held)
+        missing = sorted(expected - held)
         if missing:
             raise RuntimeError(
                 f"The run is incomplete: the {label} log is missing "
-                f"{len(missing)} of {target} simulations, the first being "
+                f"{len(missing)} of {len(expected)} simulations, the first being "
                 f"{missing[0]}."
             )
-        # With a checkpoint, only the target and the checkpoint are valid; the
-        # log's own length must not widen the range, or it hides a stray.
-        upper = target if previous_indices else max(target, len(found))
-        strays = sorted(
-            held
-            - set(range(index_offset, upper + index_offset))
-            - set(previous_indices)
-        )
+        strays = sorted(held - expected)
         if strays:
             raise RuntimeError(
                 f"The run is incomplete: the {label} log numbers a simulation "
-                f"{strays[0]}, past the {len(found)} it holds, so what it "
-                f"records is not the run, or the checkpoint, that was asked for."
+                f"{strays[0]} that neither the checkpoint nor this run holds, so "
+                f"what it records is not the study that was asked for."
             )
 
     if recorded["input"] != recorded["output"]:
@@ -2233,24 +2225,14 @@ class _SimMonitor:
 
     _last_print_len = 0
 
-    def __init__(self, initial_count, n_simulations, start_time):
-        self.initial_count = initial_count
-        self.count = initial_count
-        self.n_simulations = n_simulations
+    def __init__(self, indices, exported_before, start_time):
+        self._indices = list(indices)
+        self._next = 0
+        self.n_simulations = len(self._indices)
+        self.exported_before = exported_before
         self.start_time = start_time
         self.completed_count = 0
-        self._pending_count = n_simulations - initial_count
-        self._completed_indices = set()
         self._claim = threading.Lock()  # proxy calls run in the manager
-
-    def skip_completed(self, indices):
-        """Exclude checkpointed simulations from new claims and progress totals."""
-        self._completed_indices = set(indices)
-        self._pending_count = max(0, self.n_simulations - self.count) - sum(
-            self.count <= index < self.n_simulations
-            for index in self._completed_indices
-        )
-        self.initial_count = len(self._completed_indices)
 
     def claim_next_index(self):
         """The next index to run, or None once every one has been claimed.
@@ -2259,13 +2241,10 @@ class _SimMonitor:
         see the last slot free and then claim an index each past the end.
         """
         with self._claim:
-            while self.count in self._completed_indices:
-                self.count += 1
-            if self.count >= self.n_simulations:
+            if self._next >= self.n_simulations:
                 return None
-            claimed = self.count
-            self.count += 1
-            return claimed
+            self._next += 1
+            return self._indices[self._next - 1]
 
     def print_update_status(self):
         """Prints a message on the same line as the previous one and replaces
@@ -2281,7 +2260,7 @@ class _SimMonitor:
         self.completed_count += 1
 
         average_time = (time() - self.start_time) / self.completed_count
-        remaining = self._pending_count - self.completed_count
+        remaining = self.n_simulations - self.completed_count
         estimated_time = int(remaining * average_time)
 
         msg = f"Iterations completed: {self.completed_count:06d}"
@@ -2295,7 +2274,7 @@ class _SimMonitor:
         print()
         msg = f"Completed {self.completed_count} iterations."
         msg += (
-            f" In total, {self.initial_count + self.completed_count} "
+            f" In total, {self.exported_before + self.completed_count} "
             "simulations are exported.\n"
         )
         msg += f"Total wall time: {time() - self.start_time:.1f} s"

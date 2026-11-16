@@ -251,7 +251,7 @@ def test_a_worker_loop_draws_the_study_serial_draws(models, tmp_path):
     worker.simulate(0, append=False, random_seed=42, include_function_data=False)
 
     worker._MonteCarlo__sim_producer(
-        _SimMonitor(initial_count=0, n_simulations=4, start_time=time()),
+        _SimMonitor(indices=range(4), exported_before=0, start_time=time()),
         _ALockNobodyContends(),
         _AnEventNobodySet(),
     )
