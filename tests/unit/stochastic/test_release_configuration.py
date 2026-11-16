@@ -1,5 +1,7 @@
 """Regression checks for stochastic configurations used by Monte Carlo."""
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -74,11 +76,28 @@ def test_stochastic_flight_keeps_nominal_terminate_on_apogee(flight_calisto_robu
         max_time=1,
     )
 
-    kept = StochasticFlight(nominal)
+    with pytest.warns(UserWarning, match="terminate_on_apogee=False"):
+        kept = StochasticFlight(nominal)
     overridden = StochasticFlight(nominal, terminate_on_apogee=False)
 
     assert kept.create_object().terminate_on_apogee is True
     assert overridden.create_object().terminate_on_apogee is False
+
+
+@pytest.mark.parametrize("given", [True, False])
+def test_an_explicit_terminate_on_apogee_does_not_warn(flight_calisto_robust, given):
+    """Only an inherited True is easy to miss; a value the caller passed is not."""
+    nominal = Flight(
+        flight_calisto_robust.rocket,
+        flight_calisto_robust.env,
+        rail_length=5.2,
+        terminate_on_apogee=True,
+        max_time=1,
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        StochasticFlight(nominal, terminate_on_apogee=given)
 
 
 def test_stochastic_flight_keeps_nominal_tip_off_phase(flight_calisto_robust):

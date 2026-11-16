@@ -1,5 +1,6 @@
 """Defines the StochasticFlight class."""
 
+import warnings
 from numbers import Real
 
 import numpy as np
@@ -110,6 +111,14 @@ class StochasticFlight(StochasticModel):
             initial_solution = list(initial_solution.solution[-1])
         self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
+        if terminate_on_apogee is None and flight.terminate_on_apogee:
+            warnings.warn(
+                "StochasticFlight keeps the base flight's terminate_on_apogee=True, "
+                "so every sampled flight stops at apogee; pass "
+                "terminate_on_apogee=False to simulate the full flight.",
+                UserWarning,
+                stacklevel=2,
+            )
         self.terminate_on_apogee = (
             flight.terminate_on_apogee
             if terminate_on_apogee is None

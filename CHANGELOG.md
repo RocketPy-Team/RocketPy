@@ -63,7 +63,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- BUG: Keep checkpoint metadata out of Monte Carlo plots and statistics, recover missing simulation indices without repeating completed flights, and warn when appending v1.13 logs. Preserve explicit initial flight states, `terminate_on_apogee`, `use_udot_rail2` and solid-motor grain bonding in stochastic models. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
+- BUG: Keep checkpoint metadata out of Monte Carlo plots and statistics, recover missing simulation indices without repeating completed flights, and warn when appending v1.13 logs. Preserve explicit initial flight states, `terminate_on_apogee` (warning when an inherited `True` stops every sampled flight at apogee), `use_udot_rail2` and solid-motor grain bonding in stochastic models. [#1209](https://github.com/RocketPy-Team/RocketPy/issues/1209)
 - BUG: A `Flight` continued from another `Flight` object now records `t_initial`, so a rocket carrying sensors or controllers no longer raises `AttributeError` on that path. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
 - BUG: Report a Monte Carlo worker that fails instead of hanging or passing for a finished run [#1182](https://github.com/RocketPy-Team/RocketPy/pull/1182)
