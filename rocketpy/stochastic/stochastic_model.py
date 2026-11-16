@@ -716,8 +716,14 @@ class StochasticModel:
             # The group holds the shared state, so reset it directly; a member
             # may reset differently, or keep state of its own.
             resetter = group if hasattr(group, "reset_seed") else sampler
+            sampler_seed = _sampler_seed(seed, names)
             try:
-                resetter.reset_seed(_sampler_seed(seed, names) & 0xFFFFFFFF)
+                try:
+                    resetter.reset_seed(sampler_seed)
+                except ValueError:
+                    # RandomState refuses more than 32 bits; Generator takes
+                    # all 128, so two studies' streams do not collide.
+                    resetter.reset_seed(sampler_seed & 0xFFFFFFFF)
             except Exception as error:
                 raise RuntimeError(
                     f"An error occurred in the 'reset_seed' method of the "

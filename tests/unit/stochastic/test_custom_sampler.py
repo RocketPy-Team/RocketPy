@@ -275,7 +275,7 @@ def test_a_sampler_that_refuses_its_seed_is_named_in_the_error(failure):
 
 
 def test_a_legacy_random_state_sampler_is_reproducible():
-    """CustomSampler receives an integer within RandomState's 32-bit range."""
+    """A RandomState sampler that refuses 128 bits is retried with 32."""
 
     class LegacySampler(CustomSampler):
         """Built on RandomState rather than default_rng."""
@@ -284,7 +284,6 @@ def test_a_legacy_random_state_sampler_is_reproducible():
             return list(self.rng.normal(size=n_samples))
 
         def reset_seed(self, seed=None):
-            assert isinstance(seed, int) and 0 <= seed < 2**32
             self.rng = np.random.RandomState(seed)
 
     model = StochasticModel(SimpleNamespace(mass=0.0), seed=42, mass=LegacySampler())
@@ -293,6 +292,23 @@ def test_a_legacy_random_state_sampler_is_reproducible():
     model._set_stochastic(42)
 
     assert next(model.dict_generator())["mass"] == expected
+
+
+def test_a_generator_sampler_receives_the_full_seed():
+    """Only a sampler that refuses it falls back to 32 bits."""
+    received = []
+
+    class GeneratorSampler(CustomSampler):
+        def sample(self, n_samples=1):
+            return list(self.rng.normal(size=n_samples))
+
+        def reset_seed(self, seed=None):
+            received.append(seed)
+            self.rng = np.random.default_rng(seed)
+
+    StochasticModel(SimpleNamespace(mass=0.0), seed=42, mass=GeneratorSampler())
+
+    assert received and all(seed >= 2**32 for seed in received)
 
 
 class _CountingShared(_SharedPair):
