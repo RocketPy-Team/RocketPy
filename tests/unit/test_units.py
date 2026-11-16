@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 from rocketpy import Function
-from rocketpy.units import conversion_factor, convert_temperature, convert_units
+from rocketpy.units import (
+    conversion_factor,
+    convert_temperature,
+    convert_to_base_unit,
+    convert_units,
+)
 
 
 # One of each unit and its exact value in the base unit, by SI definition.
@@ -196,3 +201,26 @@ class TestConvertUnits:
         np.testing.assert_array_equal(function.get_source(), source)
         assert function.__inputs__ == [f"x ({unit})"]
         assert function.__outputs__ == [f"y ({unit})"]
+
+
+class TestConvertToBaseUnit:
+    """Tests for the convert_to_base_unit function."""
+
+    @pytest.mark.parametrize("unit, base_unit, value_in_base", UNIT_DEFINITIONS)
+    def test_convert_to_base_unit_matches_unit_definitions(
+        self, unit, base_unit, value_in_base
+    ):  # pylint: disable=unused-argument
+        assert convert_to_base_unit(1, unit) == pytest.approx(value_in_base, rel=1e-9)
+
+    def test_convert_to_base_unit_temperature_to_kelvin(self):
+        assert convert_to_base_unit(0, "degC") == pytest.approx(273.15)
+        assert convert_to_base_unit(32, "degF") == pytest.approx(273.15)
+
+    def test_convert_to_base_unit_leaves_array_unchanged(self):
+        values = np.array([1.0, 2.0])
+        convert_to_base_unit(values, "km")
+        np.testing.assert_array_equal(values, [1.0, 2.0])
+
+    def test_convert_to_base_unit_unsupported_unit(self):
+        with pytest.raises(ValueError, match="Unit 'furlong' is not supported."):
+            convert_to_base_unit(1, "furlong")

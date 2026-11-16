@@ -69,6 +69,17 @@ def conversion_factor(from_unit, to_unit):
     return incoming_factor / outgoing_factor
 
 
+def convert_to_base_unit(variable, from_unit):
+    """Returns ``variable`` converted from ``from_unit`` to its base unit, or to
+    "K" for temperatures. ``variable`` itself is not modified."""
+    if from_unit in ["K", "degC", "degF"]:
+        return convert_temperature(variable, from_unit, "K")
+    try:
+        return variable / UNITS_CONVERSION_DICT[from_unit]
+    except KeyError as e:
+        raise ValueError(f"Unit '{from_unit}' is not supported.") from e
+
+
 def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     """See units.convert_units() for documentation."""
     # Work on copies so the Function passed in is left unchanged

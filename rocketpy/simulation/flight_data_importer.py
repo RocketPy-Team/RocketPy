@@ -9,7 +9,7 @@ from os.path import isfile, join
 import numpy as np
 
 from rocketpy.mathutils import Function
-from rocketpy.units import UNITS_CONVERSION_DICT
+from rocketpy.units import convert_to_base_unit
 
 logger = logging.getLogger(__name__)
 
@@ -287,7 +287,7 @@ class FlightDataImporter:
 
             # Convert units if necessary
             if units and col in units:
-                values /= UNITS_CONVERSION_DICT[units[col]]
+                values = convert_to_base_unit(values, units[col])
                 logger.debug("Attribute '%s' converted from %s to SI", name, units[col])
 
             # Create Function object and set as attribute
