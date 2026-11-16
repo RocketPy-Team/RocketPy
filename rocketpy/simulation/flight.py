@@ -3791,8 +3791,9 @@ class Flight:
     # Potential Energy
     @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
     def potential_energy(self):
-        """Potential energy as a Function of time in relation to sea
-        level."""
+        """Gravitational potential energy as a Function of time, given by
+        ``mu * m * (1 / R - 1 / (R + z))``. It is zero at sea level and
+        positive above it, increasing with altitude."""
         # Constants
         # TODO: this constant should come from Environment.
         standard_gravitational_parameter = 3.986004418e14

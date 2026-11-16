@@ -531,10 +531,32 @@ def test_potential_energy_increases_with_altitude(flight_calisto):
     initial_potential_energy = test.potential_energy(burn_out_time)
     final_potential_energy = test.potential_energy(apogee_time)
     delta_potential_energy = final_potential_energy - initial_potential_energy
-    expected_delta = mass * 9.80665 * delta_z
+    expected_delta = mass * test.env.standard_g * delta_z
 
     assert delta_z > 0
     assert pytest.approx(expected_delta, rel=1e-2) == delta_potential_energy
+
+
+def test_potential_energy_reference_and_total_energy(flight_calisto):
+    """Test that the potential energy is zero at sea level and positive
+    above it, and that the total energy is the kinetic plus the potential
+    energy.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test = flight_calisto
+    apogee_time = test.apogee_time
+
+    assert test.z(test.t_initial) == pytest.approx(0)
+    assert test.potential_energy(test.t_initial) == pytest.approx(0, abs=1e-6)
+    assert test.potential_energy(apogee_time) > 0
+    assert test.total_energy(apogee_time) == pytest.approx(
+        test.kinetic_energy(apogee_time) + test.potential_energy(apogee_time)
+    )
 
 
 @pytest.mark.parametrize(
