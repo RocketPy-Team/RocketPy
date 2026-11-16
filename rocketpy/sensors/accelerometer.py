@@ -233,7 +233,7 @@ class Accelerometer(InertialSensor):
         u = kwargs["u"]
         u_dot = kwargs["u_dot"]
         relative_position = kwargs["relative_position"]
-        gravity = kwargs["environment"].gravity.get_value_opt(u[3])
+        gravity = kwargs["environment"].gravity.get_value_opt(u[2])
 
         # Linear acceleration of rocket cdm in inertial frame
         gravity = (

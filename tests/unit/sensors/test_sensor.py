@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from rocketpy import Accelerometer
+from rocketpy import Accelerometer, Environment
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler313_to_quaternions
 
@@ -361,6 +361,26 @@ def test_accelerometer_at_rest_reads_gravity_upward(example_plain_env):
     )
 
     assert ignoring_gravity.measurement == approx([0, 0, 0], abs=1e-12)
+
+
+def test_accelerometer_reads_gravity_at_its_altitude():
+    """Gravity is evaluated at the altitude ``u[2]``, not at the x velocity ``u[3]``."""
+    env = Environment(gravity=lambda height: 10 - height / 1000)
+    hovering = [0.0] * 13
+    hovering[2] = 5000  # altitude, where gravity is 5 m/s^2
+    hovering[3] = 2000  # x velocity, where gravity would be 8 m/s^2
+    hovering[6] = 1.0  # identity attitude
+
+    accelerometer = Accelerometer(sampling_rate=100, consider_gravity=True)
+    accelerometer.measure(
+        time=0,
+        u=hovering,
+        u_dot=[0.0] * 13,
+        relative_position=Vector([0, 0, 0]),
+        environment=env,
+    )
+
+    assert accelerometer.measurement == approx([0, 0, 5], abs=1e-12)
 
 
 def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):
