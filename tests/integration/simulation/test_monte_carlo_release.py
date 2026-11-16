@@ -109,14 +109,38 @@ def test_object_seed_without_study_seed_warns_and_reports_replay_seed(
     assert f"Monte Carlo random_seed: {seed}" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("parallel", [False, True])
 def test_a_second_study_does_not_warn_about_seeds_the_first_one_set(
-    release_study, recwarn
+    release_study, recwarn, parallel
 ):
-    """Seeds a study derives for itself are not seeds the caller configured."""
-    release_study.simulate(1, random_seed=42, include_function_data=False)
-    release_study.simulate(1, append=False, include_function_data=False)
+    """An object seed is ignored once, whichever path ran the first study."""
+    release_study.environment._set_stochastic(42)
+    run = {"include_function_data": False, "parallel": parallel, "n_workers": 2}
+    release_study.simulate(1, random_seed=42, **run)
+    release_study.simulate(1, append=False, **run)
 
     assert not [w for w in recwarn if "object seeds are ignored" in str(w.message)]
+
+
+def test_seed_warnings_name_the_caller_of_simulate_convergence(release_study):
+    """Both warnings point at the user's line, not inside rocketpy."""
+    release_study.environment._set_stochastic(42)
+    with pytest.warns(UserWarning, match="object seeds") as caught:
+        release_study.simulate_convergence(
+            target_attribute="max_speed", max_simulations=2, batch_size=2
+        )
+    assert caught[0].filename == __file__
+
+    for path in (release_study.input_file, release_study.output_file):
+        rows = _rows(path)
+        for row in rows:
+            row.pop("seed")
+        _write_rows(path, rows)
+    with pytest.warns(UserWarning, match="legacy") as caught:
+        release_study.simulate_convergence(
+            target_attribute="max_speed", max_simulations=3, batch_size=1
+        )
+    assert [w.filename for w in caught if "legacy" in str(w.message)] == [__file__]
 
 
 @pytest.mark.parametrize("parallel", [False, True])

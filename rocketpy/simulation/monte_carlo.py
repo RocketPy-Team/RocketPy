@@ -16,6 +16,7 @@ latest documentation.
 import csv
 import json
 import os
+import sys
 import threading
 import traceback
 import warnings
@@ -97,6 +98,18 @@ def _checkpoint_rows(path):
                 )
             rows.append({key: row[key] for key in ("index", "seed") if key in row})
     return rows
+
+
+_PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _caller_stacklevel():
+    """``stacklevel`` naming the first frame outside rocketpy, for a warning
+    issued by the function that calls this one."""
+    frame, level = sys._getframe(1), 1
+    while frame is not None and frame.f_code.co_filename.startswith(_PACKAGE_DIR):
+        frame, level = frame.f_back, level + 1
+    return level
 
 
 def _log_stamp(*paths):
@@ -445,8 +458,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 "MonteCarlo reseeds stochastic objects for every simulation; "
                 "their object seeds are ignored. Pass random_seed to reproduce the study.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=_caller_stacklevel(),
             )
+        # Every run path reseeds these, so none of their seeds is the caller's
+        # any more; cleared here because parallel workers clear only copies.
+        for model in self.__stochastic_models():
+            model._configured_seed = None
         print(f"Monte Carlo random_seed: {self.__study_seed}")
 
         print("Starting Monte Carlo analysis")
@@ -819,19 +836,24 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 "Appending a legacy v1.13 study: its original random stream "
                 "cannot be recovered; new rows use the reported study seed.",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=_caller_stacklevel(),
             )
         self._completed_indices = set(held)
 
-    def __has_object_seed(self):
-        """Include nested rocket components whose seeds will also be overridden."""
+    def __stochastic_models(self):
+        """The study's models, nested rocket components included."""
         models = [self.environment, self.rocket, self.flight]
         for name in getattr(self.rocket, "_POSITIONED_COLLECTIONS", ()):
             models.extend(component for component, _ in getattr(self.rocket, name))
         for name in getattr(self.rocket, "_PLAIN_COLLECTIONS", ()):
             models.extend(getattr(self.rocket, name))
+        return models
+
+    def __has_object_seed(self):
+        """Whether any model, nested components included, carries a caller's seed."""
         return any(
-            getattr(model, "_configured_seed", None) is not None for model in models
+            getattr(model, "_configured_seed", None) is not None
+            for model in self.__stochastic_models()
         )
 
     def __seed_this_simulation(self, sim_idx):
