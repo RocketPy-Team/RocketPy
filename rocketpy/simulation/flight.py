@@ -2378,7 +2378,7 @@ class Flight:
                     (
                         motor_I_11_derivative_at_t
                         + mass_flow_rate_at_t
-                        * (rocket_dry_mass - 1)
+                        * rocket_dry_mass**2
                         * (b / total_mass_at_t) ** 2
                     )
                     - mass_flow_rate_at_t
@@ -2403,7 +2403,7 @@ class Flight:
                     (
                         motor_I_11_derivative_at_t
                         + mass_flow_rate_at_t
-                        * (rocket_dry_mass - 1)
+                        * rocket_dry_mass**2
                         * (b / total_mass_at_t) ** 2
                     )
                     - mass_flow_rate_at_t
@@ -2424,21 +2424,22 @@ class Flight:
         e1dot = 0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3)
         e2dot = 0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3)
         e3dot = 0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2)
-        # Linear acceleration
+        # Linear acceleration. The propellant sits on the rocket axis (body
+        # axis 3), a distance b behind the center of dry mass.
         L = [
             (
                 R1
-                - b * propellant_mass_at_t * (omega2**2 + omega3**2)
+                + b * propellant_mass_at_t * (alpha2 + omega1 * omega3)
                 - 2 * c * mass_flow_rate_at_t * omega2
             )
             / total_mass_at_t,
             (
                 R2
-                + b * propellant_mass_at_t * (alpha3 + omega1 * omega2)
+                + b * propellant_mass_at_t * (-alpha1 + omega2 * omega3)
                 + 2 * c * mass_flow_rate_at_t * omega1
             )
             / total_mass_at_t,
-            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
+            (R3 - b * propellant_mass_at_t * (omega1**2 + omega2**2) + net_thrust)
             / total_mass_at_t,
         ]
         ax, ay, az = K @ Vector(L)
