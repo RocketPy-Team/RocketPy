@@ -60,7 +60,8 @@ _REPORT_LOCK_SECONDS = 5.0
 _REPORTED_FAILURE_GRACE_SECONDS = 60.0
 
 _SIMULATION_SEED_KEY = "seed"
-_RESULT_METADATA = frozenset(("index", "seed", "run_root"))
+# Written by the study on every row, so not a result and not a collector name.
+_ROW_METADATA = frozenset((_SIMULATION_INDEX_KEY, _SIMULATION_SEED_KEY))
 
 
 def _study_seed(random_seed):
@@ -785,9 +786,16 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         if recorded_seed is not None:
             self.__study_seed = recorded_seed
         legacy = [row for row in inputs if "seed" not in row]
+        if any("seed" in row for row in inputs[: len(legacy)]):
+            raise ValueError("Legacy rows must precede all seeded rows")
+        # Both halves of a record carry the seed, so logs from two studies
+        # cannot be resumed as one.
+        if [row.get("seed") for row in inputs] != [row.get("seed") for row in outputs]:
+            raise ValueError(
+                "Input and output logs record the same simulations from different "
+                "study seeds, so they belong to two studies"
+            )
         if legacy:
-            if any("seed" in row for row in inputs[: len(legacy)]):
-                raise ValueError("Legacy rows must precede all seeded rows")
             warnings.warn(
                 "Appending a legacy v1.13 study: its original random stream "
                 "cannot be recovered; new rows use the reported study seed.",
@@ -1063,7 +1071,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             outputs_dict = outputs_dict | additional_exports
 
         # After the collectors: these two say which run the row belongs to.
-        outputs_dict["index"] = sim_idx
+        outputs_dict[_SIMULATION_INDEX_KEY] = sim_idx
+        outputs_dict[_SIMULATION_SEED_KEY] = self.__study_seed
         return (
             json.dumps(outputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
         )
@@ -1211,16 +1220,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                         "Invalid 'data_collector' key! "
                         f"Variable names overwrites 'export_list' key '{key}'."
                     )
-                if key == _SIMULATION_INDEX_KEY:
+                if key in _ROW_METADATA:
                     raise ValueError(
-                        f"Invalid 'data_collector' key '{key}'! It is the "
-                        f"number of the simulation the row belongs to, which "
-                        f"is written after the collectors run and cannot be "
-                        f"replaced by one."
-                    )
-                if key in ("seed", "run_root"):
-                    raise ValueError(
-                        f"Invalid data_collector key {key!r}: reserved metadata"
+                        f"Invalid 'data_collector' key '{key}'! The study "
+                        f"writes it on every row after the collectors run, so "
+                        f"a collector cannot use that name."
                     )
                 if not callable(callback):
                     raise ValueError(
@@ -1545,7 +1549,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.results = {}
         for result in self.outputs_log:
             for key, value in result.items():
-                if key in _RESULT_METADATA:
+                if key in _ROW_METADATA:
                     continue
                 if key in self.results:
                     self.results[key].append(value)

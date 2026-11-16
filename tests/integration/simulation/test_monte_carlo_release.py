@@ -79,16 +79,13 @@ def test_resume_fills_holes_without_repeating_completed_flights(
     assert sorted(actual_outputs, key=lambda row: row["index"]) == expected_outputs
 
 
-def test_each_input_row_records_one_integer_seed(release_study):
-    """The checkpoint needs the study seed, without NumPy state or digests."""
+def test_each_row_records_one_integer_seed(release_study):
+    """Both halves of a record name the study, without NumPy state or digests."""
     release_study.simulate(2, random_seed=42, include_function_data=False)
 
-    assert all(row["seed"] == 42 for row in _rows(release_study.input_file))
-    assert all("run_root" not in row for row in _rows(release_study.input_file))
-    assert all(
-        "seed" not in row and "run_root" not in row
-        for row in _rows(release_study.output_file)
-    )
+    for path in (release_study.input_file, release_study.output_file):
+        assert all(row["seed"] == 42 for row in _rows(path))
+    assert "seed" not in release_study.results
 
 
 @pytest.mark.parametrize("component", ["environment", "motor"])

@@ -18,7 +18,13 @@ def checkpoint(tmp_path):
     study._completed_indices = set()
     study._index_offset = 0
     _write(study.input_file, [{"index": 0, "seed": 42}, {"index": 1, "seed": 42}])
-    _write(study.output_file, [{"index": 0, "apogee": 10}, {"index": 1, "apogee": 20}])
+    _write(
+        study.output_file,
+        [
+            {"index": 0, "seed": 42, "apogee": 10},
+            {"index": 1, "seed": 42, "apogee": 20},
+        ],
+    )
     return study
 
 
@@ -83,7 +89,7 @@ def test_checkpoint_rejects_missing_seeds_after_seeded_rows(checkpoint):
 def test_checkpoint_accepts_holes_and_completion_order(checkpoint, numbers):
     """An interrupted parallel run may have completed later indices first."""
     _write(checkpoint.input_file, [{"index": index, "seed": 42} for index in numbers])
-    _write(checkpoint.output_file, [{"index": index} for index in numbers])
+    _write(checkpoint.output_file, [{"index": index, "seed": 42} for index in numbers])
 
     checkpoint._MonteCarlo__continue_study(None)
 
@@ -111,9 +117,21 @@ def test_checkpoint_rejects_invalid_indices(checkpoint, index):
 
 def test_checkpoint_rejects_mismatched_logs(checkpoint):
     """A missing half of a committed record needs repair before resuming."""
-    _write(checkpoint.output_file, [{"index": 0}])
+    _write(checkpoint.output_file, [{"index": 0, "seed": 42}])
 
     with pytest.raises(ValueError, match="same simulations"):
+        checkpoint._MonteCarlo__continue_study(None)
+
+
+@pytest.mark.parametrize("output_seed", [7, None])
+def test_checkpoint_rejects_outputs_of_another_study(checkpoint, output_seed):
+    """Inputs of one study and outputs of another must not resume as one."""
+    _write(
+        checkpoint.output_file,
+        [{"index": 0, "seed": output_seed}, {"index": 1, "seed": output_seed}],
+    )
+
+    with pytest.raises(ValueError, match="two studies"):
         checkpoint._MonteCarlo__continue_study(None)
 
 
@@ -135,7 +153,7 @@ def test_blank_lines_do_not_count_as_simulations(checkpoint):
     assert checkpoint._completed_indices == {0, 1}
 
 
-@pytest.mark.parametrize("key", ["index", "seed", "run_root"])
+@pytest.mark.parametrize("key", ["index", "seed"])
 def test_collectors_cannot_overwrite_checkpoint_metadata(tmp_path, key):
     """Reserved names must not silently replace a collector's output."""
     with pytest.raises(ValueError, match="Invalid"):

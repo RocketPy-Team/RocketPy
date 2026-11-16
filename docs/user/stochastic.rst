@@ -346,7 +346,7 @@ draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
     split over any number of workers, and whether it was reached first or last.
     A run of ``n`` simulations numbers them 0 to ``n - 1`` either way, which is
     what makes one index name one simulation.
-    Every input row records one integer ``seed``, so appending carries that
+    Every input and output row records one integer ``seed``, so appending carries that
     study on whether or not the seed is given again, and a different one is
     refused rather than mixed in. Without a seed, a new run generates and prints
     one. Pass that integer as ``random_seed`` to reproduce the study. Seeds on
@@ -369,15 +369,14 @@ Resuming a study
 Use ``simulate(number_of_simulations=100, append=True)`` to reach a total of
 100 simulations. A completed index is kept; missing indices below the target
 are simulated, including gaps left by interrupted parallel workers. Keep the
-input and output logs together: they are checked for matching indices and
-duplicate records before any new rows are written. The study's models must
+input and output logs together: they are checked for matching indices, matching
+seeds and duplicate records before any new rows are written. The study's models must
 still describe the same rocket, flight and environment.
 
 Logs from v1.13 have no study seed. Appending preserves their rows and emits a
 warning: the old random stream cannot be recovered. New rows record the reported
 seed. Existing one-based serial numbering is preserved; new studies start at
-zero. Checkpoint fields (``index``, ``seed`` and the earlier ``run_root`` field)
-are excluded from ``results``, summary statistics and plots.
+zero. Checkpoint fields (``index`` and ``seed``) are excluded from ``results``, summary statistics and plots.
 
 Conclusion
 ----------

@@ -837,7 +837,16 @@ class _InterruptingMonteCarlo(MonteCarlo):
         return json.dumps({"index": index, "seed": self._MonteCarlo__study_seed}) + "\n"
 
     def _MonteCarlo__evaluate_flight_outputs(self, flight, index):
-        return json.dumps({"index": index, "apogee": 1000.0 + index}) + "\n"
+        return (
+            json.dumps(
+                {
+                    "index": index,
+                    "seed": self._MonteCarlo__study_seed,
+                    "apogee": 1000.0 + index,
+                }
+            )
+            + "\n"
+        )
 
 
 def test_interrupted_serial_run_reaches_the_caller(tmp_path):
