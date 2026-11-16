@@ -10,3 +10,5 @@ References
 .. [Chou] Chou, P.-C., et al. *Tip-off effect analysis of a vehicle moving along an inclined guideway by considering dynamic interactions*.
 
 .. [Hosken] Hosken, R. W., et al. *Analysis of missile launchers, part Q: tip-off effects in helical rail launchers*.
+
+.. [Peng] Peng, W., Zhang, Q., Yang, T., and Feng, Z. (2017). *A high-precision dynamic model of a sounding rocket and rapid wind compensation method research*. Advances in Mechanical Engineering, 9(7).
