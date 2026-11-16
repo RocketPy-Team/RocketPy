@@ -204,6 +204,7 @@ def set_minimal_flight_attributes(flight, obj):
         "name",
         "solution",
         "out_of_rail_time",
+        "tip_off_end_time",
         "apogee_time",
         "apogee",
         "parachute_events",
@@ -238,7 +239,12 @@ def set_minimal_flight_attributes(flight, obj):
             if attribute == "net_thrust":
                 flight.net_thrust = obj["rocket"].motor.thrust
                 flight.net_thrust.set_discrete_based_on_model(flight.speed)
+            elif attribute == "tip_off_end_time":
+                # Saved before the tip-off phase existed: there was no window
+                flight.tip_off_end_time = flight.out_of_rail_time
 
+    # Lower button forces of the tip-off phase, absent from older files
+    flight._tip_off_button_forces = obj.get("tip_off_button_forces", [])
     flight.t_initial = flight.initial_solution[0]
 
 

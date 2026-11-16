@@ -7,6 +7,7 @@ from functools import cached_property
 
 import numpy as np
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
+from scipy.optimize import brentq
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
@@ -354,28 +355,32 @@ class Flight:
         as array.
     Flight.rail_button1_normal_force : Function
         Upper rail button normal force in N as a function
-        of time.
+        of time. Zero once the upper button has left the rail.
     Flight.max_rail_button1_normal_force : float
         Maximum upper rail button normal force experienced
         during rail flight phase in N.
     Flight.rail_button1_shear_force : Function
         Upper rail button shear force in N as a function
-        of time.
+        of time. Zero once the upper button has left the rail.
     Flight.max_rail_button1_shear_force : float
         Maximum upper rail button shear force experienced
         during rail flight phase in N.
     Flight.rail_button2_normal_force : Function
         Lower rail button normal force in N as a function
-        of time.
+        of time. While both buttons are on the rail it counts the
+        aerodynamic loads only. During the tip-off phase, when the lower
+        button holds the rocket alone, it is the full force between the
+        button and the rail, which also carries the weight of the rocket.
     Flight.max_rail_button2_normal_force : float
         Maximum lower rail button normal force experienced
-        during rail flight phase in N.
+        on the rail, tip-off phase included, in N.
     Flight.rail_button2_shear_force : Function
         Lower rail button shear force in N as a function
-        of time.
+        of time. See ``Flight.rail_button2_normal_force`` for what it
+        counts in each phase.
     Flight.max_rail_button2_shear_force : float
         Maximum lower rail button shear force experienced
-        during rail flight phase in N.
+        on the rail, tip-off phase included, in N.
     Flight.rotational_energy : Function
         Rocket's rotational kinetic energy as a function of time.
         Units in J.
@@ -472,23 +477,21 @@ class Flight:
         array.
     Flight.simulation_mode : str
         Simulation mode for the flight. Can be "6 DOF" or "3 DOF".
-    Flight.use_udot_rail2 : bool
-        Whether the intermediate 3-DOF "tip-off" rail phase was enabled. When
-        True, the flight goes through ``udot_rail1`` -> ``udot_rail2`` ->
-        generalized 6-DOF instead of straight from ``udot_rail1`` to the
-        generalized equations. Requires ``simulation_mode="6 DOF"`` and
-        ``equations_of_motion="standard"``.
-    Flight.between_rails_time : float
+    Flight.tip_off_end_time : float
         Time at which the lower rail button leaves the rail, ending the tip-off
-        phase, in seconds. Equal to ``out_of_rail_time`` when the phase is off.
-    Flight.between_rails_velocity : float
+        phase, in seconds. Equal to ``out_of_rail_time`` when the tip-off phase
+        does not run: a rocket with fewer than two rail buttons, a flight with
+        ``simulation_mode="3 DOF"`` or with
+        ``equations_of_motion="solid_propulsion"``, or a flight started from an
+        ``initial_solution``.
+    Flight.tip_off_end_velocity : float
         Rocket velocity magnitude when the lower rail button leaves the rail,
         in m/s.
-    Flight.between_rails_state : list
+    Flight.tip_off_end_state : list
         State vector at the moment the lower rail button leaves the rail.
     Flight.tip_off_duration : float
         Time the rocket spends pivoting about the lower rail button, in
-        seconds. Zero when ``use_udot_rail2`` is False.
+        seconds. Zero when the tip-off phase does not run.
     Flight.rail_button1_bending_moment : Function
         Internal bending moment at upper rail button attachment point in N·m
         as a function of time. Calculated using beam theory during rail phase.
@@ -502,11 +505,6 @@ class Flight:
         Maximum internal bending moment experienced at lower rail button
         attachment point during rail flight phase in N·m.
     """
-
-    #: Class-level default so that ``Flight`` objects restored from a ``.rpy``
-    #: file written before the tip-off phase existed still answer the flag.
-    #: Instances built through ``__init__`` always shadow it.
-    use_udot_rail2 = False
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-statements
         self,
@@ -528,7 +526,6 @@ class Flight:
         equations_of_motion="standard",
         ode_solver="LSODA",
         simulation_mode="6 DOF",
-        use_udot_rail2=False,
     ):
         """Run a trajectory simulation.
 
@@ -615,15 +612,6 @@ class Flight:
         simulation_mode : str, optional
             Simulation mode to use. Can be "6 DOF" for 6 degrees of freedom or
             "3 DOF" for 3 degrees of freedom. Default is "6 DOF".
-        use_udot_rail2 : bool, optional
-            If True, enable the intermediate 3-DOF "tip-off" rail phase
-            ``udot_rail2``: after the upper rail button leaves the rail (at
-            ``effective_1rl``) the rocket pivots about the still-engaged lower
-            button until it too leaves the rail (at ``effective_2rl``), before
-            the generalized 6-DOF free flight. If False, the flight transitions
-            directly from the 1-DOF ``udot_rail1`` phase to the generalized
-            6-DOF dynamics at the upper button exit, as in previous versions.
-            Default is False.
         Returns
         -------
         None
@@ -658,8 +646,6 @@ class Flight:
         self.equations_of_motion = equations_of_motion
         self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
-        # Enable or disable the intermediate 3-DOF rail phase
-        self.use_udot_rail2 = use_udot_rail2
 
         # Controller initialization
         self.__init_controllers()
@@ -1020,8 +1006,7 @@ class Flight:
             + (self.y_sol[2] - self.env.elevation) ** 2
         )
         # Check for first out of rail event (upper rail button leaving the
-        # rail, at effective_1rl). This starts the 3-DOF tip-off phase when
-        # enabled, otherwise transitions straight to generalized 6-DOF flight.
+        # rail, at effective_1rl).
         if (
             len(self.out_of_rail_state) == 1
             and squared_distance_travelled >= self.effective_1rl**2
@@ -1029,14 +1014,11 @@ class Flight:
             return self.__handle_out_of_rail_event(phase, phase_index, node_index)
         # Check for the lower rail button leaving the rail (at effective_2rl),
         # which ends the tip-off phase and begins generalized 6-DOF flight.
-        # Only relevant while the intermediate udot_rail2 phase is active.
         elif (
-            self.use_udot_rail2
-            and len(self.between_rails_state) == 1
-            and len(self.out_of_rail_state) != 1
+            phase.derivative == self.udot_rail2  # pylint: disable=comparison-with-callable
             and squared_distance_travelled >= self.effective_2rl**2
         ):
-            return self.__handle_between_rails_event(phase, phase_index, node_index)
+            return self.__handle_tip_off_end_event(phase, phase_index, node_index)
 
         # Check for apogee event
         # TODO: negative vz doesn't really mean apogee. Improve this.
@@ -1050,74 +1032,43 @@ class Flight:
         return False
 
     def __root_find_rail_exit_time(self, phase, effective_rl):
-        """Root-find the exact time at which the squared distance travelled
-        (from the launch point, ignoring ground elevation) equals
-        ``effective_rl ** 2``, using cubic Hermite interpolation between the two
-        most recent solution points.
+        """Find the time, within the last solver step, at which the distance
+        travelled from the launch point equals ``effective_rl``.
+
+        The search runs on the solver's own interpolation of the step, so the
+        result is as accurate as the solution itself, however long the step is.
 
         Parameters
         ----------
         phase : FlightPhase
-            The current flight phase (provides the solver step size).
+            The current flight phase, whose solver has just taken a step.
         effective_rl : float
-            Effective rail length whose crossing is being solved for
-            (``effective_1rl`` for the upper button, ``effective_2rl`` for the
-            lower button).
+            Distance at which a rail button reaches the end of the rail, in
+            meters: ``effective_1rl`` for the upper button and
+            ``effective_2rl`` for the lower one.
 
         Returns
         -------
         float
-            Absolute simulation time of the crossing.
+            Simulation time of the crossing, in seconds.
         """
-        # Check exactly when it went out using root finding
-        # Disconsider elevation
-        self.solution[-2][3] -= self.env.elevation
-        self.solution[-1][3] -= self.env.elevation
-        # Get points
-        y0 = sum(self.solution[-2][i] ** 2 for i in [1, 2, 3]) - effective_rl**2
-        yp0 = 2 * sum(
-            self.solution[-2][i] * self.solution[-2][i + 3] for i in [1, 2, 3]
-        )
-        t1 = self.solution[-1][0] - self.solution[-2][0]
-        y1 = sum(self.solution[-1][i] ** 2 for i in [1, 2, 3]) - effective_rl**2
-        yp1 = 2 * sum(
-            self.solution[-1][i] * self.solution[-1][i + 3] for i in [1, 2, 3]
-        )
-        # Put elevation back
-        self.solution[-2][3] += self.env.elevation
-        self.solution[-1][3] += self.env.elevation
-        # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
-        a, b, c, d = calculate_cubic_hermite_coefficients(
-            0,
-            float(phase.solver.step_size),
-            y0,
-            yp0,
-            y1,
-            yp1,
-        )
-        a += 1e-5  # TODO: why??
-        # Find roots
-        t_roots = find_roots_cubic_function(a, b, c, d)
-        # Find correct root
-        valid_t_root = [
-            t_root.real
-            for t_root in t_roots
-            if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001
-        ]
-        if len(valid_t_root) > 1:  # pragma: no cover
-            raise ValueError("Multiple roots found when solving for rail exit time.")
-        if len(valid_t_root) == 0:  # pragma: no cover
-            raise ValueError("No valid roots found when solving for rail exit time.")
-        return valid_t_root[0] + self.solution[-2][0]
+        interpolator = phase.solver.dense_output()
+        elevation = self.env.elevation
+
+        def distance_left(t):
+            x, y, z = interpolator(t)[:3]
+            return effective_rl**2 - (x**2 + y**2 + (z - elevation) ** 2)
+
+        return brentq(distance_left, phase.solver.t_old, phase.solver.t)
 
     def __handle_out_of_rail_event(self, phase, phase_index, node_index):
         """Handle the out of rail event (upper rail button leaving the rail, at
         ``effective_1rl``).
 
         Records the out-of-rail state and inserts the next flight phase: the
-        3-DOF tip-off phase ``udot_rail2`` when it is enabled and there is a
-        nonzero single-button window (``effective_2rl > effective_1rl``),
-        otherwise the generalized 6-DOF dynamics.
+        3-DOF tip-off phase ``udot_rail2`` when the rocket has two rail buttons
+        and the equations of motion support it, otherwise the free-flight
+        dynamics.
 
         Parameters
         ----------
@@ -1141,13 +1092,20 @@ class Flight:
         self.out_of_rail_time = self.t
         self.out_of_rail_time_index = len(self.solution) - 1
         self.out_of_rail_state = self.y_sol
-        # Create new flight phase: the intermediate 3-DOF tip-off phase if
-        # enabled and the two buttons are distinct, otherwise straight to the
-        # generalized 6-DOF dynamics (previous behavior).
-        if self.use_udot_rail2 and self.effective_2rl > self.effective_1rl:
+        # Tip-off runs only with two buttons on the rail and the standard
+        # 6 DOF equations. Otherwise the rocket goes straight to free flight.
+        if (
+            self.effective_2rl > self.effective_1rl > 0
+            and self.simulation_mode == "6 DOF"
+            and self.equations_of_motion == "standard"
+        ):
             next_derivative = self.udot_rail2
         else:
             next_derivative = self.u_dot_generalized
+            # No tip-off phase: the rocket is free when the upper button leaves
+            self.tip_off_end_time = self.out_of_rail_time
+            self.tip_off_end_time_index = self.out_of_rail_time_index
+            self.tip_off_end_state = self.out_of_rail_state
         self.flight_phases.add_phase(
             self.t,
             next_derivative,
@@ -1159,7 +1117,7 @@ class Flight:
         phase.solver.status = "finished"
         return True
 
-    def __handle_between_rails_event(self, phase, phase_index, node_index):
+    def __handle_tip_off_end_event(self, phase, phase_index, node_index):
         """Handle the end of the 3-DOF tip-off phase (lower rail button leaving
         the rail, at ``effective_2rl``).
 
@@ -1185,9 +1143,9 @@ class Flight:
         interpolator = phase.solver.dense_output()
         self.y_sol = interpolator(self.t)
         self.solution[-1] = [self.t, *self.y_sol]
-        self.between_rails_time = self.t
-        self.between_rails_time_index = len(self.solution) - 1
-        self.between_rails_state = self.y_sol
+        self.tip_off_end_time = self.t
+        self.tip_off_end_time_index = len(self.solution) - 1
+        self.tip_off_end_state = self.y_sol
         # Create the generalized 6-DOF free-flight phase
         self.flight_phases.add_phase(
             self.t,
@@ -1614,9 +1572,9 @@ class Flight:
         self.out_of_rail_time = 0
         self.out_of_rail_time_index = 0
         self.out_of_rail_state = np.array([0])
-        self.between_rails_state = np.array([0])
-        self.between_rails_time = 0
-        self.between_rails_time_index = 0
+        self.tip_off_end_state = np.array([0])
+        self.tip_off_end_time = 0
+        self.tip_off_end_time_index = 0
         self.apogee_state = np.array([0])
         self.apogee = 0
         self.apogee_time = 0
@@ -1626,6 +1584,7 @@ class Flight:
         self.impact_state = np.array([0])
         self.parachute_events = []
         self.__post_processed_variables = []
+        self._tip_off_button_forces = []
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
@@ -1695,15 +1654,14 @@ class Flight:
                 self.initial_solution = self.initial_solution.solution[-1]
             # Initial solution given, ignore rail phases
             # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
-            # Both rail phases are skipped, so their monitors record the given
-            # starting state: out of rail (upper button) and, when the
-            # intermediate tip-off phase is enabled, between rails (lower button).
+            # Both rail phases are skipped, so the upper button exit and the
+            # end of tip-off (lower button exit) record the given starting state
             self.out_of_rail_state = self.initial_solution[1:]
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
-            self.between_rails_state = self.initial_solution[1:]
-            self.between_rails_time = self.initial_solution[0]
-            self.between_rails_time_index = 0
+            self.tip_off_end_state = self.initial_solution[1:]
+            self.tip_off_end_time = self.initial_solution[0]
+            self.tip_off_end_time_index = 0
             self.t_initial = self.initial_solution[0]
             # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.u_dot_generalized
@@ -1757,30 +1715,6 @@ class Flight:
                 f"Invalid simulation_mode: {self.simulation_mode}. "
                 "Must be '3 DOF' or '6 DOF'."
             )
-
-        # The tip-off phase patches the *generalized* 6-DOF solution with a
-        # constraint wrench built from the full 3x3 inertia tensor. The reduced
-        # formulations bound above (``u_dot_generalized_3dof`` carries no
-        # attitude at all, ``u_dot`` uses the axisymmetric solid-propulsion
-        # equations) do not share that state, so the patch would be applied to
-        # a solution it does not describe. Refuse the combination instead of
-        # silently producing non-physical tip-off kinematics.
-        if self.use_udot_rail2:
-            if self.simulation_mode != "6 DOF":
-                raise ValueError(
-                    "use_udot_rail2=True requires simulation_mode='6 DOF', got "
-                    f"'{self.simulation_mode}'. The tip-off phase solves for the "
-                    "rotation about the lower rail button, which the 3 DOF "
-                    "equations of motion do not model. Note that a point-mass "
-                    "motor forces simulation_mode to '3 DOF'."
-                )
-            if self.equations_of_motion != "standard":
-                raise ValueError(
-                    "use_udot_rail2=True requires equations_of_motion='standard', "
-                    f"got '{self.equations_of_motion}'. The tip-off phase is "
-                    "derived from the generalized variable-mass equations and "
-                    "cannot patch the reduced solid_propulsion formulation."
-                )
 
     def __init_controllers(self):
         """Initialize controllers and sensors"""
@@ -1998,25 +1932,16 @@ class Flight:
 
     def udot_rail2(self, t, u, post_processing=False):
         """Calculates the derivative of the u state vector with respect to time
-        for the intermediate 3-DOF "tip-off" rail phase: the upper rail button
-        has left the rail but the lower button is still engaged, so the rocket
-        slides along the (fixed) rail line while free to pitch and yaw about the
-        lower button, with roll suppressed.
+        while only the lower rail button is on the rail (tip-off).
 
-        The dynamics reuse the free variable-mass generalized equations of
-        motion (:meth:`u_dot_generalized`) and enforce the single-button
-        constraint by adding an unknown reaction wrench solved from a small
-        linear system: a normal force ``N`` at the lower button (perpendicular
-        to the rail, 2 DOF) plus a roll reaction moment ``mu`` (1 DOF). The
-        three unknowns are found from three constraints -- the button's
-        acceleration perpendicular to the rail is zero (2) and the roll angular
-        acceleration is zero (1). The full derivation is in the technical
-        documentation, :ref:`Tip-off <tipoff>`. All reaction quantities are
-        expressed in the "true"
-        body frame (the one used by ``surfaces_cp_to_cdm``, body-z toward the
-        nose), so ``r_CM`` and the button position are taken with that sign
-        convention -- independent of the internal (point-to-CDM) convention used
-        by the generalized equations.
+        The rocket slides along the rail and is free to pitch and yaw about the
+        lower button, while roll is prevented. The accelerations of the free
+        rocket, from :meth:`u_dot_generalized`, are corrected by a force at the
+        button, perpendicular to the rail, and a moment about the rocket axis.
+        These are found from three conditions: the acceleration of the button
+        has no component perpendicular to the rail (two conditions) and the
+        roll angular acceleration is zero. The derivation is in the technical
+        documentation, :ref:`Tip-off <tipoff>`.
 
         Parameters
         ----------
@@ -2035,112 +1960,84 @@ class Flight:
             State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
             e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
         """
-        # Free (unconstrained) generalized solution. This also handles the
-        # aerodynamic/post-processing bookkeeping. We keep its position and
-        # quaternion derivatives and only override the 6-DOF accelerations
-        # (indices 3:6 inertial linear, 10:13 body angular) with the
-        # constrained values computed below.
         u_dot = list(self.u_dot_generalized(t, u, post_processing=post_processing))
-        a_cdm_free = Vector(u_dot[3:6])  # inertial CDM acceleration (free)
-        w_dot_free = Vector(u_dot[10:13])  # body angular acceleration (free)
-
-        # State quantities
-        e0, e1, e2, e3 = u[6:10]
+        a_free = Vector(u_dot[3:6])  # center of dry mass, inertial frame
+        alpha_free = Vector(u_dot[10:13])  # body frame
         w = Vector(u[10:13])
-        K = Matrix.transformation([e0, e1, e2, e3])
+        K = Matrix.transformation(u[6:10])
         Kt = K.transpose
-        # ``u_dot_generalized`` just interpolated the mass and the inertia about
-        # the CM for this very t; reuse them instead of paying for both again on
-        # every solver evaluation inside the tip-off window.
-        cached = getattr(self, "_mass_inertia_cache", None)
-        if cached is not None and cached[0] == t:
-            _, total_mass, inertia_cm = cached
-        else:  # pragma: no cover - defensive, the call above always fills it
-            total_mass = self.rocket.total_mass.get_value_opt(t)
-            inertia_cm = None
 
-        # Geometry in the true body frame (body-z toward the nose):
-        #   position of a point p relative to the CDM = (p - cdm) * csys.
-        # The generalized EOM store r_CM / r_NOZ as (point -> CDM) vectors, i.e.
-        # the negative of the true-frame position; hence the sign flips below.
-        csys = self.rocket._csys
-        cdm = self.rocket.center_of_dry_mass_position
-        r_CM = Vector([0, 0, -self.rocket.com_to_cdm_function.get_value_opt(t)])
-        lower_button_z = self.rocket.rail_buttons[0].position.z
-        r_button = Vector([0, 0, (lower_button_z - cdm) * csys])
+        # Positions along the rocket axis, from the center of dry mass
+        rocket = self.rocket
+        mass = rocket.total_mass.get_value_opt(t)
+        z_cm = -rocket.com_to_cdm_function.get_value_opt(t)
+        z_button = (
+            rocket.rail_buttons[0].position.z - rocket.center_of_dry_mass_position
+        ) * rocket._csys
+        r_cm = Vector([0, 0, z_cm])
+        r_button = Vector([0, 0, z_button])
+        cm_to_button = Vector([0, 0, z_button - z_cm])
+        # Inertia about the center of mass (parallel axis theorem)
+        shift = mass * z_cm**2
+        inertia_cm_inverse = (
+            rocket.get_inertia_tensor_at_time(t)
+            - Matrix([[shift, 0, 0], [0, shift, 0], [0, 0, 0]])
+        ).inverse
 
-        # Inertia about the instantaneous center of mass (sign-independent).
-        if inertia_cm is None:  # pragma: no cover - defensive, see cache above
-            inertia_tensor = self.rocket.get_inertia_tensor_at_time(t)
-            inertia_cm = inertia_tensor - (
-                (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
-            )
-        inv_inertia_cm = inertia_cm.inverse
+        # Two unit vectors perpendicular to the rail, in the body frame, built
+        # from a body axis that is not parallel to the rail
+        rail = Kt @ self.attitude_unit
+        e1 = rail ^ Vector([1, 0, 0] if abs(rail.x) < 0.9 else [0, 1, 0])
+        e1 = e1 / abs(e1)
+        e2 = rail ^ e1
+        roll_axis = Vector([0, 0, 1])
 
-        # Orthonormal body triad with the rail direction. The rail is the fixed
-        # inertial unit vector ``attitude_unit``; express it in the body frame.
-        n = Kt @ self.attitude_unit
-        n = n / abs(n)
-        # Pick the coordinate axis least aligned with n to build a stable basis.
-        if abs(n.z) <= abs(n.x) and abs(n.z) <= abs(n.y):
-            helper = Vector([0.0, 0.0, 1.0])
-        elif abs(n.y) <= abs(n.x):
-            helper = Vector([0.0, 1.0, 0.0])
-        else:
-            helper = Vector([1.0, 0.0, 0.0])
-        e1_b = n ^ helper
-        e1_b = e1_b / abs(e1_b)
-        e2_b = n ^ e1_b  # already unit (n, e1_b orthonormal)
-        z_b = Vector([0.0, 0.0, 1.0])  # body roll axis
+        # Acceleration of the button if the rocket were free, in the body frame
+        a_button_free = (Kt @ a_free) + (alpha_free ^ r_button) + (w ^ (w ^ r_button))
 
-        # Linear response of (angular accel, CDM accel, button accel) in the
-        # body frame to a reaction force ``Fr`` (body) at the button and a roll
-        # reaction moment ``tau`` about the body axis.
-        def _response(f_r, tau):
-            d_wdot = inv_inertia_cm @ (
-                ((r_button - r_CM) ^ f_r) + Vector([0.0, 0.0, tau])
-            )
-            d_a_cdm_body = f_r * (1.0 / total_mass) - (d_wdot ^ r_CM)
-            d_a_button = d_a_cdm_body + (d_wdot ^ r_button)
-            return d_wdot, d_a_cdm_body, d_a_button
-
-        # Free button acceleration in the body frame.
-        a_button_free = (
-            (Kt @ a_cdm_free) + (w_dot_free ^ r_button) + (w ^ (w ^ r_button))
+        # Angular acceleration and button acceleration caused by a unit force
+        # along e1, a unit force along e2 and a unit roll moment
+        alphas = (
+            inertia_cm_inverse @ (cm_to_button ^ e1),
+            inertia_cm_inverse @ (cm_to_button ^ e2),
+            inertia_cm_inverse @ roll_axis,
+        )
+        a_buttons = (
+            e1 / mass + (alphas[0] ^ cm_to_button),
+            e2 / mass + (alphas[1] ^ cm_to_button),
+            alphas[2] ^ cm_to_button,
         )
 
-        # Assemble the 3x3 system J @ [lambda1, lambda2, mu] = -g_free.
-        jacobian = np.empty((3, 3))
-        for col, (f_r, tau) in enumerate(
-            ((e1_b, 0.0), (e2_b, 0.0), (Vector([0.0, 0.0, 0.0]), 1.0))
-        ):
-            d_wdot, _, d_a_button = _response(f_r, tau)
-            jacobian[0, col] = d_a_button @ e1_b
-            jacobian[1, col] = d_a_button @ e2_b
-            jacobian[2, col] = d_wdot @ z_b
-        g_free = np.array(
-            [a_button_free @ e1_b, a_button_free @ e2_b, w_dot_free @ z_b]
+        # Force along e1 and e2 and roll moment that meet the three conditions
+        response = Matrix(
+            [
+                [a_button @ e1 for a_button in a_buttons],
+                [a_button @ e2 for a_button in a_buttons],
+                [alpha @ roll_axis for alpha in alphas],
+            ]
+        )
+        force_1, force_2, roll_moment = response.inverse @ Vector(
+            [
+                -(a_button_free @ e1),
+                -(a_button_free @ e2),
+                -(alpha_free @ roll_axis),
+            ]
         )
 
-        try:
-            lambda1, lambda2, mu = np.linalg.solve(jacobian, -g_free)
-        except np.linalg.LinAlgError:  # pragma: no cover
-            warnings.warn(
-                "Singular constraint system in udot_rail2; falling back to "
-                "unconstrained dynamics for this step.",
-                RuntimeWarning,
-            )
-            return u_dot
-
-        f_r = e1_b * lambda1 + e2_b * lambda2
-        d_wdot, d_a_cdm_body, _ = _response(f_r, mu)
-        w_dot = w_dot_free + d_wdot
-        # Enforce exactly zero roll acceleration (kills residual round-off).
-        w_dot = Vector([w_dot.x, w_dot.y, 0.0])
-        a_cdm = a_cdm_free + (K @ d_a_cdm_body)
+        button_force = e1 * force_1 + e2 * force_2  # on the rocket, body frame
+        delta_alpha = (
+            alphas[0] * force_1 + alphas[1] * force_2 + alphas[2] * roll_moment
+        )
+        alpha = alpha_free + delta_alpha
+        a_cdm = a_free + K @ (button_force / mass - (delta_alpha ^ r_cm))
 
         u_dot[3:6] = [a_cdm.x, a_cdm.y, a_cdm.z]
-        u_dot[10:13] = [w_dot.x, w_dot.y, w_dot.z]
+        u_dot[10:13] = [alpha.x, alpha.y, 0.0]  # roll is exactly zero
+        if post_processing:
+            # u_dot_generalized stored the accelerations of the free rocket
+            self.__post_processed_variables[-1][1:7] = [*u_dot[3:6], *u_dot[10:13]]
+            # Force of the lower button on the rail, opposite to the one above
+            self._tip_off_button_forces.append([t, -button_force.x, -button_force.y])
         return u_dot
 
     def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
@@ -2765,12 +2662,6 @@ class Flight:
         H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
         I_CM = inertia_tensor - H
 
-        # Expose the mass and the inertia about the CM for the tip-off phase,
-        # which patches this solution and would otherwise interpolate both again
-        # for the same t on every solver evaluation. H is quadratic in r_CM, so
-        # I_CM does not depend on the sign convention used for it.
-        self._mass_inertia_cache = (t, total_mass, I_CM)
-
         # Prepare transformation matrices
         K = Matrix.transformation(e)
         Kt = K.transpose
@@ -3390,24 +3281,22 @@ class Flight:
         return self.speed.get_value_opt(self.out_of_rail_time)
 
     @property
-    def between_rails_velocity(self):
+    def tip_off_end_velocity(self):
         """Velocity at which the lower rail button leaves the launch rail,
-        ending the ``udot_rail2`` tip-off phase. Only meaningful when the
-        flight was run with ``use_udot_rail2=True``; otherwise the tip-off
-        phase never runs and this equals :attr:`out_of_rail_velocity`.
+        ending the tip-off phase, in m/s. Equal to :attr:`out_of_rail_velocity`
+        when the tip-off phase does not run.
         """
-        return self.speed.get_value_opt(self.between_rails_time)
+        return self.speed.get_value_opt(self.tip_off_end_time)
 
     @property
     def tip_off_duration(self):
         """Duration of the tip-off window, i.e. the time the rocket spends
         pivoting about the lower rail button between the upper button leaving
-        the rail and the lower button leaving it. Zero when the flight was run
-        without ``use_udot_rail2``.
+        the rail and the lower button leaving it, in seconds. Zero when the
+        tip-off phase does not run, or when the lower button never leaves the
+        rail because the flight ends or a parachute opens first.
         """
-        if not self.use_udot_rail2:
-            return 0.0
-        return self.between_rails_time - self.out_of_rail_time
+        return max(self.tip_off_end_time - self.out_of_rail_time, 0.0)
 
     @cached_property
     def max_speed_time(self):
@@ -4228,7 +4117,9 @@ class Flight:
     def __calculate_rail_button_forces(self):  # TODO: complex method.
         """Calculate the forces applied to the rail buttons while rocket is
         still on the launch rail. It will return 0 if no rail buttons are
-        defined.
+        defined. While both buttons are on the rail only the aerodynamic loads
+        are shared between them. During the tip-off phase the lower button
+        takes the force found in ``udot_rail2`` and the upper button none.
 
         Returns
         -------
@@ -4282,8 +4173,11 @@ class Flight:
         F22 = (self.R2 * D1 - self.M1) / (D1 + D2)
         F22.set_outputs("Lower button force direction 2 (m)")
 
+        # Points up to the upper button exit. Selected by time, since flights
+        # with controllers do not store one point per solution step.
+        on_rail = F11.get_source()
         model = Function(
-            F11.get_source()[: self.out_of_rail_time_index + 1, :],
+            on_rail[on_rail[:, 0] <= self.out_of_rail_time],
             interpolation=F11.__interpolation__,
         )
 
@@ -4292,6 +4186,29 @@ class Flight:
         F12.set_discrete_based_on_model(model)
         F21.set_discrete_based_on_model(model)
         F22.set_discrete_based_on_model(model)
+
+        # During tip-off only the lower button is on the rail: it carries the
+        # force found in udot_rail2 and the upper button carries none
+        tip_off = np.array(self._tip_off_button_forces)
+        if len(tip_off) > 0:
+            no_force = np.zeros(len(tip_off))
+            F11, F12, F21, F22 = (
+                Function(
+                    np.vstack(
+                        (force.get_source(), np.column_stack((tip_off[:, 0], values)))
+                    ),
+                    force.__inputs__,
+                    force.__outputs__,
+                    interpolation="linear",
+                    extrapolation="zero",
+                )
+                for force, values in (
+                    (F11, no_force),
+                    (F12, no_force),
+                    (F21, tip_off[:, 1]),
+                    (F22, tip_off[:, 2]),
+                )
+            )
 
         rail_button1_normal_force = F11 * np.cos(angular_position_rad) + F12 * np.sin(
             angular_position_rad
@@ -4359,6 +4276,7 @@ class Flight:
             [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
         """
         self.__post_processed_variables = []
+        self._tip_off_button_forces = []
         for phase_index, phase in self.time_iterator(self.flight_phases):
             init_time = phase.t
             final_time = self.flight_phases[phase_index + 1].t
@@ -4450,6 +4368,7 @@ class Flight:
             "solution": self.solution,
             "out_of_rail_time": self.out_of_rail_time,
             "out_of_rail_time_index": self.out_of_rail_time_index,
+            "tip_off_end_time": self.tip_off_end_time,
             "apogee_time": self.apogee_time,
             "apogee": self.apogee,
             "parachute_events": self.parachute_events,
@@ -4472,6 +4391,7 @@ class Flight:
             "M2": self.M2,
             "M3": self.M3,
             "net_thrust": self.net_thrust,
+            "tip_off_button_forces": self._tip_off_button_forces,
         }
 
         if kwargs.get("include_outputs", False):
@@ -4480,7 +4400,7 @@ class Flight:
                     "time": self.time,
                     "out_of_rail_velocity": self.out_of_rail_velocity,
                     "out_of_rail_state": self.out_of_rail_state,
-                    "between_rails_state": self.between_rails_state,
+                    "tip_off_end_state": self.tip_off_end_state,
                     "apogee_x": self.apogee_x,
                     "apogee_y": self.apogee_y,
                     "apogee_state": self.apogee_state,

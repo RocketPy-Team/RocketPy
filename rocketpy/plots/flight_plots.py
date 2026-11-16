@@ -2524,8 +2524,7 @@ class _FlightPlots:
 
         The window runs from the upper rail button leaving the rail to the
         lower one leaving it, which is when the rocket pivots about the lower
-        button. It is a no-op unless the flight was run with
-        ``use_udot_rail2=True``, since otherwise the phase never runs.
+        button. Nothing is drawn when the tip-off phase did not run.
 
         Parameters
         ----------
@@ -2536,13 +2535,11 @@ class _FlightPlots:
         -------
         None
         """
-        if not self.flight.use_udot_rail2:
-            return
-        if self.flight.between_rails_time <= self.flight.out_of_rail_time:
+        if self.flight.tip_off_duration <= 0:
             return
         ax.axvspan(
             self.flight.out_of_rail_time,
-            self.flight.between_rails_time,
+            self.flight.tip_off_end_time,
             color="0.5",
             alpha=0.25,
             zorder=0,
