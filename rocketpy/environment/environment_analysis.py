@@ -487,7 +487,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             self.unit_system = {
                 "length": "m",
                 "velocity": "m/s",
-                "acceleration": "g",
+                "acceleration": "gs",
                 "mass": "kg",
                 "time": "s",
                 "pressure": "hPa",
