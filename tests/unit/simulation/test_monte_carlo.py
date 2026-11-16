@@ -13,6 +13,7 @@ import pytest
 
 from rocketpy.simulation import MonteCarlo
 from rocketpy.simulation import monte_carlo as mc_module
+from rocketpy.stochastic import StochasticFlight
 from rocketpy.simulation.monte_carlo import (
     _refuse_logs_this_run_cannot_write,
 )
@@ -610,28 +611,30 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
         simulation_mode="native",
         use_udot_rail2=True,
     )
-    stochastic_flight = types.SimpleNamespace(
-        obj=base,
-        max_time=123.0,
-        initial_solution=None,
-        terminate_on_apogee=True,
-        time_overshoot=False,
-        # One draw for all three, as #1090 requires: three separate calls
-        # meant the flight flew one sample and the exported row logged another.
-        _sample_flight_inputs=lambda: {
-            "rail_length": 5.0,
-            "inclination": 84.0,
-            "heading": 133.0,
-        },
-    )
+    stochastic_flight = object.__new__(StochasticFlight)
+    stochastic_flight.obj = base
+    stochastic_flight.max_time = 123.0
+    stochastic_flight.initial_solution = None
+    stochastic_flight.terminate_on_apogee = True
+    stochastic_flight.time_overshoot = False
+    # One draw for all three, as #1090 requires: three separate calls
+    # meant the flight flew one sample and the exported row logged another.
+    stochastic_flight._sample_flight_inputs = lambda: {
+        "rail_length": 5.0,
+        "inclination": 84.0,
+        "heading": 133.0,
+    }
     analysis = object.__new__(MonteCarlo)
     analysis.flight = stochastic_flight
     analysis.rocket = types.SimpleNamespace(create_object=lambda: "rocket")
     analysis.environment = types.SimpleNamespace(create_object=lambda: "environment")
-    monkeypatch.setattr("rocketpy.simulation.monte_carlo.Flight", types.SimpleNamespace)
+    monkeypatch.setattr(
+        "rocketpy.stochastic.stochastic_flight.Flight", types.SimpleNamespace
+    )
 
     flight = MonteCarlo._MonteCarlo__run_single_simulation(analysis)
 
+    assert (flight.rocket, flight.environment) == ("rocket", "environment")
     assert flight.max_time == 123.0
     assert (flight.rtol, flight.atol) == (1e-9, 1e-9)
     assert (flight.max_time_step, flight.min_time_step) == (0.5, 0.01)

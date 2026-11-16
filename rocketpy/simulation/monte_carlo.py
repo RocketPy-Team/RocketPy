@@ -832,31 +832,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         rocket = self.rocket.create_object()
         environment = self.environment.create_object()
-        flight_inputs = self.flight._sample_flight_inputs()
-        return Flight(
-            rocket=rocket,
-            environment=environment,
-            rail_length=flight_inputs["rail_length"],
-            inclination=flight_inputs["inclination"],
-            heading=flight_inputs["heading"],
-            initial_solution=self.flight.initial_solution,
-            terminate_on_apogee=self.flight.terminate_on_apogee,
-            use_udot_rail2=self.flight.obj.use_udot_rail2,
-            time_overshoot=self.flight.time_overshoot,
-            # The rest of what StochasticFlight.create_object passes. Left out
-            # here, a run ignored the max_time, tolerances, solver, equations of
-            # motion and simulation mode the caller had set, which is what #1070
-            # added StochasticFlight's own handling of them for.
-            max_time=self.flight.max_time,
-            max_time_step=self.flight.obj.max_time_step,
-            min_time_step=self.flight.obj.min_time_step,
-            rtol=self.flight.obj.rtol,
-            atol=self.flight.obj.atol,
-            name=self.flight.obj.name,
-            equations_of_motion=self.flight.obj.equations_of_motion,
-            ode_solver=self.flight.obj.ode_solver,
-            simulation_mode=self.flight.obj.simulation_mode,
-        )
+        # One builder for both paths, so a new Flight argument cannot reach
+        # StochasticFlight and miss the Monte Carlo run.
+        return self.flight.create_object(rocket=rocket, environment=environment)
 
     def estimate_confidence_interval(
         self,

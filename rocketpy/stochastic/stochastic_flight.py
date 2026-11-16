@@ -165,9 +165,16 @@ class StochasticFlight(StochasticModel):
         """Randomizes the heading of the flight."""
         return self._sample_flight_inputs()["heading"]
 
-    def create_object(self):
+    def create_object(self, rocket=None, environment=None):
         """Creates and returns a Flight object from the randomly generated input
         arguments.
+
+        Parameters
+        ----------
+        rocket : Rocket, optional
+            Rocket to fly. Default is the base flight's rocket.
+        environment : Environment, optional
+            Environment to fly in. Default is the base flight's environment.
 
         Returns
         -------
@@ -176,8 +183,8 @@ class StochasticFlight(StochasticModel):
         """
         generated_dict = self._sample_flight_inputs()
         return Flight(
-            rocket=self.obj.rocket,
-            environment=self.obj.env,
+            rocket=self.obj.rocket if rocket is None else rocket,
+            environment=self.obj.env if environment is None else environment,
             rail_length=generated_dict["rail_length"],
             inclination=generated_dict["inclination"],
             heading=generated_dict["heading"],
