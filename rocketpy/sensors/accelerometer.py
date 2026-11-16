@@ -227,19 +227,26 @@ class Accelerometer(InertialSensor):
                 Derivative of the state vector of the rocket.
             - relative_position : np.array
                 Position of the sensor relative to the rocket center of mass.
-            - environment : Environment
-                Environment object containing the atmospheric conditions.
+            - gravity : float, optional
+                Gravity magnitude in m/s² at the rocket altitude. Used only
+                when ``consider_gravity`` is True. ``Flight`` passes it.
+            - environment : Environment, optional
+                Used only when ``consider_gravity`` is True and ``gravity`` is
+                not given: ``environment.gravity`` is evaluated at ``u[2]``,
+                the altitude in meters above sea level.
         """
         u = kwargs["u"]
         u_dot = kwargs["u_dot"]
         relative_position = kwargs["relative_position"]
-        gravity = kwargs["environment"].gravity.get_value_opt(u[3])
 
         # Linear acceleration of rocket cdm in inertial frame
-        gravity = (
-            Vector([0, 0, -gravity]) if self.consider_gravity else Vector([0, 0, 0])
-        )
-        inertial_acceleration = Vector(u_dot[3:6]) - gravity
+        inertial_acceleration = Vector(u_dot[3:6])
+        if self.consider_gravity:
+            gravity = kwargs.get("gravity")
+            if gravity is None:
+                gravity = kwargs["environment"].gravity.get_value_opt(u[2])
+            # Proper acceleration: subtracting the downward gravity adds +g
+            inertial_acceleration += Vector([0, 0, gravity])
 
         # Vector from rocket cdm to sensor in rocket frame
         r = relative_position
