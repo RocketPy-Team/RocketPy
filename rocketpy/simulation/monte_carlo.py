@@ -99,6 +99,14 @@ def _checkpoint_rows(path):
     return rows
 
 
+def _log_stamp(*paths):
+    """Size and modification time of each log, or None if one is missing."""
+    try:
+        return tuple((stat.st_size, stat.st_mtime_ns) for stat in map(os.stat, paths))
+    except OSError:
+        return None
+
+
 def _checkpoint_seed(inputs, requested_seed):
     """Recover one integer seed, rejecting mixed or damaged checkpoints."""
     recorded = [row["seed"] for row in inputs if "seed" in row]
@@ -452,6 +460,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 self.__run_in_serial()
         finally:
             self.__terminate_simulation()
+        # What this run left behind, so the next append of a convergence loop
+        # does not parse the whole logs again to learn it.
+        self._written_logs = (
+            _log_stamp(self.input_file, self.output_file),
+            self.__study_seed,
+            self._completed_indices | set(self._indices_to_run),
+        )
 
     def __setup_files(self, append):
         """
@@ -770,6 +785,14 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
     def __continue_study(self, random_seed):
         """Recover the seed and completed indices without requiring a contiguous run."""
+        written = getattr(self, "_written_logs", None)
+        if written is not None and written[0] == _log_stamp(
+            self.input_file, self.output_file
+        ):
+            _, seed, completed = written
+            self.__study_seed = _checkpoint_seed([{"seed": seed}], random_seed)
+            self._completed_indices = set(completed)
+            return
         inputs = _checkpoint_rows(self.input_file)
         outputs = _checkpoint_rows(self.output_file)
         held = [row["index"] for row in inputs]

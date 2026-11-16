@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 from rocketpy import MonteCarlo
+from rocketpy.simulation import monte_carlo as mc_module
 from rocketpy.stochastic import (
     StochasticEnvironment,
     StochasticFlight,
@@ -173,3 +174,39 @@ def test_convergence_seed_reproduces_inputs_across_batch_sizes(release_study):
     )
 
     assert [row["mass"] for row in _rows(release_study.input_file)] == expected
+
+
+def test_convergence_reads_the_checkpoint_once(release_study, monkeypatch):
+    """Batches reuse what the study just wrote instead of parsing the logs again."""
+    reads = []
+    real = mc_module._checkpoint_rows
+    monkeypatch.setattr(
+        mc_module, "_checkpoint_rows", lambda path: reads.append(path) or real(path)
+    )
+    release_study.simulate(1, random_seed=42, include_function_data=False)
+
+    release_study.simulate_convergence(
+        target_attribute="max_speed",
+        tolerance=1e-12,
+        max_simulations=4,
+        batch_size=1,
+    )
+
+    assert reads == []  # the logs are the ones the first simulate wrote
+    assert sorted(row["index"] for row in _rows(release_study.input_file)) == [
+        0,
+        1,
+        2,
+        3,
+    ]
+
+
+def test_a_log_changed_after_the_run_is_read_again(release_study):
+    """The shortcut only holds while the logs are what the study wrote."""
+    release_study.simulate(2, random_seed=42, include_function_data=False)
+    for path in (release_study.input_file, release_study.output_file):
+        _write_rows(path, [row for row in _rows(path) if row["index"] != 1])
+
+    release_study.simulate(2, append=True, include_function_data=False)
+
+    assert sorted(row["index"] for row in _rows(release_study.input_file)) == [0, 1]
