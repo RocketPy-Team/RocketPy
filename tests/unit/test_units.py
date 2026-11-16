@@ -5,6 +5,43 @@ from rocketpy import Function
 from rocketpy.units import conversion_factor, convert_temperature, convert_units
 
 
+# One of each unit and its exact value in the base unit, by SI definition.
+UNIT_DEFINITIONS = [
+    ("mm", "m", 1e-3),
+    ("cm", "m", 1e-2),
+    ("dm", "m", 1e-1),
+    ("dam", "m", 1e1),
+    ("hm", "m", 1e2),
+    ("km", "m", 1e3),
+    ("ft", "m", 0.3048),
+    ("in", "m", 0.0254),
+    ("mi", "m", 1609.344),
+    ("nmi", "m", 1852),
+    ("yd", "m", 0.9144),
+    ("km/h", "m/s", 1 / 3.6),
+    ("knot", "m/s", 1852 / 3600),
+    ("mph", "m/s", 1609.344 / 3600),
+    ("ft/s", "m/s", 0.3048),
+    ("gs", "m/s^2", 9.80665),
+    ("ft/s^2", "m/s^2", 0.3048),
+    ("hPa", "Pa", 1e2),
+    ("kPa", "Pa", 1e3),
+    ("MPa", "Pa", 1e6),
+    ("bar", "Pa", 1e5),
+    ("atm", "Pa", 101325),
+    ("mmHg", "Pa", 133.322387415),
+    ("inHg", "Pa", 25.4 * 133.322387415),
+    ("min", "s", 60),
+    ("h", "s", 3600),
+    ("d", "s", 86400),
+    ("mg", "kg", 1e-6),
+    ("g", "kg", 1e-3),
+    ("lb", "kg", 0.45359237),
+    ("deg", "rad", np.pi / 180),
+    ("grad", "rad", np.pi / 200),
+]
+
+
 class TestConvertTemperature:
     """Tests for the convert_temperature function."""
 
@@ -68,43 +105,7 @@ class TestConversionFactor:
 class TestConvertUnits:
     """Tests for the convert_units function."""
 
-    @pytest.mark.parametrize(
-        "unit, base_unit, value_in_base",
-        [
-            ("mm", "m", 1e-3),
-            ("cm", "m", 1e-2),
-            ("dm", "m", 1e-1),
-            ("dam", "m", 1e1),
-            ("hm", "m", 1e2),
-            ("km", "m", 1e3),
-            ("ft", "m", 0.3048),
-            ("in", "m", 0.0254),
-            ("mi", "m", 1609.344),
-            ("nmi", "m", 1852),
-            ("yd", "m", 0.9144),
-            ("km/h", "m/s", 1 / 3.6),
-            ("knot", "m/s", 1852 / 3600),
-            ("mph", "m/s", 1609.344 / 3600),
-            ("ft/s", "m/s", 0.3048),
-            ("gs", "m/s^2", 9.80665),
-            ("ft/s^2", "m/s^2", 0.3048),
-            ("hPa", "Pa", 1e2),
-            ("kPa", "Pa", 1e3),
-            ("MPa", "Pa", 1e6),
-            ("bar", "Pa", 1e5),
-            ("atm", "Pa", 101325),
-            ("mmHg", "Pa", 133.322387415),
-            ("inHg", "Pa", 25.4 * 133.322387415),
-            ("min", "s", 60),
-            ("h", "s", 3600),
-            ("d", "s", 86400),
-            ("mg", "kg", 1e-6),
-            ("g", "kg", 1e-3),
-            ("lb", "kg", 0.45359237),
-            ("deg", "rad", np.pi / 180),
-            ("grad", "rad", np.pi / 200),
-        ],
-    )
+    @pytest.mark.parametrize("unit, base_unit, value_in_base", UNIT_DEFINITIONS)
     def test_convert_units_matches_unit_definitions(
         self, unit, base_unit, value_in_base
     ):
@@ -171,3 +172,27 @@ class TestConvertUnits:
         assert converted.__outputs__ == ["Temperature (degC)"]
         assert converted.__interpolation__ == "linear"
         assert converted.__extrapolation__ == "constant"
+
+    @pytest.mark.parametrize("unit, base_unit, value_in_base", UNIT_DEFINITIONS)
+    def test_convert_units_function_matches_unit_definitions(
+        self, unit, base_unit, value_in_base
+    ):
+        """A Function should be converted with the same factors as a scalar,
+        on either axis, without changing the Function passed in."""
+        source = np.array([[1.0, 1.0], [2.0, 2.0]])
+        function = Function(source.copy(), inputs=f"x ({unit})", outputs=f"y ({unit})")
+
+        converted_x = convert_units(function, unit, base_unit, axis=0)
+        converted_y = convert_units(function, unit, base_unit, axis=1)
+
+        np.testing.assert_allclose(
+            converted_x.get_source()[:, 0], source[:, 0] * value_in_base, rtol=1e-9
+        )
+        np.testing.assert_allclose(
+            converted_y.get_source()[:, 1], source[:, 1] * value_in_base, rtol=1e-9
+        )
+        assert converted_x.__inputs__ == [f"x ({base_unit})"]
+        assert converted_y.__outputs__ == [f"y ({base_unit})"]
+        np.testing.assert_array_equal(function.get_source(), source)
+        assert function.__inputs__ == [f"x ({unit})"]
+        assert function.__outputs__ == [f"y ({unit})"]

@@ -71,8 +71,11 @@ def conversion_factor(from_unit, to_unit):
 
 def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     """See units.convert_units() for documentation."""
+    # Work on copies so the Function passed in is left unchanged
+    variable_source = np.array(variable.get_source(), dtype=float)
+    inputs = list(variable.__inputs__)
+    outputs = list(variable.__outputs__)
     # Perform conversion, take special care with temperatures
-    variable_source = variable.get_source()
     if from_unit in ["K", "degC", "degF"]:
         variable_source[:, axis] = convert_temperature(
             variable_source[:, axis], from_unit, to_unit
@@ -82,16 +85,14 @@ def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     # Rename axis labels
     match axis:
         case 0:
-            variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
+            inputs[0] = inputs[0].replace(from_unit, to_unit)
         case 1:
-            variable.__outputs__[0] = variable.__outputs__[0].replace(
-                from_unit, to_unit
-            )
+            outputs[0] = outputs[0].replace(from_unit, to_unit)
     # Create new Function instance with converted data
     return Function(
         source=variable_source,
-        inputs=variable.__inputs__,
-        outputs=variable.__outputs__,
+        inputs=inputs,
+        outputs=outputs,
         interpolation=variable.__interpolation__,
         extrapolation=variable.__extrapolation__,
     )
