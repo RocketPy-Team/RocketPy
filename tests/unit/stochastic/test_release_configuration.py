@@ -76,8 +76,9 @@ def test_stochastic_flight_keeps_nominal_terminate_on_apogee(flight_calisto_robu
         max_time=1,
     )
 
-    with pytest.warns(UserWarning, match="terminate_on_apogee=False"):
+    with pytest.warns(UserWarning, match="terminate_on_apogee=False") as caught:
         kept = StochasticFlight(nominal)
+    assert caught[0].filename == __file__
     overridden = StochasticFlight(nominal, terminate_on_apogee=False)
 
     assert kept.create_object().terminate_on_apogee is True

@@ -299,6 +299,8 @@ def test_a_generator_sampler_receives_the_full_seed():
     received = []
 
     class GeneratorSampler(CustomSampler):
+        """Built on default_rng, which takes any non-negative integer."""
+
         def sample(self, n_samples=1):
             return list(self.rng.normal(size=n_samples))
 

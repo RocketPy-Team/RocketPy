@@ -111,18 +111,8 @@ class StochasticFlight(StochasticModel):
             initial_solution = list(initial_solution.solution[-1])
         self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
-        if terminate_on_apogee is None and flight.terminate_on_apogee:
-            warnings.warn(
-                "StochasticFlight keeps the base flight's terminate_on_apogee=True, "
-                "so every sampled flight stops at apogee; pass "
-                "terminate_on_apogee=False to simulate the full flight.",
-                UserWarning,
-                stacklevel=2,
-            )
-        self.terminate_on_apogee = (
-            flight.terminate_on_apogee
-            if terminate_on_apogee is None
-            else terminate_on_apogee
+        self.terminate_on_apogee = self._resolve_terminate_on_apogee(
+            flight, terminate_on_apogee
         )
         if max_time is None:
             self.max_time = flight.max_time
@@ -132,6 +122,21 @@ class StochasticFlight(StochasticModel):
             self.time_overshoot = flight.time_overshoot
         else:
             self.time_overshoot = time_overshoot
+
+    @staticmethod
+    def _resolve_terminate_on_apogee(flight, terminate_on_apogee):
+        """Keep the base flight's value when omitted, warning if it is True."""
+        if terminate_on_apogee is not None:
+            return terminate_on_apogee
+        if flight.terminate_on_apogee:
+            warnings.warn(
+                "StochasticFlight keeps the base flight's terminate_on_apogee=True, "
+                "so every sampled flight stops at apogee; pass "
+                "terminate_on_apogee=False to simulate the full flight.",
+                UserWarning,
+                stacklevel=3,
+            )
+        return flight.terminate_on_apogee
 
     def _validate_initial_solution(self, initial_solution):
         if initial_solution is not None:

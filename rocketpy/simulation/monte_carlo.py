@@ -32,7 +32,6 @@ from scipy.stats import bootstrap
 from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
-from rocketpy.simulation.flight import Flight
 from rocketpy.tools import (
     _seed_sequence_to_int,
     generate_monte_carlo_ellipses,

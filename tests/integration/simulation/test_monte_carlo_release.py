@@ -216,7 +216,7 @@ def test_convergence_reads_the_checkpoint_once(release_study, monkeypatch):
         batch_size=1,
     )
 
-    assert reads == []  # the logs are the ones the first simulate wrote
+    assert not reads  # the logs are the ones the first simulate wrote
     assert sorted(row["index"] for row in _rows(release_study.input_file)) == [
         0,
         1,
