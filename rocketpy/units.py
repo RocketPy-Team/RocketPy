@@ -2,6 +2,8 @@ import numpy as np
 
 from .mathutils.function import Function
 
+# Each value is how many of that unit make one base unit (e.g. "km": 1e-3).
+# Multiply by it to leave the base unit, divide by it to reach the base unit.
 UNITS_CONVERSION_DICT = {
     # Units of length. Meter "m" is the base unit.
     "mm": 1e3,
@@ -33,8 +35,8 @@ UNITS_CONVERSION_DICT = {
     "MPa": 1e-6,
     "bar": 1e-5,
     "atm": 1 / 101325,
-    "mmHg": 1 / 133.322,
-    "inHg": 1 / 3386.389,
+    "mmHg": 1 / 133.322387415,
+    "inHg": 1 / (25.4 * 133.322387415),
     # Units of time. Seconds "s" is the base unit.
     "s": 1,
     "min": 1 / 60,
@@ -44,7 +46,7 @@ UNITS_CONVERSION_DICT = {
     "mg": 1e6,
     "g": 1e3,
     "kg": 1,
-    "lb": 2.20462,
+    "lb": 1 / 0.45359237,
     # Units of angle. Radian "rad" is the base unit.
     "rad": 1,
     "deg": 180 / np.pi,
@@ -53,7 +55,8 @@ UNITS_CONVERSION_DICT = {
 
 
 def conversion_factor(from_unit, to_unit):
-    """Returns the conversion factor from one unit to another."""
+    """Returns the factor that multiplies a value in ``from_unit`` to give it
+    in ``to_unit``. See ``UNITS_CONVERSION_DICT`` for how the table is read."""
     try:
         incoming_factor = UNITS_CONVERSION_DICT[to_unit]
     except KeyError as e:
