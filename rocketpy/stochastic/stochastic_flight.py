@@ -102,7 +102,9 @@ class StochasticFlight(StochasticModel):
             heading=heading,
         )
 
-        if initial_solution is None and flight.initial_derivative != flight.udot_rail1:
+        if initial_solution is None and getattr(
+            flight, "_initial_solution_given", False
+        ):
             initial_solution = list(flight.solution[0])
         elif isinstance(initial_solution, Flight):
             initial_solution = list(initial_solution.solution[-1])
