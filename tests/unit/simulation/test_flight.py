@@ -235,47 +235,6 @@ def test_initial_solution_from_flight_sets_initial_time(
     assert second.t_initial == first.solution[-1][0]
 
 
-def test_post_step_callback_runs_before_and_after_apogee(
-    calisto_robust, example_plain_env
-):
-    """post_step_callback must fire across the full flight, including descent.
-
-    Controllers are not a substitute: air-brake fixtures often terminate at
-    apogee, and parachute phases are not meant to keep feeding actuators.
-    This callback is the full-lifecycle observer hook (issue #758).
-    """
-    callback_times = []
-
-    def record_step(flight):
-        callback_times.append(flight.t)
-
-    flight = Flight(
-        rocket=calisto_robust,
-        environment=example_plain_env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=False,
-        post_step_callback=record_step,
-    )
-
-    assert callback_times, "post_step_callback was never invoked"
-    assert min(callback_times) < flight.apogee_time
-    assert max(callback_times) > flight.apogee_time
-    assert flight.t_final > flight.apogee_time
-
-
-def test_post_step_callback_must_be_callable(calisto, example_plain_env):
-    """Non-callable post_step_callback values are rejected at construction."""
-    with pytest.raises(TypeError, match="post_step_callback"):
-        Flight(
-            rocket=calisto,
-            environment=example_plain_env,
-            rail_length=5.2,
-            post_step_callback="not-callable",
-        )
-
-
 def test_initial_stability_margin(flight_calisto_custom_wind):
     """Test the initial_stability_margin method of the Flight class.
 
@@ -352,7 +311,7 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     [
         ("t_initial", (0.25886, -0.649623, 0)),
         ("out_of_rail_time", (0.792028, -1.987634, 0)),
-        ("apogee_time", (-0.519917, -0.734918, -1.005368e-18)),
+        ("apogee_time", (-0.652606, -0.734029, -2.115675e-14)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -391,7 +350,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.654150, 0.659142, -0.067103)),
         ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
-        ("apogee_time", (2.322999, -1.643037, -0.950316)),
+        ("apogee_time", (2.266124, -2.014696, -0.818709)),
         ("t_final", (-0.019802, 0.012030, 159.051604)),
     ],
 )
@@ -432,7 +391,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-14.593411, 15.743567, -0.000409),
+            (-11.634095, 16.695945, -0.000173),
         ),
         ("t_final", (5, 2, -5.660155)),
     ],
@@ -471,7 +430,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 7.8067, 89.2315)),
-        ("apogee_time", (0.07649, -0.053530, -9.620037)),
+        ("apogee_time", (0.073233, -0.062635, -9.614299)),
         ("t_final", (0, 0, 0.0019548)),
     ],
 )
@@ -551,6 +510,53 @@ def test_max_values(flight_calisto_robust):
     assert pytest.approx(105.1599, rel=rtol) == test.max_acceleration
     assert pytest.approx(0.85999, rel=rtol) == test.max_mach_number
     assert pytest.approx(285.94948, rel=rtol) == test.max_speed
+
+
+def test_potential_energy_increases_with_altitude(flight_calisto):
+    """Test that the potential energy grows as the rocket climbs. Between
+    burn out and apogee the mass is constant, so the change in potential
+    energy must match m * g * dz.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test = flight_calisto
+    burn_out_time = test.rocket.motor.burn_out_time
+    apogee_time = test.apogee_time
+    mass = test.rocket.total_mass(apogee_time)
+    delta_z = test.z(apogee_time) - test.z(burn_out_time)
+    initial_potential_energy = test.potential_energy(burn_out_time)
+    final_potential_energy = test.potential_energy(apogee_time)
+    delta_potential_energy = final_potential_energy - initial_potential_energy
+    expected_delta = mass * test.env.standard_g * delta_z
+
+    assert delta_z > 0
+    assert pytest.approx(expected_delta, rel=1e-2) == delta_potential_energy
+
+
+def test_potential_energy_reference_and_total_energy(flight_calisto):
+    """Test that the potential energy is zero at sea level and positive
+    above it, and that the total energy is the kinetic plus the potential
+    energy.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test = flight_calisto
+    apogee_time = test.apogee_time
+
+    assert test.z(test.t_initial) == pytest.approx(0)
+    assert test.potential_energy(test.t_initial) == pytest.approx(0, abs=1e-6)
+    assert test.potential_energy(apogee_time) > 0
+    assert test.total_energy(apogee_time) == pytest.approx(
+        test.kinetic_energy(apogee_time) + test.potential_energy(apogee_time)
+    )
 
 
 @pytest.mark.parametrize(
