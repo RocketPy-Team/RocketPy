@@ -94,7 +94,7 @@ class TestConvertUnits:
             ("bar", "Pa", 1e5),
             ("atm", "Pa", 101325),
             ("mmHg", "Pa", 133.322387415),
-            ("inHg", "Pa", 3386.389),
+            ("inHg", "Pa", 25.4 * 133.322387415),
             ("min", "s", 60),
             ("h", "s", 3600),
             ("d", "s", 86400),
@@ -109,13 +109,12 @@ class TestConvertUnits:
         self, unit, base_unit, value_in_base
     ):
         """One of each unit should convert to its defined value in the base
-        unit, and back. The references are the exact SI definitions, so the
-        tolerance only allows for the rounded pound and mercury constants."""
+        unit, and back. The references are the exact SI definitions."""
         assert convert_units(1, unit, base_unit) == pytest.approx(
-            value_in_base, rel=1e-5
+            value_in_base, rel=1e-9
         )
         assert convert_units(value_in_base, base_unit, unit) == pytest.approx(
-            1, rel=1e-5
+            1, rel=1e-9
         )
 
     def test_convert_units_same_unit(self):
