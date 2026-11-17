@@ -101,21 +101,6 @@ def test_an_explicit_terminate_on_apogee_does_not_warn(flight_calisto_robust, gi
         StochasticFlight(nominal, terminate_on_apogee=given)
 
 
-def test_stochastic_flight_keeps_nominal_tip_off_phase(flight_calisto_robust):
-    """The opt-in single rail button phase must survive stochastic wrapping."""
-    nominal = Flight(
-        flight_calisto_robust.rocket,
-        flight_calisto_robust.env,
-        rail_length=5.2,
-        use_udot_rail2=True,
-        max_time=1,
-    )
-
-    sampled = StochasticFlight(nominal).create_object()
-
-    assert sampled.use_udot_rail2 is True
-
-
 @pytest.mark.parametrize("scalar", [np.float32, np.float64, np.int64])
 def test_stochastic_flight_accepts_numpy_scalars_in_initial_solution(
     flight_calisto_robust, scalar

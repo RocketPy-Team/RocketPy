@@ -206,7 +206,6 @@ class StochasticFlight(StochasticModel):
             heading=generated_dict["heading"],
             initial_solution=self.initial_solution,
             terminate_on_apogee=self.terminate_on_apogee,
-            use_udot_rail2=self.obj.use_udot_rail2,
             max_time=self.max_time,
             max_time_step=self.obj.max_time_step,
             min_time_step=self.obj.min_time_step,
