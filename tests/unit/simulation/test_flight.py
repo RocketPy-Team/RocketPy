@@ -837,3 +837,109 @@ def test_max_acceleration_power_off_time_with_controllers(
     assert test.max_acceleration_power_off > 0, (
         "max_acceleration_power_off should be greater than zero"
     )
+
+
+# ---------------------------------------------------------------------------
+# The equations of motion themselves, evaluated on a fixed state
+# ---------------------------------------------------------------------------
+
+
+def _coasting_state(flight, seconds_after_burnout=3.0):
+    """Return ``(t, state)`` a few seconds into the coast of a flown flight."""
+    t = flight.rocket.motor.burn_out_time + seconds_after_burnout
+    return t, list(flight.get_solution_at_time(t)[1:])
+
+
+def _burning_state(flight, seconds_after_ignition=1.5):
+    """Return ``(t, state)`` during the motor burn of a flown flight."""
+    t = flight.rocket.motor.burn_start_time + seconds_after_ignition
+    return t, list(flight.get_solution_at_time(t)[1:])
+
+
+def _with_rates(state, w1=0.0, w2=0.0, w3=0.0):
+    return [*state[:10], w1, w2, w3]
+
+
+@pytest.mark.parametrize("derivative", [Flight.u_dot, Flight.u_dot_generalized])
+def test_an_angular_rate_is_aerodynamically_damped(flight_calisto_robust, derivative):
+    """A rate about any body axis must produce an angular acceleration against it.
+
+    The solid propulsion equations once zeroed the rates before the
+    aerodynamics, so no rate was ever damped: a canted fin spun the rocket up
+    without bound. This checks each axis on a coasting state, for both sets of
+    equations.
+    """
+    flight = flight_calisto_robust
+    t, state = _coasting_state(flight)
+    at_rest = derivative(flight, t, state)
+    for axis, rate in ((0, 2.0), (1, 2.0), (2, 20.0)):
+        slot = 10 + axis
+        positive = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": rate}))
+        negative = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": -rate}))
+        assert positive[slot] < at_rest[slot] < negative[slot], f"axis {axis + 1}"
+        # damping is close to linear in the rate at these magnitudes
+        assert positive[slot] - at_rest[slot] == pytest.approx(
+            -(negative[slot] - at_rest[slot]), rel=0.2
+        )
+
+
+def test_solid_propulsion_and_generalized_equations_agree_when_rotating(
+    flight_calisto_robust,
+):
+    """With a pitch rate applied, both models give the same damping moment.
+
+    They differ in how variable mass is handled, not in the aerodynamics, so
+    the angular acceleration a rate produces must agree closely.
+    """
+    flight = flight_calisto_robust
+    t, state = _coasting_state(flight)
+    pitching = _with_rates(state, w1=2.0)
+    solid = Flight.u_dot(flight, t, pitching)
+    generalized = Flight.u_dot_generalized(flight, t, pitching)
+    assert solid[10] == pytest.approx(generalized[10], rel=0.1)
+    assert solid[3:6] == pytest.approx(generalized[3:6], rel=0.05)
+
+
+def test_solid_propulsion_roll_gives_no_lateral_acceleration_in_the_burn(
+    flight_calisto_robust,
+):
+    """The propellant sits on the rocket axis, so a roll does not move it.
+
+    The solid propulsion equations once wrote the propellant offset along a
+    lateral body axis. A roll rate then pushed the rocket sideways while the
+    motor burned (about 30 m/s² at 20 rad/s on this rocket).
+    """
+    flight = flight_calisto_robust
+    t, state = _burning_state(flight)
+    still = Flight.u_dot(flight, t, _with_rates(state))
+    rolling = Flight.u_dot(flight, t, _with_rates(state, w3=20.0))
+    assert flight.rocket.motor.propellant_mass(t) > 1
+    assert rolling[3:6] == pytest.approx(still[3:6], abs=1e-6)
+
+
+def test_solid_propulsion_and_generalized_equations_agree_in_the_burn(
+    flight_calisto_robust,
+):
+    """While the motor burns and the rocket rotates, both models must agree.
+
+    The linear acceleration checks the propellant offset terms. The change in
+    pitch acceleration caused by a pitch rate checks the damping, which
+    includes the rate of change of the inertia. The models still differ in how
+    the mass flow is handled, hence the tolerances.
+    """
+    flight = flight_calisto_robust
+    t, state = _burning_state(flight)
+    still = _with_rates(state)
+    rotating = _with_rates(state, w1=1.5, w2=-1.0, w3=15.0)
+    pitching = _with_rates(state, w1=2.0)
+
+    solid = Flight.u_dot(flight, t, rotating)
+    generalized = Flight.u_dot_generalized(flight, t, rotating)
+    assert solid[3:6] == pytest.approx(generalized[3:6], abs=0.3)
+
+    damping = [
+        derivative(flight, t, pitching)[10] - derivative(flight, t, still)[10]
+        for derivative in (Flight.u_dot, Flight.u_dot_generalized)
+    ]
+    assert damping[0] < 0
+    assert damping[0] == pytest.approx(damping[1], rel=0.03)
