@@ -9,54 +9,6 @@ from ..prints.tank_prints import _TankPrints
 from ..tools import tuple_handler
 
 
-def _compose_clipped(outer, inner):
-    """Compose ``outer(inner(t))`` after clipping ``inner``'s values to
-    ``outer``'s valid domain.
-
-    This guards against ``Function.compose`` raising a spurious
-    ``ValueError`` when ``inner``'s values fall just outside ``outer``'s
-    domain by a floating-point roundoff amount (e.g. ``-1e-17`` instead of
-    exactly ``0`` at the instant a tank is exactly empty or exactly full).
-    Physically meaningful over/underfill conditions are still caught
-    downstream by ``Tank``'s own volume bounds checks, which raise
-    independently of this composition; this only absorbs numerical noise at
-    the domain boundary.
-
-    Parameters
-    ----------
-    outer : Function
-        The function being composed into (e.g. ``inverse_volume``).
-    inner : Function
-        The function supplying input values (e.g. a computed volume or
-        height curve), whose values may be marginally outside ``outer``'s
-        domain due to floating-point roundoff.
-
-    Returns
-    -------
-    Function
-        The composed function, i.e. ``outer(inner(t))``.
-    """
-    # Clipping reads x_array / y_array and the domain bounds, which only exist
-    # for array-sourced Functions. ``Function.compose`` handles the callable
-    # case on its own (and performs no bounds check there, so there is no
-    # spurious error to absorb), so defer to it rather than raising
-    # AttributeError.
-    if not (outer.is_array_source() and inner.is_array_source()):
-        return outer.compose(inner)
-
-    domain_min = outer.x_initial
-    domain_max = outer.x_final
-    clipped_source = np.column_stack(
-        [inner.x_array, np.clip(inner.y_array, domain_min, domain_max)]
-    )
-    clipped_inner = Function(
-        clipped_source,
-        inputs=inner.__inputs__,
-        outputs=inner.__outputs__,
-    )
-    return outer.compose(clipped_inner)
-
-
 class Tank(ABC):
     """Abstract Tank class that defines a tank object for a rocket motor, so
     that it evaluates useful properties of the tank and its fluids, such as
@@ -1000,9 +952,7 @@ class MassFlowRateBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        liquid_height = _compose_clipped(
-            self.geometry.inverse_volume, self.liquid_volume
-        )
+        liquid_height = self.geometry.inverse_volume.compose(self.liquid_volume)
         diff_bt = liquid_height - self.geometry.bottom
         diff_up = liquid_height - self.geometry.top
 
@@ -1040,7 +990,7 @@ class MassFlowRateBasedTank(Tank):
             Height of the ullage as a function of time.
         """
         fluid_volume = self.gas_volume + self.liquid_volume
-        gas_height = _compose_clipped(self.geometry.inverse_volume, fluid_volume)
+        gas_height = self.geometry.inverse_volume.compose(fluid_volume)
         diff = gas_height - self.geometry.top
         if (diff > 0).any():
             raise ValueError(
@@ -1301,7 +1251,7 @@ class UllageBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        return _compose_clipped(self.geometry.inverse_volume, self.liquid_volume)
+        return self.geometry.inverse_volume.compose(self.liquid_volume)
 
     @funcify_method("Time (s)", "Gas Height (m)", "linear")
     def gas_height(self):
@@ -1495,7 +1445,7 @@ class LevelBasedTank(Tank):
         Function
             Volume of the liquid as a function of time.
         """
-        return _compose_clipped(self.geometry.volume, self.liquid_height)
+        return self.geometry.volume.compose(self.liquid_height)
 
     @funcify_method("Time (s)", "Gas Volume (m³)")
     def gas_volume(self):
@@ -1804,9 +1754,7 @@ class MassBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        liquid_height = _compose_clipped(
-            self.geometry.inverse_volume, self.liquid_volume
-        )
+        liquid_height = self.geometry.inverse_volume.compose(self.liquid_volume)
         diff_bt = liquid_height - self.geometry.bottom
         diff_up = liquid_height - self.geometry.top
 
@@ -1842,7 +1790,7 @@ class MassBasedTank(Tank):
             Height of the ullage as a function of time.
         """
         fluid_volume = self.gas_volume + self.liquid_volume
-        gas_height = _compose_clipped(self.geometry.inverse_volume, fluid_volume)
+        gas_height = self.geometry.inverse_volume.compose(fluid_volume)
         diff = gas_height - self.geometry.top
         if (diff > 0).any():
             raise ValueError(
