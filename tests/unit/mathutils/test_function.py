@@ -2260,3 +2260,83 @@ def test_3d_linear_interpolation_no_nan_outside_convex_hull():
         "f(0.9, 0.9, 0.9) returned NaN. Point is outside the 3D convex hull "
         "and should be routed to extrapolation, not silently return NaN."
     )
+
+
+def _doubling_function():
+    """Function f(x) = 2x on the domain [0, 10]."""
+    return Function(np.column_stack([np.linspace(0, 10, 11), np.linspace(0, 20, 11)]))
+
+
+@pytest.mark.parametrize("offset", [-1e-16, -1e-10, -9e-9])
+def test_compose_clips_values_within_domain_tolerance(offset):
+    """Inner values a roundoff below the domain are clipped, not rejected."""
+    times = np.linspace(0.0, 5.0, 6)
+    inner = Function(np.column_stack([times, np.full_like(times, offset)]))
+
+    composed = _doubling_function().compose(inner)
+
+    assert float(composed(2.0)) == pytest.approx(0.0, abs=1e-9)
+    # Clipped to the domain edge, so the result is not extrapolated below 0
+    assert float(composed(2.0)) >= 0.0
+
+
+def test_compose_clips_values_above_domain_within_tolerance():
+    times = np.linspace(0.0, 5.0, 6)
+    inner = Function(np.column_stack([times, np.full_like(times, 10.0 + 1e-10)]))
+
+    composed = _doubling_function().compose(inner)
+
+    assert float(composed(2.0)) == pytest.approx(20.0)
+    assert float(composed(2.0)) <= 20.0
+
+
+def test_compose_tolerance_is_relative_to_domain_size():
+    """The same absolute overshoot is accepted on a large domain only."""
+    overshoot = 1e-7
+    times = np.linspace(0.0, 5.0, 6)
+    inner = Function(np.column_stack([times, np.full_like(times, -overshoot)]))
+
+    wide_domain = np.linspace(0.0, 1e3, 11)
+    wide = Function(np.column_stack([wide_domain, 2 * wide_domain]))
+    narrow_domain = np.linspace(0.0, 1.0, 11)
+    narrow = Function(np.column_stack([narrow_domain, 2 * narrow_domain]))
+
+    assert float(wide.compose(inner)(2.0)) == pytest.approx(0.0, abs=1e-9)
+    with pytest.raises(ValueError, match="must be within the domain"):
+        narrow.compose(inner)
+
+
+@pytest.mark.parametrize("bad_value", [-1e-6, 10.0 + 1e-6])
+def test_compose_raises_beyond_domain_tolerance(bad_value):
+    times = np.linspace(0.0, 5.0, 6)
+    inner = Function(np.column_stack([times, np.full_like(times, bad_value)]))
+
+    with pytest.raises(ValueError, match="must be within the domain"):
+        _doubling_function().compose(inner)
+
+
+def test_compose_extrapolate_true_does_not_clip():
+    times = np.linspace(0.0, 5.0, 6)
+    inner = Function(np.column_stack([times, np.full_like(times, -1.0)]))
+    outer = _doubling_function()
+    outer.set_extrapolation("natural")
+
+    composed = outer.compose(inner, extrapolate=True)
+
+    assert float(composed(2.0)) == pytest.approx(-2.0)
+
+
+@pytest.mark.parametrize(
+    "outer_is_array, inner_is_array",
+    [(True, False), (False, True), (False, False)],
+    ids=["array-callable", "callable-array", "callable-callable"],
+)
+def test_compose_with_callable_source(outer_is_array, inner_is_array):
+    doubling = np.column_stack([np.linspace(0, 10, 11), np.linspace(0, 20, 11)])
+    outer = Function(doubling) if outer_is_array else Function(lambda v: v * 2.0)
+
+    shift = np.column_stack([np.linspace(0, 5, 6), np.linspace(1, 6, 6)])
+    inner = Function(shift) if inner_is_array else Function(lambda t: t + 1.0)
+
+    # outer(inner(3)) == (3 + 1) * 2
+    assert float(outer.compose(inner)(3.0)) == pytest.approx(8.0)
