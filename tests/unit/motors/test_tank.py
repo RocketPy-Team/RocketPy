@@ -6,7 +6,7 @@ import numpy.testing as npt
 import pytest
 import scipy.integrate as spi
 
-from rocketpy import CylindricalTank, Fluid, Function, MassFlowRateBasedTank
+from rocketpy import CylindricalTank, Fluid, MassFlowRateBasedTank
 
 BASE_PATH = Path("./data/rockets/berkeley/")
 
