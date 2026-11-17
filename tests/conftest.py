@@ -6,6 +6,16 @@ import pytest
 # Configure matplotlib to use non-interactive backend for tests
 matplotlib.use("Agg")
 
+
+@pytest.fixture(autouse=True)
+def forget_forecasts_in_memory():
+    """Start every test with no forecast kept in memory, so that no test
+    reuses what an earlier one downloaded."""
+    from rocketpy.environment import environment  # pylint: disable=import-outside-toplevel
+
+    environment._FORECASTS_IN_MEMORY.clear()
+
+
 # Pytest configuration
 pytest_plugins = [
     "tests.fixtures.environment.environment_fixtures",

@@ -697,6 +697,54 @@ def get_initial_date_from_time_array(time_array, units=None):
     return _to_datetime(netCDF4.num2date(time_array[0], units, calendar="gregorian"))
 
 
+def get_model_run(dataset, time_name, datetime_date):
+    """Identify the model run that supplies the forecast for a given time.
+
+    Forecast datasets that join several model runs, such as the "Best" time
+    series of the UCAR THREDDS server, carry ``reftime`` variables with the
+    reference time of the run each forecast time comes from. While a new run
+    is being published, some forecast times already come from it and others
+    still come from the previous one, so the run is read at the forecast time
+    closest to ``datetime_date``.
+
+    Parameters
+    ----------
+    dataset : netCDF4.Dataset
+        Dataset opened from the forecast server.
+    time_name : str
+        Name of the time variable of the dataset.
+    datetime_date : datetime.datetime
+        Time the forecast is wanted for, in UTC.
+
+    Returns
+    -------
+    tuple of str or None
+        The address of the dataset and the reference time of the model run
+        that supplies ``datetime_date``. None if the dataset does not carry
+        reference times along its time variable, in which case the model run
+        cannot be identified.
+    """
+    variables = getattr(dataset, "variables", None)
+    if variables is None or datetime_date is None or time_name not in variables:
+        return None
+    time_array = variables[time_name]
+    reference_times = next(
+        (
+            variable
+            for name, variable in variables.items()
+            if name.lower().startswith("reftime")
+            and variable.dimensions == time_array.dimensions
+        ),
+        None,
+    )
+    if reference_times is None:
+        return None
+    wanted = netCDF4.date2num(datetime_date, time_array.units, calendar="gregorian")
+    time_index = int(np.argmin(np.abs(np.asarray(time_array[:], dtype=float) - wanted)))
+    model_run = netCDF4.num2date(reference_times[time_index], reference_times.units)
+    return dataset.filepath(), str(model_run)
+
+
 def get_final_date_from_time_array(time_array, units=None):
     """Returns a datetime object representing the last time in the time array.
 

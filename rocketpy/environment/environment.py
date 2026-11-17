@@ -7,6 +7,7 @@ import re
 import warnings
 from collections.abc import Mapping
 from collections import namedtuple
+from copy import deepcopy
 from datetime import datetime
 
 import netCDF4
@@ -45,6 +46,7 @@ from rocketpy.environment.tools import (
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
     get_interval_date_from_time_array,
+    get_model_run,
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
     pressure_unit_to_factor,
@@ -59,6 +61,11 @@ from rocketpy.tools import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Forecasts downloaded in this Python session, kept in memory only. Each
+# request (model, place, launch time and so on) maps to the model run that
+# supplied the launch time and to what processing it set on the Environment.
+_FORECASTS_IN_MEMORY = {}
 
 
 class Environment:
@@ -700,6 +707,56 @@ class Environment:
                 return candidate
 
         return dictionary
+
+    def __process_or_reuse_forecast(self, file, dataset, dictionary, conversion_factor):
+        """Process a dataset opened from one of the latest-forecast shortcuts,
+        or reuse what an earlier Environment of this Python session obtained
+        from the same model run for the same request.
+
+        The server has already been reached to open ``dataset``, and it is
+        asked which model run supplies the launch time. The data is downloaded
+        and processed again whenever that run differs from the one kept in
+        memory, or cannot be identified. Nothing is written to disk.
+
+        Parameters
+        ----------
+        file : str
+            Name of the shortcut, such as ``"GFS"``.
+        dataset : netCDF4.Dataset
+            Dataset returned by the shortcut.
+        dictionary : dict
+            Names of the variables in the dataset.
+        conversion_factor : float
+            Factor that converts the pressure levels of the dataset to Pa.
+        """
+        model_run = get_model_run(dataset, dictionary.get("time"), self.datetime_date)
+        request = (
+            file,
+            self.latitude,
+            self.longitude,
+            self.datetime_date,
+            self.elevation,
+            conversion_factor,
+            tuple(sorted(dictionary.items(), key=str)),
+        )
+        kept = _FORECASTS_IN_MEMORY.get(request)
+        if model_run is not None and kept is not None and kept[0] == model_run:
+            dataset.close()
+            self.__dict__.update(deepcopy(kept[1]))
+            return
+
+        before = dict(self.__dict__)
+        self.process_forecast_reanalysis(
+            dataset, dictionary, conversion_factor=conversion_factor
+        )
+        if model_run is not None:
+            # Everything the processing set on this Environment
+            results = {
+                name: value
+                for name, value in self.__dict__.items()
+                if name not in before or before[name] is not value
+            }
+            _FORECASTS_IN_MEMORY[request] = (model_run, deepcopy(results))
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
@@ -1472,11 +1529,16 @@ class Environment:
                 dataset = fetch_function() if fetch_function is not None else file
 
                 if type in ["forecast", "reanalysis"]:
-                    self.process_forecast_reanalysis(
-                        dataset, dictionary, conversion_factor=conversion_factor
-                    )
+                    process = self.process_forecast_reanalysis
                 else:
-                    self.process_ensemble(dataset, dictionary, conversion_factor)
+                    process = self.process_ensemble
+
+                if fetch_function is None or type != "forecast":
+                    process(dataset, dictionary, conversion_factor=conversion_factor)
+                else:
+                    self.__process_or_reuse_forecast(
+                        file, dataset, dictionary, conversion_factor
+                    )
 
                 ground_pressure = self.pressure(self.elevation)
                 if not 30000 <= ground_pressure <= 120_000:
