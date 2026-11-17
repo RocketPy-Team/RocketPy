@@ -197,9 +197,9 @@ class SolidMotor(Motor):
         If True, grain regression is restricted to radial burn only (inner radius growth).
         Grain length remains constant throughout the burn. Default is False.
     SolidMotor.grains_bonded : bool
-        If True (default), grain axial positions stay fixed at the assembled layout
-        (BATES bonded/glued grains). If False, a first-order packing model shifts the
-        propellant center of mass toward the nozzle as grain height regresses.
+        If True (default), grain axial positions stay fixed. If False, the
+        propellant center of mass moves toward the nozzle as the grain height
+        regresses.
     """
 
     # pylint: disable=too-many-arguments
@@ -329,23 +329,16 @@ class SolidMotor(Motor):
             axially. May be useful for axially inhibited grains or hybrid motors.
             Default is False.
         grains_bonded : bool, optional
-            If True (default), grains keep fixed axial positions about
-            ``grains_center_of_mass_position`` (bonded / BATES-style assembly).
-            If False, grains are treated as freestanding and packed against the
-            nozzle-side (aft) face of the initial grain stack once acceleration
-            settles them. The propellant CM then moves toward the nozzle as
-            ``grain_height`` regresses:
-
-            ``CM(t) = grains_center_of_mass_position
-            - _csys * (grain_number / 2) * (grain_initial_height - grain_height(t))``.
-
-            This is a first-order inertial packing model: it does not integrate
-            grain rigid-body dynamics, friction, DEM contacts, or discontinuous
-            rattling. Inter-grain ``grain_separation`` (e.g. spacers) is kept
-            while the stack shortens from grain-height loss only. With
-            ``only_radial_burn=True``, height is constant so the CM does not
-            shift. Follow-ups may add acceleration-dependent settling or a
-            full multi-body grain dynamics model.
+            If True (default), the grains stay at fixed axial positions around
+            ``grains_center_of_mass_position``. If False, the grains are loose
+            and rest against the nozzle-side face of the initial grain stack, so
+            the propellant center of mass moves toward the nozzle as the grains
+            get shorter. The shift is ``(grain_number / 2) *
+            (grain_initial_height - grain_height(t))``. ``grain_separation`` is
+            treated as a solid spacer, not an air gap, so the spacing between
+            grains stays constant. With ``only_radial_burn=True`` the grain
+            height is constant and there is no shift. This is a simple model
+            that ignores grain motion, friction and rattling.
 
         Returns
         -------
@@ -506,15 +499,12 @@ class SolidMotor(Motor):
         Notes
         -----
         When ``grains_bonded`` is True, the CM stays at
-        ``grains_center_of_mass_position`` (fixed grain layout).
+        ``grains_center_of_mass_position``.
 
-        When ``grains_bonded`` is False, grains are packed against the aft
-        (nozzle-side) face of the initial grain stack. As grain height
-        regresses, the packed stack shortens and the CM shifts toward the
-        nozzle by ``(grain_number / 2) * (grain_initial_height -
-        grain_height(t))`` along the motor axis (signed by ``_csys``).
-        This is a first-order packing model, not a discrete-element
-        simulation of grain motion.
+        When ``grains_bonded`` is False, the grains rest against the
+        nozzle-side face of the initial grain stack. As the grain height
+        regresses, the stack gets shorter and the CM moves toward the nozzle by
+        ``(grain_number / 2) * (grain_initial_height - grain_height(t))``.
         """
         if self.grains_bonded:
             time_source = self.grain_inner_radius.x_array
