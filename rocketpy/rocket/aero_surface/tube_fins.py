@@ -13,11 +13,11 @@ class TubeFins(AeroSurface):
     """Defines a symmetric set of tube fins.
 
     Each tube is treated as a ring wing on its own. Its normal force follows
-    Ribner's result that a ring wing lifts twice as much as an elliptic flat
-    wing spanning its diameter, and its center of pressure follows the wind
-    tunnel measurements of NACA TN 4117. Both were obtained at low speed and
-    are used unchanged at every Mach number. A roll rate is damped by the
-    normal force it produces on each tube.
+    Ribner's result [1] that a ring wing lifts twice as much as an elliptic
+    flat wing spanning its diameter, and its center of pressure follows the
+    wind tunnel measurements of NACA TN 4117 [2]. Both were obtained at low
+    speed and are used unchanged at every Mach number. A roll rate is damped
+    by the normal force it produces on each tube.
 
     The model is limited to uncanted tubes that touch both the rocket body and
     their two neighboring tubes. The effect the tubes have on each other, and
@@ -50,6 +50,16 @@ class TubeFins(AeroSurface):
     See Also
     --------
     :doc:`Tube Fin Aerodynamics </technical/aerodynamics/tube_fins>`
+
+    References
+    ----------
+    [1] Ribner, H. S. "The Ring Airfoil in Nonaxial Flow." Journal of the
+    Aeronautical Sciences, 14(9), 529-530, 1947.
+    https://doi.org/10.2514/8.1437
+
+    [2] Fletcher, H. S. "Experimental Investigation of Lift, Drag, and
+    Pitching Moment of Five Annular Airfoils." NACA Technical Note 4117, 1957.
+    https://ntrs.nasa.gov/citations/19930084906
     """
 
     # Center of pressure of a ring wing measured in NACA TN 4117 (figure 8):

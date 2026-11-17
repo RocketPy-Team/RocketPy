@@ -188,7 +188,9 @@ References
 
 .. [1] Ribner, H. S. "The Ring Airfoil in Nonaxial Flow." *Journal of the
    Aeronautical Sciences*, 14(9), 529--530, 1947.
+   https://doi.org/10.2514/8.1437
 .. [2] Fletcher, H. S. "Experimental Investigation of Lift, Drag, and Pitching
    Moment of Five Annular Airfoils." NACA Technical Note 4117, 1957.
+   https://ntrs.nasa.gov/citations/19930084906
 .. [3] Helmbold, H. B. "Der unverwundene Ellipsenflügel als tragende Fläche."
    *Jahrbuch 1942 der Deutschen Luftfahrtforschung*, I111--I113, 1942.
