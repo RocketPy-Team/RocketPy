@@ -193,7 +193,7 @@ def test_the_check_is_not_stripped_by_python_dash_o():
     later or reads `True` as a height."""
     source = inspect.getsource(StochasticParachute._validate_trigger)
 
-    assert "raise AssertionError" in source
+    assert "raise StochasticTypeError" in source
     assert not any(line.strip().startswith("assert ") for line in source.splitlines())
 
 
