@@ -4,6 +4,8 @@ from .environment import Environment, EnvironmentAnalysis
 from .exceptions import (
     InvalidInertiaError,
     InvalidParameterError,
+    StochasticTypeError,
+    StochasticValueError,
     UnstableRocketWarning,
 )
 from .mathutils import (

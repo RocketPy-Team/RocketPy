@@ -19,6 +19,24 @@ class InvalidInertiaError(RocketPyError, ValueError):
     """Raised when the inertia tuple/list does not have the expected length."""
 
 
+class StochasticTypeError(RocketPyError, TypeError, AssertionError):
+    """Raised when a stochastic input has the wrong type or format (e.g. a
+    string where a number or tuple is expected).
+
+    Also an ``AssertionError``, which these checks used to raise, so existing
+    ``except AssertionError`` clauses keep working.
+    """
+
+
+class StochasticValueError(RocketPyError, ValueError, AssertionError):
+    """Raised when a stochastic input has the right type but an invalid value
+    (e.g. a tuple of the wrong length or an out-of-range ensemble member).
+
+    Also an ``AssertionError``, which these checks used to raise, so existing
+    ``except AssertionError`` clauses keep working.
+    """
+
+
 class UnstableRocketWarning(UserWarning):
     """Issued when the rocket's static margin is negative at motor ignition,
     indicating an aerodynamically unstable configuration.

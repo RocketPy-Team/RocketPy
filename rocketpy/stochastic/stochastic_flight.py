@@ -5,6 +5,7 @@ from numbers import Real
 
 import numpy as np
 
+from rocketpy.exceptions import StochasticTypeError, StochasticValueError
 from rocketpy.simulation import Flight
 
 from .stochastic_model import StochasticModel
@@ -89,7 +90,7 @@ class StochasticFlight(StochasticModel):
         if terminate_on_apogee is not None and not isinstance(
             terminate_on_apogee, bool
         ):
-            raise AssertionError("`terminate_on_apogee` must be a boolean")
+            raise StochasticTypeError("`terminate_on_apogee` must be a boolean")
         if time_overshoot is not None:
             if not isinstance(time_overshoot, bool):
                 raise TypeError("`time_overshoot` must be a boolean")
@@ -143,7 +144,7 @@ class StochasticFlight(StochasticModel):
         if initial_solution is not None:
             if isinstance(initial_solution, (tuple, list)):
                 if not len(initial_solution) == 14:
-                    raise AssertionError(
+                    raise StochasticValueError(
                         "`initial_solution` must be a 14 element tuple, the "
                         "elements are:\n t_initial, x_init, y_init, z_init, "
                         "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
@@ -153,7 +154,7 @@ class StochasticFlight(StochasticModel):
                     isinstance(i, Real) and not isinstance(i, (bool, np.bool_))
                     for i in initial_solution
                 ):
-                    raise AssertionError(
+                    raise StochasticTypeError(
                         "`initial_solution` must be a tuple of numbers"
                     )
             else:

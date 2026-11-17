@@ -1,5 +1,6 @@
 """Defines the StochasticParachute class."""
 
+from rocketpy.exceptions import StochasticTypeError
 from rocketpy.rocket import Parachute
 from rocketpy.rocket.parachute import _is_a_height_trigger
 
@@ -174,7 +175,7 @@ class StochasticParachute(StochasticModel):
         # is the only thing standing between a bad trigger and a Parachute
         # that either refuses it much later or reads True as a height of 1.
         if not valid:
-            raise AssertionError(
+            raise StochasticTypeError(
                 "`trigger` must be a non-empty list whose members are "
                 "callables, the string 'apogee', heights, or ('time', t_deploy)"
             )
@@ -189,7 +190,7 @@ class StochasticParachute(StochasticModel):
                 isinstance(noise, list)
                 and all(isinstance(member, tuple) for member in noise)
             ):
-                raise AssertionError(
+                raise StochasticTypeError(
                     "`noise` must be a list of tuples in the form of "
                     "(mean, standard deviation, time-correlation)"
                 )
