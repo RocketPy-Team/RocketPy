@@ -16,6 +16,7 @@ latest documentation.
 import csv
 import json
 import os
+import secrets
 import sys
 import threading
 import traceback
@@ -67,7 +68,8 @@ _ROW_METADATA = frozenset((_SIMULATION_INDEX_KEY, _SIMULATION_SEED_KEY))
 def _study_seed(random_seed):
     """Validate a study seed before opening or truncating any logs."""
     if random_seed is None:
-        return int(np.random.SeedSequence().entropy)
+        # 63 bits, so readers that load JSON integers as int64 (pandas) take the logs.
+        return secrets.randbits(63)
     if isinstance(random_seed, (bool, np.bool_)) or not isinstance(
         random_seed, (int, np.integer)
     ):

@@ -1,3 +1,4 @@
+import io
 import json
 import os
 from time import time
@@ -93,6 +94,19 @@ def test_study_seed_rejects_negative_values():
     """Reject invalid seeds before any simulation log can be truncated."""
     with pytest.raises(ValueError, match="non-negative"):
         _study_seed(-1)
+
+
+def test_a_generated_study_seed_lets_pandas_read_the_logs():
+    """Every row carries the seed, and pandas reads JSON integers as int64."""
+    pandas = pytest.importorskip("pandas")
+    rows = "".join(
+        json.dumps({"index": index, "seed": _study_seed(None)}) + "\n"
+        for index in range(20)
+    )
+
+    logs = pandas.read_json(io.StringIO(rows), lines=True)
+
+    assert len(logs) == 20
 
 
 @pytest.mark.slow
