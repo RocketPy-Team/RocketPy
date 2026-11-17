@@ -131,8 +131,9 @@ class StochasticFlight(StochasticModel):
         if flight.terminate_on_apogee:
             warnings.warn(
                 "StochasticFlight keeps the base flight's terminate_on_apogee=True, "
-                "so every sampled flight stops at apogee; pass "
-                "terminate_on_apogee=False to simulate the full flight.",
+                "so every sampled flight stops at apogee and x_impact, y_impact "
+                "and impact_velocity stay at 0; pass terminate_on_apogee=False "
+                "to simulate the full flight.",
                 UserWarning,
                 stacklevel=3,
             )
