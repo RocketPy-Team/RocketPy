@@ -13,6 +13,7 @@ import pytest
 
 from rocketpy.simulation import MonteCarlo
 from rocketpy.simulation import monte_carlo as mc_module
+from rocketpy.stochastic import StochasticFlight
 from rocketpy.simulation.monte_carlo import (
     _refuse_logs_this_run_cannot_write,
 )
@@ -609,28 +610,30 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
         ode_solver="RK23",
         simulation_mode="native",
     )
-    stochastic_flight = types.SimpleNamespace(
-        obj=base,
-        max_time=123.0,
-        initial_solution=None,
-        terminate_on_apogee=True,
-        time_overshoot=False,
-        # One draw for all three, as #1090 requires: three separate calls
-        # meant the flight flew one sample and the exported row logged another.
-        _sample_flight_inputs=lambda: {
-            "rail_length": 5.0,
-            "inclination": 84.0,
-            "heading": 133.0,
-        },
-    )
+    stochastic_flight = object.__new__(StochasticFlight)
+    stochastic_flight.obj = base
+    stochastic_flight.max_time = 123.0
+    stochastic_flight.initial_solution = None
+    stochastic_flight.terminate_on_apogee = True
+    stochastic_flight.time_overshoot = False
+    # One draw for all three, as #1090 requires: three separate calls
+    # meant the flight flew one sample and the exported row logged another.
+    stochastic_flight._sample_flight_inputs = lambda: {
+        "rail_length": 5.0,
+        "inclination": 84.0,
+        "heading": 133.0,
+    }
     analysis = object.__new__(MonteCarlo)
     analysis.flight = stochastic_flight
     analysis.rocket = types.SimpleNamespace(create_object=lambda: "rocket")
     analysis.environment = types.SimpleNamespace(create_object=lambda: "environment")
-    monkeypatch.setattr("rocketpy.simulation.monte_carlo.Flight", types.SimpleNamespace)
+    monkeypatch.setattr(
+        "rocketpy.stochastic.stochastic_flight.Flight", types.SimpleNamespace
+    )
 
     flight = MonteCarlo._MonteCarlo__run_single_simulation(analysis)
 
+    assert (flight.rocket, flight.environment) == ("rocket", "environment")
     assert flight.max_time == 123.0
     assert (flight.rtol, flight.atol) == (1e-9, 1e-9)
     assert (flight.max_time_step, flight.min_time_step) == (0.5, 0.01)
@@ -812,9 +815,11 @@ class _InterruptingMonteCarlo(MonteCarlo):
         self.num_of_loaded_sims = 0
         self.number_of_simulations = 0
         self._export_config = {}
-        self._initial_sim_idx = 0
         self.interrupt_after = interrupt_after
         self.completed = 0
+        self.environment = types.SimpleNamespace()
+        self.rocket = types.SimpleNamespace()
+        self.flight = types.SimpleNamespace()
 
     def _MonteCarlo__seed_this_simulation(self, sim_idx):
         pass
@@ -826,32 +831,15 @@ class _InterruptingMonteCarlo(MonteCarlo):
         return object()
 
     def _MonteCarlo__evaluate_flight_inputs(self, index):
-        # The root goes in because an append reads it back to check the rows
-        # it is continuing were drawn by the same stream; a row without it is
-        # what a study written before that check looks like, and is refused.
-        return (
-            json.dumps(
-                {
-                    "index": index,
-                    mc_module._SIMULATION_ROOT_KEY: (
-                        mc_module._root_written_into_a_row(self._MonteCarlo__root_state)
-                    ),
-                }
-            )
-            + "\n"
-        )
+        return json.dumps({"index": index, "seed": self._MonteCarlo__study_seed}) + "\n"
 
     def _MonteCarlo__evaluate_flight_outputs(self, flight, index):
-        # The outputs rows name the same root by its digest, which is what
-        # an append checks them against.
         return (
             json.dumps(
                 {
                     "index": index,
+                    "seed": self._MonteCarlo__study_seed,
                     "apogee": 1000.0 + index,
-                    mc_module._SIMULATION_ROOT_KEY: mc_module._root_digest(
-                        mc_module._root_written_into_a_row(self._MonteCarlo__root_state)
-                    ),
                 }
             )
             + "\n"

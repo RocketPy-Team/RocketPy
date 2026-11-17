@@ -14,14 +14,14 @@ latest documentation.
 """
 
 import csv
-import hashlib
 import json
 import os
+import secrets
+import sys
 import threading
 import traceback
 import warnings
 from contextlib import suppress
-from copy import deepcopy
 from numbers import Real
 from pathlib import Path
 from time import monotonic, time
@@ -33,7 +33,6 @@ from scipy.stats import bootstrap
 from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
-from rocketpy.simulation.flight import Flight
 from rocketpy.tools import (
     _seed_sequence_to_int,
     generate_monte_carlo_ellipses,
@@ -61,132 +60,29 @@ _REPORT_LOCK_SECONDS = 5.0
 # and leaving at the end of the simulation in hand, not blocked on a dead lock.
 _REPORTED_FAILURE_GRACE_SECONDS = 60.0
 
-# Which root drew a row. An append reads it to continue the same stream.
-_SIMULATION_ROOT_KEY = "run_root"
-
-# Told apart from a row that carries ``None``, which no run writes.
-_NOTHING_READ_YET = object()
+_SIMULATION_SEED_KEY = "seed"
+# Written by the study on every row, so not a result and not a collector name.
+_ROW_METADATA = frozenset((_SIMULATION_INDEX_KEY, _SIMULATION_SEED_KEY))
 
 
-def _root_seed_sequence(random_seed):
-    """The immutable root a run derives every simulation's seed from.
-
-    A ``SeedSequence`` is rebuilt from its full state rather than used as
-    given, since ``spawn`` advances a counter the caller still holds. A
-    ``Generator`` is refused rather than read, because using a consume-on-use
-    object as an immutable seed cannot mean what it says.
-    """
-    if isinstance(random_seed, np.random.SeedSequence):
-        return np.random.SeedSequence(**random_seed.state)
-    if isinstance(random_seed, (np.random.Generator, np.random.BitGenerator)):
-        raise TypeError(
-            f"random_seed must be an int, a sequence of non-negative integers, "
-            f"or a numpy.random.SeedSequence, not a "
-            f"{type(random_seed).__name__}. Pass the seed the generator was "
-            f"built from."
-        )
-    return np.random.SeedSequence(random_seed)
+def _study_seed(random_seed):
+    """Validate a study seed before opening or truncating any logs."""
+    if random_seed is None:
+        # 63 bits, so readers that load JSON integers as int64 (pandas) take the logs.
+        return secrets.randbits(63)
+    if isinstance(random_seed, (bool, np.bool_)) or not isinstance(
+        random_seed, (int, np.integer)
+    ):
+        raise TypeError("random_seed must be a non-negative integer or None")
+    if random_seed < 0:
+        raise ValueError("random_seed must be a non-negative integer")
+    return int(random_seed)
 
 
-def _jsonable_entropy(entropy):
-    """``SeedSequence`` entropy as something ``json`` will take.
-
-    It may be an int, a sequence or an ndarray; only the first survives.
-    """
-    if entropy is None or isinstance(entropy, (int, np.integer)):
-        return None if entropy is None else int(entropy)
-    return [int(part) for part in np.asarray(entropy).ravel()]
-
-
-def _root_written_into_a_row(root_state):
-    """The run's root as one JSON value, carried by every input row.
-
-    In the rows because a file beside a log cannot be shown to belong to it.
-    """
-    entropy, spawn_key, pool_size, base = root_state
-    return {
-        "entropy": _jsonable_entropy(entropy),
-        "spawn_key": [int(key) for key in spawn_key],
-        "pool_size": int(pool_size),
-        "n_children_spawned": int(base),
-    }
-
-
-_ROOT_FIELDS = frozenset(("entropy", "spawn_key", "pool_size", "n_children_spawned"))
-
-
-def _root_digest(root):
-    """A short stable name for a root, for rows that only have to match one.
-
-    64 bits of SHA-256, carried by the output rows instead of the root itself,
-    which would cost a hundred bytes a row on a study the input log already
-    records it for. Wide enough to tell studies apart, not a signature.
-    """
-    canonical = json.dumps(root, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
-
-
-def _a_whole_number(value):
-    """A non-negative int, and not a bool standing in for one."""
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
-
-
-def _whole_numbers(value, may_be_empty=False):
-    """A list of non-negative ints, empty only where that is a valid one."""
-    return (
-        isinstance(value, list)
-        and (may_be_empty or len(value) > 0)
-        and all(_a_whole_number(part) for part in value)
-    )
-
-
-def _root_state_a_row_records(root, path):
-    """The four values a root is rebuilt from, refused unless all are usable.
-
-    Agreeing rows show the study is one study, not that what they agree on can
-    be resumed: ``SeedSequence(entropy=None)`` draws fresh entropy every time.
-    """
-    entropy = root.get("entropy") if isinstance(root, dict) else None
-    usable = (
-        isinstance(root, dict)
-        and set(root) == _ROOT_FIELDS
-        and (_a_whole_number(entropy) or _whole_numbers(entropy))
-        and _whole_numbers(root.get("spawn_key"), may_be_empty=True)
-        and _a_whole_number(root.get("pool_size"))
-        and _a_whole_number(root.get("n_children_spawned"))
-    )
-    if usable:
-        state = (
-            entropy,
-            tuple(root["spawn_key"]),
-            root["pool_size"],
-            root["n_children_spawned"],
-        )
-        try:
-            # Drawing one child is what proves the pool size numpy will take.
-            _seed_of_simulation(state, 0)
-            return state
-        except ValueError:
-            pass
-    raise ValueError(
-        f"cannot continue {path}: its rows record a root that no stream "
-        f"can be rebuilt from, so what they were drawn with is unknown."
-    )
-
-
-def _what_the_rows_say_drew_them(path):
-    """What every row agrees drew it, and the simulations it numbers.
-
-    ``(None, [])`` means the log holds no rows, and nothing else does.
-
-    ``None`` means the log holds no rows, and nothing else does. Rows that
-    carry no root are refused instead: they cannot be shown to be one study,
-    and reading them as an empty log would start a second one in the file.
-    A log whose rows disagree is refused for the same reason.
-    """
-    first = _NOTHING_READ_YET
-    numbered = []
-    with open(path, "r", encoding="utf-8") as recorded:
+def _checkpoint_rows(path):
+    """Read validated checkpoint metadata without retaining physical results."""
+    rows = []
+    with open(path, encoding="utf-8") as recorded:
         for line in recorded:
             if not line.strip():
                 continue
@@ -194,64 +90,54 @@ def _what_the_rows_say_drew_them(path):
                 row = json.loads(line)
             except ValueError as error:
                 raise ValueError(
-                    f"cannot continue {path}: a row cannot be read, so what "
-                    f"produced it cannot be established."
+                    f"cannot continue {path}: a row cannot be read"
                 ) from error
-            root = row.get(_SIMULATION_ROOT_KEY) if isinstance(row, dict) else None
-            if root is None:
+            index = row.get("index") if isinstance(row, dict) else None
+            if not isinstance(index, int) or isinstance(index, bool) or index < 0:
                 raise ValueError(
-                    f"cannot continue {path}: a row does not say which root "
-                    f"drew it, which is how a study written before this "
-                    f"release looks. Start a new one rather than continuing "
-                    f"one whose rows cannot be checked."
+                    f"cannot continue {path}: a row does not number its simulation"
                 )
-            index = row.get("index")
-            if not _a_whole_number(index):
-                raise ValueError(
-                    f"cannot continue {path}: a row does not number the "
-                    f"simulation it holds, so where to carry on from cannot "
-                    f"be established."
-                )
-            numbered.append(index)
-            if first is _NOTHING_READ_YET:
-                first = root
-            elif root != first:
-                raise ValueError(
-                    f"cannot continue {path}: its rows were not all drawn "
-                    f"from one root, so it holds more than one study."
-                )
-    return (None if first is _NOTHING_READ_YET else first), numbered
+            rows.append({key: row[key] for key in ("index", "seed") if key in row})
+    return rows
 
 
-def _root_state_of(root):
-    """A root as the four picklable values a worker can rebuild it from.
-
-    Sent to each worker instead of the object, and instead of the list of
-    children, so a run of a million simulations costs four values. The entropy
-    is copied because a sequence one is kept by reference all the way from the
-    caller, who could otherwise still move every child by editing their list.
-    """
-    return (
-        deepcopy(root.entropy),
-        tuple(root.spawn_key),
-        root.pool_size,
-        root.n_children_spawned,
-    )
+_PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _seed_of_simulation(root_state, sim_idx):
-    """The seed for one simulation index, without spawning the ones before it.
+def _caller_stacklevel():
+    """``stacklevel`` naming the first frame outside rocketpy, for a warning
+    issued by the function that calls this one."""
+    frame, level = sys._getframe(1), 1
+    while frame is not None and frame.f_code.co_filename.startswith(_PACKAGE_DIR):
+        frame, level = frame.f_back, level + 1
+    return level
 
-    ``spawn`` derives child ``i`` by appending ``n_children_spawned + i`` to
-    the parent spawn key, so rebuilding that one child directly reproduces it
-    and any index can be reached from the four values above alone.
-    """
-    entropy, spawn_key, pool_size, base = root_state
-    return np.random.SeedSequence(
-        entropy=entropy,
-        spawn_key=(*spawn_key, base + sim_idx),
-        pool_size=pool_size,
-    )
+
+def _log_stamp(*paths):
+    """Size and modification time of each log, or None if one is missing."""
+    try:
+        return tuple((stat.st_size, stat.st_mtime_ns) for stat in map(os.stat, paths))
+    except OSError:
+        return None
+
+
+def _checkpoint_seed(inputs, requested_seed):
+    """Recover one integer seed, rejecting mixed or damaged checkpoints."""
+    recorded = [row["seed"] for row in inputs if "seed" in row]
+    if any(
+        not isinstance(seed, int) or isinstance(seed, bool) or seed < 0
+        for seed in recorded
+    ):
+        raise ValueError("Cannot resume a log with an invalid seed")
+    seeds = set(recorded)
+    if len(seeds) > 1:
+        raise ValueError("Cannot resume more than one study in the same log")
+    if not seeds:
+        return None
+    seed = seeds.pop()
+    if requested_seed is not None and requested_seed != seed:
+        raise ValueError("Cannot append with a different root seed")
+    return seed
 
 
 def _refuse_logs_this_run_cannot_write(
@@ -496,19 +382,19 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             number of workers will be equal to the number of CPUs available.
             A minimum of 2 workers is required for parallel mode.
             Default is None.
-        random_seed : int, sequence of int or numpy.random.SeedSequence, optional
+        random_seed : int, optional
             Fixes what every simulation draws. Simulation ``i`` takes the same
             inputs whichever way the run was split up, so serial and parallel
             results agree and the number of workers does not reach the
-            sampling. Keyword-only. Default is None, which draws fresh entropy
-            and reproduces nothing.
+            sampling. Keyword-only. Default is None, which generates and prints
+            an integer seed that can be used to reproduce the study.
 
-            Every input row carries the root it was drawn from, so an append
+            Every input row carries the integer seed, so an append
             carries on from the study already in the file whether or not the
             seed is given again. A different one is refused, not mixed in.
 
-            A ``Generator`` or ``BitGenerator`` is refused rather than read.
-            Pass the seed it was built from.
+            Seeds must be non-negative integers. A legacy log without seeds
+            can be extended with a warning, without recovering its old stream.
         kwargs : dict
             Custom arguments for simulation export of the ``inputs`` file. Options
             are:
@@ -554,23 +440,32 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         self._export_config = kwargs
         self.number_of_simulations = number_of_simulations
-        self._initial_sim_idx = 0
-        # Validated here, before __setup_files truncates anything, so an
-        # unusable seed cannot cost a previous run its results. Kept as four
-        # picklable values rather than as the object, since a worker rebuilds
-        # any index from them.
-        self.__root_state = _root_state_of(_root_seed_sequence(random_seed))
-        # Before anything is opened: __setup_files truncates for append=False.
+        self.__study_seed = _study_seed(random_seed)
+        self._completed_indices = set()
         _refuse_logs_this_run_cannot_write(
             self.input_file, self.output_file, self.error_file, kwargs
         )
-
-        # After that one, which says plainly that a .csv cannot be a working
-        # log. Reaching this first would report it as a row that cannot be read.
         if append:
-            # From the checkpoint just validated, not the line count taken when
-            # this object was built: that one counts blank lines and goes stale.
-            self._initial_sim_idx = self.__continue_the_root_the_rows_carry(random_seed)
+            self.__continue_study(random_seed)
+        self._indices_to_run = _indices_to_run(
+            self._completed_indices, number_of_simulations
+        )
+        if (
+            random_seed is None
+            and not self._completed_indices
+            and self.__has_object_seed()
+        ):
+            warnings.warn(
+                "MonteCarlo reseeds stochastic objects for every simulation; "
+                "their object seeds are ignored. Pass random_seed to reproduce the study.",
+                UserWarning,
+                stacklevel=_caller_stacklevel(),
+            )
+        # Every run path reseeds these, so none of their seeds is the caller's
+        # any more; cleared here because parallel workers clear only copies.
+        for model in self.__stochastic_models():
+            model._configured_seed = None
+        print(f"Monte Carlo random_seed: {self.__study_seed}")
 
         print("Starting Monte Carlo analysis")
 
@@ -583,6 +478,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 self.__run_in_serial()
         finally:
             self.__terminate_simulation()
+        # What this run left behind, so the next append of a convergence loop
+        # does not parse the whole logs again to learn it.
+        self._written_logs = (
+            _log_stamp(self.input_file, self.output_file),
+            self.__study_seed,
+            self._completed_indices | set(self._indices_to_run),
+        )
 
     def __setup_files(self, append):
         """
@@ -687,12 +589,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         None
         """
         sim_monitor = _SimMonitor(
-            initial_count=self._initial_sim_idx,
-            n_simulations=self.number_of_simulations,
+            indices=self._indices_to_run,
+            exported_before=len(self._completed_indices),
             start_time=time(),
         )
         inputs_json = ""
-        sim_idx = sim_monitor.count
+        sim_idx = None
         try:
             # Counted from zero, as the parallel path already does: the two
             # used to name the same simulation 1, 2, 3 and 0, 1, 2.
@@ -746,11 +648,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             mutex = manager.Lock()
             simulation_error_event = manager.Event()
             sim_monitor = manager._SimMonitor(
-                initial_count=self._initial_sim_idx,
-                n_simulations=self.number_of_simulations,
+                indices=self._indices_to_run,
+                exported_before=len(self._completed_indices),
                 start_time=time(),
             )
-
             processes = []
 
             try:
@@ -787,7 +688,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 # An exit code cannot show a worker that left between
                 # claiming an index and recording it.
                 _refuse_logs_missing_a_simulation(
-                    self.input_file, self.output_file, self.number_of_simulations
+                    self.input_file,
+                    self.output_file,
+                    self._completed_indices | set(self._indices_to_run),
                 )
 
                 sim_monitor.print_final_status()
@@ -898,65 +801,74 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                     mutex.release()
         return announced
 
-    def __continue_the_root_the_rows_carry(self, random_seed):
-        """Take the root from the rows being appended to, or refuse to.
-
-        Without this an append draws a second root into one file and nothing
-        afterwards can tell which simulation came from which. Reading it back
-        also means a fresh object can continue a study, which is the ordinary
-        way of resuming one.
-        """
-        recorded, held = _what_the_rows_say_drew_them(self.input_file)
-        stamped, written = _what_the_rows_say_drew_them(self.output_file)
-        named = None if recorded is None else _root_digest(recorded)
-        if named != stamped:
-            raise ValueError(
-                f"cannot append to {self.input_file}: it and {self.output_file} "
-                f"were not drawn from the same root, so they are two studies "
-                f"rather than the two halves of one."
-            )
-        if recorded is None:
-            return 0
+    def __continue_study(self, random_seed):
+        """Recover the seed and completed indices without requiring a contiguous run."""
+        written = getattr(self, "_written_logs", None)
+        if written is not None and written[0] == _log_stamp(
+            self.input_file, self.output_file
+        ):
+            _, seed, completed = written
+            self.__study_seed = _checkpoint_seed([{"seed": seed}], random_seed)
+            self._completed_indices = set(completed)
+            return
+        inputs = _checkpoint_rows(self.input_file)
+        outputs = _checkpoint_rows(self.output_file)
+        held = [row["index"] for row in inputs]
+        written = [row["index"] for row in outputs]
         if held != written:
+            raise ValueError("Input and output logs do not record the same simulations")
+        if len(held) != len(set(held)):
+            raise ValueError("Cannot resume duplicate simulation indices")
+        recorded_seed = _checkpoint_seed(inputs, random_seed)
+        if recorded_seed is not None:
+            self.__study_seed = recorded_seed
+        legacy = [row for row in inputs if "seed" not in row]
+        if any("seed" in row for row in inputs[: len(legacy)]):
+            raise ValueError("Legacy rows must precede all seeded rows")
+        # Both halves of a record carry the seed, so logs from two studies
+        # cannot be resumed as one.
+        if [row.get("seed") for row in inputs] != [row.get("seed") for row in outputs]:
             raise ValueError(
-                f"cannot append to {self.input_file}: it and {self.output_file} "
-                f"do not record the same simulations, so where to carry on "
-                f"from cannot be established."
+                "Input and output logs record the same simulations from different "
+                "study seeds, so they belong to two studies"
             )
-        # Rows arrive in completion order, so these are not sorted. What has
-        # to hold is that between them they are the run's first len(held).
-        if sorted(held) != list(range(len(held))):
-            raise ValueError(
-                f"cannot append to {self.input_file}: the simulations it "
-                f"records are not the run's first {len(held)}, so where to "
-                f"carry on from cannot be established."
+        if legacy:
+            warnings.warn(
+                "Appending a legacy v1.13 study: its original random stream "
+                "cannot be recovered; new rows use the reported study seed.",
+                UserWarning,
+                stacklevel=_caller_stacklevel(),
             )
-        state = _root_state_a_row_records(recorded, self.input_file)
-        if random_seed is None:
-            self.__root_state = state
-            return len(held)
-        if _root_written_into_a_row(self.__root_state) != recorded:
-            raise ValueError(
-                f"cannot append to {self.input_file}: its rows were drawn from "
-                f"a different root than random_seed gives. Continuing would put "
-                f"two studies in one file. Pass the seed the run started with, "
-                f"or leave random_seed out to carry on from the rows."
-            )
-        return len(held)
+        self._completed_indices = set(held)
+
+    def __stochastic_models(self):
+        """The study's models, nested rocket components included."""
+        models = [self.environment, self.rocket, self.flight]
+        for name in getattr(self.rocket, "_POSITIONED_COLLECTIONS", ()):
+            models.extend(component for component, _ in getattr(self.rocket, name))
+        for name in getattr(self.rocket, "_PLAIN_COLLECTIONS", ()):
+            models.extend(getattr(self.rocket, name))
+        return models
+
+    def __has_object_seed(self):
+        """Whether any model, nested components included, carries a caller's seed."""
+        return any(
+            getattr(model, "_configured_seed", None) is not None
+            for model in self.__stochastic_models()
+        )
 
     def __seed_this_simulation(self, sim_idx):
-        """Reseed the three models from this index's own child of the root.
-
-        Per index rather than per worker, which is what makes a simulation's
-        inputs the same however the run was split up. The child is split three
-        ways so the environment, rocket and flight draw independently instead
-        of sharing one stream.
-        """
-        child = _seed_of_simulation(self.__root_state, sim_idx)
+        """Derive independent model streams from the study seed and simulation index."""
+        child = np.random.SeedSequence([self.__study_seed, sim_idx])
         environment, rocket, flight = child.spawn(3)
-        self.environment._set_stochastic(_seed_sequence_to_int(environment))
-        self.rocket._set_stochastic(_seed_sequence_to_int(rocket))
-        self.flight._set_stochastic(_seed_sequence_to_int(flight))
+        for model, model_seed in (
+            (self.environment, environment),
+            (self.rocket, rocket),
+            (self.flight, flight),
+        ):
+            model._set_stochastic(_seed_sequence_to_int(model_seed))
+            # Derived from the study seed, so not one the caller configured.
+            model._configured_seed = None
 
     def __run_single_simulation(self):
         """Runs a single simulation and returns the inputs and outputs.
@@ -968,30 +880,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         rocket = self.rocket.create_object()
         environment = self.environment.create_object()
-        flight_inputs = self.flight._sample_flight_inputs()
-        return Flight(
-            rocket=rocket,
-            environment=environment,
-            rail_length=flight_inputs["rail_length"],
-            inclination=flight_inputs["inclination"],
-            heading=flight_inputs["heading"],
-            initial_solution=self.flight.initial_solution,
-            terminate_on_apogee=self.flight.terminate_on_apogee,
-            time_overshoot=self.flight.time_overshoot,
-            # The rest of what StochasticFlight.create_object passes. Left out
-            # here, a run ignored the max_time, tolerances, solver, equations of
-            # motion and simulation mode the caller had set, which is what #1070
-            # added StochasticFlight's own handling of them for.
-            max_time=self.flight.max_time,
-            max_time_step=self.flight.obj.max_time_step,
-            min_time_step=self.flight.obj.min_time_step,
-            rtol=self.flight.obj.rtol,
-            atol=self.flight.obj.atol,
-            name=self.flight.obj.name,
-            equations_of_motion=self.flight.obj.equations_of_motion,
-            ode_solver=self.flight.obj.ode_solver,
-            simulation_mode=self.flight.obj.simulation_mode,
-        )
+        # One builder for both paths, so a new Flight argument cannot reach
+        # StochasticFlight and miss the Monte Carlo run.
+        return self.flight.create_object(rocket=rocket, environment=environment)
 
     def estimate_confidence_interval(
         self,
@@ -1063,6 +954,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         batch_size=50,
         parallel=False,
         n_workers=None,
+        *,
+        random_seed=None,
     ):
         """Run Monte Carlo simulations in batches until the confidence interval
         width converges within the specified tolerance or the maximum number of
@@ -1084,6 +977,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             Whether to run simulations in parallel. Default is False.
         n_workers : int, optional
             The number of worker processes to use if running in parallel. Default is None.
+        random_seed : int, optional
+            Non-negative study seed passed to every batch. If omitted, an existing
+            study keeps its recorded seed; a new study generates and prints one.
 
         Returns
         -------
@@ -1126,6 +1022,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 include_function_data=False,
                 parallel=parallel,
                 n_workers=n_workers,
+                random_seed=random_seed,
             )
 
             self.import_outputs(self.filename.with_suffix(".outputs.txt"))
@@ -1178,7 +1075,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             for item in d.items()
         )
         inputs_dict["index"] = sim_idx
-        inputs_dict[_SIMULATION_ROOT_KEY] = _root_written_into_a_row(self.__root_state)
+        inputs_dict[_SIMULATION_SEED_KEY] = self.__study_seed
         return (
             json.dumps(inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
         )
@@ -1214,11 +1111,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             outputs_dict = outputs_dict | additional_exports
 
         # After the collectors: these two say which run the row belongs to.
-        outputs_dict["index"] = sim_idx
-        outputs_dict[_SIMULATION_ROOT_KEY] = _root_digest(
-            _root_written_into_a_row(self.__root_state)
-        )
-
+        outputs_dict[_SIMULATION_INDEX_KEY] = sim_idx
+        outputs_dict[_SIMULATION_SEED_KEY] = self.__study_seed
         return (
             json.dumps(outputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
         )
@@ -1366,19 +1260,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                         "Invalid 'data_collector' key! "
                         f"Variable names overwrites 'export_list' key '{key}'."
                     )
-                if key == _SIMULATION_INDEX_KEY:
+                if key in _ROW_METADATA:
                     raise ValueError(
-                        f"Invalid 'data_collector' key '{key}'! It is the "
-                        f"number of the simulation the row belongs to, which "
-                        f"is written after the collectors run and cannot be "
-                        f"replaced by one."
-                    )
-                if key == _SIMULATION_ROOT_KEY:
-                    raise ValueError(
-                        f"Invalid 'data_collector' key '{key}'! It is the root "
-                        f"the row was drawn with, which is written after the "
-                        f"collectors run, so a callback under that name would "
-                        f"be run and then discarded."
+                        f"Invalid 'data_collector' key '{key}'! The study "
+                        f"writes it on every row after the collectors run, so "
+                        f"a collector cannot use that name."
                     )
                 if not callable(callback):
                     raise ValueError(
@@ -1703,6 +1589,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.results = {}
         for result in self.outputs_log:
             for key, value in result.items():
+                if key in _ROW_METADATA:
+                    continue
                 if key in self.results:
                     self.results[key].append(value)
                 else:
@@ -2263,24 +2151,19 @@ def _indices_a_log_holds(path):
     return found
 
 
-def _refuse_logs_missing_a_simulation(input_file, output_file, target):
-    """Raise unless both logs hold every simulation the run was asked for.
+def _indices_to_run(completed, target):
+    """Every index below ``target`` that ``completed`` does not hold.
 
-    An exit code says how a worker ended, never whether the index it had
-    already claimed reached the logs, and the monitor counts claims rather than
-    rows. A worker that leaves between the two is invisible to everything else
-    here, so the logs themselves are what the run is judged on.
-
-    Rows numbered past the target are left alone: an append given a smaller
-    target than the checkpoint already holds is an append question, not a lost
-    simulation. What each log holds still has to be the consecutive run it
-    claims to be, so its indices are required to be exactly as many as its
-    rows, which refuses a stray number and a hole without needing to be told
-    how long the checkpoint was. The two logs must also agree row for row,
-    since a record goes into both under one lock. Streamed rather than read
-    through ``_read_log_file``, which would hold every row in memory.
+    One rule for every checkpoint: seeded, legacy one-based, or with holes.
     """
-    wanted = set(range(target))
+    return [index for index in range(target) if index not in completed]
+
+
+def _refuse_logs_missing_a_simulation(input_file, output_file, expected):
+    """Require paired logs holding exactly the ``expected`` indices, once each,
+    in the same order. ``expected`` is the checkpoint plus what this run planned.
+    """
+    expected = set(expected)
     recorded = {}
     for label, path in (("input", input_file), ("output", output_file)):
         found = _indices_a_log_holds(path)
@@ -2296,19 +2179,19 @@ def _refuse_logs_missing_a_simulation(input_file, output_file, target):
                 f"The run is incomplete: the {label} log records "
                 f"{len(found) - len(held)} simulation(s) more than once."
             )
-        missing = sorted(wanted - held)
+        missing = sorted(expected - held)
         if missing:
             raise RuntimeError(
                 f"The run is incomplete: the {label} log is missing "
-                f"{len(missing)} of {target} simulations, the first being "
+                f"{len(missing)} of {len(expected)} simulations, the first being "
                 f"{missing[0]}."
             )
-        strays = sorted(held - set(range(len(found))))
+        strays = sorted(held - expected)
         if strays:
             raise RuntimeError(
                 f"The run is incomplete: the {label} log numbers a simulation "
-                f"{strays[0]}, past the {len(found)} it holds, so what it "
-                f"records is not one run of consecutive simulations."
+                f"{strays[0]} that neither the checkpoint nor this run holds, so "
+                f"what it records is not the study that was asked for."
             )
 
     if recorded["input"] != recorded["output"]:
@@ -2388,10 +2271,11 @@ class _SimMonitor:
 
     _last_print_len = 0
 
-    def __init__(self, initial_count, n_simulations, start_time):
-        self.initial_count = initial_count
-        self.count = initial_count
-        self.n_simulations = n_simulations
+    def __init__(self, indices, exported_before, start_time):
+        self._indices = list(indices)
+        self._next = 0
+        self.n_simulations = len(self._indices)
+        self.exported_before = exported_before
         self.start_time = start_time
         self.completed_count = 0
         self._claim = threading.Lock()  # proxy calls run in the manager
@@ -2403,11 +2287,10 @@ class _SimMonitor:
         see the last slot free and then claim an index each past the end.
         """
         with self._claim:
-            if self.count >= self.n_simulations:
+            if self._next >= self.n_simulations:
                 return None
-            claimed = self.count
-            self.count += 1
-            return claimed
+            self._next += 1
+            return self._indices[self._next - 1]
 
     def print_update_status(self):
         """Prints a message on the same line as the previous one and replaces
@@ -2423,7 +2306,7 @@ class _SimMonitor:
         self.completed_count += 1
 
         average_time = (time() - self.start_time) / self.completed_count
-        remaining = self.n_simulations - self.initial_count - self.completed_count
+        remaining = self.n_simulations - self.completed_count
         estimated_time = int(remaining * average_time)
 
         msg = f"Iterations completed: {self.completed_count:06d}"
@@ -2435,8 +2318,11 @@ class _SimMonitor:
     def print_final_status(self):
         """Prints the final status of the simulation."""
         print()
-        msg = f"Completed {self.count - self.initial_count} iterations."
-        msg += f" In total, {self.count} simulations are exported.\n"
+        msg = f"Completed {self.completed_count} iterations."
+        msg += (
+            f" In total, {self.exported_before + self.completed_count} "
+            "simulations are exported.\n"
+        )
         msg += f"Total wall time: {time() - self.start_time:.1f} s"
         _SimMonitor.reprint(msg, end="\n", flush=True)
 

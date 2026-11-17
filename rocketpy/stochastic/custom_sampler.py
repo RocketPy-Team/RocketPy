@@ -47,7 +47,9 @@ class CustomSampler(ABC):
         Parameters
         ----------
         seed : int, optional
-            Seed for the random number generator. The default is None
+            Seed for the random number generator. The default is None.
+            Stochastic models supply a non-negative 128-bit integer. If this
+            raises ValueError, as RandomState does, it is retried with 32 bits.
 
         Returns
         -------

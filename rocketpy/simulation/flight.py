@@ -640,6 +640,8 @@ class Flight:
         self.rtol = rtol
         self.atol = atol or 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3]
         self.initial_solution = initial_solution
+        # Kept apart: the attribute is filled in with the rail launch state.
+        self._initial_solution_given = initial_solution is not None
         self.time_overshoot = time_overshoot
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
