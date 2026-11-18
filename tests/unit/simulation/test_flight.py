@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from scipy import optimize
 
-from rocketpy import Components, Flight, Function, Rocket
+from rocketpy import Components, Environment, Flight, Function, Rocket
 from rocketpy.simulation import FlightDataExporter
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -557,6 +557,136 @@ def test_potential_energy_reference_and_total_energy(flight_calisto):
     assert test.total_energy(apogee_time) == pytest.approx(
         test.kinetic_energy(apogee_time) + test.potential_energy(apogee_time)
     )
+
+
+def _drag_free_ballistic_flight(
+    gravity=None, initial_altitude=100.0, initial_speed=200.0
+):
+    """Build a zero-drag, constant-mass Flight that coasts from an initial
+    vertical speed until apogee.
+
+    Aerodynamics, thrust and rail constraints are removed so the only force
+    doing work is gravity. That isolates ``Flight.potential_energy`` against
+    the ``Environment.gravity`` model used by the integrator.
+
+    Parameters
+    ----------
+    gravity : int, float, callable, optional
+        Passed to ``Environment(gravity=...)``. ``None`` keeps the default
+        Somigliana model.
+    initial_altitude : float, optional
+        Geometric height above sea level at t = 0, in meters.
+    initial_speed : float, optional
+        Upward inertial speed at t = 0, in meters per second.
+
+    Returns
+    -------
+    rocketpy.Flight
+        Completed trajectory terminated at apogee.
+    """
+    environment = Environment(gravity=gravity)
+    rocket = Rocket(
+        radius=0.0635,
+        mass=10.0,
+        inertia=(1, 1, 0.1),
+        power_off_drag=0,
+        power_on_drag=0,
+        center_of_mass_without_motor=0,
+    )
+    initial_solution = [
+        0,
+        0,
+        0,
+        initial_altitude,
+        0,
+        0,
+        initial_speed,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    return Flight(
+        rocket=rocket,
+        environment=environment,
+        rail_length=1,
+        inclination=90,
+        heading=0,
+        initial_solution=initial_solution,
+        terminate_on_apogee=True,
+        max_time=60,
+    )
+
+
+def test_potential_energy_matches_constant_gravity_mg_dz():
+    """With user-defined constant gravity, the potential difference over an
+    altitude change equals ``m * g * dz``. The sign stays the develop
+    convention: potential increases as the rocket climbs.
+
+    The hard-coded inverse-square ``mu`` on develop is not 9.81, so this
+    assertion fails there (issue #1216).
+    """
+    gravity = 9.81
+    flight = _drag_free_ballistic_flight(gravity=gravity)
+    mass = flight.rocket.total_mass(flight.apogee_time)
+    delta_z = flight.z(flight.apogee_time) - flight.z(flight.t_initial)
+    delta_potential = flight.potential_energy(
+        flight.apogee_time
+    ) - flight.potential_energy(flight.t_initial)
+    expected_delta = mass * gravity * delta_z
+
+    assert delta_z > 0
+    assert delta_potential > 0
+    assert delta_potential == pytest.approx(expected_delta, rel=1e-6)
+
+
+def test_total_energy_conserved_drag_free_default_gravity():
+    """On a drag-free coast with default Somigliana gravity, total energy
+    must not drift with the ~0.18% / ~700 J mismatch of the old inverse-
+    square ``mu`` formula (issue #1216).
+
+    The remaining residual is integrator truncation. The relative
+    tolerance of ``1e-4`` is about 20 times tighter than the ~1.8e-3
+    drift measured on develop for this trajectory, and still well above
+    the ~1e-6 Runge-Kutta residual of a consistent potential.
+    """
+    flight = _drag_free_ballistic_flight()
+    t_initial = flight.t_initial
+    t_apogee = flight.apogee_time
+    delta_potential = flight.potential_energy(t_apogee) - flight.potential_energy(
+        t_initial
+    )
+    energy_drift = flight.total_energy(t_apogee) - flight.total_energy(t_initial)
+
+    assert delta_potential > 0
+    # Documented against the issue: ~0.18% of m*g*dz, ~367 J on this coast.
+    assert abs(energy_drift) == pytest.approx(0, abs=1e-4 * delta_potential)
+
+
+def test_potential_energy_matches_altitude_dependent_gravity_integral():
+    """Altitude-dependent user gravity must be integrated, not replaced by
+    a hard-coded inverse-square law. The potential difference is
+    ``m * ∫_{z0}^{z1} g(h) dh``, still positive as altitude increases.
+    """
+
+    def gravity(height):
+        return 9.81 - height / 1e5
+
+    flight = _drag_free_ballistic_flight(gravity=gravity)
+    mass = flight.rocket.total_mass(flight.apogee_time)
+    z_initial = flight.z(flight.t_initial)
+    z_apogee = flight.z(flight.apogee_time)
+    expected_delta = mass * flight.env.gravity.integral(z_initial, z_apogee)
+    delta_potential = flight.potential_energy(
+        flight.apogee_time
+    ) - flight.potential_energy(flight.t_initial)
+
+    assert z_apogee > z_initial
+    assert delta_potential > 0
+    assert delta_potential == pytest.approx(expected_delta, rel=1e-5)
 
 
 @pytest.mark.parametrize(
