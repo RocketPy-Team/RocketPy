@@ -7,6 +7,7 @@ import pytest
 
 from rocketpy import EnvironmentAnalysis
 from rocketpy.tools import import_optional_dependency
+from rocketpy.units import convert_units
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -46,6 +47,39 @@ def test_missing_timezonefinder_defaults_to_utc(
     assert analysis.preferred_timezone.zone == "UTC"
     assert analysis.start_date.tzinfo is not None
     assert analysis.end_date.tzinfo is not None
+
+
+@pytest.mark.parametrize(
+    "unit_system, standard_gravity",
+    [("metric", 1), ("imperial", 9.80665 / 0.3048), ("SI", 9.80665)],
+)
+@patch("rocketpy.environment.environment_analysis._EnvironmentAnalysisPlots")
+@patch("rocketpy.environment.environment_analysis._EnvironmentAnalysisPrints")
+@patch.object(
+    EnvironmentAnalysis,
+    "_EnvironmentAnalysis__check_requirements",
+)
+def test_unit_system_acceleration_is_an_acceleration_unit(
+    _mock_check_requirements,
+    _mock_prints,
+    _mock_plots,
+    unit_system,
+    standard_gravity,
+):
+    """The acceleration unit of each unit system should convert standard
+    gravity as an acceleration, not as a mass ("g" is gram in the table)."""
+    analysis = EnvironmentAnalysis(
+        start_date=datetime(2026, 1, 1),
+        end_date=datetime(2026, 1, 2),
+        latitude=0,
+        longitude=0,
+        timezone="UTC",
+        unit_system=unit_system,
+    )
+
+    converted = convert_units(9.80665, "m/s^2", analysis.unit_system["acceleration"])
+
+    assert converted == pytest.approx(standard_gravity, rel=1e-9)
 
 
 @patch("matplotlib.pyplot.show")

@@ -2,6 +2,8 @@ import numpy as np
 
 from .mathutils.function import Function
 
+# Each value is how many of that unit make one base unit (e.g. "km": 1e-3).
+# Multiply by it to leave the base unit, divide by it to reach the base unit.
 UNITS_CONVERSION_DICT = {
     # Units of length. Meter "m" is the base unit.
     "mm": 1e3,
@@ -25,35 +27,36 @@ UNITS_CONVERSION_DICT = {
     # Units of acceleration. Meter per square second "m/s^2" is the base unit.
     "m/s^2": 1,
     "gs": 1 / 9.80665,
-    "ft/s^2": 1 / 3.2808399,
+    "ft/s^2": 1 / 0.3048,
     # Units of pressure. Pascal "Pa" is the base unit.
     "Pa": 1,
     "hPa": 1e-2,
     "kPa": 1e-3,
     "MPa": 1e-6,
     "bar": 1e-5,
-    "atm": 1.01325e-5,
-    "mmHg": 1 / 133.322,
-    "inHg": 1 / 3386.389,
+    "atm": 1 / 101325,
+    "mmHg": 1 / 133.322387415,
+    "inHg": 1 / (25.4 * 133.322387415),
     # Units of time. Seconds "s" is the base unit.
     "s": 1,
     "min": 1 / 60,
     "h": 1 / 3600,
     "d": 1 / 86400,
     # Units of mass. Kilogram "kg" is the base unit.
-    "mg": 1e-6,
-    "g": 1e-3,
+    "mg": 1e6,
+    "g": 1e3,
     "kg": 1,
-    "lb": 2.20462,
+    "lb": 1 / 0.45359237,
     # Units of angle. Radian "rad" is the base unit.
     "rad": 1,
-    "deg": 1 / 180 * np.pi,
-    "grad": 1 / 200 * np.pi,
+    "deg": 180 / np.pi,
+    "grad": 200 / np.pi,
 }
 
 
 def conversion_factor(from_unit, to_unit):
-    """Returns the conversion factor from one unit to another."""
+    """Returns the factor that multiplies a value in ``from_unit`` to give it
+    in ``to_unit``. See ``UNITS_CONVERSION_DICT`` for how the table is read."""
     try:
         incoming_factor = UNITS_CONVERSION_DICT[to_unit]
     except KeyError as e:
@@ -66,10 +69,24 @@ def conversion_factor(from_unit, to_unit):
     return incoming_factor / outgoing_factor
 
 
+def convert_to_base_unit(variable, from_unit):
+    """Returns ``variable`` converted from ``from_unit`` to its base unit, or to
+    "K" for temperatures. ``variable`` itself is not modified."""
+    if from_unit in ["K", "degC", "degF"]:
+        return convert_temperature(variable, from_unit, "K")
+    try:
+        return variable / UNITS_CONVERSION_DICT[from_unit]
+    except KeyError as e:
+        raise ValueError(f"Unit '{from_unit}' is not supported.") from e
+
+
 def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     """See units.convert_units() for documentation."""
+    # Work on copies so the Function passed in is left unchanged
+    variable_source = np.array(variable.get_source(), dtype=float)
+    inputs = list(variable.__inputs__)
+    outputs = list(variable.__outputs__)
     # Perform conversion, take special care with temperatures
-    variable_source = variable.get_source()
     if from_unit in ["K", "degC", "degF"]:
         variable_source[:, axis] = convert_temperature(
             variable_source[:, axis], from_unit, to_unit
@@ -79,16 +96,14 @@ def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     # Rename axis labels
     match axis:
         case 0:
-            variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
+            inputs[0] = inputs[0].replace(from_unit, to_unit)
         case 1:
-            variable.__outputs__[0] = variable.__outputs__[0].replace(
-                from_unit, to_unit
-            )
+            outputs[0] = outputs[0].replace(from_unit, to_unit)
     # Create new Function instance with converted data
     return Function(
         source=variable_source,
-        inputs=variable.__inputs__,
-        outputs=variable.__outputs__,
+        inputs=inputs,
+        outputs=outputs,
         interpolation=variable.__interpolation__,
         extrapolation=variable.__extrapolation__,
     )
