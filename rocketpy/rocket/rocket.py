@@ -763,6 +763,19 @@ class Rocket:
             self.evaluate_static_margin()
         return self._static_margin
 
+    @static_margin.setter
+    @deprecated(
+        reason=(
+            "Assigning `static_margin` is deprecated and will be removed in a "
+            "future version, because the static margin is computed from the "
+            "rocket's geometry"
+        )
+    )
+    def static_margin(self, value):
+        # Kept until the next geometry/mass/surface change marks it dirty.
+        self._static_margin = value
+        self._static_margin_dirty = False
+
     def evaluate_static_margin(self):
         """Calculates the static margin of the rocket as a function of time.
 
@@ -773,6 +786,11 @@ class Rocket:
             Static margin is defined as the distance between the center of
             pressure and the center of mass, divided by the rocket's diameter.
         """
+        # An assigned non-Function value (e.g. a float) cannot be updated in place.
+        if not isinstance(self._static_margin, Function):
+            self._static_margin = Function(
+                lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
+            )
         # Calculate static margin; fold _csys into the source so we do not
         # rebind a property when multiplying.
         self._static_margin.set_source(
