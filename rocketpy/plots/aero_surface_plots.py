@@ -1037,10 +1037,10 @@ class _ControlFinsPlots(_GenericSurfacePlots):
         self.aero_surface.fins[0].plots.draw(filename=filename)
 
     def effectiveness(self, *, mach=(0.05, 0.95), alpha=0.0, beta=0.0, filename=None):
-        """Plot how much the fins do per radian of each command of
+        """Plot the moment the fins produce per radian of each command of
         :meth:`rocketpy.ControlFins.deflections`, against Mach: the roll
-        moment coefficient per radian of ``roll``, and the force coefficients
-        toward ``+x`` and ``+y`` per radian of ``x`` and ``y``.
+        moment coefficient and, for a set that is on a rocket, the pitch and
+        yaw moment coefficients about the rocket's center of dry mass.
 
         Parameters
         ----------
@@ -1054,21 +1054,25 @@ class _ControlFinsPlots(_GenericSurfacePlots):
         """
         effectiveness = self.aero_surface.effectiveness(alpha=alpha, beta=beta)
         machs = np.linspace(mach[0], mach[1], 100)
-        _, (roll_axis, force_axis) = plt.subplots(1, 2, figsize=(9, 4))
+        sideways = [command for command in ("pitch", "yaw") if command in effectiveness]
+        _, axes = plt.subplots(1, 2 if sideways else 1, figsize=(9, 4), squeeze=False)
+        roll_axis = axes[0][0]
         roll_axis.plot(machs, [effectiveness["roll"](m) for m in machs])
-        roll_axis.set_title("Roll moment per rad of the same deflection")
+        roll_axis.set_title("Roll moment per rad of the roll command")
         roll_axis.set_xlabel("Mach Number")
         roll_axis.set_ylabel("Roll Moment Coefficient per rad")
         roll_axis.grid(True)
-        for command, label in (("x", "toward +x"), ("y", "toward +y")):
-            force_axis.plot(
-                machs, [effectiveness[command](m) for m in machs], label=label
-            )
-        force_axis.set_title("Sideways force per rad of the x and y commands")
-        force_axis.set_xlabel("Mach Number")
-        force_axis.set_ylabel("Force Coefficient per rad")
-        force_axis.grid(True)
-        force_axis.legend()
+        if sideways:
+            moment_axis = axes[0][1]
+            for command in sideways:
+                moment_axis.plot(
+                    machs, [effectiveness[command](m) for m in machs], label=command
+                )
+            moment_axis.set_title("Moment per rad of the pitch and yaw commands")
+            moment_axis.set_xlabel("Mach Number")
+            moment_axis.set_ylabel("Moment Coefficient per rad")
+            moment_axis.grid(True)
+            moment_axis.legend()
         plt.suptitle(f"Effectiveness of {self.aero_surface.name}")
         plt.tight_layout()
         show_or_save_plot(filename)

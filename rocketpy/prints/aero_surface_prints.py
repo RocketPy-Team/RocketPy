@@ -471,7 +471,8 @@ class _ControlFinsPrints(_GenericSurfacePrints):
             print(f"{control:<10s}  {angle:>12.2f} deg  {default:>8.4g} rad")
         print(
             "A positive deflection turns a fin the way a positive cant angle does: "
-            "the same\ndeflection on every fin gives a negative roll moment.\n"
+            "the same\ndeflection on every fin gives a negative roll moment. "
+            "The commands of\ndeflections() take care of the signs.\n"
         )
 
     def effectiveness(self, mach=0.3):
@@ -481,17 +482,24 @@ class _ControlFinsPrints(_GenericSurfacePrints):
         print(f"Effectiveness at Mach {mach:g}, zero angle of attack:")
         print("--------------------------------------------")
         print(
-            "Roll moment coefficient per rad of the same deflection on every fin: "
+            "Roll moment coefficient per rad of the roll command: "
             f"{effectiveness['roll'](mach):+.4f}"
         )
+        if "pitch" not in effectiveness:
+            print(
+                "Pitch and yaw: add the set to a rocket to see them, they depend "
+                "on where it sits.\n"
+            )
+            return
         print(
-            "Force coefficient toward +x per rad of the x command: "
-            f"{effectiveness['x'](mach):+.4f}"
+            "Pitch moment coefficient per rad of the pitch command: "
+            f"{effectiveness['pitch'](mach):+.4f}"
         )
         print(
-            "Force coefficient toward +y per rad of the y command: "
-            f"{effectiveness['y'](mach):+.4f}\n"
+            "Yaw moment coefficient per rad of the yaw command: "
+            f"{effectiveness['yaw'](mach):+.4f}"
         )
+        print("Pitch and yaw moments are about the rocket's center of dry mass.\n")
 
     def all(self):
         """Prints all information of the set of control fins.

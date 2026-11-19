@@ -29,10 +29,9 @@ class ControlFins(GenericSurface):
     is at 0, ``fin_2`` at 90, ``fin_3`` at 180 and ``fin_4`` at 270.
     :meth:`info` prints this table. In a flight each deflection is a control
     input named after the set, ``canards.fin_1`` for a set named
-    ``"Canards"``. :meth:`deflections` turns a roll command and two sideways
-    commands into one deflection per fin; :meth:`effectiveness` gives the
-    moment and force coefficients per radian of each, for the controller's
-    design.
+    ``"Canards"``. :meth:`deflections` turns a roll, a pitch and a yaw command
+    into one deflection per fin; :meth:`effectiveness` gives the moment
+    coefficient per radian of each, for the controller's design.
 
     The same positive deflection on every fin gives a negative roll moment
     (``w3`` decreases), as a positive cant angle does. One fin deflected
@@ -163,6 +162,9 @@ class ControlFins(GenericSurface):
         # The frame of each fin at the deflection it was last flown with, so a
         # deflection held for many steps is not turned again at each one
         self._frames = [None] * n
+        # Where the set sits on the rocket it was last added to, from the
+        # center of dry mass, in the body frame. The rocket sets it.
+        self._position = None
 
         controls = tuple(f"fin_{i + 1}" for i in range(n))
         defaults = {
@@ -432,30 +434,59 @@ class ControlFins(GenericSurface):
             M3 / moment,
         )
 
-    def deflections(self, roll=0.0, x=0.0, y=0.0):
-        """Turn a roll command and two sideways commands into the deflection
-        of every fin.
+    def _placed_at(self, position):
+        """Called by the rocket with where the set sits, from the center of dry
+        mass, in the body frame. The pitch and yaw commands depend on it."""
+        self._position = position
 
-        Each fin gets ``roll + x * cos(phi) + y * sin(phi)``, with ``phi`` its
-        angular position, so the three add up. The same ``roll`` on every fin
-        gives a roll moment; ``x`` turns the fins so that the set pushes
-        toward ``+x``, ``y`` so that it pushes toward ``+y``, in the body frame
-        (see the class description). On canards the nose follows
-        the push, on tail fins it goes the other way.
+    def _side(self):
+        """``1`` for a set ahead of the rocket's center of dry mass, ``-1``
+        for one behind it. A pitch or yaw command turns the fins one way on
+        canards and the other way on tail fins."""
+        if self._position is None:
+            raise ValueError(
+                f"'{self.name}' is not on a rocket yet. A pitch or yaw command "
+                "turns the fins one way ahead of the center of mass and the other "
+                "way behind it, so add the set to the rocket first, with "
+                "rocket.add_surfaces."
+            )
+        if self._position.z == 0:
+            raise ValueError(
+                f"'{self.name}' sits at the rocket's center of dry mass, where "
+                "its fins cannot pitch or yaw the rocket."
+            )
+        return 1 if self._position.z > 0 else -1
+
+    def deflections(self, roll=0.0, pitch=0.0, yaw=0.0):
+        """Turn a roll, a pitch and a yaw command into the deflection of
+        every fin.
+
+        A positive command turns the rocket toward the positive angular
+        velocity of that name: ``roll`` raises ``w3`` (about the rocket's
+        axis), ``pitch`` raises ``w1`` (about the body ``x`` axis) and ``yaw``
+        raises ``w2`` (about the body ``y`` axis). This holds for canards and
+        for tail fins alike, so a controller that opposes the three angular
+        velocities uses ``roll=-K * w3``, ``pitch=-K * w1`` and
+        ``yaw=-K * w2``.
+
+        Each fin gets ``-roll + side * (yaw * cos(phi) - pitch * sin(phi))``,
+        with ``phi`` its angular position and ``side`` equal to 1 for a set
+        ahead of the rocket's center of dry mass and -1 for one behind it. The
+        pitch and yaw commands therefore need the set to be on a rocket.
 
         Parameters
         ----------
         roll : float, optional
-            Deflection of every fin, in radians. Positive gives a negative
-            roll moment, so ``roll`` with the sign of the roll rate opposes
-            it. Default 0.
-        x : float, optional
-            Deflection, in radians, of a fin on the ``+y`` axis that pushes the
-            set toward ``+x``; the other fins follow with their cosine.
-            Default 0.
-        y : float, optional
-            The same for a push toward ``+y``, from the fin at 90 degrees of
-            angular position. Default 0.
+            Roll command, in radians: every fin is turned by this angle, the
+            way that raises ``w3``. Default 0.
+        pitch : float, optional
+            Pitch command, in radians: the angle the fins on the body ``x``
+            axis are turned by, the way that raises ``w1``; the other fins
+            follow with the sine of their angular position. Default 0.
+        yaw : float, optional
+            Yaw command, in radians: the angle the fins on the body ``y``
+            axis are turned by, the way that raises ``w2``; the other fins
+            follow with the cosine of their angular position. Default 0.
 
         Returns
         -------
@@ -464,21 +495,31 @@ class ControlFins(GenericSurface):
             ``{"fin_1": ..., "fin_2": ..., ...}``. Write them all at once
             with ``context.controls.<set>.update(...)``.
 
+        Raises
+        ------
+        ValueError
+            If a pitch or yaw command is given before the set is added to a
+            rocket, or for a set placed at the rocket's center of dry mass.
+
         Examples
         --------
         >>> from rocketpy import ControlFins, TrapezoidalFin
         >>> fin = TrapezoidalFin(root_chord=0.1, tip_chord=0.05, span=0.08,
         ...                      rocket_radius=0.06, angular_position=0)
         >>> canards = ControlFins(fin, n=4, name="Canards")
-        >>> canards.deflections(x=0.1)
-        {'fin_1': 0.1, 'fin_2': 0.0, 'fin_3': -0.1, 'fin_4': 0.0}
+        >>> canards.deflections(roll=0.1)
+        {'fin_1': -0.1, 'fin_2': -0.1, 'fin_3': -0.1, 'fin_4': -0.1}
         """
+        side = self._side() if pitch != 0 or yaw != 0 else 0
         # Rounded so cos(90 deg) gives 0 rather than 6e-17; + 0.0 turns -0.0 to 0.0
         return {
             control: round(
-                roll
-                + x * math.cos(math.radians(phi))
-                + y * math.sin(math.radians(phi)),
+                -roll
+                + side
+                * (
+                    yaw * math.cos(math.radians(phi))
+                    - pitch * math.sin(math.radians(phi))
+                ),
                 12,
             )
             + 0.0
@@ -486,15 +527,17 @@ class ControlFins(GenericSurface):
         }
 
     def effectiveness(self, alpha=0.0, beta=0.0):
-        """Give how much roll moment and sideways force the fins produce per
-        radian of each command of :meth:`deflections`, as functions of Mach.
+        """Give the moment the fins produce per radian of each command of
+        :meth:`deflections`, as functions of Mach.
 
-        The numbers are coefficients: multiply by the dynamic pressure and the
-        set's reference area (and its reference length for the roll moment) to
-        get a moment in N m or a force in N per radian of deflection. They are
-        what sets the gain of a roll or attitude controller. The sideways
-        forces act at the fins, so their moment about the center of mass is
-        the force times the distance from the fins to it.
+        The numbers are moment coefficients: multiply by the dynamic pressure,
+        the set's reference area and its reference length to get a moment in
+        N m per radian of command. They are what sets the gain of a roll or
+        attitude controller. The pitch and yaw moments are taken about the
+        rocket's center of dry mass, where the center of mass is once the
+        propellant has burned. While the motor burns the center of mass is
+        further aft, so canards turn the rocket a little more and tail fins a
+        little less.
 
         The air comes head on, from the nose toward the tail (along ``-z`` in
         the body frame), turned by the two angles below. The rocket is not
@@ -513,12 +556,12 @@ class ControlFins(GenericSurface):
         Returns
         -------
         dict of Function
-            ``"roll"``: the roll moment coefficient per radian of the same
-            deflection on every fin, negative since a positive deflection
-            rolls the rocket toward negative ``w3``. ``"x"``: the force
-            coefficient toward ``+x`` per radian of the ``x`` command, and
-            ``"y"`` toward ``+y`` per radian of the ``y`` command, both
-            positive. Each is a :class:`rocketpy.Function` of the Mach number.
+            ``"roll"``: the roll moment coefficient per radian of the roll
+            command. ``"pitch"`` and ``"yaw"``: the moment coefficients about
+            the body ``x`` and ``y`` axes per radian of the pitch and yaw
+            commands; they are only given for a set that is on a rocket. All
+            are positive, and each is a :class:`rocketpy.Function` of the
+            Mach number.
 
         Examples
         --------
@@ -527,45 +570,40 @@ class ControlFins(GenericSurface):
         ...                      rocket_radius=0.06, angular_position=0)
         >>> canards = ControlFins(fin, n=4, name="Canards")
         >>> roll_per_rad = canards.effectiveness()["roll"]
-        >>> bool(roll_per_rad(0.3) < 0)
+        >>> bool(roll_per_rad(0.3) > 0)
         True
         """
         stream = self._stream(alpha, beta)
         still = Vector([0, 0, 0])
-        force = 0.5 * self.reference_area
-        moment = force * self.reference_length
+        on_a_rocket = self._position is not None and self._position.z != 0
+        position = self._position if on_a_rocket else still
+        moment = 0.5 * self.reference_area * self.reference_length
         step = 0.01  # rad, small enough for the slope, large enough for the sum
 
         def forces(mach, deflections):
-            # At unit speed and density, about the point the set is added at
-            return self._fin_forces(stream, 1.0, mach, 1.0, still, still, deflections)
-
-        def slope(command, index, scale):
-            up = list(self.deflections(**{command: step}).values())
-            down = list(self.deflections(**{command: -step}).values())
-            return lambda mach: (
-                (forces(mach, up)[index] - forces(mach, down)[index])
-                / (2 * step)
-                / scale
+            # At unit speed and density, about the rocket's center of dry mass
+            return self._fin_forces(
+                stream, 1.0, mach, 1.0, position, still, deflections
             )
 
-        return {
-            "roll": Function(
-                slope("roll", 5, moment),
+        def slope(command, index):
+            up = list(self.deflections(**{command: step}).values())
+            down = list(self.deflections(**{command: -step}).values())
+            return Function(
+                lambda mach: (
+                    (forces(mach, up)[index] - forces(mach, down)[index])
+                    / (2 * step)
+                    / moment
+                ),
                 "Mach Number",
-                "Roll Moment Coefficient per rad",
-            ),
-            "x": Function(
-                slope("x", 0, force),
-                "Mach Number",
-                "Force Coefficient toward +x per rad",
-            ),
-            "y": Function(
-                slope("y", 1, force),
-                "Mach Number",
-                "Force Coefficient toward +y per rad",
-            ),
-        }
+                f"{command.capitalize()} Moment Coefficient per rad",
+            )
+
+        effectiveness = {"roll": slope("roll", 5)}
+        if on_a_rocket:
+            effectiveness["pitch"] = slope("pitch", 3)
+            effectiveness["yaw"] = slope("yaw", 4)
+        return effectiveness
 
     def hinge_moments(self, dynamic_pressure, deflections=None, alpha=0.0, beta=0.0):
         """Give the torque the air puts on each fin about its hinge line, in

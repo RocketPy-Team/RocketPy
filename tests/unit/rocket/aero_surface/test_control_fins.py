@@ -196,57 +196,110 @@ def test_info_says_which_fin_is_which(capsys):
     assert "fin_2" in out and "270.00 deg" in out
 
 
-def test_deflections_mix_roll_and_the_two_sideways_pushes():
-    canards = ControlFins(_fin(), n=4)
-    assert canards.deflections(x=0.1) == pytest.approx(
+def _placed(canards, z):
+    """The set as a rocket would leave it after adding it ``z`` meters ahead
+    of its center of dry mass (behind it for a negative ``z``)."""
+    canards._placed_at(Vector([0, 0, z]))
+    return canards
+
+
+def test_deflections_mix_the_roll_pitch_and_yaw_commands():
+    canards = _placed(ControlFins(_fin(), n=4), 0.4)
+    assert canards.deflections(roll=0.02) == pytest.approx(
+        dict.fromkeys(canards.controls, -0.02)
+    )
+    assert canards.deflections(yaw=0.1) == pytest.approx(
         {"fin_1": 0.1, "fin_2": 0.0, "fin_3": -0.1, "fin_4": 0.0}
     )
-    assert canards.deflections(y=0.1) == pytest.approx(
-        {"fin_1": 0.0, "fin_2": 0.1, "fin_3": 0.0, "fin_4": -0.1}
+    assert canards.deflections(pitch=0.1) == pytest.approx(
+        {"fin_1": 0.0, "fin_2": -0.1, "fin_3": 0.0, "fin_4": 0.1}
     )
-    assert canards.deflections(roll=0.02) == pytest.approx(
-        dict.fromkeys(canards.controls, 0.02)
-    )
-    mixed = canards.deflections(roll=0.02, x=0.1, y=-0.05)
+    mixed = canards.deflections(roll=0.02, pitch=0.05, yaw=0.1)
     assert mixed == pytest.approx(
-        {"fin_1": 0.12, "fin_2": -0.03, "fin_3": -0.08, "fin_4": 0.07}
+        {"fin_1": 0.08, "fin_2": -0.07, "fin_3": -0.12, "fin_4": 0.03}
     )
-    three = ControlFins(_fin(), n=3).deflections(x=0.1)
+    three = _placed(ControlFins(_fin(), n=3), 0.4).deflections(yaw=0.1)
     assert list(three.values()) == pytest.approx([0.1, -0.05, -0.05])
 
 
-@pytest.mark.parametrize("command, pushes", [("x", 0), ("y", 1)])
-def test_a_sideways_command_only_pushes_that_way(command, pushes):
-    canards = ControlFins(_fin(), n=4)
+def test_tail_fins_turn_the_other_way_for_the_same_pitch_or_yaw_command():
+    canards = _placed(ControlFins(_fin(), n=4), 0.4)
+    tail_fins = _placed(ControlFins(_fin(), n=4), -0.9)
+    for command in ("pitch", "yaw"):
+        ahead = canards.deflections(**{command: 0.1})
+        behind = tail_fins.deflections(**{command: 0.1})
+        assert behind == pytest.approx({fin: -angle for fin, angle in ahead.items()})
+    assert tail_fins.deflections(roll=0.1) == canards.deflections(roll=0.1)
+
+
+@pytest.mark.parametrize("z", [0.4, -0.9])
+@pytest.mark.parametrize("command, axis", [("pitch", 0), ("yaw", 1), ("roll", 2)])
+def test_a_positive_command_turns_the_rocket_toward_the_positive_rate(z, command, axis):
+    """Ahead of the center of dry mass or behind it, a positive command gives
+    a positive moment about its own body axis and none about the others."""
+    canards = _placed(ControlFins(_fin(), n=4), z)
     deflections = canards.deflections(**{command: 0.1})
     forces = canards.compute_forces_and_moments(
         Vector([0, 0, -100]),
         100,
         0.3,
         1.2,
-        Vector([0, 0, 1]),
+        Vector([0, 0, z]),
         (0, 0, 0),
         controls=[deflections[control] for control in canards.controls],
     )
-    assert forces[pushes] > 0
-    assert forces[1 - pushes] == pytest.approx(0, abs=1e-9)
-    assert forces[5] == pytest.approx(0, abs=1e-9)  # no roll moment
+    moments = forces[3:6]
+    assert moments[axis] > 0
+    for other in {0, 1, 2} - {axis}:
+        assert moments[other] == pytest.approx(0, abs=1e-9)
+
+
+def test_pitch_and_yaw_commands_need_the_set_on_a_rocket(calisto):
+    canards = ControlFins(_fin(), n=4, name="Canards")
+    assert canards.deflections(roll=0.1) == dict.fromkeys(canards.controls, -0.1)
+    for command in ("pitch", "yaw"):
+        with pytest.raises(ValueError, match="not on a rocket yet"):
+            canards.deflections(**{command: 0.1})
+
+    calisto.add_surfaces(canards, POSITION)
+    assert canards.deflections(yaw=0.1)["fin_1"] == pytest.approx(0.1)
+
+    with pytest.raises(ValueError, match="center of dry mass"):
+        _placed(ControlFins(_fin(), n=4), 0.0).deflections(pitch=0.1)
+
+
+def test_the_rocket_tells_the_fins_where_they_sit(calisto):
+    canards = ControlFins(_fin(), n=4, name="Canards")
+    calisto.add_surfaces(canards, POSITION)
+    assert canards._position == calisto.surfaces_cp_to_cdm[canards]
+    assert canards._position.z > 0
+
+    tail_fins = ControlFins(_fin(), n=4, name="Tail fins")
+    calisto.add_surfaces(tail_fins, -1.0)
+    assert tail_fins._position.z < 0
+    assert tail_fins.deflections(yaw=0.1)["fin_1"] == pytest.approx(-0.1)
 
 
 def test_effectiveness_is_the_slope_of_the_coefficients():
-    canards = ControlFins(_fin(), n=4)
+    canards = _placed(ControlFins(_fin(), n=4), 0.4)
     effectiveness = canards.effectiveness()
-    roll, x, y = (effectiveness[key](0.3) for key in ("roll", "x", "y"))
-    assert roll < 0 and x > 0 and y > 0
-    assert x == pytest.approx(y)
-    # The roll coefficient at a small collective deflection, from the coefficients
+    roll, pitch, yaw = (effectiveness[key](0.3) for key in ("roll", "pitch", "yaw"))
+    assert roll > 0 and pitch > 0 and yaw > 0
+    assert pitch == pytest.approx(yaw)
+    # The roll coefficient at a small roll command, from the coefficients
     h = 0.01
-    cl = canards.cl(0, 0, 0.3, 0, 0, 0, 0, h, h, h, h)  # with reynolds
+    cl = canards.cl(0, 0, 0.3, 0, 0, 0, 0, -h, -h, -h, -h)  # with reynolds
     assert roll * h == pytest.approx(cl, rel=1e-3)
-    # The force toward +x at a small x command
+    # The yaw moment at a small yaw command: the force toward +x and the
+    # moment about the point the set is added at, moved to the center of dry mass
     cY = canards.cY(0, 0, 0.3, 0, 0, 0, 0, h, 0, -h, 0)
-    assert x * h == pytest.approx(cY, rel=1e-3)
+    cn = canards.cn(0, 0, 0.3, 0, 0, 0, 0, h, 0, -h, 0)
+    assert yaw * h == pytest.approx(cn + cY * 0.4 / canards.reference_length, rel=1e-3)
     assert effectiveness["roll"](0.8) != pytest.approx(roll)  # changes with Mach
+
+
+def test_effectiveness_of_a_set_off_a_rocket_is_the_roll_one():
+    assert set(ControlFins(_fin(), n=4).effectiveness()) == {"roll"}
 
 
 def test_the_hinge_position_sets_where_a_fin_moves_to_when_it_turns():
@@ -351,7 +404,7 @@ def test_the_hinge_moments_over_a_flight_match_the_ones_at_its_air(calisto, tmp_
     fin = _fin()
     canards = ControlFins(fin, n=4, hinge_position=0.0, name="Canards")
     calisto.add_surfaces(canards, POSITION)
-    deflections = canards.deflections(roll=0.1)
+    deflections = dict.fromkeys(canards.controls, 0.1)
     speed = 102.0  # m/s, Mach 0.3 at 340 m/s
     flight = _still_air_flight(calisto, speed, deflections)
 
@@ -378,7 +431,7 @@ def test_a_controller_writes_the_deflections_at_once():
     controls = {f"canards.{control}": 0.0 for control in canards.controls}
     view = ControlsView(controls, [canards])
     view.canards.update(canards.deflections(roll=0.05))
-    assert controls == pytest.approx(dict.fromkeys(controls, 0.05))
+    assert controls == pytest.approx(dict.fromkeys(controls, -0.05))
     with pytest.raises(KeyError):
         view.canards.update({"fin_9": 0.0})
 
@@ -462,8 +515,16 @@ def test_effectiveness_is_printed_and_plotted(capsys, tmp_path):
     out = capsys.readouterr().out
     assert "Effectiveness at Mach 0.3" in out
     assert "Roll moment coefficient per rad" in out
+    assert "add the set to a rocket" in out
     canards.plots.effectiveness(filename=str(tmp_path / "effectiveness.png"))
     assert (tmp_path / "effectiveness.png").exists()
+
+    _placed(canards, 0.4).info()
+    out = capsys.readouterr().out
+    assert "Pitch moment coefficient per rad" in out
+    assert "Yaw moment coefficient per rad" in out
+    canards.plots.effectiveness(filename=str(tmp_path / "placed.png"))
+    assert (tmp_path / "placed.png").exists()
 
 
 def test_changed_defaults_and_limits_are_saved():

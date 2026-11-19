@@ -1514,8 +1514,14 @@ class Rocket:
     def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Store where one surface applies its force, relative to the rocket's
         center of dry mass, in the body axes."""
+        # Control fins turn a pitch or yaw command one way ahead of the center
+        # of dry mass and the other way behind it, so they are told where
+        # they sit
+        placed_at = getattr(surface, "_placed_at", None)
         if self._is_at_center_of_dry_mass(surface):
             self.surfaces_cp_to_cdm[surface] = Vector([0, 0, 0])
+            if placed_at is not None:
+                placed_at(self.surfaces_cp_to_cdm[surface])
             return
         position = self._surface_origin(surface, position)
         # position of the surfaces coordinate system origin in body frame
@@ -1529,6 +1535,8 @@ class Rocket:
             + pos_origin
         )
         self.surfaces_cp_to_cdm[surface] = pos
+        if placed_at is not None:
+            placed_at(pos)
 
     def evaluate_stability_margin(self):
         """Compute the stability margin of the rocket as a function of Mach
