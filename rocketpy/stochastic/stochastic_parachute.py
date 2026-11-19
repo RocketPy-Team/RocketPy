@@ -29,7 +29,7 @@ def _is_a_trigger(member):
         and isinstance(member[0], str)
         and member[0].lower() == "time"
     ):
-        return bool(_is_a_height_trigger(member[1]) and member[1] >= 0)
+        return bool(_is_a_height_trigger(member[1]) and member[1] > 0)
     return _is_a_height_trigger(member)
 
 

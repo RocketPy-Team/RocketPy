@@ -208,7 +208,7 @@ class TestParachuteTimeTrigger:
         assert parachute.triggerfunc(101325.0, 2000.0, ascending, [], None) is True
 
     def test_time_trigger_false_when_eval_time_unset(self):
-        parachute = _make_parachute(trigger=("time", 0.0))
+        parachute = _make_parachute(trigger=("time", 1.0))
         assert parachute.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is False
 
     def test_time_trigger_accepts_numpy_scalar_delay(self):
@@ -233,6 +233,12 @@ class TestParachuteTimeTrigger:
     def test_invalid_time_triggers_are_refused(self, trigger):
         with pytest.raises(ValueError, match="Unable to set the trigger"):
             _make_parachute(trigger=trigger)
+
+    @pytest.mark.parametrize("t_deploy", [0, 0.0, -0.5, -1.0], ids=str)
+    def test_time_trigger_at_or_before_launch_is_refused(self, t_deploy):
+        """A parachute that deploys at or before ignition cannot be simulated."""
+        with pytest.raises(ValueError, match="must be positive"):
+            _make_parachute(trigger=("time", t_deploy))
 
     def test_to_dict_round_trip_preserves_time_trigger(self):
         original = _make_parachute(trigger=("time", 4.0))
