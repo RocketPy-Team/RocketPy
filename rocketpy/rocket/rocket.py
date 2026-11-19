@@ -1734,8 +1734,9 @@ class Rocket:
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
             - A tuple ``("time", t_deploy)`` that triggers when flight time \
-                ``t >= t_deploy`` (seconds from flight start, must be \
-                positive). For a delay charge referenced to motor burnout, use \
+                ``t >= t_deploy`` (seconds from flight start). It must be \
+                positive and after the rail exit, or ``Flight`` raises. For a \
+                delay charge referenced to motor burnout, use \
                 ``("time", motor.burn_out_time + delay)``.
 
             .. note::

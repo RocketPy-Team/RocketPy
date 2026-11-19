@@ -932,6 +932,9 @@ class Flight:
             else:
                 continue  # Parachute already triggered, skip to next
 
+            if self.__defer_trigger_on_rail(parachute, node.t):
+                continue
+
             # Create phase for time after detection and before inflation
             # Must only be created if parachute has any lag
             i = 1
@@ -982,6 +985,30 @@ class Flight:
             return True
 
         return False
+
+    def __defer_trigger_on_rail(self, parachute, t):
+        """Cancel a parachute trigger that fires before the rocket leaves the
+        rail and remember it, returning whether it was cancelled.
+
+        Deploying there would swap the rail dynamics for free flight, so the
+        rocket would sink into the ground or lose the parachute at rail exit.
+        The error is raised at rail exit, once that time is known.
+        """
+        if len(self.out_of_rail_state) > 1:
+            return False
+        self._triggered_on_rail.append((parachute, t))
+        return True
+
+    def __raise_if_triggered_on_rail(self):
+        """Raise if a parachute trigger fired before the rail exit."""
+        if not self._triggered_on_rail:
+            return
+        parachute, t = self._triggered_on_rail[0]
+        raise ValueError(
+            f"Parachute '{parachute.name}' is set to deploy at {round(t, 3):g} s, "
+            f"before the rocket leaves the rail at "
+            f"{round(self.out_of_rail_time, 3):g} s."
+        )
 
     def __check_simulation_events(self, phase, phase_index, node_index):
         """Check for simulation events like out of rail, apogee, and impact.
@@ -1094,6 +1121,7 @@ class Flight:
         self.out_of_rail_time = self.t
         self.out_of_rail_time_index = len(self.solution) - 1
         self.out_of_rail_state = self.y_sol
+        self.__raise_if_triggered_on_rail()
         # Tip-off runs only with two buttons on the rail and the standard
         # 6 DOF equations. Otherwise the rocket goes straight to free flight.
         if (
@@ -1423,6 +1451,9 @@ class Flight:
             # Remove parachute from flight parachutes
             self.parachutes.remove(parachute)
 
+            if self.__defer_trigger_on_rail(parachute, overshootable_node.t):
+                continue
+
             # Create phase for time after detection and before inflation
             # Must only be created if parachute has any lag
             i = 1
@@ -1585,6 +1616,7 @@ class Flight:
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
+        self._triggered_on_rail = []
         self.__post_processed_variables = []
         self._tip_off_button_forces = []
 

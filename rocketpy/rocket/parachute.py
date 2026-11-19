@@ -81,9 +81,10 @@ class Parachute:
 
         - A tuple ``("time", t_deploy)`` where ``t_deploy`` is the flight time
           in seconds at or after which the parachute triggers (from ``t = 0``
-          at flight start, must be positive). Useful for fixed delay charges
-          that start at ignition/launch. For a motor delay charge that starts
-          at burnout, pass ``("time", motor.burn_out_time + delay)``.
+          at flight start). It must be positive and fall after the rocket leaves
+          the rail, or ``Flight`` raises. Useful for fixed delay charges that
+          start at ignition/launch. For a motor delay charge that starts at
+          burnout, pass ``("time", motor.burn_out_time + delay)``.
 
 
     Parachute.triggerfunc : function
@@ -202,8 +203,9 @@ class Parachute:
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
             - A tuple ``("time", t_deploy)`` that triggers when flight time \
-                ``t >= t_deploy`` (seconds from flight start, must be \
-                positive). For a delay charge referenced to motor burnout, use \
+                ``t >= t_deploy`` (seconds from flight start). It must be \
+                positive and after the rail exit, or ``Flight`` raises. For a \
+                delay charge referenced to motor burnout, use \
                 ``("time", motor.burn_out_time + delay)``.
 
             .. note::
