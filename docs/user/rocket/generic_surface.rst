@@ -151,6 +151,46 @@ length :math:`L_{ref}`:
 
 where :math:`L_{ref}` is the reference length (commonly the rocket's diameter).
 
+Each coefficient is a moment about one body axis, following the right-hand
+rule. A positive value turns the rocket as follows (the angles :math:`\alpha`
+and :math:`\beta` are defined in the next section):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 14 16 22 24 24
+
+   * - Coefficient
+     - Moment about
+     - Angular velocity that grows
+     - Where the nose moves
+     - Flow angle
+   * - :math:`C_m`
+     - :math:`x_B`
+     - ``w1``
+     - toward :math:`-y_B`
+     - :math:`\alpha` increases
+   * - :math:`C_n`
+     - :math:`y_B`
+     - ``w2``
+     - toward :math:`+x_B`
+     - :math:`\beta` decreases
+   * - :math:`C_l`
+     - :math:`z_B`
+     - ``w3``
+     - it stays; the rocket rolls from :math:`x_B` toward :math:`y_B`
+     - :math:`\alpha_{\text{tot}}` unchanged
+
+The two planes do not mirror each other: a positive :math:`C_m` raises the
+angle of attack, while a positive :math:`C_n` lowers the sideslip angle. A
+statically stable rocket therefore has a :math:`C_m` that decreases with
+:math:`\alpha` (negative :math:`C_{m\alpha}`) and a :math:`C_n` that increases
+with :math:`\beta` (positive :math:`C_{n\beta}`).
+
+.. important::
+   Data from a wind tunnel report or another program may define a positive
+   moment, or a positive control deflection, the other way round. Compare it
+   with this table before using it, and change the sign where it differs.
+
 Angles of attack and sideslip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1234,7 +1274,7 @@ roll rate 50 times a second:
    See :ref:`generic_surface_damping`.
 
 How to write the controller and read the deflections flown is in
-:ref:`controllers`. A surface that lags is shown in :ref:`controlfins`.
+:ref:`controllers`.
 
 .. _active_during:
 

@@ -13,6 +13,23 @@ We use the same rocket as in the :ref:`First Simulation <firstsimulation>`
 example and add the canards to it. :ref:`controllers` describes everything a
 controller can do; here we go through one from start to finish.
 
+.. note::
+
+    There are two ways to model control fins:
+
+    - **From their shape**, with :class:`rocketpy.ControlFins`, as on this
+      page. RocketPy computes the forces of each fin from its geometry with
+      the Barrowman method, the model it uses for fixed fins. That method has
+      limits: small angles, subsonic flight, and each fin computed alone. See
+      :ref:`the limits of the model <controlfins_model>` and
+      :ref:`controlfins_not_covered` before relying on the numbers.
+    - **From coefficients** measured in a wind tunnel or computed elsewhere,
+      with a :class:`rocketpy.GenericSurface` whose coefficients depend on
+      the deflections (see :ref:`surface_controls`). The sign of each moment
+      coefficient is given in :ref:`genericsurfaces`.
+
+    The controller is written the same way for both.
+
 Setting Up The Simulation
 -------------------------
 
@@ -90,22 +107,20 @@ variants at the end of this page from it.
 Adding the Canards
 ------------------
 
-A :class:`rocketpy.ControlFins` is built from one fin, which is copied ``n``
-times around the rocket, or from a list of fins given one by one, each at its
-own angular position and with its own shape (``ControlFins([fin_a, fin_b])``). Each copy has one control, its deflection in
+A :class:`rocketpy.ControlFins` is built from one fin, copied ``n`` times
+around the rocket, or from a list of fins given one by one
+(``ControlFins([fin_a, fin_b])``). Each fin has one control, its deflection in
 radians, named ``fin_1`` to ``fin_n``. ``fin_1`` sits at the
-``angular_position`` of the fin given, and the numbering follows the way the
-angular position grows: with four fins and ``angular_position=0``, ``fin_1``
-is at 0°, ``fin_2`` at 90°, ``fin_3`` at 180° and ``fin_4`` at 270°.
+``angular_position`` of the fin given and the others follow as the angular
+position grows: four fins starting at 0° sit at 0°, 90°, 180° and 270°.
 
-A deflection turns a fin exactly as a cant angle does, about its hinge line,
-and a set held at one deflection gives the same forces as the same fins added
-with that cant angle. So the sign convention is the cant angle's: **a positive
-deflection rolls the rocket toward negative** ``w3``, the angular velocity
-about the rocket's axis. To oppose a roll rate, deflect the fins the same way
-as the roll rate's sign. Deflecting one fin alone pushes the rocket sideways
-at that fin. :ref:`controlfins_which_fin` below gives where each fin sits and
-which way it turns, so you can match them to the fins of your rocket.
+A deflection turns a fin about its hinge line, exactly as a cant angle does.
+So **a positive deflection rolls the rocket toward negative** ``w3``, the
+angular velocity about the rocket's axis: to oppose a roll rate, deflect the
+fins with the sign of that rate. One fin deflected alone pushes the rocket
+sideways at that fin. :ref:`controlfins_which_fin` gives where each fin sits
+and which way it turns, and :ref:`controlfins_commands` how to command the
+set by roll, pitch and yaw without minding these signs.
 
 ``hinge_position`` is where the hinge line crosses the root chord, as a
 fraction of its length from the leading edge; the default, 0.5, is where a
@@ -115,26 +130,27 @@ deflections small, a few tenths of a radian at most.
 ``deflection_limits`` is the most a fin can turn, in radians. A controller
 that asks for more gets the limit.
 
+.. _controlfins_model:
+
 .. important::
 
-    The forces of the fins are computed from their shape, not measured. The
-    model is the one RocketPy uses for fixed fins, described in
-    :ref:`individual_fins`:
+    The forces of the fins are computed from their shape, not measured. They
+    come from the Barrowman method, the model RocketPy uses for fixed fins
+    (see :ref:`individual_fins`), with each fin turned by its deflection. The
+    limits of that method apply here too:
 
-    - Each fin makes a force normal to itself, equal to its lift slope times
-      the angle between the fin and the air it meets: the angle of attack at
-      that fin, plus its deflection, plus what the rocket's rotation adds.
-      The force grows in proportion to that angle, so the fin never stalls.
-    - The lift slope comes from the fin's planform (Diederich's correlation,
-      as in the Barrowman method), corrected for the Mach number
-      (Prandtl-Glauert below Mach 0.8) and for the presence of the body. It
-      is that of a flat plate unless the fin is given an ``airfoil``.
-    - The force acts at one fixed point of the fin, its center of pressure.
-    - A fin has no drag of its own. A deflected fin adds drag only because
-      its normal force then leans back.
-    - Each fin is computed alone. The gap between a turning fin and the
-      body, the effect of one fin on its neighbors and the effect of the
-      canards on the tail fins are not modelled.
+    - **Small angles.** The force of a fin grows in proportion to its
+      deflection plus the angle of attack it meets, so a fin never stalls.
+    - **Subsonic flight.** The method was derived for subsonic flow. It is
+      corrected for the Mach number up to Mach 0.8 and is not valid near and
+      above Mach 1.
+    - **Each fin alone.** The effect of one fin on its neighbors, the effect
+      of canards on the tail fins and the gap between a turning fin and the
+      body are left out.
+    - **A fixed center of pressure.** The force of a fin always acts at the
+      same point of the fin.
+    - **No drag of the fin itself.** A deflected fin adds drag only because
+      its force then leans back.
 
     The roll moment, the sideways force and the hinge torque on this page all
     come from this model, so read them as estimates, best at low speed and
@@ -236,38 +252,105 @@ To match this to your rocket:
    the fins are not evenly spaced, give the fins one by one in your own
    order: ``ControlFins([fin_a, fin_b, fin_c, fin_d])``, each built with its
    own ``angular_position``.
-3. On the bench, command a small positive angle to one servo and look at the
-   rocket from the nose. The leading edge of that fin must move clockwise. If
-   it moves the other way, change the sign of that servo in the flight
-   computer. Deflections are in radians.
+3. With the rocket on the ground, command a small positive angle to one servo
+   and look at the rocket from the nose. The leading edge of that fin must
+   move clockwise. If it moves the other way, change the sign of that servo
+   in the flight computer. Deflections are in radians.
+4. Match the gyroscope of your flight computer to the angular velocities a
+   controller reads here. ``w1``, ``w2`` and ``w3`` are the angular velocities
+   about the body ``x``, ``y`` and ``z`` axes, each positive by the right-hand
+   rule:
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 20 20 60
+
+      * - Angular velocity
+        - About
+        - When it is positive
+      * - ``w1``
+        - ``x``
+        - the nose moves toward ``-y``
+      * - ``w2``
+        - ``y``
+        - the nose moves toward ``+x``
+      * - ``w3``
+        - ``z``
+        - seen from the nose, the rocket turns counterclockwise
+
+   A gyroscope whose axes are not the body axes reads other components. Add
+   it to the rocket as a sensor with its ``orientation`` and read it with
+   ``context.sensors`` (see :ref:`sensorsusage`).
+
+.. _controlfins_commands:
+
+The Commands and What They Do
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A controller rarely thinks in single fins. ``canards.deflections`` turns a
-roll command and two sideways commands into the deflection of every fin, from
-their angular positions: ``roll`` is the same deflection on every fin, ``x``
-pushes the set toward ``+x`` and ``y`` toward ``+y``.
+roll, a pitch and a yaw command into the deflection of every fin. A positive
+command turns the rocket toward the positive angular velocity of that name:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 40 40
+
+   * - Command
+     - Angular velocity it raises
+     - What you see
+   * - ``roll``
+     - ``w3``
+     - seen from the nose, the rocket turns counterclockwise
+   * - ``pitch``
+     - ``w1``
+     - the nose moves toward ``-y``
+   * - ``yaw``
+     - ``w2``
+     - the nose moves toward ``+x``
+
+This holds wherever the set sits. Canards and movable tail fins turn opposite
+ways for the same pitch or yaw command, and the set works that out from where
+it was added to the rocket. A controller that opposes the three angular
+velocities therefore uses ``roll=-K * w3``, ``pitch=-K * w1`` and
+``yaw=-K * w2``, on canards and on tail fins alike.
 
 .. jupyter-execute::
 
-    print("roll:", canards.deflections(roll=0.02))
-    print("x:   ", canards.deflections(x=0.05))
-    print("y:   ", canards.deflections(y=0.05))
-    print("all: ", canards.deflections(roll=0.02, x=0.05))
+    print("roll: ", canards.deflections(roll=0.02))
+    print("pitch:", canards.deflections(pitch=0.05))
+    print("yaw:  ", canards.deflections(yaw=0.05))
+    print("all:  ", canards.deflections(roll=0.02, yaw=0.05))
 
-A sideways push on canards, which sit ahead of the center of mass, turns the
-nose the way of the push. The same push on movable tail fins turns the nose
-the other way.
+.. note::
 
-How much each command does is ``canards.effectiveness``: the roll moment
-coefficient per radian of ``roll``, and the force coefficients per radian of
-``x`` and ``y``, as functions of Mach. Multiplied by the dynamic pressure and
-the reference area (and length, for the moment) they are the gains a control
-design starts from.
+    The pitch and yaw commands need the set to be on a rocket, since they
+    depend on which side of the center of dry mass it is. Build the set, add
+    it with ``add_surfaces``, then call ``deflections``.
+
+How much each command does is ``canards.effectiveness``: the moment
+coefficient per radian of each command, as functions of Mach. Multiplied by
+the dynamic pressure, the reference area and the reference length they are
+the moments in N m per radian, the gains a control design starts from. Here
+for a command of 0.05 rad at Mach 0.3:
 
 .. jupyter-execute::
 
     effectiveness = canards.effectiveness()
-    print(f"Roll moment coefficient per rad at Mach 0.3: {effectiveness['roll'](0.3):.3f}")
     canards.plots.effectiveness()
+
+    mach = 0.3
+    dynamic_pressure = 5500  # Pa, near Mach 0.3 at this altitude
+    command = 0.05  # rad
+    to_moment = dynamic_pressure * canards.reference_area * canards.reference_length
+    for name in ("roll", "pitch", "yaw"):
+        moment = effectiveness[name](mach) * to_moment * command
+        print(f"{name}={command}: a moment of {moment:+.3f} N m")
+
+The pitch and yaw moments are taken about the rocket's center of dry mass,
+where the center of mass is once the propellant has burned. While the motor
+burns the center of mass is further aft, so these canards turn the rocket a
+little more than the numbers say. Divide a moment by the rocket's moment of
+inertia about that axis to get the angular acceleration it causes.
 
 The torque the air puts on each fin about its hinge line, the load the
 mechanism turning the fin has to hold, is ``canards.hinge_moments``: one
@@ -305,17 +388,17 @@ lives in ``context.memory``; what we want to look at afterwards goes to
 
     from rocketpy import Controller
 
-    KP = 0.02  # rad of deflection per rad/s of roll rate
-    KI = 0.2  # rad of deflection per rad of accumulated roll
+    KP = 0.02  # rad of roll command per rad/s of roll rate
+    KI = 0.2  # rad of roll command per rad of accumulated roll
     TARGET = 0.0  # rad/s
 
     def roll_controller(context):
         error = context.state.w3 - TARGET
         context.memory["integral"] += error * context.dt
-        # The same sign as the roll rate: see the convention above
-        deflection = KP * error + KI * context.memory["integral"]
-        context.controls.canards.update(canards.deflections(roll=deflection))
-        context.record(error=error, deflection=deflection)
+        # Against the error: a positive roll command raises w3
+        roll = -(KP * error + KI * context.memory["integral"])
+        context.controls.canards.update(canards.deflections(roll=roll))
+        context.record(error=error, roll=roll)
 
     roll_control = Controller(
         roll_controller,
@@ -339,6 +422,34 @@ A few things worth knowing:
 - The controller only writes the deflection; the fins keep it until the next
   sample. To read the latest sensor values instead of the true state, use
   ``context.sensors``; see :ref:`sensorsusage`.
+
+If your flight computer already computes one angle per servo, write each fin
+yourself, with your own mixing, in place of ``canards.deflections``. This
+one holds the roll and damps the pitch and yaw rates:
+
+.. code-block:: python
+
+    K_ROLL = 0.02  # rad of deflection per rad/s of roll rate
+    K_RATE = 0.05  # rad of deflection per rad/s of pitch or yaw rate
+
+    def flight_computer(context):
+        state = context.state
+        roll = K_ROLL * state.w3
+        fins = context.controls.canards
+        fins.fin_1 = roll - K_RATE * state.w2  # on +y, pushes toward +x
+        fins.fin_2 = roll + K_RATE * state.w1  # on -x, pushes toward +y
+        fins.fin_3 = roll + K_RATE * state.w2  # on -y, pushes toward -x
+        fins.fin_4 = roll - K_RATE * state.w1  # on +x, pushes toward -y
+
+    calisto.add_controller(Controller(flight_computer, sampling_rate=100))
+
+RocketPy computes the forces and moments from the four deflections, so
+simulating a controller you have already designed needs no gain from this
+page: only the right fin, the right sign and the right axes, as in
+:ref:`controlfins_which_fin`. A fin in the wrong place or a wrong sign makes
+the flight diverge, which looks the same as a badly tuned controller. To tell
+them apart, fly a few seconds with one fixed small deflection and no control
+law, and check that ``w1``, ``w2`` and ``w3`` move the way your rocket would.
 
 Simulating a Flight
 -------------------
@@ -413,18 +524,18 @@ default deflection, and the next flight starts from it again.
 Steering With the Fins
 ----------------------
 
-The roll controller gives every fin the same deflection. A sideways command
-does not: here the same controller also pushes the canards toward ``+x`` for
-one second of the coast, from 6 s to 7 s.
+The roll controller gives every fin the same deflection. A pitch or yaw
+command does not: here the same controller also gives a yaw command for one
+second of the coast, from 6 s to 7 s.
 
 .. jupyter-execute::
 
     def steering_controller(context):
         error = context.state.w3 - TARGET
         context.memory["integral"] += error * context.dt
-        roll = KP * error + KI * context.memory["integral"]
-        x = 0.05 if 6 <= context.time < 7 else 0.0
-        context.controls.canards.update(canards.deflections(roll=roll, x=x))
+        roll = -(KP * error + KI * context.memory["integral"])
+        yaw = 0.05 if 6 <= context.time < 7 else 0.0
+        context.controls.canards.update(canards.deflections(roll=roll, yaw=yaw))
 
     steering_canards = ControlFins(
         canard, n=4, name="Canards", deflection_limits=(-0.2, 0.2)
@@ -450,7 +561,7 @@ one second of the coast, from 6 s to 7 s.
     )
 
 During that second ``fin_1`` (on ``+y``) and ``fin_3`` (on ``-y``) move apart
-by the ``x`` command, on top of the deflection that holds the roll, while
+by the yaw command, on top of the deflection that holds the roll, while
 ``fin_2`` and ``fin_4`` keep it:
 
 .. jupyter-execute::
@@ -467,65 +578,22 @@ Each fin now carries its own load:
 
     steering_canards.plots.hinge_moments(steered_flight)
 
-The push toward ``+x`` ahead of the center of mass turns the nose toward
-``+x``, a positive rotation about the body ``y`` axis, ``w2``. The rocket then
-swings back and forth about its new heading, as a stable rocket does:
+The positive yaw command raises ``w2``, the angular velocity about the body
+``y`` axis: the nose turns toward the rocket's ``+x`` side by about one
+degree, and the flight path follows it. Compared with ``test_flight``, which
+only holds the roll, the rocket moves away sideways from the moment of the
+command:
 
 .. jupyter-execute::
 
-    steered_flight.w2.plot(5.5, 9)
+    def distance_apart(time):
+        east = steered_flight.x(time) - test_flight.x(time)
+        north = steered_flight.y(time) - test_flight.y(time)
+        return (east**2 + north**2) ** 0.5
 
-Fins That Lag
--------------
-
-So far a deflection takes effect the instant the controller writes it. A real
-servo takes time to get there. To model that, give the fins states of their
-own: the angle each fin has actually reached. The flight integrates these
-states with the rocket's, and the fins act with the reached angle, not the
-commanded one. Here each fin follows its command with a first-order lag of
-50 ms:
-
-.. jupyter-execute::
-
-    class ServoCanards(ControlFins):
-        states = ("a1", "a2", "a3", "a4")  # the angle each fin has reached
-
-        def state_derivative(self, states, commands, conditions):
-            return [(c - s) / 0.05 for c, s in zip(commands, states)]
-
-        def actual_controls(self, states, commands, conditions):
-            return list(states)
-
-    calisto_lagged = deepcopy(calisto_without_canards)
-    calisto_lagged.add_surfaces(
-        ServoCanards(canard, n=4, name="Canards", deflection_limits=(-0.2, 0.2)),
-        positions=0.3,
-    )
-    calisto_lagged.add_controller(deepcopy(roll_control))
-
-    lagged_flight = Flight(
-        rocket=calisto_lagged,
-        environment=env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=True,
-    )
-
-The reached angles are states of the flight, read by the set's name in
-``flight.state_history``, each a function of time like the commands in
-``flight.controls``:
-
-.. jupyter-execute::
-
-    commanded = lagged_flight.controls.canards.fin_1
-    reached = lagged_flight.state_history.canards.a1
-    print(f"Commanded at 2 s: {commanded(2.0):.4f} rad")
-    print(f"Reached at 2 s:   {reached(2.0):.4f} rad")
-    lagged_flight.w3.plot(0, lagged_flight.apogee_time)
-
-A controller tuned on instant fins may oscillate on lagging ones. Add the lag
-before tuning the gains.
+    apogee_time = min(steered_flight.apogee_time, test_flight.apogee_time)
+    for time in (6, 7, 10, 15, apogee_time):
+        print(f"{time:5.1f} s: {distance_apart(time):5.1f} m apart")
 
 A Continuous Controller
 -----------------------
@@ -546,8 +614,8 @@ The integral term is a state of the controller, with its derivative:
         return [conditions.state.w3 - TARGET]
 
     def continuous_roll_law(states, controls, conditions):
-        deflection = KP * (conditions.state.w3 - TARGET) + KI * states[0]
-        controls.canards.update(canards.deflections(roll=deflection))
+        roll = -(KP * (conditions.state.w3 - TARGET) + KI * states[0])
+        controls.canards.update(canards.deflections(roll=roll))
 
     continuous_roll_control = ContinuousController(
         continuous_roll_law,
@@ -582,6 +650,8 @@ If the sampled controller behaves like the continuous one, the sampling rate
 is high enough. If it oscillates where the continuous one does not, the rate
 is too low for these gains.
 
+.. _controlfins_not_covered:
+
 Not Covered
 -----------
 
@@ -589,6 +659,13 @@ Not Covered
   computed on its own, so the swirl a deflected canard sends to the tail, which
   reduces the roll the canards give and can reverse it, is not modelled. The
   effectiveness above is that of the canards alone.
+- Stall. The force of a fin grows in proportion to its deflection plus the
+  angle of attack it meets, without limit. Past a few tenths of a radian a
+  real fin loses force, so a simulated controller that asks for large
+  deflections has more authority than the real one.
+- The servos. A fin takes its deflection the instant the controller writes
+  it. The time a servo needs to get there and the speed it can turn at are
+  not modelled yet.
 - There is no stochastic version of ``ControlFins`` yet: a Monte Carlo study
   flies the set unchanged in every sampled rocket.
 
