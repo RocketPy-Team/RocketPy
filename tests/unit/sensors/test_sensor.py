@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 
@@ -5,7 +6,7 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from rocketpy import Accelerometer
+from rocketpy import Accelerometer, Environment
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler313_to_quaternions
 
@@ -41,7 +42,6 @@ U_DOT = [
     -0.052789015849051935,
     2.276425320359305,
 ]
-GRAVITY = 9.81
 
 
 @pytest.mark.parametrize(
@@ -276,7 +276,8 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
     # An accelerometer reports proper acceleration: the inertial acceleration
     # less the local gravitational field. Gravity points down, so the term it
     # contributes points up, which is why one sitting still reads +g, not 0.
-    inertial_acceleration = Vector(U_DOT[3:6]) - Vector([0, 0, -GRAVITY])
+    gravity = example_plain_env.gravity.get_value_opt(U[2])
+    inertial_acceleration = Vector(U_DOT[3:6]) - Vector([0, 0, -gravity])
     omega = Vector(U[10:13])
     omega_dot = Vector(U_DOT[10:13])
     acceleration = (
@@ -305,14 +306,25 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
     ay += 0.5
     az += 0.5
 
+    # A twin with the same RNG state but no gravity draws the same noise, so
+    # the gap between the two readings is exactly the rotated g at U[2].
+    without_gravity = copy.deepcopy(noisy_rotated_accelerometer)
+    without_gravity.consider_gravity = False
+
     # check last measurement considering noise error bounds
-    noisy_rotated_accelerometer.measure(
-        time=TIME,
-        u=U,
-        u_dot=U_DOT,
-        relative_position=relative_position,
-        environment=example_plain_env,
+    for accelerometer in (noisy_rotated_accelerometer, without_gravity):
+        accelerometer.measure(
+            time=TIME,
+            u=U,
+            u_dot=U_DOT,
+            relative_position=relative_position,
+            environment=example_plain_env,
+        )
+    gravity_reading = np.subtract(
+        noisy_rotated_accelerometer.measurement, without_gravity.measurement
     )
+    expected_gravity = total_rotation @ (rocket_rotation @ Vector([0, 0, gravity]))
+    assert gravity_reading == approx([*expected_gravity], abs=1e-9)
     assert noisy_rotated_accelerometer.measurement == approx([ax, ay, az], rel=0.1)
     assert len(noisy_rotated_accelerometer.measurement) == 3
     assert noisy_rotated_accelerometer.measured_data[0][1:] == approx(
@@ -361,6 +373,59 @@ def test_accelerometer_at_rest_reads_gravity_upward(example_plain_env):
     )
 
     assert ignoring_gravity.measurement == approx([0, 0, 0], abs=1e-12)
+
+
+def test_accelerometer_reads_gravity_at_its_altitude():
+    """Gravity is evaluated at the altitude ``u[2]``, not at the x velocity ``u[3]``."""
+    env = Environment(gravity=lambda height: 10 - height / 1000)
+    hovering = [0.0] * 13
+    hovering[2] = 5000  # altitude, where gravity is 5 m/s^2
+    hovering[3] = 2000  # x velocity, where gravity would be 8 m/s^2
+    hovering[6] = 1.0  # identity attitude
+
+    accelerometer = Accelerometer(sampling_rate=100, consider_gravity=True)
+    accelerometer.measure(
+        time=0,
+        u=hovering,
+        u_dot=[0.0] * 13,
+        relative_position=Vector([0, 0, 0]),
+        environment=env,
+    )
+
+    assert accelerometer.measurement == approx([0, 0, 5], abs=1e-12)
+
+
+def test_accelerometer_prefers_the_gravity_it_is_given():
+    """The ``gravity`` kwarg passed by ``Flight`` wins over ``environment.gravity``."""
+    env = Environment(gravity=lambda height: 10 - height / 1000)
+    hovering = [0.0] * 13
+    hovering[2] = 5000
+    hovering[6] = 1.0
+
+    accelerometer = Accelerometer(sampling_rate=100, consider_gravity=True)
+    accelerometer.measure(
+        time=0,
+        u=hovering,
+        u_dot=[0.0] * 13,
+        relative_position=Vector([0, 0, 0]),
+        environment=env,
+        gravity=7,
+    )
+
+    assert accelerometer.measurement == approx([0, 0, 7], abs=1e-12)
+
+
+def test_accelerometer_without_gravity_does_not_need_environment():
+    """With ``consider_gravity=False`` no gravity is looked up at all."""
+    at_rest = [0.0] * 13
+    at_rest[6] = 1.0
+
+    accelerometer = Accelerometer(sampling_rate=100, consider_gravity=False)
+    accelerometer.measure(
+        time=0, u=at_rest, u_dot=[0.0] * 13, relative_position=Vector([0, 0, 0])
+    )
+
+    assert accelerometer.measurement == approx([0, 0, 0], abs=1e-12)
 
 
 def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):

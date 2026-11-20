@@ -27,7 +27,6 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
-    TubeFins,
 )
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
 from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
@@ -493,11 +492,6 @@ class Rocket:
         return self.aerodynamic_surfaces.get_by_type(Fins)
 
     @property
-    def tube_fins(self):
-        """A list containing all tube-fin sets currently added to the rocket."""
-        return self.aerodynamic_surfaces.get_by_type(TubeFins)
-
-    @property
     def tails(self):
         """A list with all the tails currently added to the rocket"""
         return self.aerodynamic_surfaces.get_by_type(Tail)
@@ -667,10 +661,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
-            for aero_surface, position, ref_factor in self.aerodynamic_surfaces:
+            for aero_surface, position in self.aerodynamic_surfaces:
                 if isinstance(aero_surface, GenericSurface):
                     continue
-                # ref_factor corrects lift for different reference areas
+                ref_factor = self._reference_area_factor(aero_surface)
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
                 self.cp_position += (
                     ref_factor
@@ -681,6 +675,11 @@ class Rocket:
             if self.total_lift_coeff_der.get_value(0) != 0:
                 self.cp_position /= self.total_lift_coeff_der
         return self.cp_position
+
+    def _reference_area_factor(self, surface):
+        """Scales a surface's lift coefficient from its own reference area to
+        the rocket's. Computed on demand so it follows later radius changes."""
+        return (surface.rocket_radius / self.radius) ** 2
 
     def evaluate_surfaces_cp_to_cdm(self):
         """Calculates the relative position of each aerodynamic surface center
@@ -693,7 +692,7 @@ class Rocket:
             Dictionary mapping the relative position of each aerodynamic
             surface center of pressure to the rocket's center of mass.
         """
-        for surface, position, _ref_factor in self.aerodynamic_surfaces:
+        for surface, position in self.aerodynamic_surfaces:
             self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
@@ -818,7 +817,7 @@ class Rocket:
         """
         has_generic_surface = any(
             isinstance(aero_surface, GenericSurface)
-            for aero_surface, _position, _ref_factor in self.aerodynamic_surfaces
+            for aero_surface, _position in self.aerodynamic_surfaces
         )
         if has_generic_surface:
             return False
@@ -1193,12 +1192,7 @@ class Rocket:
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
         else:
-            # ref_factor corrects lift for different reference areas
-            if getattr(surface, "rocket_radius", None) is not None:
-                ref_factor = (surface.rocket_radius / self.radius) ** 2
-            else:
-                ref_factor = 1.0
-            self.aerodynamic_surfaces.add(surface, position, ref_factor=ref_factor)
+            self.aerodynamic_surfaces.add(surface, position)
         self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
@@ -1668,67 +1662,6 @@ class Rocket:
         # Add fin set to the list of aerodynamic surfaces
         self.add_surfaces(fin_set, position)
         return fin_set
-
-    def add_tube_fins(
-        self,
-        n,
-        length,
-        inner_radius,
-        outer_radius,
-        position,
-        radius=None,
-        name="Tube Fins",
-    ):
-        """Create and add a symmetric set of tube fins to the rocket.
-
-        This first-order model uses the Ribner ring-airfoil normal-force slope
-        and a fixed quarter-chord center of pressure. It is intended for Mach
-        numbers up to 0.5 and angles of attack up to 20 degrees.
-
-        Parameters
-        ----------
-        n : int
-            Number of tubes. Must be at least 3.
-        length : int, float
-            Tube length along the rocket axis, in meters.
-        inner_radius : int, float
-            Inner radius of each tube, in meters.
-        outer_radius : int, float
-            Outer radius of each tube, in meters. The current model requires
-            neighboring tubes to touch, so this must equal
-            ``radius * sin(pi / n) / (1 - sin(pi / n))``.
-        position : int, float
-            Axial position of the tube leading edges in the user-defined rocket
-            coordinate system.
-        radius : int, float, optional
-            Rocket-body radius where the tubes are mounted. If ``None``, the
-            rocket radius is used.
-        name : str, optional
-            Name of the tube-fin set. Default is ``"Tube Fins"``.
-
-        Returns
-        -------
-        TubeFins
-            Tube-fin set created and added to the rocket.
-
-        Notes
-        -----
-        Only uncanted, mutually tangent tubes are supported. Component drag,
-        roll, side-force, yaw, separated tubes, and overlapping tubes are not
-        included in this model. Tube-fin drag must be represented in the
-        rocket's power-on and power-off drag curves.
-        """
-        radius = self.radius if radius is None else radius
-        tube_fins = TubeFins(
-            n=n,
-            length=length,
-            inner_radius=inner_radius,
-            outer_radius=outer_radius,
-            rocket_radius=radius,
-            name=name,
-        )
-        self.add_surfaces(tube_fins, position)
-        return tube_fins
 
     def add_parachute(
         self,
@@ -2371,14 +2304,10 @@ class Rocket:
                 position=data["motor_position"],
             )
 
-        # The trailing star reads entries of either length: files written
-        # before ref_factor was stored carry two fields and newer ones three.
-        # The factor is not read back in any case, since add_surfaces derives
-        # it from the surface's own radius.
-        for surface, position, *_ in data["aerodynamic_surfaces"]:
+        for surface, position in data["aerodynamic_surfaces"]:
             rocket.add_surfaces(surfaces=surface, positions=position)
 
-        for button, position, *_ in data["rail_buttons"]:
+        for button, position in data["rail_buttons"]:
             rocket.set_rail_buttons(
                 upper_button_position=position[2] + button.buttons_distance,
                 lower_button_position=position[2],
@@ -2389,7 +2318,7 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for sensor, position, *_ in data["sensors"]:
+        for sensor, position in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
         for air_brake in data["air_brakes"]:

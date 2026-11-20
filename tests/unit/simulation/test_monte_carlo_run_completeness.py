@@ -8,6 +8,7 @@ import pytest
 from rocketpy.simulation import monte_carlo as mc_module
 from rocketpy.simulation.monte_carlo import (
     MonteCarlo,
+    _indices_to_run,
     _refuse_logs_missing_a_simulation,
 )
 
@@ -34,7 +35,7 @@ def test_a_run_that_recorded_everything_is_accepted(tmp_path):
     """Logs holding every index the run asked for raise nothing."""
     inputs, outputs = _complete(tmp_path)
 
-    _refuse_logs_missing_a_simulation(inputs, outputs, 3)
+    _refuse_logs_missing_a_simulation(inputs, outputs, range(3))
 
 
 def test_blank_lines_between_rows_are_not_simulations(tmp_path):
@@ -45,7 +46,7 @@ def test_blank_lines_between_rows_are_not_simulations(tmp_path):
     inputs = _a_log(tmp_path, "gappy.inputs.txt", rows)
     outputs = _a_log(tmp_path, "gappy.outputs.txt", rows)
 
-    _refuse_logs_missing_a_simulation(inputs, outputs, 3)
+    _refuse_logs_missing_a_simulation(inputs, outputs, range(3))
 
 
 def test_a_missing_simulation_is_refused(tmp_path):
@@ -54,7 +55,7 @@ def test_a_missing_simulation_is_refused(tmp_path):
     _a_log(tmp_path, "ok.outputs.txt", [_row(0), _row(2)])
 
     with pytest.raises(RuntimeError, match=r"output log.*missing.*being 1"):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 3)
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(3))
 
 
 def test_a_simulation_recorded_twice_is_refused(tmp_path):
@@ -63,7 +64,7 @@ def test_a_simulation_recorded_twice_is_refused(tmp_path):
     _a_log(tmp_path, "ok.inputs.txt", [_row(0), _row(1), _row(1), _row(2)])
 
     with pytest.raises(RuntimeError, match="more than once"):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 3)
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(3))
 
 
 def test_a_row_that_cannot_be_read_is_refused(tmp_path):
@@ -72,18 +73,16 @@ def test_a_row_that_cannot_be_read_is_refused(tmp_path):
     _a_log(tmp_path, "ok.outputs.txt", [_row(0), "{half a row\n", _row(2)])
 
     with pytest.raises(RuntimeError, match="cannot be read"):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 3)
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(3))
 
 
-def test_rows_numbered_past_the_run_are_left_alone(tmp_path):
+def test_checkpointed_rows_past_the_target_are_left_alone(tmp_path):
     """An append below what a checkpoint already holds loses no simulation."""
-    # Refusing these said rows were missing when they were extra, and moved
-    # what append means inside a change about worker failure.
     rows = [_row(index) for index in range(4)]
     inputs = _a_log(tmp_path, "big.inputs.txt", rows)
     outputs = _a_log(tmp_path, "big.outputs.txt", rows)
 
-    _refuse_logs_missing_a_simulation(inputs, outputs, 2)
+    _refuse_logs_missing_a_simulation(inputs, outputs, {0, 1, 2, 3})
 
 
 def test_logs_that_hold_different_simulations_are_refused(tmp_path):
@@ -92,7 +91,7 @@ def test_logs_that_hold_different_simulations_are_refused(tmp_path):
     outputs = _a_log(tmp_path, "a.outputs.txt", [_row(0), _row(2)])
 
     with pytest.raises(RuntimeError):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 2)
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(2))
 
 
 @pytest.mark.parametrize("index", [True, False, 1.0, -1, [], "1", None])
@@ -105,7 +104,7 @@ def test_an_index_that_is_not_a_whole_number_is_refused(tmp_path, index):
     outputs = _a_log(tmp_path, "odd.outputs.txt", rows)
 
     with pytest.raises(RuntimeError, match="cannot be read"):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 2)
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(2))
 
 
 def test_a_stray_index_past_the_rows_is_refused(tmp_path):
@@ -116,8 +115,43 @@ def test_a_stray_index_past_the_rows_is_refused(tmp_path):
     inputs = _a_log(tmp_path, "stray.inputs.txt", rows)
     outputs = _a_log(tmp_path, "stray.outputs.txt", rows)
 
-    with pytest.raises(RuntimeError, match="past the 3 it holds"):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 2)
+    with pytest.raises(RuntimeError, match="numbers a simulation 99"):
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(2))
+
+
+def test_a_stray_is_not_hidden_by_how_long_a_checkpointed_log_is(tmp_path):
+    """With a checkpoint, the rows held do not widen what a run may number."""
+    rows = [_row(0), _row(1), _row(3), _row(10)]
+    inputs = _a_log(tmp_path, "gap.inputs.txt", rows)
+    outputs = _a_log(tmp_path, "gap.outputs.txt", rows)
+
+    with pytest.raises(RuntimeError, match="numbers a simulation 3"):
+        _refuse_logs_missing_a_simulation(inputs, outputs, {0, 10, 1})
+
+
+def test_a_checkpoint_with_gaps_is_accepted_once_the_gaps_are_filled(tmp_path):
+    """The control: the checkpoint plus what the run planned is valid."""
+    rows = [_row(0), _row(10), _row(1)]
+    inputs = _a_log(tmp_path, "fill.inputs.txt", rows)
+    outputs = _a_log(tmp_path, "fill.outputs.txt", rows)
+
+    _refuse_logs_missing_a_simulation(inputs, outputs, {0, 10, 1})
+
+
+@pytest.mark.parametrize(
+    ("completed", "target", "planned"),
+    [
+        (set(), 3, [0, 1, 2]),
+        ({0, 1}, 4, [2, 3]),
+        ({0, 2, 3}, 3, [1]),
+        ({1, 2, 3}, 4, [0]),  # a v1.13 log: serial one-based or parallel holed
+        ({0, 10}, 3, [1, 2]),
+        ({0, 1, 2, 3}, 2, []),
+    ],
+)
+def test_an_append_runs_every_free_index_below_the_target(completed, target, planned):
+    """Holes are filled and the study extended, with no offset to guess."""
+    assert _indices_to_run(completed, target) == planned
 
 
 def test_the_order_a_parallel_run_finishes_in_is_not_a_hole(tmp_path):
@@ -126,7 +160,7 @@ def test_the_order_a_parallel_run_finishes_in_is_not_a_hole(tmp_path):
     inputs = _a_log(tmp_path, "para.inputs.txt", rows)
     outputs = _a_log(tmp_path, "para.outputs.txt", rows)
 
-    _refuse_logs_missing_a_simulation(inputs, outputs, 3)
+    _refuse_logs_missing_a_simulation(inputs, outputs, range(3))
 
 
 def test_logs_that_disagree_on_the_order_are_refused(tmp_path):
@@ -135,7 +169,7 @@ def test_logs_that_disagree_on_the_order_are_refused(tmp_path):
     outputs = _a_log(tmp_path, "order.outputs.txt", [_row(1), _row(0)])
 
     with pytest.raises(RuntimeError, match="same order"):
-        _refuse_logs_missing_a_simulation(inputs, outputs, 2)
+        _refuse_logs_missing_a_simulation(inputs, outputs, range(2))
 
 
 def _leave_cleanly_without_recording(_flight):

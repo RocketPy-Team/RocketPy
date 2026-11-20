@@ -3,10 +3,10 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def filename_valid_coeff_linear_generic_surface(tmpdir_factory):
+def filename_valid_coeff_linear_generic_surface(tmp_path_factory):
     """Creates temporary files used to test if a linear generic surface
     initializes correctly from CSV files"""
-    filename = tmpdir_factory.mktemp("aero_surface_data").join(
+    filename = tmp_path_factory.mktemp("aero_surface_data").joinpath(
         "valid_coefficients_lgs.csv"
     )
     pd.DataFrame(
@@ -33,10 +33,10 @@ def filename_valid_coeff_linear_generic_surface(tmpdir_factory):
         },
     )
 )
-def filename_invalid_coeff_linear_generic_surface(tmpdir_factory, request):
+def filename_invalid_coeff_linear_generic_surface(tmp_path_factory, request):
     """Creates temporary CSV files used to test if a linear generic surface
     raises errors when initialized incorrectly from CSV files"""
-    filename = tmpdir_factory.mktemp("aero_surface_data").join(
+    filename = tmp_path_factory.mktemp("aero_surface_data").joinpath(
         "tmp_invalid_coefficients_lgs.csv"
     )
     pd.DataFrame(request.param).to_csv(filename, index=False)

@@ -112,8 +112,8 @@ RocketPy distinguishes between two levels of fin definition:
   configurations, or when you need fine-grained control.
 
 - **Tube-fin sets** (:class:`rocketpy.TubeFins`): This class defines a
-  symmetric ring of cylindrical fins. Its normal-force derivative follows
-  Ribner's ring-airfoil model rather than the planar-fin Barrowman equations.
+  symmetric ring of cylindrical fins. Each tube is treated as a ring wing,
+  not with the planar-fin Barrowman equations.
 
 .. seealso::
 
@@ -185,23 +185,38 @@ Tube Fins
 ~~~~~~~~~
 
 Tube fins are defined by the number and length of the tubes, their inner and
-outer radii, and the rocket-body radius at the mounting position. Add them to a
-rocket with :meth:`rocketpy.Rocket.add_tube_fins` or create a
-:class:`rocketpy.TubeFins` object and pass it to
-:meth:`rocketpy.Rocket.add_surfaces`.
+outer radii, and the rocket-body radius at the mounting position. Create a
+:class:`rocketpy.TubeFins` object and add it to the rocket with
+:meth:`rocketpy.Rocket.add_surfaces`. The position is that of the leading edge
+of the tubes:
 
-The current implementation is a subsonic normal-force model with these
-limits:
+.. code-block:: python
 
-- The center of pressure is fixed at one quarter of the tube length, measured
-  from the leading edge. Use the model only through Mach 0.5.
-- Lift is capped at an absolute angle of attack of 20 degrees.
+   from rocketpy import TubeFins
+
+   tube_fins = TubeFins(
+       n=6,
+       length=0.12,
+       inner_radius=0.060,
+       outer_radius=0.0635,
+       rocket_radius=0.0635,
+   )
+   rocket.add_surfaces(tube_fins, -1.1)
+
+Things to know about the model:
+
+- Each tube is treated as a ring wing on its own. The normal force and the
+  center of pressure follow wind tunnel measurements of single ring wings made
+  at low speed, and are used unchanged at every Mach number. Do not rely on
+  the model above about Mach 0.8.
+- The normal force grows in proportion to the angle of attack, with no stall.
+- A roll rate is damped by the tubes.
 - At least three uncanted tubes must be distributed evenly around the body.
-  Every tube must touch the body and both adjacent tubes. Separated and
-  overlapping tube layouts are rejected.
-- The model does not calculate tube-fin friction drag, pressure drag, roll,
-  side force, or yaw. Include tube-fin drag in the rocket's power-on and
-  power-off drag curves.
+  Every tube must touch the body and both adjacent tubes, which for six tubes
+  means an outer radius equal to the body radius. Separated and overlapping
+  tube layouts are rejected.
+- The model does not calculate tube-fin friction or pressure drag. Include
+  tube-fin drag in the rocket's power-on and power-off drag curves.
 
 For the equations and geometry constraint, see
 :doc:`Tube Fin Aerodynamics </technical/aerodynamics/tube_fins>`.
@@ -288,7 +303,6 @@ Fins can be added to a rocket using the ``Rocket`` class methods:
    - :meth:`rocketpy.Rocket.add_trapezoidal_fins`
    - :meth:`rocketpy.Rocket.add_elliptical_fins`
    - :meth:`rocketpy.Rocket.add_free_form_fins`
-   - :meth:`rocketpy.Rocket.add_tube_fins`
    - :meth:`rocketpy.Rocket.add_surfaces` (for individual fins)
 
 Tail

@@ -11,6 +11,13 @@ algebraic steps used to get to the final form of the equations of motion used
 in the code. For a more detailed explanation of the equations of motion, please
 refer to :ref:`Equations of Motion v0 <eqsv0>`.
 
+Throughout this page the reference point is the center of dry mass (CDM),
+:math:`\mathbf{r}_{\mathrm{CM}}` is the vector from the CDM to the
+instantaneous center of mass and :math:`\mathbf{r}_{\mathrm{noz}}` is the
+vector from the CDM to the nozzle exit. Note that the ``Rocket`` attributes
+``com_to_cdm_function`` and ``nozzle_to_cdm`` are the opposite vectors, so
+the implementation negates them before use.
+
 Development
 -----------
 
@@ -34,7 +41,7 @@ Development
 
    \begin{aligned}
    m \mathbf{r}_{\mathrm{CM}} \times \dot{\mathbf{v}}+m \mathbf{r}_{\mathrm{CM}} \times\left(\dot{\boldsymbol{\omega}} \times \mathbf{r}_{\mathrm{CM}}\right)+m \mathbf{r}_{\mathrm{CM}} \times \boldsymbol{\omega} \times\left(\boldsymbol{\omega} \times \mathbf{r}_{\mathrm{CM}}\right)+m \mathbf{r}_{\mathrm{CM}} \times \mathbf{r}_{\mathrm{CM}}^{\prime \prime}+2 m \mathbf{r}_{\mathrm{CM}} \times \boldsymbol{\omega} \times \mathbf{r}_{\mathrm{CM}}^{\prime} \\
-   \quad=\mathbf{r}_{\mathrm{CM}} \times \mathbf{T}-2 \dot{m} \mathbf{r}_{\mathrm{CM}} \times \mathbf{r}_{\mathrm{CM}}^{\prime}+2 \mathbf{r}_{\mathrm{CM}} \times \boldsymbol{\omega} \times \dot{m}\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right)+m \mathbf{r}_{\mathrm{CM}}^{\prime} \times\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right) \\
+   \quad=\mathbf{r}_{\mathrm{CM}} \times \mathbf{T}-2 \dot{m} \mathbf{r}_{\mathrm{CM}} \times \mathbf{r}_{\mathrm{CM}}^{\prime}+2 \mathbf{r}_{\mathrm{CM}} \times \boldsymbol{\omega} \times \dot{m}\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right)+\ddot{m} \mathbf{r}_{\mathrm{CM}} \times\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right) \\
    \quad+\mathbf{r}_{\mathrm{CM}} \times \mathbf{A}+\mathbf{r}_{\mathrm{CM}} \times \sum_i \mathbf{N}_i-m \mathbf{r}_{\mathrm{CM}} \times g \hat{\mathbf{a}}_3
    \end{aligned}
 
@@ -81,7 +88,7 @@ Development
 .. math::
 
    \begin{gathered}
-   \dot{\mathbf{v}}=\frac{\left(\mathbf{T}-2 \dot{m} \mathbf{r}_{\mathrm{CM}}^{\prime}+2 \boldsymbol{\omega} \times \dot{m}\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right)+\ddot{m}\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right) \mathbf{A}+\sum_i \mathbf{N}_i\right)}{m}-g \hat{a}_3-\dot{\boldsymbol{\omega}} \times \mathbf{r}_{\mathrm{CM}} \\
+   \dot{\mathbf{v}}=\frac{\left(\mathbf{T}-2 \dot{m} \mathbf{r}_{\mathrm{CM}}^{\prime}+2 \boldsymbol{\omega} \times \dot{m}\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right)+\ddot{m}\left(\mathbf{r}_{\mathrm{noz}}-\mathbf{r}_{\mathrm{CM}}\right)+\mathbf{A}+\sum_i \mathbf{N}_i\right)}{m}-g \hat{a}_3-\dot{\boldsymbol{\omega}} \times \mathbf{r}_{\mathrm{CM}} \\
    -\boldsymbol{\omega} \times\left(\boldsymbol{\omega} \times \mathbf{r}_{\mathrm{CM}}\right)-\mathbf{r}_{\mathrm{CM}}^{\prime \prime}-2 \boldsymbol{\omega} \times \mathbf{r}_{\mathrm{CM}}^{\prime}
    \end{gathered}
 
@@ -137,8 +144,8 @@ Development
  
 1. :math:`m`: mass
 2. :math:`\mathrm{r}_{CM}`: position vector of the center of mass
-3. :math:`\mathbf{T}_{03}`: :math:`2\dot{m} \left( r_{noz} - r_{CM} \right) - 2 \cdot m \cdot r_{CM}`
-4. :math:`\mathbf{T}_{04}`: :math:`T - m \cdot r_{CM}' - 2 \cdot 𝑚̇ \cdot r_{CM} + 𝑚̈ \cdot (r_{noz} - r_{CM})`
+3. :math:`\mathbf{T}_{03}`: :math:`2\dot{m} \left( r_{noz} - r_{CM} \right) - 2 \cdot m \cdot r_{CM}'`
+4. :math:`\mathbf{T}_{04}`: :math:`T - m \cdot r_{CM}'' - 2 \cdot 𝑚̇ \cdot r_{CM}' + 𝑚̈ \cdot (r_{noz} - r_{CM})`
 5. :math:`\mathbf{T}_{05}`: :math:`\dot{m} \cdot S_{noz} - I'`
 6. :math:`g`: gravity acceleration
 7. :math:`\mathbf{I}`: inertia tensor
@@ -148,11 +155,11 @@ Pre-computed terms
 1. :math:`\mathbf{T}_{00}`: :math:`m \cdot \mathrm{r}_{\mathrm{CM}}`
 2. :math:`\mathbf{T}_{01}`: :math:`[m \cdot \mathrm{r}_{\mathrm{CM}}] \times`
 3. :math:`\mathbf{T}_{02}`: :math:`[m \cdot \mathrm{r}_{\mathrm{CM}}] \times \mathbf{T}'`
-4. :math:`\mathbf{T}_{03}`: :math:`2\cdot \dot{m} (\mathrm{r}_{noz} - \mathrm{r}_{\mathrm{CM}}) - 2 \cdot m \mathrm{r}_{\mathrm{CM}}`
-5. :math:`\mathbf{T}_{04}`: :math:`\mathbf{T} - m \cdot \mathrm{r}_{\mathrm{CM}}'' - 2 \cdot \dot{m} \cdot \mathrm{r}_{\mathrm{CM}} + \ddot{m} (\mathrm{r}_{noz} - \mathrm{r}_{\mathrm{CM}})`
+4. :math:`\mathbf{T}_{03}`: :math:`2\cdot \dot{m} (\mathrm{r}_{noz} - \mathrm{r}_{\mathrm{CM}}) - 2 \cdot m \mathrm{r}_{\mathrm{CM}}'`
+5. :math:`\mathbf{T}_{04}`: :math:`\mathbf{T} - m \cdot \mathrm{r}_{\mathrm{CM}}'' - 2 \cdot \dot{m} \cdot \mathrm{r}_{\mathrm{CM}}' + \ddot{m} (\mathrm{r}_{noz} - \mathrm{r}_{\mathrm{CM}})`
 6. :math:`\mathbf{T}_{05}`: :math:`\dot{m} \cdot S_{noz} - \mathbf{I}'`
 7. :math:`\mathbf{T}_{20}`: :math:`-\omega \times (\omega \times \mathbf{T}_{00}) + \omega \times (\mathbf{T}_{03}) + \mathbf{T}_{04} - m \cdot g \hat{a}_3 + \mathbf{A} + \sum \mathbf{N}_{i}`
-8. :math:`\mathbf{T}_{21}`: :math:`-\omega \times (\mathbf{I} \cdot \omega) + (T_{05}) \cdot \omega + \mathrm{r}_{\mathrm{CM}} \times m \cdot g \hat{a}_3 + \sum r_{i} \times \mathbf{N}_{i}`
+8. :math:`\mathbf{T}_{21}`: :math:`-\omega \times (\mathbf{I} \cdot \omega) + (T_{05}) \cdot \omega - \mathrm{r}_{\mathrm{CM}} \times m \cdot g \hat{a}_3 + \sum r_{i} \times \mathbf{N}_{i}`
 
 **Final system of equations**
 
@@ -204,8 +211,8 @@ Pre-computed terms
 
    \mathbf{H}=-m\left[\begin{array}{ccc}
    -r_{\mathrm{CM}_3}^2-r_{\mathrm{CM}_2}^2 & r_{\mathrm{CM}_2} r_{\mathrm{CM}_1} & r_{\mathrm{CM}_3} r_{\mathrm{CM}_1} \\
-   r_{\mathrm{CM}_2} r_{\mathrm{CM}_1} & -r_{\mathrm{CM}_3}^2-r_{\mathrm{CM}_1^2} & r_{\mathrm{CM}_3} r_{\mathrm{CM}_2} \\
-   r_{\mathrm{CM}_3} r_{\mathrm{CM}_1} & r_{\mathrm{CM}_3} r_{\mathrm{CM}_2} & -r_{\mathrm{CM}_2}-r_{\mathrm{CM}_1}^2
+   r_{\mathrm{CM}_2} r_{\mathrm{CM}_1} & -r_{\mathrm{CM}_3}^2-r_{\mathrm{CM}_1}^2 & r_{\mathrm{CM}_3} r_{\mathrm{CM}_2} \\
+   r_{\mathrm{CM}_3} r_{\mathrm{CM}_1} & r_{\mathrm{CM}_3} r_{\mathrm{CM}_2} & -r_{\mathrm{CM}_2}^2-r_{\mathrm{CM}_1}^2
    \end{array}\right]
 
 .. math::

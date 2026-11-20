@@ -30,8 +30,9 @@ class AeroSurface(ABC):
         """Defines a parameter that is often used in aerodynamic
         equations. It is commonly used in the Prandtl factor which
         corrects subsonic force coefficients for compressible flow.
-        This is applied to the lift coefficient of the nose cone,
-        fins and tails/transitions as in [1].
+        This is applied to the lift coefficient of the fins as in [1].
+        The lift coefficients of nose cones and tails/transitions do not
+        depend on the Mach number, so the factor is not applied to them.
 
         Parameters
         ----------

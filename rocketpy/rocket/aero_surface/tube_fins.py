@@ -10,13 +10,18 @@ from .aero_surface import AeroSurface
 
 
 class TubeFins(AeroSurface):
-    """Defines a symmetric set of tube fins for subsonic flight.
+    """Defines a symmetric set of tube fins.
 
-    The aerodynamic model follows the Ribner ring-airfoil normal-force
-    derivative used by OpenRocket. It is limited to uncanted tube fins that
-    touch both the rocket body and their two neighboring tubes. The center of
-    pressure is fixed at the quarter chord, so the model is intended for
-    Mach numbers up to 0.5.
+    Each tube is treated as a ring wing on its own. Its normal force follows
+    Ribner's result [1] that a ring wing lifts twice as much as an elliptic
+    flat wing spanning its diameter, and its center of pressure follows the
+    wind tunnel measurements of NACA TN 4117 [2]. Both were obtained at low
+    speed and are used unchanged at every Mach number. A roll rate is damped
+    by the normal force it produces on each tube.
+
+    The model is limited to uncanted tubes that touch both the rocket body and
+    their two neighboring tubes. The effect the tubes have on each other, and
+    the effect of the rocket body on them, are not accounted for.
 
     Parameters
     ----------
@@ -37,13 +42,31 @@ class TubeFins(AeroSurface):
 
     Notes
     -----
-    This model calculates normal force only. Tube-fin friction and pressure
-    drag must be included in the rocket's power-on and power-off drag curves.
-    Cant, roll, side-force, yaw, separated tubes, and overlapping tubes are not
-    supported.
+    Tube-fin friction and pressure drag are not calculated and must be
+    included in the rocket's power-on and power-off drag curves. The normal
+    force grows in proportion to the angle of attack, with no stall. Cant,
+    separated tubes and overlapping tubes are not supported.
+
+    See Also
+    --------
+    :doc:`Tube Fin Aerodynamics </technical/aerodynamics/tube_fins>`
+
+    References
+    ----------
+    [1] Ribner, H. S. "The Ring Airfoil in Nonaxial Flow." Journal of the
+    Aeronautical Sciences, 14(9), 529-530, 1947.
+    https://doi.org/10.2514/8.1437
+
+    [2] Fletcher, H. S. "Experimental Investigation of Lift, Drag, and
+    Pitching Moment of Five Annular Airfoils." NACA Technical Note 4117, 1957.
+    https://ntrs.nasa.gov/citations/19930084906
     """
 
-    stall_angle = np.radians(20)
+    # Center of pressure of a ring wing measured in NACA TN 4117 (figure 8):
+    # distance from the leading edge, in tube lengths, against the ratio of
+    # inner diameter to length
+    _CP_ASPECT_RATIOS = (1 / 3, 2 / 3, 1.0, 1.5, 3.0)
+    _CP_POSITIONS = (-0.11, 0.14, 0.20, 0.25, 0.35)
 
     def __init__(
         self,
@@ -182,30 +205,42 @@ class TubeFins(AeroSurface):
         return 2 * self.rocket_radius
 
     def evaluate_geometrical_parameters(self):
-        """Evaluate the ring-airfoil aspect ratio and tube spacing."""
+        """Evaluate the ring wing aspect ratio, the tube spacing and the
+        distance from the rocket axis to the center of each tube."""
         self.aspect_ratio = 2 * self.inner_radius / self.length
         self.touching_outer_radius = self._touching_outer_radius(
             self.n, self.rocket_radius
         )
         self.tube_separation = 2 * (self.touching_outer_radius - self.outer_radius)
+        self.tube_center_radius = self.rocket_radius + self.outer_radius
 
     def evaluate_center_of_pressure(self):
-        """Set the subsonic center of pressure at the quarter chord."""
+        """Evaluate the center of pressure from the measurements of NACA
+        TN 4117, interpolated on the ratio of inner diameter to length. Outside
+        the measured range (1/3 to 3) the nearest measured value is used."""
         self.cpx = 0
         self.cpy = 0
-        self.cpz = self.length / 4
+        self.cpz = self.length * float(
+            np.interp(self.aspect_ratio, self._CP_ASPECT_RATIOS, self._CP_POSITIONS)
+        )
         self.cp = (self.cpx, self.cpy, self.cpz)
 
     def evaluate_lift_coefficient(self):
-        """Evaluate the Ribner normal-force derivative for the tube set."""
-        modified_aspect_ratio = 2 * self.aspect_ratio / np.pi
-        single_tube_constant = (
+        """Evaluate the normal force coefficient derivative of the tube set.
+
+        A ring wing lifts twice as much as an elliptic flat wing that spans its
+        diameter and has the tube length as root chord. The lift slope of that
+        wing comes from Helmbold's equation.
+        """
+        elliptic_aspect_ratio = 4 * self.aspect_ratio / np.pi
+        elliptic_area = np.pi * self.inner_radius * self.length / 2
+        elliptic_lift_slope = (
             2
-            * (modified_aspect_ratio / (1 + modified_aspect_ratio))
-            * np.pi**2
-            * self.inner_radius
-            * self.length
+            * np.pi
+            * elliptic_aspect_ratio
+            / (2 + np.sqrt(elliptic_aspect_ratio**2 + 4))
         )
+        single_tube_constant = 2 * elliptic_lift_slope * elliptic_area
         clalpha_value = self.n * single_tube_constant / self.reference_area
 
         self.clalpha = Function(
@@ -214,13 +249,63 @@ class TubeFins(AeroSurface):
             f"Lift coefficient derivative for {self.name}",
         )
         self.cl = Function(
-            lambda alpha, mach: (
-                self.clalpha(mach) * np.clip(alpha, -self.stall_angle, self.stall_angle)
-            ),
+            lambda alpha, mach: clalpha_value * alpha,
             ["Alpha (rad)", "Mach"],
             "Lift coefficient",
         )
         return self.cl
+
+    def compute_forces_and_moments(
+        self,
+        stream_velocity,
+        stream_speed,
+        stream_mach,
+        rho,
+        cp,
+        omega,
+        *args,
+    ):  # pylint: disable=arguments-differ
+        """Computes the forces and moments acting on the tube fins.
+
+        Parameters
+        ----------
+        stream_velocity : tuple of float
+            The velocity of the airflow relative to the surface.
+        stream_speed : float
+            The magnitude of the airflow speed.
+        stream_mach : float
+            The Mach number of the airflow.
+        rho : float
+            Air density.
+        cp : Vector
+            Center of pressure coordinates in the body frame.
+        omega : tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
+
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
+        """
+        R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
+            stream_velocity,
+            stream_speed,
+            stream_mach,
+            rho,
+            cp,
+        )
+        # A roll rate moves each tube sideways at omega[2] * tube_center_radius.
+        # The tube sees this as an angle of attack, and the normal force it
+        # produces acts against the roll.
+        M3 = -(
+            (1 / 2 * rho * stream_speed)
+            * self.reference_area
+            * self.clalpha.get_value_opt(stream_mach)
+            * self.tube_center_radius**2
+            * omega[2]
+        )
+        return R1, R2, R3, M1, M2, M3
 
     def evaluate_shape(self):
         """Store a side-view outline for plotting the tube-fin envelope."""
@@ -259,12 +344,9 @@ class TubeFins(AeroSurface):
             clalpha = self.clalpha
             cl = self.cl
             if kwargs.get("discretize", False):
-                clalpha = clalpha.set_discrete(0, 0.5, 10, mutate_self=False)
+                clalpha = clalpha.set_discrete(0, 4, 50, mutate_self=False)
                 cl = cl.set_discrete(
-                    (-self.stall_angle, 0),
-                    (self.stall_angle, 0.5),
-                    (10, 10),
-                    mutate_self=False,
+                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
                 )
             data.update(
                 {

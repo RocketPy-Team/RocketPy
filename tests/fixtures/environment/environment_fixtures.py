@@ -116,7 +116,7 @@ def env_analysis():
         end_hour=18,
         surface_data_file="./data/weather/EuroC_single_level_reanalysis_2002_2021.nc",
         pressure_level_data_file="./data/weather/EuroC_pressure_levels_reanalysis_2001-2021.nc",
-        timezone=None,
+        timezone="Europe/Lisbon",  # what timezonefinder gives, without needing it
         unit_system="metric",
         forecast_date=None,
         forecast_args=None,

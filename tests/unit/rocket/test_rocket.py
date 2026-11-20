@@ -1,3 +1,4 @@
+import copy
 import warnings
 from itertools import product
 from unittest.mock import patch
@@ -994,9 +995,7 @@ def test_add_trapezoidal_fins_two_fins_warns_but_succeeds(calisto):
         fins = calisto.add_trapezoidal_fins(
             2, span=0.1, root_chord=0.12, tip_chord=0.04, position=-1.0
         )
-    assert fins in [
-        surface for surface, _position, _ref_factor in calisto.aerodynamic_surfaces
-    ]
+    assert fins in [surface for surface, _ in calisto.aerodynamic_surfaces]
 
 
 def test_unstable_rocket_warning_raised(calisto):
@@ -1127,3 +1126,35 @@ def test_evaluate_reduced_mass_with_motor(calisto):
     for t in [0.0, 1.0, 2.0, 3.0]:
         expected = prop_mass(t) * dry_mass / (prop_mass(t) + dry_mass)
         assert reduced_mass(t) == pytest.approx(expected)
+
+
+def test_static_margin_follows_surface_radius_changed_after_adding(
+    calisto_motorless,
+):
+    """A surface's reference-area factor must reflect its current
+    rocket_radius, not the one it had when it was added."""
+
+    def add_aero(rocket, nose_radius):
+        nose = NoseCone(
+            length=0.55829,
+            kind="vonkarman",
+            base_radius=nose_radius,
+            rocket_radius=nose_radius,
+        )
+        rocket.add_surfaces(nose, 1.278)
+        rocket.add_trapezoidal_fins(
+            4, root_chord=0.120, tip_chord=0.060, span=0.110, position=-1.04956
+        )
+        return nose
+
+    fresh = copy.deepcopy(calisto_motorless)
+    add_aero(fresh, 0.0635)
+
+    changed = calisto_motorless
+    nose = add_aero(changed, 0.03)
+    nose.base_radius = 0.0635
+    nose.rocket_radius = 0.0635
+    changed.evaluate_center_of_pressure()
+    changed.evaluate_static_margin()
+
+    assert changed.static_margin(0) == pytest.approx(fresh.static_margin(0))

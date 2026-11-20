@@ -240,6 +240,9 @@ class StochasticModel:
         seed : int, optional
             Seed for the random number generator.
         """
+        # What the caller chose. A parent that derives this seed for a child, or
+        # a Monte Carlo study, clears it again: a derived seed is not a choice.
+        self._configured_seed = seed
         self.__random_number_generator = np.random.default_rng(seed)
         # A stream of its own, derived from the same seed, for picking between
         # the candidate values of a list input. Kept apart from the one above so
@@ -713,11 +716,15 @@ class StochasticModel:
             # The group holds the shared state, so reset it directly; a member
             # may reset differently, or keep state of its own.
             resetter = group if hasattr(group, "reset_seed") else sampler
+            sampler_seed = _sampler_seed(seed, names)
             try:
-                resetter.reset_seed(_sampler_seed(seed, names))
+                try:
+                    resetter.reset_seed(sampler_seed)
+                except ValueError:
+                    # RandomState refuses more than 32 bits; Generator takes
+                    # all 128, so two studies' streams do not collide.
+                    resetter.reset_seed(sampler_seed & 0xFFFFFFFF)
             except Exception as error:
-                # Broad: the seed is 128 bits, which legacy RandomState refuses
-                # with a ValueError that does not name the sampler.
                 raise RuntimeError(
                     f"An error occurred in the 'reset_seed' method of the "
                     f"CustomSampler for {', '.join(names)}"
