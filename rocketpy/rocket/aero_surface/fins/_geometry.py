@@ -40,12 +40,12 @@ class _TrapezoidalGeometry(_FinGeometry):
         if sweep_length is not None and sweep_angle is not None:
             raise ValueError("Cannot use sweep_length and sweep_angle together")
 
-        if sweep_angle is not None:
-            sweep_length = np.tan(np.radians(sweep_angle)) * owner.span
-        elif sweep_length is None:
+        if sweep_angle is None and sweep_length is None:
             sweep_length = owner.root_chord - tip_chord
 
         self._tip_chord = tip_chord
+        # The sweep is kept as it was given, an angle or a length; the other is
+        # worked out from it
         self._sweep_length = sweep_length
         self._sweep_angle = sweep_angle
 
@@ -59,11 +59,14 @@ class _TrapezoidalGeometry(_FinGeometry):
 
     @property
     def sweep_length(self):
+        # A sweep given as an angle follows the span
+        if self._sweep_angle is not None:
+            return np.tan(np.radians(self._sweep_angle)) * self.owner.span
         return self._sweep_length
 
     @sweep_length.setter
     def sweep_length(self, value):
-        self._sweep_length = value
+        self._sweep_length, self._sweep_angle = value, None
 
     @property
     def sweep_angle(self):
@@ -71,8 +74,7 @@ class _TrapezoidalGeometry(_FinGeometry):
 
     @sweep_angle.setter
     def sweep_angle(self, value):
-        self._sweep_angle = value
-        self._sweep_length = np.tan(np.radians(value)) * self.owner.span
+        self._sweep_angle, self._sweep_length = value, None
 
     def evaluate_geometrical_parameters(self):
         """Calculate trapezoidal fin geometric parameters."""

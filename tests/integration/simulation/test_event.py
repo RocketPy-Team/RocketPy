@@ -4,7 +4,14 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from rocketpy import Environment, Event, Flight, Rocket, SolidMotor
+from rocketpy import (
+    Environment,
+    Event,
+    Flight,
+    GenericSurface,
+    Rocket,
+    SolidMotor,
+)
 from rocketpy.simulation.events import Commands, exact_time_solvers
 from rocketpy.simulation.events.event_builders import (
     apogee_callback,
@@ -672,3 +679,68 @@ def test_a_phase_wider_than_the_canonical_state_flies():
     # while the phases before it have no such state
     with pytest.raises(KeyError, match="not defined in this flight phase"):
         solution.value_at(0, "heading")
+
+
+def test_an_event_switches_a_surface_off_and_another_on_mid_flight(
+    calisto_robust, example_plain_env
+):
+    """A surface switched by an event produces force only while switched on,
+    during the flight and in the outputs worked out after it."""
+    rocket = calisto_robust
+    area, length = rocket.area, 2 * rocket.radius
+    fairing = GenericSurface(area, length, {"cA": 0.3}, name="Fairing")
+    brake = GenericSurface(area, length, {"cA": 5.0}, name="Brake", active=False)
+    rocket.add_surfaces([fairing, brake], positions=[0.0, 0.0])
+    switch_time = 8.0
+
+    def switch(context):
+        context.event.commands.deactivate_surface(fairing)
+        context.event.commands.activate_surface(brake)
+
+    switch_event = Event(
+        callback=switch,
+        trigger=switch_time,
+        sampling_rate=100,
+        trigger_only_once=True,
+        name="Switch surfaces",
+    )
+
+    def fly(events):
+        return Flight(
+            rocket=rocket,
+            environment=example_plain_env,
+            rail_length=5.2,
+            inclination=85,
+            heading=0,
+            terminate_on_apogee=True,
+            custom_events=events,
+        )
+
+    plain = fly([])
+    switched = fly([switch_event])
+
+    # the event fired once, at its first sampling time past the switch time
+    assert len(switch_event.triggered_times) == 1
+    fired = switch_event.triggered_times[0]
+    assert fired == pytest.approx(switch_time, abs=0.011)
+
+    # which surfaces produce force before and after it
+    assert fairing.is_active(fired - 0.5, switched) is True
+    assert brake.is_active(fired - 0.5, switched) is False
+    assert fairing.is_active(fired + 0.5, switched) is False
+    assert brake.is_active(fired + 0.5, switched) is True
+
+    # the surfaces themselves are untouched, so the plain flight flown first
+    # and any later one start from their own settings
+    assert fairing.active is True
+    assert brake.active is False
+    assert brake.is_active(fired + 0.5, plain) is False
+
+    # the brake has far more drag than the fairing, so the rocket slows down
+    # faster once it is on: same flight up to the switch, lower apogee after
+    assert switched.z(fired - 0.5) == pytest.approx(plain.z(fired - 0.5), rel=1e-4)
+    assert switched.apogee < plain.apogee - 10.0
+    # and the outputs worked out after the flight show the extra drag only
+    # from the switch on (az is more negative with the brake on)
+    assert switched.az(fired - 0.5) == pytest.approx(plain.az(fired - 0.5), rel=1e-2)
+    assert switched.az(fired + 0.5) < plain.az(fired + 0.5) - 1.0

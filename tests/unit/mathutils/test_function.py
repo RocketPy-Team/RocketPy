@@ -548,12 +548,21 @@ def test_multivariate_dataset(a, b):
     ]
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
-    # Assert interpolation and extrapolation methods
-    assert func.get_interpolation_method() == "shepard"
+    # The points cover every combination of x and y: they are read as a grid
+    assert func.is_regular_grid
+    assert func.get_interpolation_method() == "linear"
     assert func.get_extrapolation_method() == "natural"
 
     # Assert values
     assert np.isclose(func(a, b), a + b, atol=1e-6)
+
+    # Asking for an interpolation written for scattered points keeps them so
+    scattered = Function(
+        source=source, inputs=["x", "y"], outputs=["z"], interpolation="shepard"
+    )
+    assert not scattered.is_regular_grid
+    assert scattered.get_interpolation_method() == "shepard"
+    assert np.isclose(scattered(a, b), a + b, atol=1e-6)
 
 
 @pytest.mark.parametrize(
@@ -1308,6 +1317,12 @@ def test_short_time_fft(
             assert np.all(frequencies <= sampling_frequency / 2)
 
 
+def _grid_points(axes, data):
+    """Write data on a grid as a table of points, one row per node."""
+    mesh = np.meshgrid(*axes, indexing="ij")
+    return np.column_stack([m.ravel() for m in mesh] + [np.ravel(data)])
+
+
 @pytest.fixture
 def bilinear_grid_2d():
     """Return a 2-D regular_grid Function for f(x, y) = 2x + 3y.
@@ -1325,10 +1340,7 @@ def bilinear_grid_2d():
     X, Y = np.meshgrid(x_axis, y_axis, indexing="ij")
     data = 2.0 * X + 3.0 * Y
     return Function(
-        ([x_axis, y_axis], data),
-        inputs=["x", "y"],
-        outputs=["z"],
-        interpolation="regular_grid",
+        _grid_points([x_axis, y_axis], data), inputs=["x", "y"], outputs=["z"]
     )
 
 
@@ -1339,7 +1351,8 @@ def test_regular_grid_constructor_sets_metadata(bilinear_grid_2d):
     are all stored correctly after construction via the ``(axes, grid_data)``
     tuple form.
     """
-    assert bilinear_grid_2d.get_interpolation_method() == "regular_grid"
+    assert bilinear_grid_2d.is_regular_grid
+    assert bilinear_grid_2d.get_interpolation_method() == "linear"
     assert bilinear_grid_2d.get_extrapolation_method() == "natural"
     assert bilinear_grid_2d.get_domain_dim() == 2
     assert bilinear_grid_2d.get_inputs() == ["x", "y"]
@@ -1413,11 +1426,11 @@ def test_3d_regular_grid_interpolation(x, y, z, expected):
     X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
     data = X + 2.0 * Y + 3.0 * Z
     func = Function(
-        ([x_axis, y_axis, z_axis], data),
+        _grid_points([x_axis, y_axis, z_axis], data),
         inputs=["x", "y", "z"],
         outputs=["w"],
-        interpolation="regular_grid",
     )
+    assert func.is_regular_grid
 
     result = func(x, y, z)
     result_opt = func.get_value_opt(x, y, z)
@@ -1461,12 +1474,12 @@ def test_regular_grid_extrapolation(extrapolation, x_out, y_out, expected):
     X, Y = np.meshgrid(x_axis, y_axis, indexing="ij")
     data = 2.0 * X + 3.0 * Y
     func = Function(
-        ([x_axis, y_axis], data),
+        _grid_points([x_axis, y_axis], data),
         inputs=["x", "y"],
         outputs=["z"],
-        interpolation="regular_grid",
         extrapolation=extrapolation,
     )
+    assert func.is_regular_grid
 
     result = func(x_out, y_out)
 
@@ -1505,3 +1518,56 @@ def test_regular_grid_invalid_source_raises(bad_source, match):
             outputs=["z"],
             interpolation="regular_grid",
         )
+
+
+def test_regular_grid_sorts_unsorted_axes():
+    """A descending (or shuffled) axis is sorted, with the grid data reordered
+    to match, so the resulting Function matches the equivalent ascending grid."""
+    x_axis = np.array([0.0, 1.0, 2.0])
+    y_axis = np.array([0.0, 1.0, 2.0])
+    x_grid, y_grid = np.meshgrid(x_axis, y_axis, indexing="ij")
+    data = 2.0 * x_grid + 3.0 * y_grid
+
+    # The (axes, values) form is deprecated but must keep working
+    with pytest.warns(DeprecationWarning, match="regular_grid"):
+        ascending = Function(
+            ([x_axis, y_axis], data),
+            interpolation="regular_grid",
+            extrapolation="natural",
+        )
+        # First axis descending, data reversed along that axis to describe the
+        # SAME surface. It must be read in ascending order with the same values.
+        descending = Function(
+            ([x_axis[::-1], y_axis], data[::-1, :]),
+            interpolation="regular_grid",
+            extrapolation="natural",
+        )
+    assert np.all(np.diff(descending._grid.axes[0]) > 0)
+    assert np.isclose(descending(1.5, 0.5), ascending(1.5, 0.5))
+
+
+def test_regular_grid_repeated_axis_coordinate_raises():
+    """An axis with duplicate coordinates cannot form a grid and raises a clear
+    error instead of a cryptic SciPy failure."""
+    with pytest.raises(ValueError, match="repeated coordinates"):
+        Function(
+            ([np.array([0.0, 1.0, 1.0]), np.array([0.0, 1.0, 2.0])], np.ones((3, 3))),
+            interpolation="regular_grid",
+        )
+
+
+def test_regular_grid_caches_domain_bounds(bilinear_grid_2d):
+    """The N-D hot path caches per-dimension domain bounds at source time."""
+    assert np.allclose(bilinear_grid_2d._domain_min, [0.0, 0.0])
+    assert np.allclose(bilinear_grid_2d._domain_max, [2.0, 2.0])
+
+
+def test_regular_grid_dict_round_trip(bilinear_grid_2d):
+    """A regular_grid Function round-trips through to_dict/from_dict, rebuilding
+    from the (axes, grid_data) structure rather than the flat scatter source."""
+    restored = Function.from_dict(bilinear_grid_2d.to_dict())
+
+    assert restored.is_regular_grid
+    assert restored.get_domain_dim() == 2
+    for x, y in [(0.5, 1.5), (1.25, 0.75), (2.0, 2.0)]:
+        assert np.isclose(restored(x, y), bilinear_grid_2d(x, y))

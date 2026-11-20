@@ -5,3 +5,6 @@ Function Classes
 
 .. autoclass:: rocketpy.Function
    :members:
+
+.. autoclass:: rocketpy.PiecewiseFunction
+   :members:

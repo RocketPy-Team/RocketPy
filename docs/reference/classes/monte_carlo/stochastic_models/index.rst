@@ -20,6 +20,7 @@ input parameters, enabling robust Monte Carlo simulations.
    stochastic_trapezoidal_fins
    stochastic_elliptical_fins
    stochastic_tail
+   stochastic_air_brakes
    stochastic_rail_buttons
    stochastic_rocket
    stochastic_parachute

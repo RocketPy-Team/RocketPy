@@ -21,6 +21,7 @@ class Commands:
         self.new_flight_phase_lag = 0
         self._terminate = False
         self.terminate_phase_name = None
+        self.surface_switches = []
 
     def disable(self):
         self._disabled = True
@@ -105,19 +106,72 @@ class Commands:
     def terminate_flight(self):
         self._terminate = True
 
+    def activate_surface(self, surface):
+        """Make an aerodynamic surface produce force from this moment on.
+
+        Use it for a surface that only exists from some point of the flight.
+        Build that surface with ``active=False`` so that it starts the flight
+        switched off, add it to the rocket as usual, and call this from the
+        callback of an event::
+
+            def switch_on(context):
+                context.event.commands.activate_surface(my_surface)
+
+        A surface with ``active_during="power_on"`` or ``"power_off"`` still
+        only produces force during that motor phase once it is switched on.
+
+        Parameters
+        ----------
+        surface : GenericSurface
+            The surface to switch on. It must already be one of the rocket's
+            aerodynamic surfaces.
+
+        See Also
+        --------
+        deactivate_surface : Switch a surface off.
+        """
+        self.surface_switches.append((surface, True))
+
+    def deactivate_surface(self, surface):
+        """Make an aerodynamic surface stop producing force from this moment on.
+
+        Use it for a surface that stops existing at some point of the flight.
+        Call it from the callback of an event::
+
+            def switch_off(context):
+                context.event.commands.deactivate_surface(my_surface)
+
+        The change lasts for the rest of this flight only. The surface itself
+        is not modified, so another flight of the same rocket starts with it
+        switched on again.
+
+        Parameters
+        ----------
+        surface : GenericSurface
+            The surface to switch off. It must be one of the rocket's
+            aerodynamic surfaces.
+
+        See Also
+        --------
+        activate_surface : Switch a surface on.
+        """
+        self.surface_switches.append((surface, False))
+
     @property
     def changes_trajectory(self):
         """Whether these commands change what happens at/after the trigger.
 
         Returns ``True`` when the queued commands start a new flight phase,
-        switch the equations of motion, or terminate the flight. In all three
-        cases the trajectory past the trigger is no longer valid, so during time
-        overshoot the simulation must be rolled back to the exact trigger
-        crossing before the commands are applied. Pure scheduling changes
-        (enabling/disabling or adding events) do not require a rollback.
+        switch the equations of motion, terminate the flight, or switch an
+        aerodynamic surface on or off. In all these cases the trajectory past
+        the trigger is no longer valid, so during time overshoot the simulation
+        must be rolled back to the exact trigger crossing before the commands
+        are applied. Pure scheduling changes (enabling/disabling or adding
+        events) do not require a rollback.
         """
         return (
             self.new_flight_phase is not None
             or self.new_dynamics is not None
             or self._terminate
+            or bool(self.surface_switches)
         )
