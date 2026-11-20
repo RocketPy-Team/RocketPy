@@ -20,6 +20,7 @@ from rocketpy.simulation.events.event_builders import (
     out_of_rail_exact_time_function,
     out_of_rail_trigger,
 )
+from rocketpy.simulation.events.event_execution import apply_exact_time_result
 from rocketpy.simulation.events.exact_time_solvers import (
     solve_brentq,
     solve_cubic_hermite,
@@ -723,3 +724,58 @@ def test_the_custom_events_list_given_is_not_changed_by_the_flight():
     assert len(first.custom_events) == 2
     assert len(second.custom_events) == 2
     assert first.custom_events[1] is not second.custom_events[1]
+
+
+def _flight_on_the_rail(*rows):
+    """A stand-in flight holding the given rows, for the rail exit callback."""
+    return SimpleNamespace(
+        solution=_canonical_solution(*rows),
+        u_dot_generalized=lambda *_args, **_kwargs: None,
+    )
+
+
+@pytest.mark.parametrize(
+    "exit_time, rows_left",
+    [
+        (1.5, 3),  # inside the step: the exact row replaces the step's end
+        (1.0, 2),  # right where the step began: the step's end is dropped
+    ],
+)
+def test_out_of_rail_index_is_the_row_of_the_exact_exit_time(exit_time, rows_left):
+    """``out_of_rail_time_index`` is the row stored at the rail exit time, also
+    when the exit is found at the start of the step and no row is added."""
+    out_of_rail_event = build_core_events()[0]
+    flight = _flight_on_the_rail(
+        _sample_state(0.0, 1.0), _sample_state(1.0, 1.0), _sample_state(2.0, 1.0)
+    )
+    exit_state = _sample_state(exit_time, 1.0)[1:]
+
+    out_of_rail_callback(
+        {
+            "flight": flight,
+            "event": out_of_rail_event,
+            "time": exit_time,
+            "canonical_state": exit_state,
+        }
+    )
+    commands = out_of_rail_event.commands
+    commands.exact_time = exit_time
+    commands.exact_state = exit_state
+    apply_exact_time_result(flight, commands)
+
+    assert len(flight.solution) == rows_left
+    assert flight.out_of_rail_time_index == rows_left - 1
+    assert flight.solution.raw_row(flight.out_of_rail_time_index)[0] == exit_time
+
+
+def test_exact_time_result_leaves_a_single_row_alone():
+    """With one stored row there is no step to place an exact row in."""
+    flight = _flight_on_the_rail(_sample_state(0.0, 1.0))
+    commands = Commands()
+    commands.exact_time = 0.5
+    commands.exact_state = _sample_state(0.5, 1.0)[1:]
+
+    apply_exact_time_result(flight, commands)
+
+    assert len(flight.solution) == 1
+    assert flight.solution.raw_row(0)[0] == 0.0
