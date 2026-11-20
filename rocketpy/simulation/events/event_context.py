@@ -69,13 +69,18 @@ class EventContext(dict):
                 return event._previous_time
             if event._previous_state is None:
                 return None
-            # The phase's own states are named after the phase they were
-            # taken in, which may no longer be the current one.
-            return _State(
-                event._previous_state,
-                event._previous_phase_names,
-                event._previous_raw_state,
-            )
+            # One view per check: kept on the event while its previous check
+            # is the same one, so reading it again gives the same object.
+            source = event._previous_state
+            kept = event._previous_view
+            if kept is None or kept[0] is not source:
+                # The phase's own states are named after the phase they were
+                # taken in, which may no longer be the current one.
+                view = _State(
+                    source, event._previous_phase_names, event._previous_raw_state
+                )
+                kept = event._previous_view = (source, view)
+            return kept[1]
         if key == "state":
             self["state"] = _State(
                 self["canonical_state"], self["phase_names"], self["raw_state"]

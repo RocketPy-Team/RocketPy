@@ -1171,12 +1171,11 @@ class Solution:
         Returns
         -------
         dict
-            A format marker, the flight's rows, and one entry per phase as
-            produced by :meth:`_PhaseSolution.to_dict`. Pass it to
-            :meth:`from_dict` to rebuild the solution.
+            The flight's rows and one entry per phase as produced by
+            :meth:`_PhaseSolution.to_dict`. Pass it to :meth:`from_dict` to
+            rebuild the solution.
         """
         return {
-            "format": "rocketpy/solution",
             "phases": [phase.to_dict() for phase in self.phases],
             "rows": self._rows,
         }

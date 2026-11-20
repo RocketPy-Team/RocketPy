@@ -84,5 +84,4 @@ def calisto_drogue_chute(calisto_drogue_parachute_trigger):
         trigger=calisto_drogue_parachute_trigger,
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
     )

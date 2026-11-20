@@ -1,10 +1,14 @@
 """Unit tests for the Parachute class, focusing on the radius and
 drag_coefficient parameters introduced in PR #889."""
 
+import warnings
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
-from rocketpy import Parachute
+from rocketpy import Event, Parachute, Rocket
+from rocketpy.simulation.events.event_context import EventContext
 
 
 def _make_parachute(**kwargs):
@@ -153,3 +157,239 @@ def test_a_legacy_positional_trigger_still_goes_through_the_adapter():
             lag=0,
         )
     assert parachute.event.trigger is not parachute.triggerfunc
+
+
+def test_noise_warns_visibly_and_records_no_signal():
+    """A noise different from zero is deprecated, and the user is told so with
+    a warning that Python shows by default. The signals are not recorded."""
+    with pytest.warns(FutureWarning, match="deprecated"):
+        parachute = _make_parachute(noise=(0, 8.3, 0.5))
+
+    assert parachute.noise == (0, 8.3, 0.5)
+    assert parachute.noise_bias == 0
+    assert parachute.noise_deviation == pytest.approx(8.3)
+    assert parachute.noise_signal == []
+    assert parachute.noisy_pressure_signal == []
+    assert parachute.clean_pressure_signal == []
+    assert not hasattr(parachute, "noise_function")
+
+
+def test_noise_warning_is_raised_through_rocket_add_parachute():
+    """The warning must also reach users who add the parachute through the
+    rocket, which is where a DeprecationWarning used to be hidden."""
+    rocket = Rocket(
+        radius=0.0635,
+        mass=14.4,
+        inertia=(6.3, 6.3, 0.03),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0,
+    )
+    with pytest.warns(FutureWarning, match="deprecated"):
+        rocket.add_parachute(
+            name="main",
+            cd_s=10.0,
+            trigger="apogee",
+            sampling_rate=100,
+            noise=(0, 8.3, 0.5),
+        )
+
+
+def test_default_noise_does_not_warn():
+    """The default noise of zero is the supported case and stays silent."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _make_parachute()
+        _make_parachute(noise=(0, 0, 0))
+
+
+def test_parachute_does_not_draw_from_the_global_random_generator():
+    """Creating or resetting a parachute must not move numpy's global
+    generator, with or without a noise given."""
+    np.random.seed(1234)
+    _, keys_before, position_before, *_ = np.random.get_state()
+
+    parachute = _make_parachute()
+    parachute._reset_signals()
+    with pytest.warns(FutureWarning):
+        noisy = _make_parachute(noise=(0, 8.3, 0.5))
+    noisy._reset_signals()
+
+    _, keys_after, position_after, *_ = np.random.get_state()
+    assert position_after == position_before
+    assert np.array_equal(keys_after, keys_before)
+
+
+def _noise_context(pressure=90000.0, vz=-10.0):
+    """A check with the rocket 500 m above the ground, in an atmosphere where
+    the height above sea level is ``100000 - pressure``, in m."""
+    state = [0.0] * 5 + [vz] + [0.0] * 7
+    return EventContext(
+        time=1.0,
+        canonical_state=state,
+        raw_state=state,
+        phase_names=(),
+        height_agl=500.0,
+        pressure=pressure,
+        sensors=[],
+        environment=SimpleNamespace(
+            barometric_height=SimpleNamespace(get_value_opt=lambda p: 100000.0 - p),
+            elevation=9500.0,
+        ),
+    )
+
+
+def test_noise_reaches_a_legacy_trigger_as_pressure_and_height():
+    """``p`` carries the noise and ``h`` is the height that pressure gives."""
+    seen = []
+
+    def trigger(p, h, y):  # pylint: disable=unused-argument
+        seen.append((p, h))
+        return False
+
+    with pytest.warns((FutureWarning, DeprecationWarning)):
+        parachute = _make_parachute(trigger=trigger, noise=(50.0, 8.3, 0.5))
+
+    for _ in range(200):
+        parachute.event(_noise_context(), trigger_only=True)
+
+    pressures = np.array([p for p, _ in seen])
+    heights = np.array([h for _, h in seen])
+    assert np.allclose(heights, 100000.0 - pressures - 9500.0)
+    assert len(set(pressures)) == 200
+    # The noise has a mean and a spread: neither the clean value nor a constant
+    assert 90000.0 + 20.0 < pressures.mean() < 90000.0 + 120.0
+    assert pressures.std() > 2.0
+
+
+def test_no_noise_gives_a_legacy_trigger_the_values_of_the_context():
+    seen = []
+
+    def trigger(p, h, y):  # pylint: disable=unused-argument
+        seen.append((p, h))
+        return False
+
+    with pytest.warns(DeprecationWarning):
+        parachute = _make_parachute(trigger=trigger)
+
+    parachute.event(_noise_context(), trigger_only=True)
+
+    assert seen == [(90000.0, 500.0)]
+
+
+def test_noise_reaches_a_trigger_given_as_a_height():
+    """The height compared is the one the noisy pressure gives: with a mean
+    noise of 200 Pa the rocket reads 300 m, not the 500 m it is at."""
+    with pytest.warns(FutureWarning):
+        noisy = _make_parachute(trigger=400.0, noise=(200.0, 0.0, 0.0))
+    clean = _make_parachute(trigger=400.0)
+
+    assert noisy.event(_noise_context(), trigger_only=True) is True
+    assert clean.event(_noise_context(), trigger_only=True) is False
+    # Still only on the way down
+    assert noisy.event(_noise_context(vz=10.0), trigger_only=True) is False
+
+
+def test_noise_does_not_reach_a_trigger_reading_the_context():
+    seen = []
+
+    def trigger(context):
+        seen.append((context.pressure, context.height_agl))
+        return False
+
+    with pytest.warns(FutureWarning):
+        parachute = _make_parachute(trigger=trigger, noise=(200.0, 8.3, 0.5))
+
+    parachute.event(_noise_context(), trigger_only=True)
+
+    assert seen == [(90000.0, 500.0)]
+
+
+def test_noise_is_saved_with_the_parachute_but_no_signal_is():
+    """The noise given is kept through saving and loading. The signals are
+    not recorded, so they are not saved."""
+    with pytest.warns(FutureWarning):
+        data = _make_parachute(noise=(0, 8.3, 0.5)).to_dict(include_outputs=True)
+
+    assert data["noise"] == (0, 8.3, 0.5)
+    with pytest.warns(FutureWarning):
+        assert Parachute.from_dict(data).noise == (0, 8.3, 0.5)
+    for key in (
+        "noise_signal",
+        "noise_function",
+        "noisy_pressure_signal",
+        "clean_pressure_signal",
+    ):
+        assert key not in data
+
+
+def _check_apogee_trigger(parachute, time, vz, height=100.0):
+    """Check the parachute's event once, as the flight does, with the rocket
+    ``height`` above the ground and moving vertically at ``vz``. Returns
+    whether the trigger fired."""
+    state = [0.0] * 5 + [vz] + [0.0] * 7
+    context = EventContext(
+        time=time,
+        canonical_state=state,
+        raw_state=state,
+        phase_names=(),
+        height_agl=height,
+    )
+    return parachute.event(context, trigger_only=True)
+
+
+def test_the_apogee_trigger_holds_once_the_climb_turns_into_a_descent():
+    """The trigger holds from the apogee on. The parachute deploys once
+    because its event fires only once."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    fired = [
+        _check_apogee_trigger(parachute, time, vz)
+        for time, vz in ((1.0, 5.0), (2.0, 1.0), (3.0, -1.0), (4.0, -5.0))
+    ]
+
+    assert fired == [False, False, True, True]
+    assert parachute.event.trigger_only_once is True
+
+
+def test_the_apogee_trigger_fires_at_once_for_a_rocket_already_descending():
+    """A flight that starts past its apogee has no climb to compare against,
+    so the first check of a descending rocket deploys the parachute."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert _check_apogee_trigger(parachute, 0.0, -3.0) is True
+
+
+def test_the_apogee_trigger_fires_at_once_for_a_rocket_dropped_from_rest():
+    """Released at rest above the ground, as from a helicopter or a balloon,
+    the rocket is at its apogee at the first check."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert _check_apogee_trigger(parachute, 0.0, 0.0, height=1000.0) is True
+
+
+def test_the_apogee_trigger_does_not_fire_for_a_rocket_at_rest_on_the_pad():
+    """On the pad the rocket is not moving and not above the ground, and
+    nothing deploys."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert _check_apogee_trigger(parachute, 0.0, 0.0, height=0.0) is False
+    assert _check_apogee_trigger(parachute, 0.1, 2.0, height=0.1) is False
+
+
+def test_the_apogee_trigger_is_the_one_an_event_uses():
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert (
+        parachute.triggerfunc is Event(lambda context: None, trigger="apogee").trigger
+    )

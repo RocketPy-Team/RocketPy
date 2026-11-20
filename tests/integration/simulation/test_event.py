@@ -27,6 +27,7 @@ from rocketpy.simulation.events.event_builders import (
     out_of_rail_exact_time_function,
     out_of_rail_trigger,
 )
+from rocketpy.simulation.events.event_execution import apply_exact_time_result
 from rocketpy.simulation.events.exact_time_solvers import (
     solve_brentq,
     solve_cubic_hermite,
@@ -744,3 +745,141 @@ def test_an_event_switches_a_surface_off_and_another_on_mid_flight(
     # from the switch on (az is more negative with the brake on)
     assert switched.az(fired - 0.5) == pytest.approx(plain.az(fired - 0.5), rel=1e-2)
     assert switched.az(fired + 0.5) < plain.az(fired + 0.5) - 1.0
+
+
+def _event_adding_a_follow_up():
+    """An event that, when it fires, adds a second event to the flight."""
+
+    def add_follow_up(context):
+        follow_up = Event(
+            callback=_callback_return_time,
+            trigger=lambda follow_up_context: follow_up_context.time >= 4,
+            name="Follow-up event",
+            sampling_rate=10,
+            trigger_only_once=True,
+        )
+        context.event.commands.add_event(follow_up)
+
+    return Event(
+        callback=add_follow_up,
+        trigger=lambda context: context.time > 2,
+        name="Add follow-up event",
+        sampling_rate=10,
+        trigger_only_once=True,
+    )
+
+
+def test_a_single_custom_event_can_add_an_event():
+    """``custom_events`` given as one Event, not a list, still takes the events
+    added during the flight."""
+    event = _event_adding_a_follow_up()
+
+    flight = _docs_style_flight(custom_events=event)
+
+    assert [e.name for e in flight.custom_events] == [
+        "Add follow-up event",
+        "Follow-up event",
+    ]
+    assert flight.custom_events[0] is event
+    assert len(flight.custom_events[1].triggered_times) == 1
+
+
+def test_the_custom_events_list_given_is_not_changed_by_the_flight():
+    """Events added during a flight stay in that flight: the list the user
+    passed is the same after it, so a second flight starts from it as given."""
+    custom_events = [_event_adding_a_follow_up()]
+
+    first = _docs_style_flight(custom_events=custom_events)
+    second = _docs_style_flight(custom_events=custom_events)
+
+    assert len(custom_events) == 1
+    assert len(first.custom_events) == 2
+    assert len(second.custom_events) == 2
+    assert first.custom_events[1] is not second.custom_events[1]
+
+
+def _flight_on_the_rail(*rows):
+    """A stand-in flight holding the given rows, for the rail exit callback."""
+    return SimpleNamespace(
+        solution=_canonical_solution(*rows),
+        u_dot_generalized=lambda *_args, **_kwargs: None,
+    )
+
+
+@pytest.mark.parametrize(
+    "exit_time, rows_left",
+    [
+        (1.5, 3),  # inside the step: the exact row replaces the step's end
+        (1.0, 2),  # right where the step began: the step's end is dropped
+    ],
+)
+def test_out_of_rail_index_is_the_row_of_the_exact_exit_time(exit_time, rows_left):
+    """``out_of_rail_time_index`` is the row stored at the rail exit time, also
+    when the exit is found at the start of the step and no row is added."""
+    out_of_rail_event = build_core_events()[0]
+    flight = _flight_on_the_rail(
+        _sample_state(0.0, 1.0), _sample_state(1.0, 1.0), _sample_state(2.0, 1.0)
+    )
+    exit_state = _sample_state(exit_time, 1.0)[1:]
+
+    out_of_rail_callback(
+        {
+            "flight": flight,
+            "event": out_of_rail_event,
+            "time": exit_time,
+            "canonical_state": exit_state,
+        }
+    )
+    commands = out_of_rail_event.commands
+    commands.exact_time = exit_time
+    commands.exact_state = exit_state
+    apply_exact_time_result(flight, commands)
+
+    assert len(flight.solution) == rows_left
+    assert flight.out_of_rail_time_index == rows_left - 1
+    assert flight.solution.raw_row(flight.out_of_rail_time_index)[0] == exit_time
+
+
+def test_exact_time_result_leaves_a_single_row_alone():
+    """With one stored row there is no step to place an exact row in."""
+    flight = _flight_on_the_rail(_sample_state(0.0, 1.0))
+    commands = Commands()
+    commands.exact_time = 0.5
+    commands.exact_state = _sample_state(0.5, 1.0)[1:]
+
+    apply_exact_time_result(flight, commands)
+
+    assert len(flight.solution) == 1
+    assert flight.solution.raw_row(0)[0] == 0.0
+
+
+def test_no_sampled_event_runs_after_the_landing(calisto_robust, example_plain_env):
+    """The last solver step goes past the ground and is cut at the impact. The
+    sampling times in the part that is cut are not part of the flight."""
+    calls = []
+    event = Event(lambda context: calls.append(context.time), sampling_rate=1)
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        custom_events=[event],
+    )
+
+    assert calls[-1] == np.floor(flight.t_final)
+    assert event.triggered_times == calls
+
+
+def test_a_sampled_event_runs_once_at_each_time_around_the_rail_exit():
+    """The step that leaves the rail is cut at the exit and flown again from
+    there. The sampling times after the exit in it are checked once."""
+    calls = []
+    event = Event(lambda context: calls.append(context.time), sampling_rate=100)
+
+    flight = _docs_style_flight([event])
+
+    assert 0 < flight.out_of_rail_time < calls[-1]
+    assert len(calls) == len(set(calls))
+    assert np.allclose(np.diff(calls), 0.01)

@@ -321,7 +321,7 @@ def apply_exact_time_result(flight, event_results):
             solution._replace_last([time, *state])
         flight.t = time
         flight.y_sol = state
-    elif previous_time < time < solution.raw_row(-1)[0]:
+    elif previous_time is not None and previous_time < time < solution.raw_row(-1)[0]:
         solution._insert_before_last([time, *state])
         # Recorded now, with the rocket as it was when the step was flown: an
         # event later in this step may change it before the step is recorded.

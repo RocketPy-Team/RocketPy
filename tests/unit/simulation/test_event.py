@@ -162,14 +162,11 @@ def test_trigger_accepts_string_presets_and_numeric_thresholds():
         trigger=3.0,
     )
 
-    apogee_flight = SimpleNamespace(
-        solution=_canonical_solution(_sample_state(0.0, 1.0), _sample_state(1.0, -1.0))
-    )
     burnout_flight = SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0))
 
-    assert apogee_event.trigger(
-        _context(flight=apogee_flight, state=_sample_state(1.0, -1.0)[1:])
-    )
+    # Coming down and above the ground
+    falling = {"state": _sample_state(1.0, -1.0)[1:], "height_agl": 100.0}
+    assert apogee_event.trigger(_context(event=apogee_event, **falling))
     assert burnout_event.trigger(_context(time=2.0, rocket=burnout_flight))
     assert time_event.trigger(_context(time=3.0))
     assert time_event.trigger(_context(time=2.9)) is False
@@ -703,6 +700,9 @@ def test_repr_and_str_include_key_configuration():
     assert "Example" in string_value
     assert "sampling_rate=4.0" in string_value
     assert "trigger_only_once=True" in string_value
+    # both close the parenthesis they open
+    assert representation.endswith("trigger_only_once=True)")
+    assert string_value.endswith("trigger_only_once=True)")
 
 
 def test_key_errors_inside_a_trigger_are_reraised():
@@ -815,6 +815,79 @@ def test_previous_state_detects_a_crossing_across_checks():
     assert fired == [3.0]
 
 
+def _check_at(event, time, vz, height):
+    """Check ``event`` once with the rocket at ``height`` above the ground,
+    moving vertically at ``vz``. Returns whether it fired."""
+    state = [0.0] * 13
+    state[2], state[5] = height, vz
+    return event(EventContext(_build_event_call_kwargs(time, state)))
+
+
+def test_the_apogee_trigger_holds_from_the_first_check_past_apogee():
+    """Whatever the time between checks: the check does not have to fall in
+    the solver step where the apogee was crossed. Like the other named
+    triggers it holds from then on. On the pad, at rest, it does not fire."""
+    event = Event(lambda context: None, trigger="apogee", sampling_rate=1)
+    checks = ((0, 0.0, 0.0), (1, 50.0, 30.0), (2, 5.0, 90.0), (3, -4.0, 91.0))
+
+    fired = [_check_at(event, *check) for check in (*checks, (4, -9.0, 85.0))]
+
+    assert fired == [False, False, False, True, True]
+
+
+def test_the_apogee_trigger_fires_at_the_first_check_of_a_flight_past_apogee():
+    """A flight that starts coming down, or at rest above the ground, has no
+    climb to compare against: its first check is already past the apogee."""
+    descending = Event(lambda context: None, trigger="apogee")
+    dropped = Event(lambda context: None, trigger="apogee")
+
+    assert _check_at(descending, 0.0, -3.0, 500.0) is True
+    assert _check_at(dropped, 0.0, 0.0, 500.0) is True
+
+
+def test_the_apogee_gates_hold_from_the_apogee_on():
+    """``enable_on`` and ``disable_on`` are not checked at every check of the
+    event, so they must hold at any check past the apogee, not only the
+    first."""
+    event = Event(
+        lambda context: None, enabled=False, enable_on="apogee", disable_on="apogee"
+    )
+
+    def context_at(time, vz, height=100.0):
+        state = [0.0] * 13
+        state[2], state[5] = height, vz
+        context = EventContext(_build_event_call_kwargs(time, state))
+        context.bind(event)
+        return context
+
+    for gate in (event.enable_on, event.disable_on):
+        assert gate(context_at(1.0, 50.0)) is False
+        assert gate(context_at(3.0, -4.0)) is True
+        assert gate(context_at(9.0, -30.0)) is True
+        assert gate(context_at(0.0, 0.0, height=0.0)) is False
+
+
+def test_previous_state_is_built_once_per_check():
+    """Reading ``previous_state`` twice in a check gives the same object, and
+    the next check gives a new one holding the new values."""
+    seen = []
+
+    def trigger(context):
+        seen.append((context.previous_state, context.previous_state))
+        return False
+
+    event = Event(callback=lambda context: None, trigger=trigger)
+    for t in (1.0, 2.0, 3.0):
+        event(EventContext(_build_event_call_kwargs(t, [t] * 13)))
+
+    assert seen[0] == (None, None)
+    assert seen[1][0] is seen[1][1]
+    assert seen[2][0] is seen[2][1]
+    assert seen[1][0] is not seen[2][0]
+    assert list(seen[1][0]) == [1.0] * 13
+    assert list(seen[2][0]) == [2.0] * 13
+
+
 def test_reset_clears_previous_state():
     event = Event(callback=lambda context: None, trigger=lambda context: False)
     event(EventContext(_build_event_call_kwargs(1.0, [1.0] * 13)))
@@ -877,6 +950,7 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
             sensors_by_name={},
             env=SimpleNamespace(elevation=0.0),
             rocket=SimpleNamespace(),
+            out_of_rail_state=[0.0] * 13,  # already off the rail
         )
         phase = SimpleNamespace(
             dynamics=SIX_DOF_DYNAMICS,
@@ -1507,3 +1581,76 @@ def test_the_ends_of_the_step_are_read_from_the_stored_rows():
     )
 
     assert seen == stored, "the ends came from the interpolator, not the rows"
+
+
+# ---------------------------------------------------------------------------
+# context.state as a value: copies, comparisons and the names it keeps
+# ---------------------------------------------------------------------------
+
+
+def _state_view(values, heading=None):
+    """The ``context.state`` of a moment with the given thirteen values, in a
+    phase that also follows a ``heading`` of its own when one is given."""
+    kwargs = _build_event_call_kwargs(0.0, values)
+    if heading is not None:
+        kwargs["phase_names"] = ("x", "y", "z", "vx", "vy", "vz", "heading")
+        kwargs["raw_state"] = [*values[:6], heading]
+    return EventContext(kwargs).state
+
+
+def test_an_array_made_from_the_state_is_a_copy():
+    """``np.array(context.state)`` can be changed without changing the state
+    the solver is integrating."""
+    solver_state = np.arange(13.0)
+    state = _state_view(solver_state)
+
+    copy = np.array(state)
+    copy[2] -= 100.0
+
+    assert solver_state[2] == 2.0
+    assert state.z == 2.0
+    assert np.array(state, dtype=int).dtype == int
+    assert list(np.asarray(state)) == list(range(13))
+
+
+def test_states_are_compared_by_their_values():
+    values = np.arange(13.0)
+
+    assert _state_view(values) == _state_view(values.copy())
+    assert _state_view(values) == list(values)
+    assert _state_view(values) != _state_view(values + 1.0)
+    assert _state_view(values) != list(values[:6])
+    assert _state_view(values) != "not a state"
+
+
+def test_states_with_different_phase_states_are_not_equal():
+    values = np.arange(13.0)
+
+    assert _state_view(values, heading=0.25) == _state_view(values, heading=0.25)
+    assert _state_view(values, heading=0.25) != _state_view(values, heading=0.5)
+    assert _state_view(values, heading=0.25) != _state_view(values)
+
+
+def test_a_state_is_not_equal_to_a_state_dot_with_the_same_numbers():
+    values = np.arange(13.0)
+    kwargs = _build_event_call_kwargs(0.0, values)
+    kwargs["canonical_state_dot"] = values
+    kwargs["raw_state_dot"] = values
+    context = EventContext(kwargs)
+
+    assert context.state != context.state_dot
+    assert context.state_dot == list(values)
+
+
+def test_a_state_cannot_be_hashed():
+    """It compares by value and its values change, so it is no dictionary key."""
+    with pytest.raises(TypeError, match="unhashable"):
+        hash(_state_view(np.arange(13.0)))
+
+
+@pytest.mark.parametrize("taken", ["names", "values"])
+def test_a_phase_state_cannot_take_a_name_the_state_uses(taken):
+    """``context.state.names`` and ``context.state.values`` are the names and
+    the values of the state, so a phase's own state could not be read by them."""
+    with pytest.raises(ValueError, match=f"cannot have a state called '{taken}'"):
+        _PhaseDynamics("custom", None, ("x", "y", "z", taken))

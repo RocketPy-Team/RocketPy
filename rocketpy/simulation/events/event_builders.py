@@ -42,7 +42,14 @@ def out_of_rail_callback(context):
     event = context["event"]
 
     flight.out_of_rail_time = context["time"]
-    flight.out_of_rail_time_index = len(flight.solution) - 1
+    # The row of the rail exit is the last one, which the exact row replaces.
+    # If the exit is found right where the step began, the last row is dropped
+    # instead and the row before it, already stored, is the one of the exit.
+    solution = flight.solution
+    index = len(solution) - 1
+    if index > 0 and context["time"] == solution.raw_row(index - 1)[0]:
+        index -= 1
+    flight.out_of_rail_time_index = index
     flight.out_of_rail_state = context["canonical_state"]
 
     event.commands.set_dynamics(flight.u_dot_generalized)
