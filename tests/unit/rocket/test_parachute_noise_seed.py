@@ -1,25 +1,28 @@
 """Determinism tests for seeded parachute pressure noise (#1091).
 
-Pressure noise is drawn from a per-instance ``numpy.random.Generator`` created
-from the ``seed`` argument, instead of the process-global ``numpy.random``.
-A seed makes the noise reproducible and independent of the global RNG state.
+Pressure noise is drawn from a per-instance ``numpy.random.Generator`` instead
+of the process-global ``numpy.random``. The seed is private: only
+``StochasticParachute`` and ``from_dict`` set it, after construction.
 """
 
 import numpy as np
+import pytest
 
 from rocketpy import Parachute
 from rocketpy.stochastic import StochasticParachute
 
 
-def _parachute(seed, noise=(0, 8.3, 0.5)):
-    return Parachute(
-        name="main",
+def _parachute(seed, noise=(0, 8.3, 0.5), name="main"):
+    parachute = Parachute(
+        name=name,
         cd_s=10.0,
         trigger="apogee",
         sampling_rate=100,
         noise=noise,
-        seed=seed,
     )
+    if seed is not None:
+        parachute._set_noise_seed(seed)
+    return parachute
 
 
 def _noise_sequence(parachute, n=16):
@@ -80,7 +83,27 @@ def test_seed_survives_serialization_round_trip():
 def test_from_dict_defaults_seed_to_none_when_absent():
     data = _parachute(11).to_dict()
     del data["seed"]
-    assert Parachute.from_dict(data).to_dict()["seed"] is None
+    restored = Parachute.from_dict(data)
+    assert restored.to_dict()["seed"] is None
+    assert any(sample != 0.0 for sample in _noise_sequence(restored))
+
+
+def test_seed_is_not_a_constructor_argument():
+    with pytest.raises(TypeError):
+        Parachute(  # pylint: disable=unexpected-keyword-arg
+            name="main",
+            cd_s=10.0,
+            trigger="apogee",
+            sampling_rate=100,
+            seed=1,
+        )
+
+
+def test_set_noise_seed_redraws_the_initial_noise_sample():
+    """The sample taken at construction came from an unseeded generator."""
+    seeded = _parachute(5)
+    assert seeded.noise_signal[0][1] == _parachute(5).noise_signal[0][1]
+    assert len(seeded.noise_signal) == 1
 
 
 def test_stochastic_parachute_threads_seed_into_created_object():
@@ -98,3 +121,53 @@ def test_stochastic_parachute_threads_seed_into_created_object():
     other = stochastic.create_object()
     assert other._seed != first._seed
     assert _noise_sequence(other) != _noise_sequence(first)
+
+
+# Pinned from a StochasticParachute seeded with 123, so a change to how the
+# noise seed is derived or applied moves them. Same seed, same sequence.
+_PINNED = {
+    "main": (
+        300800915345632928554392709592382146193,
+        [
+            1.5998005090773104,
+            6.806974589196937,
+            -5.734488479408331,
+            -12.120858982750535,
+            -1.2021272309494897,
+            2.4112665201271457,
+            -2.4247493851075026,
+        ],
+    ),
+    "drogue": (
+        199391130064412209597234822494885989553,
+        [
+            -0.9058837789355014,
+            -8.190546150429622,
+            -13.014914070842513,
+            -11.083827502811186,
+            -5.026198797508498,
+            0.8202720202675797,
+            -7.073751290001994,
+        ],
+    ),
+}
+
+
+@pytest.mark.parametrize("name", ["main", "drogue"])
+def test_stochastic_parachute_noise_sequence_is_pinned(name):
+    stochastic = StochasticParachute(
+        Parachute(  # pylint: disable=unexpected-keyword-arg
+            name=name,
+            cd_s=10.0,
+            trigger="apogee",
+            sampling_rate=100,
+            noise=(0, 8.3, 0.5),
+        )
+    )
+    stochastic._set_stochastic(seed=123)
+
+    built = stochastic.create_object()
+
+    seed, sequence = _PINNED[name]
+    assert built._seed == seed
+    assert _noise_sequence(built, n=6) == pytest.approx(sequence, rel=1e-12)

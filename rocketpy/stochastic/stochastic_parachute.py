@@ -207,11 +207,17 @@ class StochasticParachute(StochasticModel):
         # Tie pressure noise into the Monte Carlo seed tree when one is set.
         # Key by parachute name so drogue and main on the same rocket do not
         # share one noise stream.
+        noise_seed = None
         if self._seed is not None:
-            generated_dict["seed"] = _sampler_seed(
+            noise_seed = _sampler_seed(
                 self._seed, ("pressure_noise", generated_dict["name"])
             )
+            generated_dict["seed"] = noise_seed
             # Recorded after the seed is in, or the inputs describe a parachute
             # with noise nobody can reproduce.
             self._record_draw(generated_dict)
-        return Parachute(**generated_dict)
+            del generated_dict["seed"]
+        parachute = Parachute(**generated_dict)
+        if noise_seed is not None:
+            parachute._set_noise_seed(noise_seed)
+        return parachute
