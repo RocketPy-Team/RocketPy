@@ -242,6 +242,7 @@ def test_estimate_confidence_interval_raises_type_error_for_invalid_statistic():
         ({"tolerance": -1.0}, "tolerance"),
         ({"target_confidence": 1.5}, "target_confidence"),
         ({"target_confidence": 0}, "target_confidence"),
+        ({"random_seed": -1}, "random_seed"),
     ],
 )
 def test_simulate_convergence_validates_inputs(kwargs, match):
@@ -549,6 +550,8 @@ class ConvergenceMockMonteCarlo(MonteCarlo):
         # pylint: disable=arguments-differ
         self.simulate_calls += 1
         self.num_of_loaded_sims = number_of_simulations
+        # The real simulate settles the study seed; the bootstrap is seeded from it.
+        setattr(self, "_MonteCarlo__study_seed", kwargs.get("random_seed") or 0)
 
     def estimate_confidence_interval(self, attribute, confidence_level=0.95, **kwargs):
         # pylint: disable=arguments-differ,unused-argument
@@ -573,6 +576,39 @@ def test_simulate_convergence_stops_early_when_tolerance_met():
     assert len(history) == 2  # stopped after the second batch
     assert mc.num_of_loaded_sims == 100
     assert mc.num_of_loaded_sims < 1000  # did not exhaust the simulation budget
+
+
+@pytest.mark.parametrize(
+    "random_seed, error",
+    [
+        (-1, ValueError),
+        (1.5, TypeError),
+        (True, TypeError),
+        ("42", TypeError),
+        (np.random.default_rng(42), TypeError),
+    ],
+)
+def test_simulate_convergence_refuses_a_bad_seed_with_nothing_to_run(
+    random_seed, error
+):
+    """A bad seed is refused even when the logs already hold every simulation."""
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 10.0)
+    mc.num_of_loaded_sims = 50
+
+    with pytest.raises(error, match="random_seed"):
+        mc.simulate_convergence(max_simulations=50, random_seed=random_seed)
+    assert mc.simulate_calls == 0
+
+
+def test_simulate_convergence_runs_nothing_when_the_study_is_complete():
+    """A finished study returns no widths, whatever valid seed it is given."""
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 10.0)
+    mc.num_of_loaded_sims = 50
+
+    history = mc.simulate_convergence(max_simulations=50, random_seed=7)
+
+    assert isinstance(history, list) and not history
+    assert mc.simulate_calls == 0
 
 
 def test_simulate_convergence_runs_until_max_when_not_converging():

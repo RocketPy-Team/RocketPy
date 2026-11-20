@@ -200,6 +200,37 @@ def test_convergence_seed_reproduces_inputs_across_batch_sizes(release_study):
     assert [row["mass"] for row in _rows(release_study.input_file)] == expected
 
 
+def _converge_by_threes(study, random_seed=None):
+    # Stops after the second batch for seed 42: 0.269 at three samples, 0.252
+    # at six. Unseeded, the bootstrap puts the second width in 0.236-0.262.
+    history = study.simulate_convergence(
+        target_attribute="max_speed",
+        tolerance=0.26,
+        max_simulations=12,
+        batch_size=3,
+        random_seed=random_seed,
+    )
+    return history, _rows(study.input_file)
+
+
+def test_the_same_seed_gives_back_the_same_study(release_study):
+    """The same seed draws the same inputs and stops after the same batch."""
+    first = _converge_by_threes(release_study, random_seed=42)
+    release_study.simulate(0, append=False, random_seed=42)
+
+    assert _converge_by_threes(release_study, random_seed=42) == first
+    assert len(first[0]) < 4  # stopped on the tolerance, not on max_simulations
+
+
+def test_an_unseeded_study_repeats_from_the_seed_it_recorded(release_study):
+    """The seed a study draws for itself reproduces it, stopping point included."""
+    first = _converge_by_threes(release_study)
+    recorded = first[1][0]["seed"]
+    release_study.simulate(0, append=False, random_seed=recorded)
+
+    assert _converge_by_threes(release_study, random_seed=recorded) == first
+
+
 def test_convergence_reads_the_checkpoint_once(release_study, monkeypatch):
     """Batches reuse what the study just wrote instead of parsing the logs again."""
     reads = []
