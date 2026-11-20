@@ -950,6 +950,7 @@ def test_sample_on_a_step_boundary_is_checked_exactly_once():
             sensors_by_name={},
             env=SimpleNamespace(elevation=0.0),
             rocket=SimpleNamespace(),
+            out_of_rail_state=[0.0] * 13,  # already off the rail
         )
         phase = SimpleNamespace(
             dynamics=SIX_DOF_DYNAMICS,

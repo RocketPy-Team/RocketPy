@@ -779,3 +779,35 @@ def test_exact_time_result_leaves_a_single_row_alone():
 
     assert len(flight.solution) == 1
     assert flight.solution.raw_row(0)[0] == 0.0
+
+
+def test_no_sampled_event_runs_after_the_landing(calisto_robust, example_plain_env):
+    """The last solver step goes past the ground and is cut at the impact. The
+    sampling times in the part that is cut are not part of the flight."""
+    calls = []
+    event = Event(lambda context: calls.append(context.time), sampling_rate=1)
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        custom_events=[event],
+    )
+
+    assert calls[-1] == np.floor(flight.t_final)
+    assert event.triggered_times == calls
+
+
+def test_a_sampled_event_runs_once_at_each_time_around_the_rail_exit():
+    """The step that leaves the rail is cut at the exit and flown again from
+    there. The sampling times after the exit in it are checked once."""
+    calls = []
+    event = Event(lambda context: calls.append(context.time), sampling_rate=100)
+
+    flight = _docs_style_flight([event])
+
+    assert 0 < flight.out_of_rail_time < calls[-1]
+    assert len(calls) == len(set(calls))
+    assert np.allclose(np.diff(calls), 0.01)

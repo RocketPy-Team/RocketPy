@@ -22,7 +22,11 @@ from ..tools import (
     quaternions_to_precession,
     quaternions_to_spin,
 )
-from .events.event_builders import build_core_events
+from .events.event_builders import (
+    build_core_events,
+    impact_trigger,
+    out_of_rail_trigger,
+)
 from .events.event_context import build_event_kwargs, refresh_event_kwargs
 from .events.event_execution import call_events, process_overshootable_event
 from .helpers.dynamics import (
@@ -1179,6 +1183,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 interpolated_time=interpolated_time,
                 interpolated_state=interpolated_state,
             )
+            if out_of_rail_trigger(event_kwargs) or impact_trigger(event_kwargs):
+                continue  # past the rail exit or the impact, where the step is cut
 
             # Check events for current node
             rolled_back = False
