@@ -653,7 +653,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             # themselves can leave verbose=False and configure the "rocketpy"
             # logger directly.
             enable_logging("INFO" if verbose is True else verbose)
-        self.custom_events = [] if custom_events is None else custom_events
+        # A list of the flight's own: events added during the flight are appended
+        # to it, and the list the user passed must not change
+        if custom_events is None:
+            custom_events = []
+        elif not isinstance(custom_events, (list, tuple)):
+            custom_events = [custom_events]
+        self.custom_events = list(custom_events)
 
         # Flight initialization
         self.__init_events()
@@ -687,11 +693,6 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         sensors, then parachutes, then controllers, then user defined events."""
         self.__init_eventful_objects()
 
-        user_events = (
-            self.custom_events
-            if isinstance(self.custom_events, list)
-            else [self.custom_events]
-        )
         self.events = [*build_core_events()]
 
         # Sensor events (position-specific, created when sensors added to rocket)
@@ -708,7 +709,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.events.append(controller.event)
 
         # User-defined events are appended last
-        self.events.extend(user_events)
+        self.events.extend(self.custom_events)
 
         self._overshootable_events = []
         self._non_overshootable_events = []

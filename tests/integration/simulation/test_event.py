@@ -672,3 +672,54 @@ def test_a_phase_wider_than_the_canonical_state_flies():
     # while the phases before it have no such state
     with pytest.raises(KeyError, match="not defined in this flight phase"):
         solution.value_at(0, "heading")
+
+
+def _event_adding_a_follow_up():
+    """An event that, when it fires, adds a second event to the flight."""
+
+    def add_follow_up(context):
+        follow_up = Event(
+            callback=_callback_return_time,
+            trigger=lambda follow_up_context: follow_up_context.time >= 4,
+            name="Follow-up event",
+            sampling_rate=10,
+            trigger_only_once=True,
+        )
+        context.event.commands.add_event(follow_up)
+
+    return Event(
+        callback=add_follow_up,
+        trigger=lambda context: context.time > 2,
+        name="Add follow-up event",
+        sampling_rate=10,
+        trigger_only_once=True,
+    )
+
+
+def test_a_single_custom_event_can_add_an_event():
+    """``custom_events`` given as one Event, not a list, still takes the events
+    added during the flight."""
+    event = _event_adding_a_follow_up()
+
+    flight = _docs_style_flight(custom_events=event)
+
+    assert [e.name for e in flight.custom_events] == [
+        "Add follow-up event",
+        "Follow-up event",
+    ]
+    assert flight.custom_events[0] is event
+    assert len(flight.custom_events[1].triggered_times) == 1
+
+
+def test_the_custom_events_list_given_is_not_changed_by_the_flight():
+    """Events added during a flight stay in that flight: the list the user
+    passed is the same after it, so a second flight starts from it as given."""
+    custom_events = [_event_adding_a_follow_up()]
+
+    first = _docs_style_flight(custom_events=custom_events)
+    second = _docs_style_flight(custom_events=custom_events)
+
+    assert len(custom_events) == 1
+    assert len(first.custom_events) == 2
+    assert len(second.custom_events) == 2
+    assert first.custom_events[1] is not second.custom_events[1]
