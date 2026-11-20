@@ -511,6 +511,18 @@ class Tank(ABC):
         """
         return self.liquid_inertia + self.gas_inertia
 
+    @property
+    def _volume_tolerance(self):
+        """Volume error the tank checks accept (1e-6 m³), as a fraction of the
+        tank volume. Passed to Function.compose so both accept the same."""
+        return 1e-6 / self.geometry.total_volume
+
+    @property
+    def _height_tolerance(self):
+        """Height error the tank checks accept (1e-4 m), as a fraction of the
+        tank height. Passed to Function.compose so both accept the same."""
+        return 1e-4 / (self.geometry.top - self.geometry.bottom)
+
     def _check_volume_bounds(self):
         """Checks if the tank is overfilled or underfilled. Raises a ValueError
         if either the `gas_volume` or `liquid_volume` are out of tank geometry
@@ -952,7 +964,9 @@ class MassFlowRateBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        liquid_height = self.geometry.inverse_volume.compose(self.liquid_volume)
+        liquid_height = self.geometry.inverse_volume.compose(
+            self.liquid_volume, tol=self._volume_tolerance
+        )
         diff_bt = liquid_height - self.geometry.bottom
         diff_up = liquid_height - self.geometry.top
 
@@ -990,7 +1004,9 @@ class MassFlowRateBasedTank(Tank):
             Height of the ullage as a function of time.
         """
         fluid_volume = self.gas_volume + self.liquid_volume
-        gas_height = self.geometry.inverse_volume.compose(fluid_volume)
+        gas_height = self.geometry.inverse_volume.compose(
+            fluid_volume, tol=self._volume_tolerance
+        )
         diff = gas_height - self.geometry.top
         if (diff > 0).any():
             raise ValueError(
@@ -1251,7 +1267,9 @@ class UllageBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        return self.geometry.inverse_volume.compose(self.liquid_volume)
+        return self.geometry.inverse_volume.compose(
+            self.liquid_volume, tol=self._volume_tolerance
+        )
 
     @funcify_method("Time (s)", "Gas Height (m)", "linear")
     def gas_height(self):
@@ -1445,7 +1463,9 @@ class LevelBasedTank(Tank):
         Function
             Volume of the liquid as a function of time.
         """
-        return self.geometry.volume.compose(self.liquid_height)
+        return self.geometry.volume.compose(
+            self.liquid_height, tol=self._height_tolerance
+        )
 
     @funcify_method("Time (s)", "Gas Volume (m³)")
     def gas_volume(self):
@@ -1754,7 +1774,9 @@ class MassBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        liquid_height = self.geometry.inverse_volume.compose(self.liquid_volume)
+        liquid_height = self.geometry.inverse_volume.compose(
+            self.liquid_volume, tol=self._volume_tolerance
+        )
         diff_bt = liquid_height - self.geometry.bottom
         diff_up = liquid_height - self.geometry.top
 
@@ -1790,7 +1812,9 @@ class MassBasedTank(Tank):
             Height of the ullage as a function of time.
         """
         fluid_volume = self.gas_volume + self.liquid_volume
-        gas_height = self.geometry.inverse_volume.compose(fluid_volume)
+        gas_height = self.geometry.inverse_volume.compose(
+            fluid_volume, tol=self._volume_tolerance
+        )
         diff = gas_height - self.geometry.top
         if (diff > 0).any():
             raise ValueError(
