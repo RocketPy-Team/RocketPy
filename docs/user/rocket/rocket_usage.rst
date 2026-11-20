@@ -102,15 +102,29 @@ positional arguments, in order:
 
 ``alpha`` and ``beta`` are the angle of attack and sideslip angle in radians.
 The angular rates are expressed in radians per second in the rocket body frame.
-For example, a model based on angle of attack and Mach number can ignore the
-other inputs:
+
+.. note::
+
+    - ``alpha`` and ``beta`` are two separate signed angles, and neither is
+      the total angle of attack. ``alpha`` is measured in the pitch plane (the
+      rocket axis and the body y axis) and ``beta`` in the yaw plane (the
+      rocket axis and the body x axis). Drag that depends on the total angle
+      of attack has to combine both, for example through
+      ``alpha**2 + beta**2``, which is the square of the total angle for the
+      small angles of a normal flight.
+    - ``reynolds`` uses the rocket **diameter** as the reference length. Many
+      tools use the rocket length instead, so check which one your drag data
+      was built with.
+
+For example, a model based on the total angle of attack and Mach number can
+ignore the other inputs:
 
 .. code-block:: python
 
     def drag_coefficient(
-        alpha, _beta, mach, _reynolds, _pitch_rate, _yaw_rate, _roll_rate
+        alpha, beta, mach, _reynolds, _pitch_rate, _yaw_rate, _roll_rate
     ):
-        return 0.38 + 0.08 * mach**2 + 0.6 * alpha**2
+        return 0.38 + 0.08 * mach**2 + 0.6 * (alpha**2 + beta**2)
 
     rocket = Rocket(
         radius=0.0635,
@@ -134,6 +148,13 @@ defines drag as a function of angle of attack and Mach number:
     0.0,1.0,0.45
     0.1,0.5,0.32
     0.1,1.0,0.48
+
+.. note::
+
+    Fill in every combination of the values in the table. If one combination
+    is missing, the file still loads and no warning is given, but RocketPy
+    then interpolates between scattered points instead of along the grid, and
+    the drag coefficient it returns between the points changes.
 
 For backward compatibility, ``rocket.power_off_drag`` and
 ``rocket.power_on_drag`` expose the Mach-only slice of each model, with the
