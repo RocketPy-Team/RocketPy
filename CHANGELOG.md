@@ -30,6 +30,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- These are the changes that were not released yet, please add them correctly.
 Attention: The newest changes should be on top -->
 
+### Breaking changes
+
+- Monte Carlo runs with a fixed seed give different results from v1.13. Every simulation is now reseeded from one study `random_seed`, and each `StochasticRocket` component draws from its own random stream, so fixed-seed baselines have to be regenerated. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1170](https://github.com/RocketPy-Team/RocketPy/pull/1170) [#1213](https://github.com/RocketPy-Team/RocketPy/pull/1213)
+- Seeds set on individual stochastic models are ignored by `MonteCarlo`; pass a non-negative integer `random_seed` to reproduce a study. Without one, a new study generates and prints its own. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1213](https://github.com/RocketPy-Team/RocketPy/pull/1213)
+- Serial Monte Carlo runs are numbered `0..n-1` instead of `1..n`, matching parallel runs. Appending to a v1.13 log keeps its rows, adds index 0 to a one-based serial log, and warns that the original draws cannot be reproduced. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1213](https://github.com/RocketPy-Team/RocketPy/pull/1213)
+- `CustomSampler` reset callbacks receive a 128-bit integer seed, retried with its low 32 bits when they raise `ValueError`, so fixed-seed `CustomSampler` baselines change. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102) [#1213](https://github.com/RocketPy-Team/RocketPy/pull/1213)
+- A `StochasticRocket` now flies the parachute it sampled, with its `radius`, `height`, `porosity` and `drag_coefficient`, so Monte Carlo descent dynamics change for parachutes that set them. [#1098](https://github.com/RocketPy-Team/RocketPy/pull/1098)
+- Assigning `Rocket.static_margin` is deprecated and emits a `DeprecationWarning`. The static margin is computed lazily, so an assigned value is kept only until the next geometry, mass or surface change. [#1225](https://github.com/RocketPy-Team/RocketPy/pull/1225)
+- A parachute trigger that fires before the rocket leaves the rail now raises `ValueError`. Before, it crashed `Flight` or silently dropped the parachute. [#1226](https://github.com/RocketPy-Team/RocketPy/pull/1226)
+- Flight results shift slightly. The tip-off phase now always runs when both rail buttons start on the rail, and the equations of motion were fixed: the position-vector convention and the nozzle gyration tensor in the default equations, and the angular rates in `solid_propulsion`. [#1217](https://github.com/RocketPy-Team/RocketPy/pull/1217) [#1195](https://github.com/RocketPy-Team/RocketPy/pull/1195) [#1196](https://github.com/RocketPy-Team/RocketPy/pull/1196) [#1188](https://github.com/RocketPy-Team/RocketPy/pull/1188)
+- `Flight.potential_energy` and `Flight.total_energy` change sign, so stored values from earlier versions differ. [#1204](https://github.com/RocketPy-Team/RocketPy/pull/1204)
+- `Accelerometer` readings taken with `consider_gravity=True` change sign in the gravity term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
+- The sensors' default `operating_temperature` is now 298.15 K instead of 25. [#1118](https://github.com/RocketPy-Team/RocketPy/pull/1118)
+
 ### Added
 
 - ENH: Add `Flight.plots.trajectory_on_map()`, an interactive Folium map of the ground track with launch and landing markers, behind the new optional `maps` extra (included in `rocketpy[all]`). [#1132](https://github.com/RocketPy-Team/RocketPy/pull/1132) [#963](https://github.com/RocketPy-Team/RocketPy/issues/963)
