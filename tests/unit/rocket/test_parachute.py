@@ -2,6 +2,7 @@
 drag_coefficient parameters introduced in PR #889."""
 
 import warnings
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -158,10 +159,10 @@ def test_a_legacy_positional_trigger_still_goes_through_the_adapter():
     assert parachute.event.trigger is not parachute.triggerfunc
 
 
-def test_noise_warns_visibly_and_generates_no_signal():
-    """A noise different from zero is ignored, and the user is told so with a
-    warning that Python shows by default."""
-    with pytest.warns(FutureWarning, match="has no effect"):
+def test_noise_warns_visibly_and_records_no_signal():
+    """A noise different from zero is deprecated, and the user is told so with
+    a warning that Python shows by default. The signals are not recorded."""
+    with pytest.warns(FutureWarning, match="deprecated"):
         parachute = _make_parachute(noise=(0, 8.3, 0.5))
 
     assert parachute.noise == (0, 8.3, 0.5)
@@ -184,7 +185,7 @@ def test_noise_warning_is_raised_through_rocket_add_parachute():
         power_on_drag=0.5,
         center_of_mass_without_motor=0,
     )
-    with pytest.warns(FutureWarning, match="has no effect"):
+    with pytest.warns(FutureWarning, match="deprecated"):
         rocket.add_parachute(
             name="main",
             cd_s=10.0,
@@ -219,12 +220,101 @@ def test_parachute_does_not_draw_from_the_global_random_generator():
     assert np.array_equal(keys_after, keys_before)
 
 
-def test_to_dict_outputs_carry_no_noise_entries():
-    """Nothing about noise is recorded, so nothing about it is saved."""
-    data = _make_parachute().to_dict(include_outputs=True)
+def _noise_context(pressure=90000.0, vz=-10.0):
+    """A check with the rocket 500 m above the ground, in an atmosphere where
+    the height above sea level is ``100000 - pressure``, in m."""
+    state = [0.0] * 5 + [vz] + [0.0] * 7
+    return EventContext(
+        time=1.0,
+        canonical_state=state,
+        raw_state=state,
+        phase_names=(),
+        height_agl=500.0,
+        pressure=pressure,
+        sensors=[],
+        environment=SimpleNamespace(
+            barometric_height=SimpleNamespace(get_value_opt=lambda p: 100000.0 - p),
+            elevation=9500.0,
+        ),
+    )
 
+
+def test_noise_reaches_a_legacy_trigger_as_pressure_and_height():
+    """``p`` carries the noise and ``h`` is the height that pressure gives."""
+    seen = []
+
+    def trigger(p, h, y):  # pylint: disable=unused-argument
+        seen.append((p, h))
+        return False
+
+    with pytest.warns((FutureWarning, DeprecationWarning)):
+        parachute = _make_parachute(trigger=trigger, noise=(50.0, 8.3, 0.5))
+
+    for _ in range(200):
+        parachute.event(_noise_context(), trigger_only=True)
+
+    pressures = np.array([p for p, _ in seen])
+    heights = np.array([h for _, h in seen])
+    assert np.allclose(heights, 100000.0 - pressures - 9500.0)
+    assert len(set(pressures)) == 200
+    # The noise has a mean and a spread: neither the clean value nor a constant
+    assert 90000.0 + 20.0 < pressures.mean() < 90000.0 + 120.0
+    assert pressures.std() > 2.0
+
+
+def test_no_noise_gives_a_legacy_trigger_the_values_of_the_context():
+    seen = []
+
+    def trigger(p, h, y):  # pylint: disable=unused-argument
+        seen.append((p, h))
+        return False
+
+    with pytest.warns(DeprecationWarning):
+        parachute = _make_parachute(trigger=trigger)
+
+    parachute.event(_noise_context(), trigger_only=True)
+
+    assert seen == [(90000.0, 500.0)]
+
+
+def test_noise_reaches_a_trigger_given_as_a_height():
+    """The height compared is the one the noisy pressure gives: with a mean
+    noise of 200 Pa the rocket reads 300 m, not the 500 m it is at."""
+    with pytest.warns(FutureWarning):
+        noisy = _make_parachute(trigger=400.0, noise=(200.0, 0.0, 0.0))
+    clean = _make_parachute(trigger=400.0)
+
+    assert noisy.event(_noise_context(), trigger_only=True) is True
+    assert clean.event(_noise_context(), trigger_only=True) is False
+    # Still only on the way down
+    assert noisy.event(_noise_context(vz=10.0), trigger_only=True) is False
+
+
+def test_noise_does_not_reach_a_trigger_reading_the_context():
+    seen = []
+
+    def trigger(context):
+        seen.append((context.pressure, context.height_agl))
+        return False
+
+    with pytest.warns(FutureWarning):
+        parachute = _make_parachute(trigger=trigger, noise=(200.0, 8.3, 0.5))
+
+    parachute.event(_noise_context(), trigger_only=True)
+
+    assert seen == [(90000.0, 500.0)]
+
+
+def test_noise_is_saved_with_the_parachute_but_no_signal_is():
+    """The noise given is kept through saving and loading. The signals are
+    not recorded, so they are not saved."""
+    with pytest.warns(FutureWarning):
+        data = _make_parachute(noise=(0, 8.3, 0.5)).to_dict(include_outputs=True)
+
+    assert data["noise"] == (0, 8.3, 0.5)
+    with pytest.warns(FutureWarning):
+        assert Parachute.from_dict(data).noise == (0, 8.3, 0.5)
     for key in (
-        "noise",
         "noise_signal",
         "noise_function",
         "noisy_pressure_signal",

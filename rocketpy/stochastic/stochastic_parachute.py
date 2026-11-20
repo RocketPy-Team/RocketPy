@@ -73,13 +73,12 @@ class StochasticParachute(StochasticModel):
             the lag will not assume negative values based on its mean and
             standard deviation.
         noise : list
-            Deprecated, has no effect and will be removed in v1.16. A list of
-            tuples in the form of (mean, standard deviation,
-            time-correlation). Parachute noise is no longer simulated, so the
-            value is not passed on to the parachutes that are created and a
-            warning is raised when it is given. To trigger a parachute from a
-            measurement with noise, add a Sensor such as a
-            :class:`rocketpy.Barometer` to the rocket.
+            Deprecated, will be removed in v1.16. A list of tuples in the form
+            of (mean, standard deviation, time-correlation), one of which is
+            picked for each parachute that is created. A warning is raised
+            when it is given. To trigger a parachute from a measurement with
+            noise, add a Sensor such as a :class:`rocketpy.Barometer` to the
+            rocket.
         radius : tuple, list, int, float
             Radius of the parachute in meters.
         drag_coefficient : tuple, list, int, float
@@ -95,6 +94,7 @@ class StochasticParachute(StochasticModel):
         self.trigger = trigger
         self.sampling_rate = sampling_rate
         self.lag = lag
+        self.noise = noise
         self.radius = radius
         self.drag_coefficient = drag_coefficient
         self.height = height
@@ -105,20 +105,18 @@ class StochasticParachute(StochasticModel):
         if noise is not None:
             warnings.warn(
                 "The `noise` parameter on StochasticParachute is deprecated and "
-                "has no effect; it will be removed in v1.16. Use a Sensor (e.g. "
-                "a Barometer) with built-in noise instead.",
+                "will be removed in v1.16. Use a Sensor (e.g. a Barometer) with "
+                "built-in noise instead.",
                 FutureWarning,
                 stacklevel=2,
             )
-        # `noise` is neither stored nor passed on, on purpose: every list or
-        # tuple stored on this object is sampled, and a sampled noise would
-        # repeat the Parachute warning on every simulation.
         super().__init__(
             parachute,
             cd_s=cd_s,
             trigger=trigger,
             sampling_rate=sampling_rate,
             lag=lag,
+            noise=noise,
             name=None,
             radius=radius,
             drag_coefficient=drag_coefficient,
@@ -161,4 +159,7 @@ class StochasticParachute(StochasticModel):
             Parachute object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        return Parachute(**generated_dict)
+        with warnings.catch_warnings():
+            # The noise was already warned about, when it was first given
+            warnings.simplefilter("ignore", FutureWarning)
+            return Parachute(**generated_dict)

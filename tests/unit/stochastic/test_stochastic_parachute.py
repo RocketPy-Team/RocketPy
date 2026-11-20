@@ -26,12 +26,12 @@ def test_stochastic_parachute_create_object(stochastic_main_parachute):
     assert isinstance(obj, Parachute)
 
 
-def test_stochastic_parachute_noise_warns_once_and_is_not_passed_on(
+def test_stochastic_parachute_noise_warns_once_and_is_passed_on(
     calisto_main_chute,
 ):
-    """A noise given to StochasticParachute is ignored. The warning comes once,
-    when the stochastic object is created, and not again for every parachute
-    created from it."""
+    """A noise given to StochasticParachute reaches the parachutes created
+    from it. The warning comes once, when the stochastic object is created,
+    and not again for every parachute."""
     with pytest.warns(FutureWarning, match="StochasticParachute"):
         stochastic_parachute = StochasticParachute(
             parachute=calisto_main_chute,
@@ -42,5 +42,5 @@ def test_stochastic_parachute_noise_warns_once_and_is_not_passed_on(
         warnings.simplefilter("error")
         parachute = stochastic_parachute.create_object()
 
-    assert tuple(parachute.noise) == (0, 0, 0)
-    assert "noise" not in stochastic_parachute.last_rnd_dict
+    assert tuple(parachute.noise) == (0, 8.3, 0.5)
+    assert tuple(stochastic_parachute.last_rnd_dict["noise"]) == (0, 8.3, 0.5)

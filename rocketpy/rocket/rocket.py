@@ -1617,13 +1617,17 @@ class Rocket:
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
         noise : tuple, list, optional
-            Deprecated, has no effect and will be removed in v1.16. A list in
-            the format (mean, standard deviation, time-correlation), in Pa.
-            The trigger always receives the pressure and height without noise,
-            and a warning is raised if any of the three values is not zero.
-            To trigger a parachute from a measurement with noise, add a Sensor
-            such as a :class:`rocketpy.Barometer` to the rocket and read it
-            inside the trigger function. Default value is (0, 0, 0).
+            Deprecated, will be removed in v1.16. A list in the format
+            (mean, standard deviation, time-correlation), in Pa. The values
+            are used to add noise to the pressure passed to a trigger written
+            as ``trigger(p, h, y)``, and to the height, worked out from that
+            pressure, that such a trigger and a trigger given as a height
+            use. A trigger written as ``trigger(context)`` reads the pressure
+            and height without noise. A warning is raised if any of the three
+            values is not zero. To trigger a parachute from a measurement with
+            noise, add a Sensor such as a :class:`rocketpy.Barometer` to the
+            rocket and read it inside the trigger function. Default value is
+            (0, 0, 0).
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
             hemispheroid parachute. If not provided, it is estimated from

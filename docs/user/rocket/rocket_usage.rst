@@ -417,21 +417,21 @@ Legacy positional trigger signature
 Older trigger functions declared the following positional arguments instead of
 reading them from ``context``:
 
-- ``p`` (float): pressure in Pa, the same value as ``context.pressure``.
-- ``h`` (float): height above ground level in meters, the same value as
-  ``context.height_agl``.
+- ``p`` (float): pressure in Pa, **with the parachute noise signal added**.
+- ``h`` (float): height above ground level in meters, **worked out from that
+  pressure**.
 - ``y`` (list of float): the state vector (the same thirteen values as
   ``context.state``, in the same order).
 - ``sensors`` (list, optional fourth argument): the same list as
   ``context.sensors``.
 
 .. note::
-    The legacy positional ``p`` and ``h`` no longer carry the parachute noise
-    signal. The ``noise`` argument of the parachute is deprecated and has no
-    effect: every trigger receives the pressure and height without noise, and
-    a warning is raised when a ``noise`` different from ``(0, 0, 0)`` is
-    given. For pressure or height signals with noise, use Sensor objects
-    instead.
+    The legacy positional ``p`` and ``h`` carry the parachute noise signal,
+    whereas ``context.pressure`` and ``context.height_agl`` are the values
+    without noise. The ``noise`` argument of the parachute is deprecated and
+    will be removed in v1.16: a warning is raised when a ``noise`` different
+    from ``(0, 0, 0)`` is given. For pressure or height signals with noise,
+    use Sensor objects instead.
 
 A legacy trigger therefore looked like this:
 
