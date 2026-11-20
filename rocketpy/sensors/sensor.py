@@ -166,7 +166,7 @@ class Sensor(ABC):
         self.info()
         self.plots.all()
 
-    def to_event(self, position):
+    def to_event(self, position, index=0):
         """Create a simulation event for this sensor.
 
         Parameters
@@ -178,14 +178,20 @@ class Sensor(ABC):
             measurements (e.g. accelerometers). The position should be given as
             a Vector object representing the x, y and z coordinates of the
             sensor in meters.
+        index : int, optional
+            Which of the sensor's positions on the rocket this is, counted
+            from 0 in the order they were added. A sensor added more than once
+            keeps the measurements of each position in its own list of
+            ``measured_data``, at this index. Default is 0.
 
         Returns
         -------
         Event
             Event object with an always-true trigger that delegates runtime
-            execution to this sensor.
+            execution to this sensor. Each reading goes into the flight's
+            solution, which drops the readings the flight goes back over and
+            keeps the rest with its other results.
         """
-        # Local import avoids import-time coupling with simulation package.
 
         def sensor_callback(context):
             time = context["time"]
@@ -193,14 +199,12 @@ class Sensor(ABC):
             state_dot = context["canonical_state_dot"]
             rocket = context["rocket"]
             environment = context["environment"]
-            event = context["event"]
-
-            # Get position from event memory (set when sensor added to rocket)
-            position = event.memory.get("position")
 
             relative_position = position - rocket._csys * Vector(
                 [0, 0, rocket.center_of_dry_mass_position]
             )
+            # The list of measured_data this position's measurement goes to
+            self._counter = index
 
             self.measure(
                 time,
@@ -213,22 +217,33 @@ class Sensor(ABC):
                 earth_radius=environment.earth_radius,
                 initial_coordinates=(environment.latitude, environment.longitude),
             )
+            reading = self.measurement
+            if not isinstance(reading, tuple):
+                reading = (reading,)
+            # Kept with the flight's other results, under the name the
+            # flight gives this position
+            context._solution._add_reading(  # pylint: disable=protected-access
+                context["event"]._position_name,  # pylint: disable=protected-access
+                time,
+                {label: value for (label, _), value in zip(self.channels, reading)},
+            )
 
         return Event(
             callback=sensor_callback,
             name=f"{self.name} Measurement",
             sampling_rate=self.sampling_rate,
-            memory={"position": position, "sensor": self},
             trigger_only_once=False,
             priority=1,
             time_overshootable=True,
         )
 
     def _reset(self, simulated_rocket):
-        """Reset the sensor data for a new simulation."""
+        """Reset the sensor data for a new simulation: no measurement yet, and
+        the noise drift back at zero."""
         self._random_walk_drift = (
             Vector([0, 0, 0]) if isinstance(self._random_walk_drift, Vector) else 0
         )
+        self.measurement = None
         self.measured_data = []
         if self._attached_rockets[simulated_rocket] > 1:
             self.measured_data = [

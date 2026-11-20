@@ -1,7 +1,7 @@
+.. _eventusage:
+
 Event Usage
 ===========
-
-.. _eventusage:
 
 This page explains how to build and use :class:`rocketpy.Event` objects in a
 RocketPy simulation. It focuses on practical usage: how to write a custom
@@ -161,8 +161,14 @@ The following values are available:
   that state's name followed by ``_dot``, so for a state the phase calls
   ``my_state`` it is ``context.state_dot.my_state_dot``. Worked out when first
   read, by evaluating the equations of motion once more.
-- ``pressure`` (float): Current atmospheric pressure in Pa at the rocket's
-  altitude. Worked out when first read.
+- The air around the rocket at this moment, each worked out when first
+  read: ``context.pressure`` (Pa), ``context.density`` (kg/m³),
+  ``context.speed_of_sound`` (m/s), ``context.mach``,
+  ``context.wind_velocity`` (m/s, Earth frame), ``context.stream_velocity``
+  (m/s, in the rocket's body frame) and ``context.stream_speed`` (m/s). They
+  are the values a controllable's methods receive as ``conditions`` inside the
+  equations of motion (:class:`rocketpy.control.FlightConditions`), also
+  available as one object, ``context.conditions``, to hand on.
 - ``previous_state``: The ``state`` from the previous time this same event was
   checked, or ``None`` on the first check. It is read like ``state``, as
   ``context.previous_state.vz``.
@@ -184,62 +190,126 @@ The following values are available:
           # vz turned negative
           return previous.vz > 0 >= context.state.vz
 
-  Do not reach into ``context.flight.solution`` for this. It holds the stored
-  trajectory points, which advance independently of when your event is checked,
-  so a crossing can fall between two of them and never be seen. Use the flight
-  solution when you want the trajectory itself, not the previous value this
-  event saw.
-- ``step_size`` (float): How long the simulation has been inside the
-  solver step your callback is being evaluated in, in seconds. At the end of a
-  step that is the whole step the solver just took; at a point interpolated
-  inside a step it is the part of the step up to that point.
+  This is the value this event saw at its own previous check.
+- ``dt`` (float or ``None``): The time since this event was last checked, in
+  seconds: ``time - previous_time``. For a controller, that is the time since
+  its previous run::
 
-  This is a property of the integrator, not of your event. It is **not** the
-  time since your callback last ran, and it is **not** ``1 / sampling_rate``: a
-  sampled event is checked on its own schedule, which has nothing to do with
-  where the solver put its step boundaries, and the solver changes its step size
-  throughout the flight. To measure how much time passed between two checks of
-  your own event, subtract ``previous_time`` from ``time``.
+      def controller_function(context):
+          error = context.state.vz - 50
+          context.memory["integral"] = (
+              context.memory.get("integral", 0.0) + error * context.dt
+          )
+
+  On the first check there is no previous one, so ``dt`` is
+  ``1 / sampling_rate``, the time a run normally covers. An event without a
+  ``sampling_rate``, checked at every solver step, gets ``None`` there.
 
 **Simulation objects:**
 
-- ``flight`` (:class:`rocketpy.Flight`): The Flight instance orchestrating 
-  the simulation.
 - ``rocket`` (:class:`rocketpy.Rocket`): The Rocket object being simulated.
-- ``environment`` (:class:`rocketpy.Environment`): The Environment conditions 
-  for the flight.
-- ``phase``: The flight phase being flown, as listed in
-  ``flight.flight_phases``.
+- ``environment`` (:class:`rocketpy.Environment`): The Environment conditions
+  for the flight, such as ``context.environment.wind_velocity_x(z)``.
+- ``phase_name`` (str): The flight phase being flown: ``"initial_phase"``
+  from the start (on the rail), ``"free_flight"`` after leaving the rail, and
+  ``"<parachute name>_parachute_descent"`` under a parachute.
+
+Read the rocket and the environment, but never change them: the next flight
+flies the same objects, and the flight cannot see such a change, so it would
+not act from the right moment or be undone.
 
 **Event and sensor data:**
 
 - ``event`` (:class:`rocketpy.Event`): A reference to the Event object itself,
-  allowing access to ``memory``, ``commands``, and other event state.
-- ``sensors`` (list): The sensors attached to the rocket. Each sensor has a
-  ``measurement`` attribute with the most recent value.
-- ``sensors_by_name`` (dict): The same sensors keyed by name (or class name).
-  If multiple sensors share the same name, the value is a list.
+  allowing access to ``commands`` and other event state.
+- ``memory`` (dict): The event's own dictionary, kept from one check to the
+  next (the same as ``context.event.memory``). See below.
+- ``commands``: The requests this event makes to the flight (the same as
+  ``context.event.commands``). See below.
+- ``sensors``: The latest reading of each sensor attached to the rocket. Find
+  a sensor by its name as given or by that name in snake_case as an
+  attribute, then read a channel: ``context.sensors["Barometer"].pressure`` or
+  ``context.sensors.barometer.pressure``. Every sensor reads once on the pad 
+  when the flight starts, so there is always a reading. See :ref:`sensorsusage`.
 - ``sampling_rate`` (float or None): The sampling rate of the event in Hz, or
   ``None`` for a continuous event.
 
-**Inside a controller function only:**
+**Control inputs:**
 
-- ``controller``: The controller being run. Its own dictionary, kept from one
-  run to the next, is ``context.controller.memory``.
-- ``controlled``: The objects the controller drives. Read one by the name it
-  was given, such as ``context.controlled.air_brakes``, or by its position,
-  such as ``context.controlled[0]``. Looping over ``context.controlled`` gives
-  all of them, in the order they were passed to the controller.
+- ``controls``: The flight's control inputs. The controls of each controllable
+  of the rocket, such as air brakes, :class:`rocketpy.ControlFins` or a
+  surface built with ``controls``, written as
+  ``context.controls.air_brakes.deployment_level = 0.5``. The controllable is
+  its name in snake_case. A name that is not a plain word is written as given,
+  ``context.controls["Main Brakes"]``, and a control whose name is built in a
+  loop as ``context.controls.canards[fin]``. ``list(context.controls)`` gives
+  the names of the controllables, and ``rocket.control_names`` lists every
+  control input as ``<name in snake_case>.<control>``. A value written here is
+  kept inside the control's limits once the callback returns,
+  and acts from this moment on.
 
-Both are ``None`` in an event that is not a controller.
+**Sharing values between events:**
+
+- ``outputs``: The values the events of the flight share with each other. An
+  event declares its outputs when it is built, writes them under its own name
+  in snake_case, and every other event reads them::
+
+      def guidance_function(context):
+          context.outputs.guidance.pitch_setpoint = 0.1  # rad
+
+      def attitude_function(context):
+          error = context.outputs.guidance.pitch_setpoint - pitch(context)
+          context.controls.canards.fin_1 = 2.0 * error
+
+      guidance = Controller(guidance_function, sampling_rate=10,
+                            name="Guidance", outputs=("pitch_setpoint",))
+      attitude = Controller(attitude_function, sampling_rate=100, name="Attitude")
+
+  An output can hold any value and keeps it until it is written again. Only the
+  event that declared an output can write it. Outputs start every flight as
+  ``None`` (or at the value given with a dictionary,
+  ``outputs={"pitch_setpoint": 0.05}``). After the flight,
+  ``flight.event_outputs.guidance.pitch_setpoint`` is the list of
+  ``(time, value)`` pairs written. They are the way to share a value between
+  events: a value kept in a Python object outside the flight is not reset
+  between flights.
 
 **Keeping your own data:**
 
-- The event's own dictionary is ``context.event.memory``. It is kept from
-  one check to the next, so keep counters, thresholds and anything shared
-  between trigger and callback there.
+- The event's own dictionary is ``context.memory``. It is kept from
+  one check to the next, so keep what the next call needs there: counters,
+  thresholds, a filter state, anything shared between trigger and callback. It
+  is restored to its starting values at every flight.
+- To see a value after the flight, record it: ``context.record(error=0.4)``
+  stores named values at the current time. After the flight,
+  ``event.records["error"]`` is the list of ``(time, value)`` pairs recorded,
+  with each value exactly as it was given, and ``flight.records`` holds the
+  records of every event, by the event's name as given or in snake_case:
+  ``flight.records["My Event"].error`` or ``flight.records.my_event.error``. A
+  record can hold anything, a number, a vector, a text, a dictionary
+  (``context.record(command=[0.1, -0.2], mode="coast")``);
+  ``flight.plots.records()`` plots the ones made of numbers.
   Do not add values to the ``context`` passed to your function: it is shared by
   every event checked in the same solver step.
+
+**What your function can do:**
+
+Besides reading values, a trigger or callback can do four things, each
+through the context:
+
+- **Set a control input**: ``context.controls.air_brakes.deployment_level = 0.5``.
+  The new value is used from this moment on.
+- **Keep something for its next call**: ``context.memory["integral"] += error``.
+- **Log a value to look at after the flight**: ``context.record(error=error)``.
+- **Change how the flight goes on**: ``context.commands``, such as
+  ``context.commands.terminate_flight()``, ``set_dynamics(...)``,
+  ``start_flight_phase(...)``, adding, enabling or disabling events, and
+  switching surfaces on or off. Commands are requests to the flight itself:
+  they are queued while your function runs and applied by the flight once it
+  returns. See :ref:`event_commands`.
+
+The first three take effect as you write them. Writing a control or a record
+is not a command.
 
 Understanding Event Parameters
 ------------------------------
@@ -249,11 +319,11 @@ practical examples and demonstrate proper activation.
 
 **callback** (required)
   The function that runs when the event triggers. It takes the ``context``
-  as its single argument, and all of its returns are saved on the ``callback_log`` list for later 
-  inspection. The callback can also queue commands to modify the simulation
-  state through the ``event.commands`` interface. Access to the
-  ``event.memory`` dictionary is also possible, and allows the callback to
-  store data across triggers.
+  as its single argument, and what it returns is ignored. Values to look at
+  after the flight are kept with ``context.record(...)``, and read as
+  ``event.records``. The callback can also queue commands to modify the
+  simulation state through the ``context.commands`` interface. The event's
+  ``context.memory`` dictionary lets the callback keep data across triggers.
 
   .. seealso:: 
     Check the :ref:`event_commands` section for details.
@@ -261,8 +331,7 @@ practical examples and demonstrate proper activation.
   .. jupyter-execute::
 
       def my_callback(context):
-          time = context.time
-          return {"time": time}
+          context.record(altitude=context.state.z)
 
       simple_event = Event(
           callback=my_callback, 
@@ -285,7 +354,8 @@ practical examples and demonstrate proper activation.
       
       print(f"Flight time = {simple_flight.t:.4f} s\n")
       
-      print(f"Callback log: {simple_event.callback_log}\n")
+      altitude = simple_event.records["altitude"]
+      print(f"Altitudes recorded: {[value for _, value in altitude]}\n")
       
       print(simple_event)
 
@@ -303,7 +373,11 @@ practical examples and demonstrate proper activation.
 
 
   .. tip::
-    A list of all triggered times can be accessed with ``event.triggered_times``.
+    A list of all triggered times can be accessed with ``event.triggered_times``,
+    and the times the event was turned on or off with ``event.enabled_times``
+    and ``event.disabled_times``. Like the records, they only hold moments of
+    the trajectory that was flown: when the simulation goes back in time, the
+    later ones are dropped.
 
 
   .. jupyter-execute::
@@ -313,7 +387,7 @@ practical examples and demonstrate proper activation.
           return context.state.vz > 50  # m/s
 
       def simple_callback(context):
-          return {"status": "event triggered!"}
+          context.record(status="event triggered!")
 
       simple_event = Event(
           callback=simple_callback,
@@ -405,26 +479,29 @@ practical examples and demonstrate proper activation.
 **memory** (optional)
   The event's own dictionary, kept from one check to the next. Useful for
   counters, thresholds and data shared between trigger and callback. Read and
-  write it as ``context.event.memory`` inside the trigger and callback. It
+  write it as ``context.memory`` inside the trigger and callback. It
   is restored to the values given here when the event is reset for a new
   flight.
 
   .. note::
-    ``memory`` is not logged: what the callback writes there is **not**
-    persisted to output logs or files.
+    ``memory`` holds what the next call needs, not a history: what the
+    callback writes there is **not** kept over time nor saved. To see a value
+    after the flight, record it with ``context.record`` instead.
+
+  Here the count is what the next call needs, so it lives in ``memory``. The
+  time of each call is only wanted afterwards, so it is recorded:
 
   .. jupyter-execute::
 
       def counting_callback(context):
-          event = context.event
-          event.memory["count"] += 1
-          event.memory["last_time"] = context.time
+          context.memory["count"] += 1
+          context.record(count=context.memory["count"])
           return None
 
       counter_event = Event(
           callback=counting_callback,
           name="Counting event",
-          memory={"count": 0, "last_time": None},
+          memory={"count": 0},
       )
       
       counter_flight = Flight(
@@ -445,6 +522,8 @@ practical examples and demonstrate proper activation.
           f"{len(counter_event.triggered_times)} time(s)\n"
       )
       print(f"Final event memory: {counter_event.memory}")
+      count = counter_event.records["count"]
+      print(f"Calls recorded from {count[0][0]:.2f} s to {count[-1][0]:.2f} s")
 
 **disable_on** (optional)
   Automatically disable the event based on a condition. Can be:
@@ -630,7 +709,7 @@ practical examples and demonstrate proper activation.
       def my_state_crosses_target(context):
           return context.state.my_state - target_value
 
-  ``state_dot`` and ``pressure`` are worked out at each moment tried as well,
+  ``state_dot`` and ``conditions`` are worked out at each moment tried as well,
   if the function reads them, so each adds cost to every step of the search.
 
   Exact-time solving is only available for continuous events
@@ -679,7 +758,7 @@ practical examples and demonstrate proper activation.
 
       def altitude_trigger(context):
           """Check when altitude crosses the target value from below."""
-          target_altitude = context.event.memory["target_altitude"]
+          target_altitude = context.memory["target_altitude"]
           return context.height_agl > target_altitude
 
       def altitude_exact_time_function(context):
@@ -745,12 +824,6 @@ practical examples and demonstrate proper activation.
     will cause the simulation to be many times slower, with no improvement in
     accuracy.
 
-**changes_dynamics** (optional)
-  Signals that the event's callback will change the simulation dynamics or
-  parameters that affect the ODE derivative. Examples changing a motor thrust 
-  profile, changing a parameter that affects the aerodynamic forces, or any
-  object mutation that affects the current rocket configuration.
-
 **name** (optional)
   Human-readable identifier used in logs and debugging. If omitted, RocketPy
   uses the default string ``"Event"``.
@@ -760,38 +833,47 @@ practical examples and demonstrate proper activation.
   via ``enable_on`` parameter.
 
 **verbose** (optional)
-  When ``True``, the event prints a message and stores extra execution logs
-  whenever it triggers.
+  When ``True``, every check of the event is reported by RocketPy's logger at
+  the ``INFO`` level, which is shown with ``Flight(..., verbose=True)`` or
+  ``rocketpy.enable_logging()``. Useful to see why an event did or did not
+  fire.
 
 .. _event_commands:
 
 Using Commands to Modify Simulation State
 -----------------------------------------
 
-When a callback needs to change the simulation loop state, it does so through
-``event.commands``. The callback queues one or more commands, and ``Flight``
-applies them after the callback returns.
+When a callback needs to change how the flight goes on, it does so through
+``context.commands`` (the same as ``context.event.commands``). The callback
+queues one or more commands, and ``Flight`` applies them after the callback
+returns.
 
 Available commands include:
 
-- ``event.commands.disable() / enable()``: Disable or re-enable the current event.
-- ``event.commands.add_event(event)``: Schedule a new event during the simulation. Not for events with ``changes_dynamics=True``; see the warning below.
-- ``event.commands.disable_event(event)``: Disable another event or controller event.
-- ``event.commands.set_dynamics(dynamics, **phase_kwargs)``: Fly the rest of the flight with a different set of equations of motion.
-- ``event.commands.start_flight_phase(phase_name=None, lag=0)``: Start a new flight phase.
-- ``event.commands.terminate_flight()``: Request to end the flight simulation immediately after the current step.
-- ``event.commands.activate_surface(surface) / deactivate_surface(surface)``: Make an aerodynamic surface start or stop producing force.
+- ``context.commands.disable() / enable()``: Disable or re-enable the current event.
+- ``context.commands.add_event(event)``: Schedule a new event during the simulation.
+- ``context.commands.disable_event(event) / enable_event(event)``: Disable or enable another event or controller event.
+- ``context.commands.set_dynamics(dynamics, **phase_kwargs)``: Fly the rest of the flight with a different set of equations of motion.
+- ``context.commands.start_flight_phase(phase_name=None, lag=0)``: Start a new flight phase.
+- ``context.commands.terminate_flight()``: Request to end the flight simulation immediately after the current step.
+- ``context.commands.activate_surface(surface) / deactivate_surface(surface)``: Make an aerodynamic surface start or stop producing force.
 
-**event.commands.disable() / enable()**
-  Disable or re-enable the event that is currently running. This is useful for
-  one-shot behaviors or for temporarily muting an event after it fires.
+**context.commands.disable() / enable()**
+  Disable the event that is currently running, from now on. ``enable()`` only
+  cancels a ``disable()`` made earlier in the same call: a disabled event does
+  not run, so it cannot turn itself back on (give it an ``enable_on`` for
+  that).
+
+  ``disable()`` and ``disable_on`` do the same thing. Use ``disable_on`` for a
+  condition you know when you build the event, such as ``"apogee"`` or a time:
+  it is checked for you and saved with the event. Use ``disable()`` when the
+  function itself decides to stop, such as a controller that gives up after
+  detecting a fault.
 
   .. jupyter-execute::
 
     def disable_after_first_hit(context):
-        event = context.event
-        event.commands.disable()
-        return {"action": "disabled self"}
+        context.commands.disable()
 
     disable_event = Event(
         callback=disable_after_first_hit,
@@ -813,18 +895,16 @@ Available commands include:
 
     print(f"Flight time = {disable_flight.t:.4f} s")
     print(f"Event enabled after run? {disable_event.enabled}")
-    print(f"Disable log entries: {disable_event.callback_log}")
+    print(f"Disabled at: {disable_event.disabled_times}")
 
 
-**event.commands.add_event(event)**
+**context.commands.add_event(event)**
   Schedule a new event during the simulation. This is useful when one event
   should introduce a follow-up action later in the flight.
 
   .. jupyter-execute::
 
     def add_follow_up(context):
-        event = context.event
-
         def follow_up_callback(follow_up_context):
             return f"Follow-up event fired at {follow_up_context.time:.2f} s"
 
@@ -835,8 +915,7 @@ Available commands include:
             sampling_rate=10,
             trigger_only_once=True,
         )
-        event.commands.add_event(follow_up_event)
-        return f"Added follow-up event at {context.time:.2f} s"
+        context.commands.add_event(follow_up_event)
 
     add_event = Event(
         callback=add_follow_up,
@@ -859,50 +938,14 @@ Available commands include:
 
     print(f"Flight time = {add_event_flight.t:.4f} s")
     print(f"Total custom events after run: {len(add_event_flight.custom_events)}")
-    print(f"First Event log: {add_event.callback_log}")
-    print(f"Follow-up Event log: {add_event_flight.custom_events[1].callback_log}")
+    print(f"Follow-up event added at: {add_event.triggered_times}")
+    print(f"Follow-up event ran at: {add_event_flight.custom_events[1].triggered_times}")
 
-  .. warning::
-
-     Avoid adding an event with ``changes_dynamics=True`` this way. A flight
-     decides before it starts, from the events it was built with, whether to
-     record the accelerations, aerodynamic forces and moments and net thrust
-     step by step. An event added mid-flight arrives too late for that: the
-     trajectory is still right, but those variables are worked out afterwards
-     from the rocket as it ends the flight, so what the event changed is
-     reported for the whole flight. RocketPy raises a ``UserWarning`` when
-     this happens.
-
-     Instead, give the event to the ``Flight`` with ``enabled=False`` and turn
-     it on with ``enable_on`` or the ``enable`` command. If the events really
-     cannot be written in advance, give the ``Flight`` one disabled placeholder
-     with ``changes_dynamics=True``, which makes it record from the start:
-
-     .. code-block:: python
-
-         recording_placeholder = Event(
-             callback=lambda context: None,
-             trigger=lambda context: False,
-             name="Force post-process recording",
-             enabled=False,
-             changes_dynamics=True,
-         )
-
-     Recording costs one extra evaluation of the equations of motion per
-     stored step, so only add the placeholder when you will need it.
-
-**event.commands.disable_event(event)**
+**context.commands.disable_event(event)**
   Disable another event or controller event. This is useful when one trigger
   should shut off a later response.
 
   .. jupyter-execute::
-
-    def disable_other_event(context):
-        event = context.event
-        flight = context.flight
-        target_event = flight.custom_events[0]  # Assuming the target event is the first one added to the flight.
-        event.commands.disable_event(target_event)
-        return {"action": f"disabled {target_event.name}"}
 
     target_event = Event(
         callback=lambda context: f"Called at {context.time:.2f} s",
@@ -910,11 +953,13 @@ Available commands include:
         sampling_rate=2,
     )
 
+    def disable_other_event(context):
+        context.commands.disable_event(target_event)
+
     disable_other = Event(
         callback=disable_other_event,
-        trigger=lambda context: context.time>= 2,
+        trigger=lambda context: context.time >= 2,
         name="Disabler",
-        memory={"target_event": target_event},
         sampling_rate=10,
         trigger_only_once=True,
     )
@@ -933,10 +978,9 @@ Available commands include:
 
     print(f"Target event enabled after run? {target_event.enabled}")
     print(f"Target event disabled at: {target_event.disabled_times}")
-    print(f"Target event log: {target_event.callback_log}")
 
 
-**event.commands.set_dynamics(dynamics, \*\*phase_kwargs)**
+**context.commands.set_dynamics(dynamics, \*\*phase_kwargs)**
   Fly the rest of the flight with a different set of equations of motion.
   RocketPy ships five of them, importable from ``rocketpy.simulation.helpers``:
 
@@ -950,8 +994,6 @@ Available commands include:
   how a parachute descent knows which parachute is open:
   ``set_dynamics(PARACHUTE_DYNAMICS, parachute=main)``.
 
-  The event must be created with ``changes_dynamics=True``.
-
   Writing your own set of equations is possible but internal for now, so it is
   not covered here. Below, a flight switches to a three degree of freedom model
   partway up, and the phases it flew are printed at the end.
@@ -961,16 +1003,13 @@ Available commands include:
     from rocketpy.simulation.helpers import THREE_DOF_DYNAMICS
 
     def switch_dynamics(context):
-        event = context.event
-        event.commands.set_dynamics(THREE_DOF_DYNAMICS)
-        return {"action": "switched to three degrees of freedom"}
+        context.commands.set_dynamics(THREE_DOF_DYNAMICS)
 
     dynamics_event = Event(
         callback=switch_dynamics,
         trigger=lambda context: context.time >= 6,
         name="Dynamics switcher",
         trigger_only_once=True,
-        changes_dynamics=True,
     )
 
     dynamics_flight = Flight(
@@ -986,28 +1025,26 @@ Available commands include:
     )
 
     print(f"Flight time = {dynamics_flight.t:.4f} s")
-    print(f"Dynamics event log: {dynamics_event.callback_log}")
+    print(f"Switched dynamics at: {dynamics_event.triggered_times}")
     print("Flight phases: ")
     for _, phase in dynamics_flight.flight_phases:
         print(phase)
     print(dynamics_flight.flight_phases[-1])
 
 
-**event.commands.start_flight_phase(phase_name=None, lag=0)**
+**context.commands.start_flight_phase(phase_name=None, lag=0)**
   Start a new flight phase at the trigger, or ``lag`` seconds after it. During
   the lag the flight keeps its current equations of motion, which is how a
   parachute keeps falling freely while it opens. Use it when the callback wants
   the solver restarted at the trigger. To fly the new phase with different
   equations of motion, such as
   those of a deployed parachute, use ``set_dynamics`` instead, for example
-  ``event.commands.set_dynamics(PARACHUTE_DYNAMICS, parachute=main)``.
+  ``context.commands.set_dynamics(PARACHUTE_DYNAMICS, parachute=main)``.
 
   .. jupyter-execute::
 
     def start_new_phase(context):
-      event = context.event
-      event.commands.start_flight_phase(phase_name="custom_descent")
-      return {"action": "started new phase"}
+      context.commands.start_flight_phase(phase_name="custom_descent")
 
     phase_event = Event(
       callback=start_new_phase,
@@ -1036,19 +1073,13 @@ Available commands include:
     print(phase_flight.flight_phases[-1])
 
 
-**event.commands.terminate_flight()**
+**context.commands.terminate_flight()**
   End the simulation immediately.
 
   .. jupyter-execute::
 
     def stop_on_trigger(context):
-        event = context.event
-        event.commands.terminate_flight()
-        return {
-            "action": "termination requested",
-            "trigger_time": context.time,
-            "flight_time": context.flight.t,
-        }
+        context.commands.terminate_flight()
 
     stop_event = Event(
         callback=stop_on_trigger,
@@ -1068,12 +1099,9 @@ Available commands include:
     )
 
     print(f"Flight terminated at t = {stop_flight.t:.4f} s")
-    if stop_event.callback_log and stop_event.callback_log[-1]:
-        log = stop_event.callback_log[-1]
-        print(f"Trigger time: {log['trigger_time']:.4f} s")
-        print(f"Flight time reported by callback: {log['flight_time']:.4f} s")
+    print(f"Trigger time: {stop_event.triggered_times[-1]:.4f} s")
 
-**event.commands.activate_surface(surface) / deactivate_surface(surface)**
+**context.commands.activate_surface(surface) / deactivate_surface(surface)**
   Make an aerodynamic surface start or stop producing force from this moment
   on. Use it for a part of the rocket that appears or disappears during the
   flight. The surface must already be one of the rocket's aerodynamic surfaces. A surface that should
@@ -1087,7 +1115,7 @@ Available commands include:
   .. code-block:: python
 
     def switch_off(context):
-        context.event.commands.deactivate_surface(my_surface)
+        context.commands.deactivate_surface(my_surface)
 
     switch_event = Event(
         callback=switch_off,

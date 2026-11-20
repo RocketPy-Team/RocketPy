@@ -405,8 +405,9 @@ most used ones are listed below. For the complete list, with every value
 - ``pressure`` (float): current atmospheric pressure in Pa at the rocket's
   altitude.
 - ``height_agl`` (float): height above ground level in meters.
-- ``step_size`` (float): how long the simulation has been inside the solver
-  step being evaluated, in seconds.
+- ``dt`` (float or ``None``): time since this trigger was last checked, in
+  seconds. On the first check it is ``1 / sampling_rate``, or ``None`` for a
+  trigger without one.
 
 **Simulation objects:**
 
@@ -418,10 +419,9 @@ most used ones are listed below. For the complete list, with every value
 
 **Sensor and Event data:**
 
-- ``sensors`` (list): the sensors attached to the rocket, each exposing its
-  most recent ``measurement``.
-- ``sensors_by_name`` (dict): the same sensors keyed by name (or class name).
-  If several sensors share a name, the value is a list.
+- ``sensors``: the latest reading of each sensor attached to the rocket, such
+  as ``context.sensors.barometer.pressure``. Every sensor reads once on the
+  pad when the flight starts, so there is always a reading.
 - ``sampling_rate`` (float or None): the sampling rate of the parachute trigger
   in Hz (or ``None`` for a continuous trigger).
 - ``event`` (:class:`rocketpy.Event`): a reference to the wrapping Event object,
@@ -467,8 +467,9 @@ reading them from ``context``:
   parachute noise signal**.
 - ``y`` (list of float): the state vector (the same thirteen values as
   ``context.state``, in the same order).
-- ``sensors`` (list, optional fourth argument): the same list as
-  ``context.sensors``.
+- ``sensors`` (list, optional fourth argument): the sensors attached to the
+  rocket, in the order they were added, each with its latest
+  ``measurement``.
 
 .. note::
     The legacy positional ``p`` and ``h`` carry the parachute noise signal,

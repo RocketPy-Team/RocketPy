@@ -14,12 +14,12 @@ def _compute_drag_area(
     dynamic_viscosity,
     omega,
 ):
-    """Drag coefficient times reference area of the rocket, air brakes included,
-    in squared meters.
+    """Drag coefficient times reference area of the rocket's body, in squared
+    meters.
 
-    Selects the power-on/power-off drag curve based on the motor burn state, and
-    then adds (or, when ``override_rocket_drag`` is set, substitutes) the drag of
-    any deployed air brakes. The force follows from it as
+    Selects the power-on/power-off drag curve based on the motor burn state.
+    The air brakes' drag is not part of it: they are aerodynamic surfaces,
+    summed with the others. The force follows from it as
     ``0.5 * rho * stream_speed * drag_area`` times the velocity of the air
     relative to the rocket: its component along the rocket's axis in a 6-DOF
     phase, the whole vector in a 3-DOF one. The rocket's drag curve is its axial
@@ -80,29 +80,140 @@ def _compute_drag_area(
         omega[2] * reduced,
     )
 
-    # Air brakes are drag-only and may override the rocket drag.
-    for air_brakes in rocket.air_brakes:
-        if air_brakes.deployment_level > 0:
-            reduced = air_brakes.reference_length * reduced_per_length
-            air_brakes_area = air_brakes.reference_area * air_brakes.cA.get_value_opt(
-                *air_brakes._coefficient_arguments(
-                    alpha,
-                    beta,
-                    mach,
-                    reynolds,
-                    omega[0] * reduced,
-                    omega[1] * reduced,
-                    omega[2] * reduced,
-                )
-            )
-            if air_brakes.override_rocket_drag:
-                drag_area = air_brakes_area  # Substitutes rocket drag
-            else:
-                drag_area += air_brakes_area
     return drag_area
 
 
-def udot_rail1(flight, t, u, post_processing=False):
+# What a rocket without force effectors adds. Never changed in place.
+_NO_VECTOR = Vector([0, 0, 0])
+
+
+def _effector_thrust(flight, conditions, net_thrust, controls):
+    """Return the thrust force, its moment about the center of dry mass and
+    the nozzle exit, all in the body frame.
+
+    The motor's net thrust acts along the rocket's axis, through the nozzle
+    exit, which is on the axis moved by the thrust eccentricity. The rocket's
+    thrust effectors, if it has any, then turn the force and move the nozzle
+    exit, each in turn."""
+    force = Vector([0, 0, net_thrust])
+    nozzle = flight.rocket.nozzle_exit
+    names = flight._control_names
+    for effector in flight.rocket._thrust_effectors:
+        force, nozzle = effector.thrust_and_nozzle(
+            force,
+            nozzle,
+            [controls[name] for name in names.get(effector, ())],
+            conditions,
+        )
+        force, nozzle = Vector(force), Vector(nozzle)
+    return force, nozzle ^ force, nozzle
+
+
+def _effector_force_and_moment(flight, conditions, controls):
+    """Return the sum of the force effectors' forces and of their moments
+    about the center of dry mass, in the body frame.
+
+    An effector placed somewhere on the rocket (``rocket.add_effector``'s
+    ``position``) acts there: the moment of its force about the center of dry
+    mass is added to the moment it returns. Both are zero for a rocket without
+    force effectors."""
+    effectors = flight.rocket._force_effectors
+    if not effectors:
+        return _NO_VECTOR, _NO_VECTOR
+    force, moment = Vector([0, 0, 0]), Vector([0, 0, 0])
+    names, points = flight._control_names, flight.rocket._effector_points
+    for effector in effectors:
+        effector_force, effector_moment = effector.force_and_moment(
+            [controls[name] for name in names.get(effector, ())], conditions
+        )
+        effector_force = Vector(effector_force)
+        point = points[effector]
+        if point is not None:
+            effector_moment = Vector(effector_moment) + (point ^ effector_force)
+        force = force + effector_force
+        moment = moment + Vector(effector_moment)
+    return force, moment
+
+
+def _surface_forces(  # pylint: disable=too-many-arguments
+    flight, t, z, K, Kt, velocity_in_body_frame, w, controls, R1, R2, R3, M1, M2, M3
+):
+    """Add the forces and moments of the rocket's active aerodynamic surfaces
+    to the sums given, in the body frame, and return them.
+
+    Each surface meets the air at its own point: the air at its altitude,
+    moving relative to it as the rocket translates and rotates. Its controls,
+    if it has any, are read from ``controls`` by name.
+
+    Parameters
+    ----------
+    flight : Flight
+        Flight object providing the rocket and the environment.
+    t : float
+        Time in seconds, for which surfaces are active.
+    z : float
+        Altitude of the rocket's center of dry mass, in m.
+    K : Matrix
+        Rotation from the body frame to the Earth frame.
+    Kt : Matrix
+        Its transpose.
+    velocity_in_body_frame : Vector
+        Velocity of the rocket in the body frame, in m/s.
+    w : Vector
+        Angular velocity of the rocket in the body frame, in rad/s.
+    controls : dict
+        The flight's control inputs, name to value.
+    R1, R2, R3, M1, M2, M3 : float
+        The sums to add to, so a caller keeps its own order of summation.
+
+    Returns
+    -------
+    tuple of float
+        ``(R1, R2, R3, M1, M2, M3)`` with the surfaces added.
+    """
+    rocket, env = flight.rocket, flight.env
+    names = flight._control_names
+    for aero_surface, _ in rocket.aerodynamic_surfaces:
+        if not aero_surface.is_active(t, flight):
+            continue
+        # Component cp relative to CDM in body frame
+        comp_cp = rocket.surfaces_cp_to_cdm[aero_surface]
+        # Component absolute velocity in body frame
+        comp_vb = velocity_in_body_frame + (w ^ comp_cp)
+        # Air at the component's altitude
+        comp_z = z + (K @ comp_cp).z
+        comp_wind_vx = env.wind_velocity_x.get_value_opt(comp_z)
+        comp_wind_vy = env.wind_velocity_y.get_value_opt(comp_z)
+        # Component freestream velocity in body frame
+        comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
+        comp_stream_velocity = comp_wind_vb - comp_vb
+        comp_stream_speed = abs(comp_stream_velocity)
+        comp_rho = env.density.get_value_opt(comp_z)
+        comp_speed_of_sound = env.speed_of_sound.get_value_opt(comp_z)
+        comp_stream_mach = comp_stream_speed / comp_speed_of_sound
+        # Forces and moments
+        X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+            comp_stream_velocity,
+            comp_stream_speed,
+            comp_stream_mach,
+            comp_rho,
+            comp_cp,
+            w,
+            env.density,
+            env.dynamic_viscosity,
+            comp_z,
+            [controls[name] for name in names.get(aero_surface, ())],
+        )
+        R1 += X
+        R2 += Y
+        R3 += Z
+        M1 += M
+        M2 += N
+        M3 += L
+    return R1, R2, R3, M1, M2, M3
+
+
+def udot_rail1(flight, t, u, controls, *, post_processing=False, conditions=None):
     """Compute the 1-DOF rail-flight state derivative.
 
     The rail model advances translation along the launch rail while keeping the
@@ -116,16 +227,24 @@ def udot_rail1(flight, t, u, post_processing=False):
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    controls : dict
+        The flight's control inputs, name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
+    conditions : FlightConditions, optional
+        The flight at this moment, handed on to the rocket's effectors. The
+        equations do not read it themselves. ``None`` for a rocket without
+        effectors, continuous laws or parts with states.
 
     Returns
     -------
-    list or dict
+    list
         State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
         alpha1, alpha2, alpha3]``. With ``post_processing``, this phase's
-        post-process variables as a variable name to value map.
+        post-process variables in its declared order.
     """
     # Retrieve integration data
     _, _, z, vx, vy, vz, e0, e1, e2, e3, _, _, _ = u
@@ -145,9 +264,9 @@ def udot_rail1(flight, t, u, post_processing=False):
     free_stream_speed = abs(free_stream_velocity)
     free_stream_mach = free_stream_speed / flight.env.speed_of_sound.get_value_opt(z)
     rho = flight.env.density.get_value_opt(z)
-    stream_velocity_body = (
-        Matrix.transformation([e0, e1, e2, e3]).transpose @ free_stream_velocity
-    )
+    K = Matrix.transformation([e0, e1, e2, e3])
+    Kt = K.transpose
+    stream_velocity_body = Kt @ free_stream_velocity
     dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
     drag_area = _compute_drag_area(
         flight,
@@ -168,6 +287,28 @@ def udot_rail1(flight, t, u, post_processing=False):
         0,
     )
     R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
+    # On the rail the rocket can only slide along it: only the parts of the
+    # forces along its axis move it, so of the surfaces' forces only the
+    # axial one is kept (the drag of air brakes, of a generic surface given
+    # a cA). The rocket does not turn on the rail.
+    _, _, R3, _, _, _ = _surface_forces(
+        flight,
+        t,
+        z,
+        K,
+        Kt,
+        Kt @ Vector([vx, vy, vz]),
+        Vector([0, 0, 0]),
+        controls,
+        0.0,
+        0.0,
+        R3,
+        0.0,
+        0.0,
+        0.0,
+    )
+    net_thrust = _effector_thrust(flight, conditions, net_thrust, controls)[0].z
+    R3 += _effector_force_and_moment(flight, conditions, controls)[0].z
 
     # Calculate Linear acceleration
     a3 = (R3 + net_thrust) / total_mass_at_t - (
@@ -181,14 +322,22 @@ def udot_rail1(flight, t, u, post_processing=False):
         ax, ay, az = 0, 0, 0
 
     if post_processing:
-        values = list(flight.u_dot_generalized.post_process_at(t, u))
+        # The forces and moments the free-flight equations report, with the
+        # rail's own accelerations
+        values = list(
+            flight.u_dot_generalized.base_derivative(
+                t, u, controls, post_processing=True, conditions=conditions
+            )
+        )
         values[:6] = [ax, ay, az, 0.0, 0.0, 0.0]
         return values
 
     return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
 
-def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
+def udot_rail2(  # pragma: no cover
+    flight, t, u, controls, *, post_processing=False, conditions=None
+):
     """Compute the rail-flight derivative through the generalized solver.
 
     This function is a placeholder for a dedicated 3DOF rail model. The current
@@ -202,22 +351,30 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    controls : dict
+        The flight's control inputs, name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
+    conditions : FlightConditions, optional
+        The flight at this moment, handed on to the rocket's effectors. The
+        equations do not read it themselves. ``None`` for a rocket without
+        effectors, continuous laws or parts with states.
 
     Returns
     -------
-    list or dict
+    list
         Whatever :func:`u_dot_generalized` returns for the same arguments.
     """
     # Hey! We will finish this function later, now we just can use u_dot
-    if post_processing:
-        return flight.u_dot_generalized.post_process_at(t, u)
-    return flight.u_dot_generalized(t, u)
+    return flight.u_dot_generalized.base_derivative(
+        t, u, controls, post_processing=post_processing, conditions=conditions
+    )
 
 
-def u_dot(flight, t, u, post_processing=False):
+def u_dot(flight, t, u, controls, *, post_processing=False, conditions=None):
     """Compute the simplified 6DOF free-flight derivative.
 
     This solver is used for powered ascent and coasting descent without parachutes.
@@ -232,9 +389,17 @@ def u_dot(flight, t, u, post_processing=False):
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    controls : dict
+        The flight's control inputs, name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
+    conditions : FlightConditions, optional
+        The flight at this moment, handed on to the rocket's effectors. The
+        equations do not read it themselves. ``None`` for a rocket without
+        effectors, continuous laws or parts with states.
 
     Returns
     -------
@@ -250,28 +415,25 @@ def u_dot(flight, t, u, post_processing=False):
     R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
     # Thrust correction parameters
     pressure = flight.env.pressure.get_value_opt(z)
+    motor = flight.rocket.motor
     # Determine current behavior
-    if flight.rocket.motor.burn_start_time < t < flight.rocket.motor.burn_out_time:
+    if motor.burn_start_time < t < motor.burn_out_time:
         # Motor burning
         # Retrieve important motor quantities
         # Inertias
-        motor_I_33_at_t = flight.rocket.motor.I_33.get_value_opt(t)
-        motor_I_11_at_t = flight.rocket.motor.I_11.get_value_opt(t)
-        motor_I_33_derivative_at_t = flight.rocket.motor.I_33.differentiate(t, dx=1e-6)
-        motor_I_11_derivative_at_t = flight.rocket.motor.I_11.differentiate(t, dx=1e-6)
+        motor_I_33_at_t = motor.I_33.get_value_opt(t)
+        motor_I_11_at_t = motor.I_11.get_value_opt(t)
+        motor_I_33_derivative_at_t = motor.I_33.differentiate(t, dx=1e-6)
+        motor_I_11_derivative_at_t = motor.I_11.differentiate(t, dx=1e-6)
         # Mass
-        mass_flow_rate_at_t = flight.rocket.motor.mass_flow_rate.get_value_opt(t)
-        propellant_mass_at_t = flight.rocket.motor.propellant_mass.get_value_opt(t)
+        mass_flow_rate_at_t = motor.mass_flow_rate.get_value_opt(t)
+        propellant_mass_at_t = motor.propellant_mass.get_value_opt(t)
         # Thrust
 
         net_thrust = max(
-            flight.rocket.motor.thrust.get_value_opt(t)
-            + flight.rocket.motor.pressure_thrust(pressure),
+            motor.thrust.get_value_opt(t) + motor.pressure_thrust(pressure),
             0,
         )
-        # Off center moment
-        M1 += flight.rocket.thrust_eccentricity_y * net_thrust
-        M2 -= flight.rocket.thrust_eccentricity_x * net_thrust
     else:
         # Motor stopped
         # Inertias
@@ -285,6 +447,20 @@ def u_dot(flight, t, u, post_processing=False):
         mass_flow_rate_at_t, propellant_mass_at_t = 0, 0
         # thrust
         net_thrust = 0
+
+    # Forces besides the aerodynamic ones and the axial thrust: the sideways
+    # thrust of thrust effectors and the force effectors
+    extra_x, extra_y = 0.0, 0.0
+    if net_thrust != 0 or flight.rocket._thrust_effectors:
+        # The jet damping below takes the exhaust along the axis, so a nozzle
+        # off the axis changes only the thrust's moment here
+        thrust_force, thrust_moment, _ = _effector_thrust(
+            flight, conditions, net_thrust, controls
+        )
+        extra_x, extra_y, net_thrust = thrust_force
+        M1 += thrust_moment.x
+        M2 += thrust_moment.y
+        M3 += thrust_moment.z
 
     # Retrieve important quantities
     # Inertias
@@ -358,40 +534,9 @@ def u_dot(flight, t, u, post_processing=False):
     # Calculate lift and moment for each component of the rocket
     velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
     w = Vector([omega1, omega2, omega3])
-    for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
-        if not aero_surface.is_active(t, flight):
-            continue
-        # Component cp relative to CDM in body frame
-        comp_cp = flight.rocket.surfaces_cp_to_cdm[aero_surface]
-        # Component absolute velocity in body frame
-        comp_vb = velocity_in_body_frame + (w ^ comp_cp)
-        # Wind velocity at component altitude
-        comp_z = z + (K @ comp_cp).z
-        comp_wind_vx = flight.env.wind_velocity_x.get_value_opt(comp_z)
-        comp_wind_vy = flight.env.wind_velocity_y.get_value_opt(comp_z)
-        # Component freestream velocity in body frame
-        comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
-        comp_stream_velocity = comp_wind_vb - comp_vb
-        comp_stream_speed = abs(comp_stream_velocity)
-        comp_stream_mach = comp_stream_speed / speed_of_sound
-        # Forces and moments
-        X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
-            comp_stream_velocity,
-            comp_stream_speed,
-            comp_stream_mach,
-            rho,
-            comp_cp,
-            w,
-            flight.env.density,
-            flight.env.dynamic_viscosity,
-            comp_z,
-        )
-        R1 += X
-        R2 += Y
-        R3 += Z
-        M1 += M
-        M2 += N
-        M3 += L
+    R1, R2, R3, M1, M2, M3 = _surface_forces(
+        flight, t, z, K, Kt, velocity_in_body_frame, w, controls, R1, R2, R3, M1, M2, M3
+    )
     # Off center moment
     M3 += flight.rocket.cp_eccentricity_x * R2 - flight.rocket.cp_eccentricity_y * R1
 
@@ -402,8 +547,15 @@ def u_dot(flight, t, u, post_processing=False):
     # The reported M1, M2 stay about the center of dry mass, as in the
     # generalized equations.
     a = b * mu / rocket_dry_mass  # = b * m_prop / m_total
-    M1_cm = M1 - a * R2
-    M2_cm = M2 + a * R1
+    effector_force, effector_moment = _effector_force_and_moment(
+        flight, conditions, controls
+    )
+    extra_x += effector_force.x
+    extra_y += effector_force.y
+    extra_z = effector_force.z
+    M1_cm = M1 + effector_moment.x - a * (R2 + extra_y)
+    M2_cm = M2 + effector_moment.y + a * (R1 + extra_x)
+    M3_total = M3 + effector_moment.z
 
     # Calculate derivatives
     # Angular acceleration
@@ -458,7 +610,7 @@ def u_dot(flight, t, u, post_processing=False):
         )
     ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
     alpha3 = (
-        M3
+        M3_total
         - omega3
         * (motor_I_33_derivative_at_t - mass_flow_rate_at_t * (nozzle_radius**2) / 2)
     ) / (rocket_dry_I_33 + motor_I_33_at_t)
@@ -471,17 +623,24 @@ def u_dot(flight, t, u, post_processing=False):
     L = [
         (
             R1
+            + extra_x
             - b * propellant_mass_at_t * (omega2**2 + omega3**2)
             - 2 * c * mass_flow_rate_at_t * omega2
         )
         / total_mass_at_t,
         (
             R2
+            + extra_y
             + b * propellant_mass_at_t * (alpha3 + omega1 * omega2)
             + 2 * c * mass_flow_rate_at_t * omega1
         )
         / total_mass_at_t,
-        (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
+        (
+            R3
+            + extra_z
+            - b * propellant_mass_at_t * (alpha2 - omega1 * omega3)
+            + net_thrust
+        )
         / total_mass_at_t,
     ]
     ax, ay, az = K @ Vector(L)
@@ -529,7 +688,9 @@ def u_dot(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_generalized_3dof(flight, t, u, post_processing=False):
+def u_dot_generalized_3dof(
+    flight, t, u, controls, *, post_processing=False, conditions=None
+):
     """Compute the 3DOF free-flight derivative with weathercocking.
 
     The model advances translational motion with variable mass while using a kinematic
@@ -544,9 +705,17 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    controls : dict
+        The flight's control inputs, name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
+    conditions : FlightConditions, optional
+        The flight at this moment, handed on to the rocket's effectors. The
+        equations do not read it themselves. ``None`` for a rocket without
+        effectors, continuous laws or parts with states.
 
     Returns
     -------
@@ -560,12 +729,11 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
 
     # Define vectors
     v = Vector([vx, vy, vz])
-    e = [e0, e1, e2, e3]
     w = Vector([omega1, omega2, omega3])
 
     # Mass and transformation
     total_mass = flight.rocket.total_mass.get_value_opt(t)
-    K = Matrix.transformation(e)
+    K = Matrix.transformation([e0, e1, e2, e3])
     Kt = K.transpose
 
     # Atmospheric and wind data
@@ -581,7 +749,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     stream_velocity_body = Kt @ free_stream_velocity
     dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
 
-    # Drag (rocket body drag + air brakes). A 3-DOF phase does not model the
+    # Drag of the rocket body. A 3-DOF phase does not model the
     # rocket's attitude, so the drag acts against the velocity of the rocket
     # relative to the air instead of along the body axis.
     drag_area = _compute_drag_area(
@@ -596,38 +764,10 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     )
     R1, R2, R3 = stream_velocity_body * (0.5 * rho * free_stream_speed * drag_area)
 
-    # Velocity in body frame
-    vb_body = Kt @ v
-
-    for surface, _ in flight.rocket.aerodynamic_surfaces:
-        if not surface.is_active(t, flight):
-            continue
-        cp = flight.rocket.surfaces_cp_to_cdm[surface]
-        vb_component = vb_body + (w ^ cp)
-
-        comp_z = z + (K @ cp).z
-        wind_cx = flight.env.wind_velocity_x.get_value_opt(comp_z)
-        wind_cy = flight.env.wind_velocity_y.get_value_opt(comp_z)
-        wind_body = Kt @ Vector([wind_cx, wind_cy, 0])
-
-        rel_velocity = wind_body - vb_component
-        rel_speed = abs(rel_velocity)
-        rel_mach = rel_speed / speed_of_sound
-
-        fx, fy, fz, *_ = surface.compute_forces_and_moments(
-            rel_velocity,
-            rel_speed,
-            rel_mach,
-            rho,
-            cp,
-            w,
-            flight.env.density,
-            flight.env.dynamic_viscosity,
-            comp_z,
-        )
-        R1 += fx
-        R2 += fy
-        R3 += fz
+    # The surfaces' forces; a 3-DOF phase models no moments
+    R1, R2, R3, _, _, _ = _surface_forces(
+        flight, t, z, K, Kt, Kt @ v, w, controls, R1, R2, R3, 0.0, 0.0, 0.0
+    )
 
     # Thrust and weight
     # Calculate net thrust including pressure thrust correction if motor is burning
@@ -643,7 +783,16 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     gravity = flight.env.gravity.get_value_opt(z)
     weight_body = Kt @ Vector([0, 0, -total_mass * gravity])
 
-    total_force = Vector([0, 0, net_thrust]) + weight_body + Vector([R1, R2, R3])
+    # A 3-DOF phase takes the forces of the thrust and of the force
+    # effectors, not their moments
+    thrust_force, _, _ = _effector_thrust(flight, conditions, net_thrust, controls)
+    net_thrust = thrust_force.z
+    total_force = (
+        thrust_force
+        + weight_body
+        + Vector([R1, R2, R3])
+        + _effector_force_and_moment(flight, conditions, controls)[0]
+    )
 
     # Dynamics
     v_dot = K @ (total_force / total_mass)
@@ -738,12 +887,14 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_generalized(flight, t, u, post_processing=False):
+def u_dot_generalized(
+    flight, t, u, controls, *, post_processing=False, conditions=None
+):
     """Compute the full 6DOF generalized flight derivative.
 
-    This is the highest-fidelity rigid-body flight solver in this module. It accounts
-    for variable mass, changing inertia, aerodynamic surface loads, thrust eccentricity,
-    and Earth-rotation effects.
+    This is the highest-fidelity rigid-body flight solver in this module. It
+    accounts for variable mass, changing inertia, aerodynamic surface loads,
+    thrust eccentricity, and Earth-rotation effects.
 
     Parameters
     ----------
@@ -753,9 +904,17 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         Time in seconds.
     u : list
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+    controls : dict
+        The flight's control inputs, name to value. During the flight
+        it is the live dictionary; when a stored row is worked out again, the
+        copy stored with that row.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.
+    conditions : FlightConditions, optional
+        The flight at this moment, handed on to the rocket's effectors. The
+        equations do not read it themselves. ``None`` for a rocket without
+        effectors, continuous laws or parts with states.
 
     Returns
     -------
@@ -770,7 +929,6 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     # Create necessary vectors
     # r = Vector([x, y, z])  # CDM position vector
     v = Vector([vx, vy, vz])  # CDM velocity vector
-    e = [e0, e1, e2, e3]  # Euler parameters/quaternions
     w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
     # Retrieve necessary quantities
@@ -789,11 +947,6 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     r_CM = Vector([0, 0, r_CM_t])
     r_CM_dot = Vector([0, 0, -r_CM_z.differentiate_complex_step(t)])
     r_CM_ddot = Vector([0, 0, -r_CM_z.differentiate(t, order=2)])
-    ## Nozzle exit position vector relative to CDM in body frame
-    ## (``nozzle_to_cdm`` runs from the nozzle exit to the center of dry mass)
-    r_NOZ = Vector([0, 0, -flight.rocket.nozzle_to_cdm])
-    ## Nozzle gyration tensor
-    S_nozzle = flight.rocket.nozzle_gyration_tensor
     ## Inertia tensor
     inertia_tensor = flight.rocket.get_inertia_tensor_at_time(t)
     ## Inertia tensor time derivative in the body frame
@@ -804,7 +957,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     I_CM = inertia_tensor - H
 
     # Prepare transformation matrices
-    K = Matrix.transformation(e)
+    K = Matrix.transformation([e0, e1, e2, e3])
     Kt = K.transpose
 
     # Compute aerodynamic forces and moments
@@ -844,53 +997,31 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     # The drag curve is the axial force coefficient, so the drag follows the
     # air moving along the rocket's axis: zero sideways, reversed tail first
     R3 = 0.5 * rho * free_stream_speed * stream_velocity_body[2] * drag_area
-    # Get rocket velocity in body frame
-    velocity_in_body_frame = Kt @ v
     # Calculate lift and moment for each component of the rocket
-    for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
-        if not aero_surface.is_active(t, flight):
-            continue
-        # Component cp relative to CDM in body frame
-        comp_cp = flight.rocket.surfaces_cp_to_cdm[aero_surface]
-        # Component absolute velocity in body frame
-        comp_vb = velocity_in_body_frame + (w ^ comp_cp)
-        # Wind velocity at component altitude
-        comp_z = z + (K @ comp_cp).z
-        comp_wind_vx = flight.env.wind_velocity_x.get_value_opt(comp_z)
-        comp_wind_vy = flight.env.wind_velocity_y.get_value_opt(comp_z)
-        # Component freestream velocity in body frame
-        comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
-        comp_stream_velocity = comp_wind_vb - comp_vb
-        comp_stream_speed = abs(comp_stream_velocity)
-        comp_stream_mach = comp_stream_speed / speed_of_sound
-        # Forces and moments
-        X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
-            comp_stream_velocity,
-            comp_stream_speed,
-            comp_stream_mach,
-            rho,
-            comp_cp,
-            w,
-            flight.env.density,
-            flight.env.dynamic_viscosity,
-            comp_z,
-        )
-        R1 += X
-        R2 += Y
-        R3 += Z
-        M1 += M
-        M2 += N
-        M3 += L
+    R1, R2, R3, M1, M2, M3 = _surface_forces(
+        flight, t, z, K, Kt, Kt @ v, w, controls, R1, R2, R3, M1, M2, M3
+    )
 
-    # Off center moment
-    M1 += (
-        flight.rocket.cp_eccentricity_y * R3
-        + flight.rocket.thrust_eccentricity_y * net_thrust
+    # Off center moment. The exhaust leaves at the nozzle exit (``r_NOZ``,
+    # from the center of dry mass, in the body frame), which the mass flow
+    # terms (jet damping) below read
+    thrust_force, thrust_moment, r_NOZ = _effector_thrust(
+        flight, conditions, net_thrust, controls
     )
-    M2 -= (
-        flight.rocket.cp_eccentricity_x * R3
-        + flight.rocket.thrust_eccentricity_x * net_thrust
-    )
+    net_thrust = thrust_force.z
+    ## Nozzle gyration tensor: the rocket's, moved with the nozzle exit when a
+    ## thrust effector moved it
+    S_nozzle = flight.rocket.nozzle_gyration_tensor
+    nozzle_exit = flight.rocket.nozzle_exit
+    if r_NOZ is not nozzle_exit:
+        S_nozzle = (
+            S_nozzle
+            + (r_NOZ.cross_matrix @ -r_NOZ.cross_matrix)
+            - (nozzle_exit.cross_matrix @ -nozzle_exit.cross_matrix)
+        )
+    M1 += flight.rocket.cp_eccentricity_y * R3 + thrust_moment.x
+    M2 += thrust_moment.y - flight.rocket.cp_eccentricity_x * R3
+    M3 += thrust_moment.z
     M3 += flight.rocket.cp_eccentricity_x * R2 - flight.rocket.cp_eccentricity_y * R1
 
     weight_in_body_frame = Kt @ Vector(
@@ -900,7 +1031,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     T00 = total_mass * r_CM
     T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
     T04 = (
-        Vector([0, 0, net_thrust])
+        thrust_force
         - total_mass * r_CM_ddot
         - 2 * total_mass_dot * r_CM_dot
         + total_mass_ddot * (r_NOZ - r_CM)
@@ -917,6 +1048,11 @@ def u_dot_generalized(flight, t, u, post_processing=False):
         - (weight_in_body_frame ^ r_CM)
         + Vector([M1, M2, M3])
     )
+    effector_force, effector_moment = _effector_force_and_moment(
+        flight, conditions, controls
+    )
+    T20 = T20 + effector_force
+    T21 = T21 + effector_moment
 
     # Angular velocity derivative
     w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
@@ -948,7 +1084,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):  # pylint: disable=unused-argument
+def u_dot_parachute(flight, t, u, controls, *, post_processing=False, parachute):  # pylint: disable=unused-argument
     """Compute the parachute descent derivative.
 
     Only position and velocity actually move under a parachute. The attitude and
@@ -966,6 +1102,8 @@ def u_dot_parachute(flight, t, u, post_processing=False, *, parachute):  # pylin
         State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``. Only
         the position and velocity are read; the attitude and angular rates come
         along unchanged.
+    controls : dict
+        The flight's control inputs. A parachute descent reads none of them.
     post_processing : bool, optional
         If ``True``, return this phase's post-process variables instead of the
         state derivative. Default is ``False``.

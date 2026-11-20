@@ -1571,3 +1571,28 @@ def test_regular_grid_dict_round_trip(bilinear_grid_2d):
     assert restored.get_domain_dim() == 2
     for x, y in [(0.5, 1.5), (1.25, 0.75), (2.0, 2.0)]:
         assert np.isclose(restored(x, y), bilinear_grid_2d(x, y))
+
+
+def test_previous_interpolation_holds_each_value_until_the_next_point():
+    """A sampled signal keeps its value until the next sample."""
+    held = Function(
+        [[0.0, 0.0], [1.0, 0.5], [2.0, 0.2]],
+        interpolation="previous",
+        extrapolation="constant",
+    )
+    assert held.get_interpolation_method() == "previous"
+    assert held(0.5) == 0.0
+    assert held(1.0) == 0.5  # a point holds from its own time on
+    assert held(1.99) == 0.5
+    assert held(2.0) == 0.2
+    assert held(5.0) == 0.2
+    assert held(-1.0) == 0.0
+    assert list(held.get_value([0.5, 1.5])) == [0.0, 0.5]
+
+
+def test_previous_interpolation_extrapolates_at_the_edge_values():
+    held = Function(
+        [[0.0, 1.0], [1.0, 3.0]], interpolation="previous", extrapolation="natural"
+    )
+    assert held(-2.0) == 1.0
+    assert held(4.0) == 3.0

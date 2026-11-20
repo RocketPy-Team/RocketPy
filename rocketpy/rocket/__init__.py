@@ -1,8 +1,8 @@
-from rocketpy.control.controller import _Controller
+from rocketpy.control.controller import Controller
 from rocketpy.rocket.aero_surface import (
     AeroSurface,
     AirBrakes,
-    ControllableGenericSurface,
+    ControlFins,
     EllipticalFin,
     EllipticalFins,
     Fin,

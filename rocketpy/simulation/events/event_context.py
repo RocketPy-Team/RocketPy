@@ -1,5 +1,6 @@
-from ..helpers.dynamics import CANONICAL_INDEX
-from .state import _State, _StateDot
+from ..helpers.conditions import FlightConditions
+from ..helpers.state import CANONICAL_INDEX, _State, _StateDot
+from .views import ControlsView, OutputsView, SensorsView
 
 # Altitude's slot in the canonical state. Reading it by position avoids a
 # by-name lookup on every event check.
@@ -13,8 +14,7 @@ _LAZY_CONTEXT_KEYS = (
     "state_dot",
     "canonical_state_dot",
     "raw_state_dot",
-    "pressure",
-    "step_size",
+    "conditions",
 )
 
 # Keys answered from the event being evaluated, never stored in the context.
@@ -31,18 +31,19 @@ class EventContext(dict):
     holds.
 
     Some values are only worked out when they are first read: ``state``,
-    ``state_dot``, ``pressure`` and ``step_size``. Once read they are kept for
-    the rest of the step, so a second event reading the same value in the same
-    step pays nothing. A value no function reads costs nothing at all.
+    ``state_dot``, ``conditions``, the air data (``pressure``, ``density``,
+    ``mach``, ...) and ``phase_name``. Once read, a value is kept for the rest
+    of the step, so a second event reading it in the same step does not work it
+    out again.
 
     ``previous_state`` and ``previous_time`` describe the previous check of the
     event being evaluated, so they are answered from that event and never
     stored here.
 
-    A context is shared and rewritten as the step is worked through, so nothing
-    may hold on to it, and a function should not add values to it: whatever it
-    writes is seen by the other events of the step. Keep an event's own data in
-    ``context.event.memory``.
+    The same context is given to every event of the step, and it is rewritten
+    as the step goes on. Do not keep a reference to it after the function
+    returns, and do not add values to it, since the other events of the step
+    would see them. Keep an event's own data in ``context.memory``.
     """
 
     # The values are stored as dictionary items, which is what RocketPy's own
@@ -52,14 +53,105 @@ class EventContext(dict):
     # current phase integrates, which ``phase_names`` names in order. The
     # properties below are the documented way in.
 
-    __slots__ = ("_owned",)
+    __slots__ = ("_solution", "_phase", "_output_events")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Keys the event currently being evaluated owns, which are cleared
-        # before the next event is bound. Keys every event writes are not
-        # listed, since they are overwritten rather than left behind.
-        self._owned = ()
+    def __init__(self, *args, solution=None, phase=None, output_events=None, **values):
+        """Build a context from its values, as a dict is built.
+
+        Parameters
+        ----------
+        *args, **values
+            The values, as given to ``dict``.
+        solution : Solution, optional
+            The flight's solution so far. Default ``None``, outside a flight.
+        phase : _FlightPhase, optional
+            The flight phase being flown. Default ``None``, outside a flight.
+        output_events : dict, optional
+            The flight's events with outputs, by their name in snake_case.
+            Default ``None``, no outputs.
+        """
+        super().__init__(*args, **values)
+        self._solution = solution
+        self._phase = phase
+        self._output_events = output_events
+
+    def __dir__(self):
+        # What a trigger or callback reads, without the dictionary's own
+        # methods, so that completion in a notebook lists only these
+        return [
+            name
+            for name, member in vars(EventContext).items()
+            if isinstance(member, property) or name == "record"
+        ]
+
+    def __repr__(self):
+        """Return a summary of what a trigger or callback can read and write
+        here, with the names to use: ``print(context)`` inside a function
+        shows them. The equations of motion and the air data are not
+        evaluated for it."""
+        lines = []
+
+        def add(section):
+            # A context built outside a flight may lack a part: skip it
+            try:
+                lines.extend(section())
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+
+        def header():
+            parts = [f"EventContext at t = {self['time']:.6g} s"]
+            if self._phase is not None:
+                parts.append(f"phase '{self._phase.name}'")
+            if "event" in self:
+                parts.append(f"event '{self['event'].name}'")
+            return [", ".join(parts)]
+
+        def state():
+            return [f"  state (context.state.<name>): {', '.join(self['state'].names)}"]
+
+        def height():
+            return [f"  height_agl: {self['height_agl']:.6g} m"]
+
+        def controls():
+            view = self.controls
+            groups = [
+                f"    {key}: {', '.join(view[name])}" for name, key in _keys(view)
+            ]
+            return ["  controls (context.controls.<name>.<control>):", *groups]
+
+        def sensors():
+            view = self.sensors
+            groups = [
+                f"    {key}: {', '.join(view[name])}" for name, key in _keys(view)
+            ]
+            return ["  sensors (context.sensors.<name>.<channel>):", *groups]
+
+        def outputs():
+            view = self.outputs
+            groups = [
+                f"    {key}: {', '.join(view[name])}" for name, key in _keys(view)
+            ]
+            return ["  outputs (context.outputs.<name>.<output>):", *groups]
+
+        def memory():
+            keys = ", ".join(map(str, self["event"].memory)) or "empty"
+            return [f"  memory (context.memory[<key>]): {keys}"]
+
+        def _keys(view):
+            # Each group of a view by its name as given, with its key; a view
+            # with no groups raises, so its section is left out
+            pairs = list(view._names().items())  # pylint: disable=protected-access
+            if not pairs:
+                raise LookupError
+            return pairs
+
+        for section in (header, state, height, controls, sensors, outputs, memory):
+            add(section)
+        shown = {"time", "state", "height_agl", "controls", "sensors", "outputs"}
+        shown |= {"memory", "phase_name", "event"}
+        rest = [name for name in dir(self) if name not in shown]
+        lines.append(f"  also: {', '.join(rest)}")
+        return "\n".join(lines)
 
     def __missing__(self, key):
         if key in _PREVIOUS_KEYS:
@@ -88,12 +180,17 @@ class EventContext(dict):
             )
         elif key in ("canonical_state_dot", "raw_state_dot"):
             self._compute_derivatives()
-        elif key == "pressure":
-            self["pressure"] = self["environment"].pressure.get_value_opt(
-                self["canonical_state"][_Z_SLOT]
+        elif key == "conditions":
+            self["conditions"] = FlightConditions(
+                self["rocket"],
+                self["environment"],
+                self["time"],
+                self["canonical_state"],
+                self["phase_names"],
+                self["raw_state"],
             )
-        elif key == "step_size":
-            self["step_size"] = infer_step_size(self["flight"], self["time"])
+        elif key == "phase_name":
+            self["phase_name"] = self._phase.name
         else:
             raise KeyError(key)
         return self[key]
@@ -107,9 +204,9 @@ class EventContext(dict):
 
     def _compute_derivatives(self):
         """Evaluate the equations of motion once, for both derivative views."""
-        current = self["flight"].solution.phases[-1]
+        current = self._solution.phases[-1]
         raw_state = self["raw_state"]
-        raw_state_dot = self["phase"].dynamics(self["time"], raw_state)
+        raw_state_dot = self._phase.dynamics(self["time"], raw_state)
         self["raw_state_dot"] = raw_state_dot
         self["canonical_state_dot"] = current.canonical_derivative(
             raw_state_dot, raw_state
@@ -123,43 +220,32 @@ class EventContext(dict):
         event : Event
             The event being checked.
         """
-        for key in self._owned:
-            del self[key]
-        self._owned = ()
         self["event"] = event
         self["sampling_rate"] = event.sampling_rate
 
-    def own(self, **values):
-        """Add values that belong to the event being evaluated alone.
+    def record(self, **values):
+        """Record named values at the current time, to read after the flight.
 
-        They are removed again when the next event is bound, so no other event
-        of the step sees them. A controller uses this for ``controller`` and
-        the names of the objects it drives.
-        """
-        self.update(values)
-        self._owned = self._owned + tuple(values)
+        .. code-block:: python
 
-    def at(self, time, raw_state):
-        """Return a copy of this context describing another moment of the step.
+            context.record(estimated_apogee=3012.0, error=0.4)
+            context.record(command=[0.1, -0.2, 0.0], mode="coast")
 
-        Everything that depends on the moment is worked out again for ``time``,
-        or dropped so that it is worked out when next read. The context itself
-        is not changed.
+        After the flight, ``event.records["estimated_apogee"]`` and
+        ``flight.records.<event name>.estimated_apogee`` (the records of
+        every event, by the event's name) give each name as the list of
+        ``(time, value)`` pairs recorded, with the value exactly as given.
+        Unlike ``context.memory``, which keeps what the next call needs, a
+        record keeps every value with its time.
 
         Parameters
         ----------
-        time : float
-            The moment, in seconds, inside the current solver step.
-        raw_state : sequence of float
-            The current phase's raw state at ``time``.
-
-        Returns
-        -------
-        EventContext
+        **values : float or object
+            The values to record, by name. A value that is not a number is
+            copied, so changing the object afterwards does not change what was
+            recorded.
         """
-        moved = EventContext(self)
-        moved._owned = self._owned
-        return refresh_event_kwargs(self["flight"], moved, time, raw_state)
+        self["event"]._record(self["time"], values)  # pylint: disable=protected-access
 
     @property
     def time(self):
@@ -173,17 +259,20 @@ class EventContext(dict):
 
     @property
     def state_dot(self):
-        """Time derivative of each state, read as ``state_dot.az``."""
+        """Derivative of each state with respect to time, read by name as
+        ``state_dot.az``."""
         return self["state_dot"]
 
     @property
     def previous_state(self):
-        """The ``state`` at this event's previous check, or ``None``."""
+        """The ``state`` at this event's previous check, or ``None`` on the
+        first check."""
         return self["previous_state"]
 
     @property
     def previous_time(self):
-        """The ``time`` of this event's previous check, in s, or ``None``."""
+        """The ``time`` of this event's previous check, in s, or ``None`` on
+        the first check."""
         return self["previous_time"]
 
     @property
@@ -192,18 +281,70 @@ class EventContext(dict):
         return self["height_agl"]
 
     @property
-    def pressure(self):
-        """Atmospheric pressure at the rocket's altitude, in Pa."""
-        return self["pressure"]
+    def conditions(self):
+        """The air data (``pressure``, ``density``, ``mach``, ...) as one
+        object, a :class:`rocketpy.control.FlightConditions`. It is the object a
+        controllable's methods receive inside the equations of motion, so use
+        it to pass the air data on to one of them. To read a single value,
+        ``context.pressure`` is shorter."""
+        return self["conditions"]
+
+    # The air data are worked out by the conditions object when first read,
+    # and kept for the rest of the step with it.
 
     @property
-    def step_size(self):
-        """How long the simulation has been inside this solver step, in s."""
-        return self["step_size"]
+    def pressure(self):
+        """Air pressure at the rocket's altitude, in Pa."""
+        return self["conditions"].pressure
+
+    @property
+    def density(self):
+        """Air density at the rocket's altitude, in kg/m³."""
+        return self["conditions"].density
+
+    @property
+    def speed_of_sound(self):
+        """Speed of sound at the rocket's altitude, in m/s."""
+        return self["conditions"].speed_of_sound
+
+    @property
+    def wind_velocity(self):
+        """Wind velocity at the rocket's altitude, in m/s, in the Earth frame
+        (x East, y North, z up)."""
+        return self["conditions"].wind_velocity
+
+    @property
+    def stream_velocity(self):
+        """Velocity of the air relative to the rocket, in m/s, in the rocket's
+        body frame (z along the rocket's axis, toward the nose)."""
+        return self["conditions"].stream_velocity
+
+    @property
+    def stream_speed(self):
+        """Speed of the air relative to the rocket, in m/s."""
+        return self["conditions"].stream_speed
+
+    @property
+    def mach(self):
+        """Mach number of the air relative to the rocket."""
+        return self["conditions"].mach
+
+    @property
+    def dt(self):
+        """Time since this event was last checked, in s. For a controller, this
+        is the time since its previous run. On the first check it is
+        ``1 / sampling_rate``, or ``None`` for an event with no
+        ``sampling_rate``, which is checked at every solver step."""
+        previous_time = self["previous_time"]
+        if previous_time is not None:
+            return self["time"] - previous_time
+        sampling_rate = self["sampling_rate"]
+        return None if sampling_rate is None else 1 / sampling_rate
 
     @property
     def sampling_rate(self):
-        """How often the event being checked is sampled, in Hz, or ``None``."""
+        """How often the event being checked is sampled, in Hz, or ``None`` for
+        an event checked at every solver step."""
         return self["sampling_rate"]
 
     @property
@@ -212,67 +353,109 @@ class EventContext(dict):
         return self["event"]
 
     @property
-    def flight(self):
-        """The flight being simulated."""
-        return self["flight"]
+    def memory(self):
+        """A dictionary that belongs to the event being checked and is kept
+        from one check to the next. Store in it what the next call needs, such
+        as the integral of a PID controller. The same as
+        ``context.event.memory``."""
+        return self["event"].memory
+
+    @property
+    def commands(self):
+        """The requests the event being checked makes to the flight, such as
+        ``context.commands.terminate_flight()`` or
+        ``context.commands.set_dynamics(...)``. This is the only way a trigger
+        or callback can change the course of the flight. A request takes
+        effect once the function returns. The same as
+        ``context.event.commands``. See
+        :class:`rocketpy.simulation.events.commands.Commands`."""
+        return self["event"].commands
+
+    @property
+    def controls(self):
+        """The rocket's control inputs, read and written by the name of the
+        controllable in snake_case, then the name of the control:
+
+        .. code-block:: python
+
+            context.controls.air_brakes.deployment_level = 0.5
+            context.controls["Air Brakes"].deployment_level = 0.5
+            context.controls[air_brakes].deployment_level = 0.5
+            context.controls.canards[f"fin_{i}"] = 0.05
+
+        The second and third lines find the controllable by its name as given
+        and by the object itself. The last one writes a control whose name is
+        built in a loop. ``list(context.controls)`` gives the names of the
+        controllables.
+
+        A value written outside the control's limits is moved to the nearest
+        limit once the callback returns. The new value acts from the event's
+        time on: if the solver step had already gone past that time, the step
+        is cut there. See
+        :class:`rocketpy.simulation.events.views.ControlsView`.
+        """
+        owners = self.get("control_owners")
+        if owners is None:
+            owners = getattr(self.get("rocket"), "controllables", ())
+        return ControlsView(self["controls"], owners)
+
+    @property
+    def outputs(self):
+        """The values the events of the flight share with each other. An
+        event declares its outputs when it is built (``outputs=`` of
+        :class:`rocketpy.Event` and :class:`rocketpy.Controller`), writes them
+        under its own name in snake_case, and every other event reads them:
+
+        .. code-block:: python
+
+            context.outputs.guidance.pitch_setpoint = 0.1  # in "Guidance"
+            setpoint = context.outputs.guidance.pitch_setpoint  # elsewhere
+
+        An output can hold any value and keeps it until it is written again.
+        Only the event that declared an output can write it.
+        ``list(context.outputs)`` gives the names of the events with outputs.
+        See :class:`rocketpy.simulation.events.views.OutputsView`.
+        """
+        return OutputsView(self._output_events or {}, self.get("event"), self["time"])
 
     @property
     def rocket(self):
-        """The rocket being flown."""
+        """The rocket being flown. Do not change it here, since the same rocket
+        object is used by later flights."""
         return self["rocket"]
 
     @property
     def environment(self):
-        """The environment the rocket flies in."""
+        """The environment the rocket flies in, such as
+        ``context.environment.wind_velocity_x(z)``. Do not change it here."""
         return self["environment"]
 
     @property
-    def phase(self):
-        """The current flight phase."""
-        return self["phase"]
+    def phase_name(self):
+        """Name of the current flight phase: ``"initial_phase"`` (from the
+        start, on the rail), ``"free_flight"`` (after leaving the rail), or
+        ``"<parachute name>_parachute_descent"`` (under that parachute)."""
+        return self["phase_name"]
 
     @property
     def sensors(self):
-        """The rocket's sensors, in the order they were added."""
-        return self["sensors"]
+        """The latest reading of every channel of the rocket's sensors. Find
+        a sensor by its name as given, or by that name in snake_case as an
+        attribute, then read its channels by attribute, such as ``ax``,
+        ``wz``, ``pressure`` or ``latitude``. The two are the same:
 
-    @property
-    def sensors_by_name(self):
-        """The rocket's sensors, by name."""
-        return self["sensors_by_name"]
+        .. code-block:: python
 
-    @property
-    def controller(self):
-        """The controller being run, or ``None`` outside a controller."""
-        return self.get("controller")
+            context.sensors["Accelerometer"].az
+            context.sensors.accelerometer.az
 
-    @property
-    def controlled(self):
-        """The objects the controller drives, or ``None`` outside one."""
-        return self.get("controlled")
-
-
-def infer_step_size(flight, time):
-    """Return how long the simulation has been inside the current solver step.
-
-    This is ``time`` measured from the start of the step the solver is working
-    on, which is the time of the second-to-last stored row. At the end of a step
-    that is the whole step the solver just took; at a point interpolated inside
-    a step it is the part of the step up to that point.
-
-    It reaches user callbacks as ``context.step_size``. It is not the
-    interval between checks of any one callback, and not ``1 / sampling_rate``:
-    a sampled callback is checked on its own schedule, which has nothing to do
-    with where the solver put its step boundaries.
-
-    Worked out from the stored rows rather than read off the solver, because the
-    solver's own ``step_size`` still describes the step it last attempted, which
-    after a rollback is a step the flight no longer contains.
-    """
-    solution = flight.solution
-    if len(solution) < 2:
-        return 0.0
-    return max(0.0, time - solution.raw_row(-2)[0])
+        ``list(context.sensors)`` gives the names. Every sensor reads once on
+        the pad when the flight starts, so there is always a reading. The
+        readings cannot be written. The sensor objects themselves, with their
+        settings, are in ``context.rocket.sensors``. See
+        :class:`rocketpy.simulation.events.views.SensorsView`.
+        """
+        return SensorsView(self["sensors"], self._solution)
 
 
 def build_event_kwargs(flight, time, state, phase):
@@ -280,10 +463,10 @@ def build_event_kwargs(flight, time, state, phase):
 
     ``state`` is the raw state of the current flight phase, which may not be the
     full canonical state. The reconstructed canonical state is stored as
-    ``canonical_state``, so that built-in hooks always see the familiar
-    13-variable layout, and the raw state as ``raw_state``, for internal use
-    such as rolling the solver back. User-written hooks read ``state``, a
-    ``_State`` over both that is only built when it is read.
+    ``canonical_state``, so that RocketPy's own events always see the 13
+    standard states, and the raw state as ``raw_state``, for internal use such
+    as rolling the solver back. Triggers and callbacks written by users read
+    ``state``, a ``_State`` over both that is only built when it is read.
 
     Only what nearly every event reads is worked out here; the rest is worked
     out by the context itself when first read.
@@ -296,8 +479,8 @@ def build_event_kwargs(flight, time, state, phase):
         Current simulation time, in seconds.
     state : sequence of float
         The current phase's raw state at ``time``.
-    phase : FlightPhase
-        Active flight phase.
+    phase : _FlightPhase
+        The flight phase being flown.
 
     Returns
     -------
@@ -316,18 +499,23 @@ def build_event_kwargs(flight, time, state, phase):
             "canonical_state": canonical,
             "raw_state": state,
             "phase_names": current.dynamics.states,
-            "sensors": flight.sensors,
-            "sensors_by_name": flight.sensors_by_name,
+            "sensors": flight._sensors_by_key,
             "environment": flight.env,
             "rocket": flight.rocket,
-            "flight": flight,
-            "phase": phase,
             "height_agl": canonical[_Z_SLOT] - flight.env.elevation,
-        }
+            # The same dictionary for the whole flight, so it is kept when the
+            # context moves to another moment of the step
+            "controls": flight._controls,
+            # The controllables the control inputs are named after
+            "control_owners": getattr(flight, "_control_owners", None),
+        },
+        solution=flight.solution,
+        phase=phase,
+        output_events=getattr(flight, "_output_events", None),
     )
 
 
-def refresh_event_kwargs(flight, event_kwargs, interpolated_time, interpolated_state):
+def refresh_event_kwargs(event_kwargs, interpolated_time, interpolated_state):
     """Rewrite the event context to describe another moment, in place.
 
     Used for a moment inside the solver step: a sampling time the step
@@ -336,8 +524,6 @@ def refresh_event_kwargs(flight, event_kwargs, interpolated_time, interpolated_s
 
     Parameters
     ----------
-    flight : Flight
-        Flight instance whose environment is used to recompute derived values.
     event_kwargs : EventContext
         Context (from :func:`build_event_kwargs`) updated in place.
     interpolated_time : float
@@ -350,7 +536,7 @@ def refresh_event_kwargs(flight, event_kwargs, interpolated_time, interpolated_s
     EventContext
         The updated ``event_kwargs``.
     """
-    current = flight.solution.phases[-1]
+    current = event_kwargs._solution.phases[-1]  # pylint: disable=protected-access
     # A phase that already integrates the full canonical state needs no
     # reconstruction, and this runs on every overshootable node.
     if current.dynamics.is_canonical:
@@ -360,7 +546,9 @@ def refresh_event_kwargs(flight, event_kwargs, interpolated_time, interpolated_s
     event_kwargs["time"] = interpolated_time
     event_kwargs["canonical_state"] = canonical
     event_kwargs["raw_state"] = interpolated_state
-    event_kwargs["height_agl"] = canonical[_Z_SLOT] - flight.env.elevation
+    event_kwargs["height_agl"] = (
+        canonical[_Z_SLOT] - event_kwargs["environment"].elevation
+    )
     for key in _LAZY_CONTEXT_KEYS:
         event_kwargs.pop(key, None)
     return event_kwargs

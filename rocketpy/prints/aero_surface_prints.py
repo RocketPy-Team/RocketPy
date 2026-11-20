@@ -1,5 +1,7 @@
 import numpy as np
 
+from rocketpy.tools import snake_case_key
+
 
 # TODO: this file could be separated into different, smaller files.
 class _GenericSurfacePrints:
@@ -24,11 +26,10 @@ class _GenericSurfacePrints:
         index = {name: i for i, name in enumerate(independent_vars)}
         if "mach" not in index:
             return
-        n_args = len(independent_vars)
 
         print("Aerodynamic coefficients (AoA 5°, sideslip 5°, Mach 0.3):")
         print("---------------------------------------------------------")
-        args = [0.0] * n_args
+        args = surface._reference_arguments()  # pylint: disable=protected-access
         args[index["mach"]] = 0.3
         if "alpha" in index:
             args[index["alpha"]] = np.deg2rad(5)
@@ -396,10 +397,119 @@ class _RailButtonsPrints(_GenericSurfacePrints):
 
 
 class _AirBrakesPrints(_GenericSurfacePrints):
-    """Class that contains all air_brakes prints. Not yet implemented."""
+    """Prints of air brakes: their settings and their drag coefficient."""
 
     def geometry(self):
-        pass
+        """Print the air brakes' settings: control input, reference area,
+        limits, starting level and whether the curve replaces the rocket's
+        drag."""
+        brakes = self.aero_surface
+        print("Air brakes:")
+        print("-----------")
+        control = f"{snake_case_key(brakes.name)}.deployment_level"
+        print(f"Control input: {control} (0 retracted, 1 fully open)")
+        print(f"Reference area: {brakes.reference_area:.4g} m^2")
+        print(f"Starts each flight at: {brakes.initial_deployment_level:.4g}")
+        print(f"Deployment level kept between 0 and 1: {brakes.clamp}")
+        drag = (
+            "the drag of the whole rocket at each deployment level"
+            if brakes.override_rocket_drag
+            else "added to the rocket's drag"
+        )
+        print(f"Drag coefficient curve: {drag}")
+        print(f"Active: {brakes.active_during}, starts switched on: {brakes.active}\n")
+
+    def drag_coefficient(self, levels=(0.25, 0.5, 0.75, 1.0), machs=(0.3, 0.5, 0.7)):
+        """Print the drag coefficient at a few deployment levels and Mach
+        numbers, as a table.
+
+        Parameters
+        ----------
+        levels : sequence of float, optional
+            The deployment levels of the rows. Default 0.25, 0.5, 0.75, 1.
+        machs : sequence of float, optional
+            The Mach numbers of the columns. Default 0.3, 0.5, 0.7.
+        """
+        curve = self.aero_surface.drag_coefficient
+        print("Drag coefficient by deployment level (rows) and Mach (columns):")
+        print("----------------------------------------------------------------")
+        print(f"{'Level':>6s}  " + "  ".join(f"M {mach:<6.2f}" for mach in machs))
+        for level in levels:
+            values = "  ".join(f"{curve(level, mach):8.4f}" for mach in machs)
+            print(f"{level:6.2f}  {values}")
+        print()
 
     def all(self):
-        pass
+        """Print the identity, the settings and the drag coefficient table."""
+        self.identity()
+        self.geometry()
+        self.drag_coefficient()
+
+
+class _ControlFinsPrints(_GenericSurfacePrints):
+    """Prints of a set of control fins: which fin is which, then the generic
+    report."""
+
+    def fins(self):
+        """Print each fin's control input, angular position and default
+        deflection, so a controller knows which fin it turns."""
+        surface = self.aero_surface
+        print("Fins of the set:")
+        print("----------------")
+        limits = surface.deflection_limits
+        if limits is None:
+            print("Deflection limits: none")
+        else:
+            print(f"Deflection limits: {limits[0]:.4g} to {limits[1]:.4g} rad")
+        print(
+            f"Hinge line: at {100 * surface.hinge_position:.4g}% of the root chord "
+            "from the leading edge"
+        )
+        print(f"{'Control':<10s}  {'Angular position':>16s}  {'Default':>12s}")
+        for control, angle in zip(surface.controls, surface.angular_positions):
+            default = surface.control_defaults[control]
+            print(f"{control:<10s}  {angle:>12.2f} deg  {default:>8.4g} rad")
+        print(
+            "A positive deflection turns a fin the way a positive cant angle does: "
+            "the same\ndeflection on every fin gives a negative roll moment. "
+            "The commands of\ndeflections() take care of the signs.\n"
+        )
+
+    def effectiveness(self, mach=0.3):
+        """Print what the fins do per radian of each command of
+        :meth:`rocketpy.ControlFins.deflections`, at one Mach number."""
+        effectiveness = self.aero_surface.effectiveness()
+        print(f"Effectiveness at Mach {mach:g}, zero angle of attack:")
+        print("--------------------------------------------")
+        print(
+            "Roll moment coefficient per rad of the roll command: "
+            f"{effectiveness['roll'](mach):+.4f}"
+        )
+        if "pitch" not in effectiveness:
+            print(
+                "Pitch and yaw: add the set to a rocket to see them, they depend "
+                "on where it sits.\n"
+            )
+            return
+        print(
+            "Pitch moment coefficient per rad of the pitch command: "
+            f"{effectiveness['pitch'](mach):+.4f}"
+        )
+        print(
+            "Yaw moment coefficient per rad of the yaw command: "
+            f"{effectiveness['yaw'](mach):+.4f}"
+        )
+        print("Pitch and yaw moments are about the rocket's center of dry mass.\n")
+
+    def all(self):
+        """Prints all information of the set of control fins.
+
+        Returns
+        -------
+        None
+        """
+        self.identity()
+        self.fins()
+        self.effectiveness()
+        self.geometry()
+        self.coefficients()

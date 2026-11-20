@@ -1,3 +1,7 @@
+from ..tools import snake_case_key
+from .controller_prints import print_controls
+
+
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -189,6 +193,40 @@ class _RocketPrints:
         for chute in self.rocket.parachutes:
             chute.all_info()
 
+    def controls(self):
+        """Print what controls the rocket: its controllers, the parts they
+        can move with each control input, and its effectors.
+
+        Returns
+        -------
+        None
+        """
+        rocket = self.rocket
+        print("\nControls\n")
+        for controller in rocket.controllers:
+            print(controller)
+        for controller in rocket.continuous_controllers:
+            print(f"Continuous controller '{controller.name}'.")
+            print_controls(controller)
+        for controllable in rocket.controllables:
+            print(
+                f"{type(controllable).__name__} '{controllable.name}', written "
+                f"as context.controls.{snake_case_key(controllable.name)}.<control>"
+            )
+            print_controls(controllable)
+        for effector in rocket.effectors.get_components():
+            point = rocket._effector_points.get(effector)
+            if effector in rocket._thrust_effectors:
+                where = "acting on the motor's thrust"
+            elif point is None:
+                where = "acting at the center of dry mass"
+            else:
+                where = (
+                    f"at ({point.x:.3f}, {point.y:.3f}, {point.z:.3f}) m from "
+                    "the center of dry mass, in the body frame"
+                )
+            print(f"{type(effector).__name__} '{effector.name}', {where}")
+
     def all(self):
         """Prints all print methods about the Environment.
 
@@ -200,3 +238,11 @@ class _RocketPrints:
         self.rocket_geometrical_parameters()
         self.rocket_aerodynamics_quantities()
         self.parachute_data()
+        rocket = self.rocket
+        if (
+            rocket.controllers
+            or rocket.continuous_controllers
+            or rocket.controllables
+            or rocket.effectors.get_components()
+        ):
+            self.controls()

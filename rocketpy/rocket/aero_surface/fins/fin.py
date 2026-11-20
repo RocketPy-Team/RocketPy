@@ -5,6 +5,7 @@ import numpy as np
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.rocket.aero_surface._helpers import _wind_axes
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
+from rocketpy.tools import point_around
 
 
 # Still abstract: each fin shape class provides the center of pressure
@@ -304,8 +305,19 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
         ----------
         :ref:`Individual Fin Model <individual_fins>`
         """
+        R_uncanted, R_body_to_fin = self._rotations(self.cant_angle_rad)
+
+        # Store for downstream transforms
+        self._rotation_fin_to_body_uncanted = R_uncanted.transpose
+        self._rotation_body_to_fin = R_body_to_fin
+        self._rotation_fin_to_body = R_body_to_fin.transpose
+        self._rotation_surface_to_body = self._rotation_fin_to_body
+
+    def _rotations(self, delta):
+        """Return the rotations from the body frame to the fin frame for the
+        fin turned by the cant angle ``delta``, in radians: without the cant,
+        then with it. ``ControlFins`` calls it with each fin's deflection."""
         phi = self.angular_position_rad
-        delta = self.cant_angle_rad
         sin_phi = math.sin(phi)
         cos_phi = math.cos(phi)
         sin_delta = math.sin(delta)
@@ -340,13 +352,7 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
 
         # Uncanted body to fin, then apply cant
         R_uncanted = R_phi @ R_pi
-        R_body_to_fin = R_delta @ R_uncanted
-
-        # Store for downstream transforms
-        self._rotation_fin_to_body_uncanted = R_uncanted.transpose
-        self._rotation_body_to_fin = R_body_to_fin
-        self._rotation_fin_to_body = R_body_to_fin.transpose
-        self._rotation_surface_to_body = self._rotation_fin_to_body
+        return R_uncanted, R_delta @ R_uncanted
 
     @property
     def force_application_point(self):
@@ -453,8 +459,9 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
             Tuple containing angular velocities around the x, y, z axes.
         *args
             Extra positional arguments accepted for signature compatibility with
-            the generic surface (e.g. ``density``, ``dynamic_viscosity``,
-            ``z``). Unused by the fin's Barrowman model.
+            the generic surface (``density``, ``dynamic_viscosity``, ``z`` and
+            ``controls``). Unused by the fin's Barrowman model, whose only
+            control is ``active``.
 
         Returns
         -------
@@ -463,14 +470,26 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
             x, y and z axes and the moments ``(M1, M2, M3)`` about them, taken
             about the rocket's center of dry mass.
         """
-        R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
+        return self._forces_in_frame(
+            stream_velocity,
+            stream_speed,
+            stream_mach,
+            rho,
+            cp,
+            omega,
+            self._rotation_body_to_fin,
+            self._rotation_fin_to_body,
+            self.cant_angle_rad,
+        )
 
-        # stream velocity in fin frame
-        stream_velocity_f = self._rotation_body_to_fin @ stream_velocity
-
+    def _normal_force(
+        self, stream_velocity, stream_speed, stream_mach, rho, rotation_body_to_fin
+    ):
+        """The force on the fin along its own ``x`` axis, in N, from the air it
+        meets: lift slope times the angle the air makes with the fin."""
+        stream_velocity_f = rotation_body_to_fin @ stream_velocity
         attack_angle = np.arctan2(stream_velocity_f[0], stream_velocity_f[2])
-        # Force in the X direction of the fin
-        X = (
+        return (
             0.5
             * rho
             * stream_speed**2
@@ -478,8 +497,27 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
             * self.clalpha.get_value_opt(stream_mach)
             * attack_angle
         )
+
+    def _forces_in_frame(
+        self,
+        stream_velocity,
+        stream_speed,
+        stream_mach,
+        rho,
+        cp,
+        omega,
+        rotation_body_to_fin,
+        rotation_fin_to_body,
+        cant_angle_rad,
+    ):
+        """The fin's forces and moments, as in :meth:`compute_forces_and_moments`,
+        with the fin turned by ``cant_angle_rad`` through the given rotations.
+        ``ControlFins`` calls it with each fin's deflection."""
+        X = self._normal_force(
+            stream_velocity, stream_speed, stream_mach, rho, rotation_body_to_fin
+        )
         # Force in body frame
-        R1, R2, R3 = self._rotation_fin_to_body @ Vector([X, 0, 0])
+        R1, R2, R3 = rotation_fin_to_body @ Vector([X, 0, 0])
         # Moments
         M1, M2, M3 = cp ^ Vector([R1, R2, R3])
         # Apply roll interference factor, disregarding lift interference factor
@@ -491,27 +529,36 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
             * self.reference_area
             * (self.reference_length) ** 2
             * self._cld_omega.get_value_opt(stream_mach)
-            * math.cos(self.cant_angle_rad)
+            * math.cos(cant_angle_rad)
             * omega[2]  # omega3
             / 2
         )
         M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def _compute_leading_edge_position(self, position, _csys):
-        """Computes the position of the fin leading edge in a rocket's user,
-        given its position in a rocket."""
+    def _cant_shift(
+        self, cant_angle_rad, rotation_fin_to_body_uncanted, hinge_position=0.5
+    ):
+        """How far turning the fin by ``cant_angle_rad`` about its hinge line, at
+        ``hinge_position`` of the root chord from the leading edge, moves its
+        leading edge, in the body frame."""
         # Point from deflection from cant angle in the plane perpendicular to
         # the fuselage where the fin is located in the fin frame
+        hinge = hinge_position * self.root_chord
         p = Vector(
             [
-                -self.root_chord / 2 * np.sin(self.cant_angle_rad),
+                -hinge * np.sin(cant_angle_rad),
                 0,
-                self.root_chord / 2 * (1 - np.cos(self.cant_angle_rad)),
+                hinge * (1 - np.cos(cant_angle_rad)),
             ]
         )
         # Rotate the point to the body frame orientation
-        p = self._rotation_fin_to_body_uncanted @ p
+        return rotation_fin_to_body_uncanted @ p
+
+    def _compute_leading_edge_position(self, position, _csys):
+        """Computes the position of the fin leading edge in a rocket's user,
+        given its position in a rocket."""
+        p = self._cant_shift(self.cant_angle_rad, self._rotation_fin_to_body_uncanted)
 
         # Rotate the point to the user-defined coordinate system
         p = Vector([p.x * _csys, p.y, p.z * _csys])
@@ -524,11 +571,7 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
             position = Vector(position)
         else:
             position = Vector(
-                [
-                    -self.rocket_radius * math.sin(self.angular_position_rad) * _csys,
-                    self.rocket_radius * math.cos(self.angular_position_rad),
-                    position,
-                ]
+                point_around(position, self.angular_position, self.rocket_radius, _csys)
             )
 
         # Translate the position of the fin leading edge to the position of the

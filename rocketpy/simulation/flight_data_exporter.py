@@ -39,7 +39,7 @@ class FlightDataExporter:
         .. note::
             Noisy pressure signal export has been removed. To export noisy
             pressure readings, add a Barometer Sensor with the desired noise
-            model to the rocket and access its data via ``flight.sensor_data``.
+            model to the rocket and access its data via ``flight.solution.sensors``.
 
         This function was created especially for the 'Projeto Jupiter'
         Electronics Subsystems team and aims to help in configuring
@@ -200,29 +200,29 @@ class FlightDataExporter:
             as a string with the sensor name. If None, all sensors data will be
             exported. Default is None.
         """
-        f = self._flight
+        sensor_rows = _sensor_rows(self._flight)
 
         if sensor is None:
             data_dict = {}
-            for used_sensor, measured_data in f.sensor_data.items():
+            for used_sensor, measured_data in sensor_rows.items():
                 data_dict[used_sensor.name] = measured_data
         else:
             # export data of only that sensor
             data_dict = {}
 
             if not isinstance(sensor, str):
-                data_dict[sensor.name] = f.sensor_data[sensor]
+                data_dict[sensor.name] = sensor_rows[sensor]
             else:  # sensor is a string
-                matching_sensors = [s for s in f.sensor_data if s.name == sensor]
+                matching_sensors = [s for s in sensor_rows if s.name == sensor]
 
                 if len(matching_sensors) > 1:
                     data_dict[sensor] = []
                     for s in matching_sensors:
-                        data_dict[s.name].append(f.sensor_data[s])
+                        data_dict[s.name].append(sensor_rows[s])
                 elif len(matching_sensors) == 1:
-                    data_dict[sensor] = f.sensor_data[matching_sensors[0]]
+                    data_dict[sensor] = sensor_rows[matching_sensors[0]]
                 else:
-                    raise ValueError("Sensor not found in the Flight.sensor_data.")
+                    raise ValueError("Sensor not found in the flight's sensors.")
 
         with open(file_name, "w") as file:
             json.dump(data_dict, file)
@@ -330,3 +330,28 @@ class FlightDataExporter:
     @deprecated(version="v1.16.0", alternative="kml")
     def export_kml(self, *args, **kwargs):
         return self.kml(*args, **kwargs)
+
+
+def _sensor_rows(flight):
+    """Return what each sensor of ``flight`` read as ``(time, *reading)``
+    tuples, keyed by the sensor object: one list, or one list per position
+    when the sensor was added to the rocket in more than one position. The
+    shape of a sensor's ``measured_data``, built from the flight's solution so
+    it is the same for a flight read back from a file."""
+    readings = flight.solution._sensors  # pylint: disable=protected-access
+    runs = {}
+    for sensor, event in flight._sensors_by_key.values():  # pylint: disable=protected-access
+        channels = readings.get(event._position_name, {})
+        points = [channels.get(label) for label, _ in sensor.channels]
+        rows = []
+        if all(channel for channel in points):
+            rows = list(
+                zip(
+                    [t for t, _ in points[0]],
+                    *([value for _, value in channel] for channel in points),
+                )
+            )
+        runs.setdefault(sensor, []).append(rows)
+    return {
+        sensor: lists[0] if len(lists) == 1 else lists for sensor, lists in runs.items()
+    }

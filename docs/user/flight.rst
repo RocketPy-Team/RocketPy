@@ -170,6 +170,18 @@ be positive.
 This is particularly useful for multi-stage simulations or when analyzing
 different scenarios from a specific flight condition.
 
+.. note::
+
+    Events, sensors and controllers start again in the new flight: an event
+    that fired in the previous flight may fire again, and a controller's
+    ``memory`` is back to its initial value.
+
+    The control inputs and the states of the rocket's controllables (see
+    :ref:`controllers`) are carried over instead: an air brake left half open
+    stays half open, and a fin that was still moving toward its command keeps
+    moving from where it was. Only the control inputs the new flight's rocket
+    also has are carried over, each kept within that rocket's limits.
+
 Simulation Control Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -203,8 +215,19 @@ Simulation Control Parameters
 Accessing Simulation Results
 ----------------------------
 
-Once a Flight simulation is complete, you can access a wealth of data about
-the rocket's trajectory and performance.
+Once a Flight simulation is complete, every result is read from the ``flight``
+object by its name. The same result can be read in two forms:
+
+- ``flight.z`` is a :class:`rocketpy.Function` of time. It can be evaluated at
+  any time, ``flight.z(10)``, plotted, ``flight.z.plot()``, and combined with
+  other Functions (see :ref:`Function Class Usage <functionusage>`). This is
+  the form to use for most analyses.
+- ``flight.solution.z`` is the same result as the numbers the simulation
+  stored: an array with one ``(time, value)`` row per time step. See
+  :ref:`flight_solution`.
+
+The next sections go through the results as Functions, and
+:ref:`flight_solution` covers the stored numbers.
 
 Trajectory Data
 ~~~~~~~~~~~~~~~
@@ -266,9 +289,9 @@ The Flight object provides access to all forces and accelerations acting on the 
     R3 = flight.R3                   # Z-axis aerodynamic force (drag)
 
     # Aerodynamic moments in body frame (N⋅m)
-    M1 = flight.M1                   # Roll moment
-    M2 = flight.M2                   # Pitch moment
-    M3 = flight.M3                   # Yaw moment
+    M1 = flight.M1                   # Moment about the body x-axis (pitch)
+    M2 = flight.M2                   # Moment about the body y-axis (yaw)
+    M3 = flight.M3                   # Moment about the body z-axis (roll)
 
 Rail Button Forces and Bending Moments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -314,9 +337,9 @@ Rocket orientation throughout the flight:
     e0, e1, e2, e3 = flight.e0, flight.e1, flight.e2, flight.e3
 
     # Angular velocities in body frame (rad/s)
-    w1 = flight.w1                   # Roll rate
-    w2 = flight.w2                   # Pitch rate
-    w3 = flight.w3                   # Yaw rate
+    w1 = flight.w1                   # About the body x-axis (pitch rate)
+    w2 = flight.w2                   # About the body y-axis (yaw rate)
+    w3 = flight.w3                   # About the body z-axis (roll rate)
 
     # Derived attitude angles
     attitude_angle = flight.attitude_angle
@@ -337,93 +360,158 @@ Key performance indicators:
     static_margin = flight.static_margin
     stability_margin = flight.stability_margin
 
-Accessing Raw Simulation Data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _flight_solution:
 
-For users who need direct access to the raw numerical simulation results,
-the Flight object provides the complete solution array through the ``solution``
-and ``solution_array`` attributes.
+The Flight Solution
+~~~~~~~~~~~~~~~~~~~
 
-**Flight.solution**
+``flight.solution`` holds everything the simulation stored over time, as plain
+numbers: one row for each time step the solver took. It is a
+:class:`rocketpy.simulation.solution.Solution`. Use it when you want the values
+exactly as the simulation stored them, with nothing interpolated between time
+steps.
 
-The ``Flight.solution`` attribute contains the raw simulation data as a list of
-state vectors, where each row represents the rocket's complete state at a specific time:
+**One result over the whole flight**
 
-.. jupyter-execute::
-
-    # Access the raw solution list
-    raw_solution = flight.solution
-
-    # Each element is a 14-element state vector:
-    # [time, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-    initial_state = flight.solution[0]  # First time step
-    final_state = flight.solution[-1]   # Last time step
-
-    print(f"Initial state: {initial_state}")
-    print(f"Final state: {final_state}")
-
-**Flight.solution_array**
-
-For easier numerical analysis, use ``solution_array`` which provides the same data
-as a NumPy array:
+Every result is read by its name, as an attribute or as a key. Both give the
+same array, with one row per time step and two columns, time and value:
 
 .. jupyter-execute::
 
-    import numpy as np
+    vz = flight.solution.vz          # the same as flight.solution["vz"]
 
-    # Get solution as NumPy array for easier manipulation
-    solution_array = flight.solution_array  # Shape: (n_time_steps, 14)
+    print(vz.shape)                  # (number of time steps, 2)
+    print(vz[:3])                    # the first rows: [time (s), vz (m/s)]
 
-    # Extract specific columns (state variables)
-    time_array = solution_array[:, 0]        # Time values
-    position_data = solution_array[:, 1:4]   # X, Y, Z positions
-    velocity_data = solution_array[:, 4:7]   # Vx, Vy, Vz velocities
-    quaternions = solution_array[:, 7:11]    # e0, e1, e2, e3
-    angular_velocities = solution_array[:, 11:14]  # w1, w2, w3
+The time steps alone are in ``flight.solution.time``, and
+``flight.solution.names`` lists every name the flight holds:
 
-    # Example: Calculate velocity magnitude manually
-    velocity_magnitude = np.sqrt(np.sum(velocity_data**2, axis=1))
+.. jupyter-execute::
 
-**State Vector Format**
+    print(flight.solution.names)
 
-Each row in the solution array follows this 14-element format:
+These names are:
+
+- **The 13 states the simulation integrates**: the position ``x``, ``y``,
+  ``z`` (m), the velocity ``vx``, ``vy``, ``vz`` (m/s), the attitude ``e0``,
+  ``e1``, ``e2``, ``e3`` (Euler parameters) and the angular velocity ``w1``,
+  ``w2``, ``w3`` (rad/s, in the rocket's body frame).
+- **The variables calculated from the states at each time step**: the
+  accelerations ``ax``, ``ay``, ``az`` (m/s²), the angular accelerations
+  ``alpha1``, ``alpha2``, ``alpha3`` (rad/s²), the aerodynamic forces ``R1``,
+  ``R2``, ``R3`` (N) and moments ``M1``, ``M2``, ``M3`` (N⋅m) and the
+  ``net_thrust`` (N).
+- **The control inputs and the states of the rocket's controllables**, for a
+  rocket with air brakes, control fins or controllers (see :ref:`controllers`).
+
+``flight.vz`` is this same array wrapped in a :class:`rocketpy.Function`.
+
+.. note::
+
+    The calculated variables are worked out from the stored states the first
+    time one of them is read, so that first read takes longer. A flight loaded
+    from a file holds the states but cannot work these variables out again.
+
+**Everything at one time**
+
+``flight.solution.at(t)`` gives every result at the stored time step nearest to
+``t``, as a dictionary of name to value:
+
+.. jupyter-execute::
+
+    at_apogee = flight.solution.at(flight.apogee_time)
+
+    print(f"Altitude: {at_apogee['z']:.1f} m")
+    print(f"Vertical velocity: {at_apogee['vz']:.3f} m/s")
+    print(f"Vertical acceleration: {at_apogee['az']:.2f} m/s²")
+
+No value is interpolated: if the nearest time step is more than ``atol``
+seconds away from ``t`` (1e-3 by default), a warning tells which time was used.
+For a value at any time, interpolated between the time steps, call the Function
+instead, as in ``flight.z(10)``.
+
+The dictionary holds the variables the flight phase at that time calculates,
+so under a parachute it has no moments, angular accelerations or thrust.
+
+``flight.solution.at_index(i)`` gives the states and the control inputs of
+time step ``i``, counted from the start of the flight, or from its end when
+negative: ``flight.solution.at_index(-1)`` is the last one.
+
+**The states as a table**
+
+``flight.solution.canonical_array`` is the 13 states of the whole flight as a
+NumPy array, one row per time step and 14 columns:
 
 .. code-block:: python
 
     [time, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
 
-Where:
-    - ``time``: Simulation time in seconds
-    - ``x, y, z``: Position coordinates in meters (East, North, Up)
-    - ``vx, vy, vz``: Velocity components in m/s (East, North, Up)
-    - ``e0, e1, e2, e3``: Euler parameters (quaternions) for attitude
-    - ``w1, w2, w3``: Angular velocities in rad/s (body frame: roll, pitch, yaw rates)
+.. jupyter-execute::
 
-**Getting State at Specific Time**
+    import numpy as np
 
-You can extract the rocket's state at any specific time during the flight:
+    table = flight.solution.canonical_array  # Shape: (number of time steps, 14)
+
+    time = table[:, 0]                # Time (s)
+    position = table[:, 1:4]          # x, y, z (m)
+    velocity = table[:, 4:7]          # vx, vy, vz (m/s)
+    attitude = table[:, 7:11]         # e0, e1, e2, e3
+    angular_velocity = table[:, 11:]  # w1, w2, w3 (rad/s)
+
+    # Example: the speed at every time step
+    speed = np.sqrt(np.sum(velocity**2, axis=1))
+
+This table cannot be written to. For a copy of your own to change, use
+``np.array(flight.solution)``.
+
+The solution also reads like a list of these rows: ``flight.solution[0]`` is
+the first time step, ``flight.solution[-1]`` the last, ``len(flight.solution)``
+the number of time steps, and slicing or looping gives the rows in order. A row
+always has these 14 values, also in a flight phase that integrates fewer
+states.
+
+**The flight phases**
+
+A flight is simulated as a sequence of phases, each with its own equations of
+motion: on the rail, in free flight, under each parachute.
+``flight.solution.phases`` lists them in the order they were flown, and
+``flight.solution.phase_span`` gives the first row of a phase and one past its
+last row:
 
 .. jupyter-execute::
 
-    # Get complete state vector at t=10 seconds
-    state_at_10s = flight.get_solution_at_time(10.0)
+    for index, phase in enumerate(flight.solution.phases):
+        start, stop = flight.solution.phase_span(index)
+        print(f"{phase.name}: starts at {phase.t_start:.2f} s, {stop - start} rows")
 
-    print(f"State at t=10s: {state_at_10s}")
+With these two positions, ``flight.solution.vz[start:stop]`` and
+``flight.solution.canonical_array[start:stop]`` read that phase alone.
 
-    # Extract specific values from the state vector
-    time_10s = state_at_10s[0]
-    altitude_10s = state_at_10s[3]  # Z coordinate
-    speed_10s = np.sqrt(state_at_10s[4]**2 + state_at_10s[5]**2 + state_at_10s[6]**2)
+**Control inputs and sensor readings**
 
-    print(f"At t={time_10s}s: altitude={altitude_10s:.1f}m, speed={speed_10s:.1f}m/s")
+A rocket with controllers or sensors keeps their results in the solution too:
 
-This raw data access is particularly useful for:
+- ``flight.solution.controls.air_brakes.deployment_level`` is a control input
+  over the flight (see :ref:`controllers`).
+- ``flight.solution.sensors.barometer.pressure`` is what a sensor read, at the
+  sensor's own sampling times (see :ref:`sensors_flight_data`).
 
-- Custom post-processing and analysis
-- Exporting data to external tools
-- Implementing custom flight metrics
-- Monte Carlo analysis and statistical studies
-- Integration with other simulation frameworks
+Both are arrays of time and value. ``flight.controls`` and
+``flight.sensor_history`` give the same results as Functions of time.
+
+.. note::
+
+    ``flight.solution_array`` and ``flight.get_solution_at_time(t)`` are
+    deprecated. Use ``flight.solution.canonical_array`` for the table of
+    states, and ``flight.solution.at(t)`` for the results at one time, which
+    gives a dictionary by name where ``get_solution_at_time`` gave a row of
+    14 values.
+
+.. seealso::
+
+    :class:`rocketpy.simulation.solution.Solution` in the API reference lists
+    every method of the solution. To write results to a file, see
+    ``flight.exports`` in :doc:`First Simulation </user/first_simulation>`.
 
 
 Plotting Flight Data

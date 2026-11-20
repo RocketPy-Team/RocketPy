@@ -9,7 +9,9 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.plots.flight_plots import _FlightPlots
 from rocketpy.prints.flight_prints import _FlightPrints
-from rocketpy.simulation.solution import Solution
+from rocketpy.simulation.events.views import sensor_positions
+from rocketpy.simulation.flight_data_exporter import FlightDataExporter
+from rocketpy.simulation.solution import Solution, _ResultsDict
 
 
 class RocketPyEncoder(json.JSONEncoder):
@@ -221,6 +223,9 @@ def set_minimal_flight_attributes(flight, obj):
                 )
 
     flight.t_initial = flight.initial_solution[0]
+    # The events are not saved, so what they recorded is kept with the flight
+    flight._records = _ResultsDict(obj.get("records", {}))
+    flight._event_outputs = _ResultsDict(obj.get("event_outputs", {}))
 
     # Integration settings serialized by to_dict. Defaults cover older .rpy
     # files saved before these fields existed.
@@ -233,17 +238,21 @@ def set_minimal_flight_attributes(flight, obj):
     # serialized separately. Mirror that derivation here so prints/plots that
     # iterate them work on flights loaded from .rpy files (which bypass
     # __init__).
-    flight._controllers = getattr(flight.rocket, "_controllers", [])[:]
+    flight.controllers = list(flight.rocket.controllers)
+    flight._control_owners = flight.rocket.controllables
     flight.sensors = flight.rocket.sensors.get_components()
     flight.sensors_by_name = flight.rocket.sensors_by_name
-    # No simulation was run, so there is no recorded sensor data. Set an empty
-    # mapping so code that reads ``sensor_data`` behaves like a real flight.
-    flight.sensor_data = {}
+    flight._sensors_by_key = sensor_positions(
+        getattr(flight.rocket, "_sensor_events", ())
+    )
     # TODO: custom_events are lost when loading from .rpy because they hold
     # user-defined callables that are not currently serialized. Add proper
     # serialization/deserialization for custom_events and restore them here
     # instead of defaulting to an empty list.
     flight.custom_events = []
+    # The switches events made on the surfaces during the flight are not saved
+    flight._surface_switches = {}
+    flight.exports = FlightDataExporter(flight)
 
 
 def get_class_signature(obj):
@@ -289,6 +298,11 @@ def get_class_from_signature(signature):
     type
         Class defined by the signature.
     """
+    replacement = _REPLACED_CLASSES.get((signature["module"], signature["name"]))
+    if replacement is not None:
+        module_name, class_name = replacement
+        return getattr(import_module(module_name), class_name)
+
     module = import_module(signature["module"])
     inner_class = None
 
@@ -296,6 +310,17 @@ def get_class_from_signature(signature):
         inner_class = getattr(module, class_)
 
     return inner_class
+
+
+# Classes that no longer exist, with the class that loads what they saved.
+# _Controller became the public Controller, which loads the function, rate,
+# memory and gates it saved.
+_REPLACED_CLASSES = {
+    (
+        "rocketpy.control.controller",
+        "_Controller",
+    ): ("rocketpy.control.controller", "Controller"),
+}
 
 
 def remove_circular_references(obj_dict):

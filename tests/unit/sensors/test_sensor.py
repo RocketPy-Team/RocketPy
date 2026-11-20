@@ -1,11 +1,13 @@
 import json
 import os
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 from pytest import approx
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.prints.flight_prints import _FlightPrints
 from rocketpy.tools import euler313_to_quaternions
 
 # calisto standard simulation no wind solution index 200
@@ -618,3 +620,19 @@ def test_export_multiple_sensors_json(
 
     os.remove(f"{file_name}_1")
     os.remove(f"{file_name}_2")
+
+
+def test_sensor_events_keep_their_sensor_and_no_memory(
+    calisto, noisy_barometer, capsys
+):
+    """A sensor's event reads its position from where it was made, not from
+    memory, and the flight prints name the sensor it belongs to."""
+    calisto.add_sensor(noisy_barometer, 0.3)
+    ((sensor, event),) = calisto._sensor_events
+    assert sensor is noisy_barometer
+    assert event.memory == {}
+
+    _FlightPrints(SimpleNamespace(rocket=calisto)).sensor_events()
+    out = capsys.readouterr().out
+    assert f"Parent Sensor: {noisy_barometer.name}" in out
+    assert "Memory Keys" not in out

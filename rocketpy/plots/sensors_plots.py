@@ -17,26 +17,16 @@ class _SensorPlots(ABC):
     def __init__(self, sensor):
         self.sensor = sensor
 
-    def _iter_runs(self, data=None):
-        """Yield ``(run_index, run)`` for each recorded measurement run.
+    def _iter_runs(self):
+        """Yield ``(run_index, run)`` for each list of measurements.
 
         A sensor added a single time to the rocket stores a flat list of
         tuples; a sensor added multiple times stores one such list per
-        instance (a nested list). The single-add case yields ``run_index``
-        ``None``; the multi-add case yields the instance index. Empty runs
+        position (a nested list). The single-add case yields ``run_index``
+        ``None``; the multi-add case yields the position index. Empty runs
         are skipped.
-
-        Parameters
-        ----------
-        data : list, optional
-            Measured data to iterate over. When ``None`` (default) the
-            sensor's own ``measured_data`` buffer is used. Flight-scoped
-            callers should pass ``flight.sensor_data[sensor]`` so the plot
-            reflects that specific flight rather than the sensor's most
-            recent run.
         """
-        if data is None:
-            data = self.sensor.measured_data
+        data = self.sensor.measured_data
         if not data:
             return
         if isinstance(data[0], list):  # sensor added multiple times -> nested
@@ -46,23 +36,21 @@ class _SensorPlots(ABC):
         else:
             yield None, data
 
-    def time_series(self, *, filename=None, data=None):
-        """Plots each measured channel of the sensor against time.
+    def time_series(self, *, filename=None):
+        """Plots each measured channel of the sensor against time, each
+        measurement held until the next one.
 
         One subplot is created per channel. When the sensor was added to the
-        rocket multiple times, each instance run is overlaid with a legend.
+        rocket multiple times, each position is overlaid with a legend. To plot
+        what a sensor read in a given flight, use ``flight.plots.sensors()``.
 
         Parameters
         ----------
         filename : str | None, optional
             The path the plot should be saved to. By default None, in which
             case the plot will be shown instead of saved.
-        data : list, optional
-            Measured data to plot. When ``None`` (default) the sensor's own
-            ``measured_data`` buffer is used. Flight-scoped callers should
-            pass ``flight.sensor_data[sensor]``.
         """
-        runs = list(self._iter_runs(data))
+        runs = list(self._iter_runs())
         if not runs:
             print(f"No measured data recorded for sensor '{self.sensor.name}'.")
             return
@@ -78,7 +66,7 @@ class _SensorPlots(ABC):
                 series_label = (
                     None if run_index is None else f"Instance {run_index + 1}"
                 )
-                ax.plot(arr[:, 0], arr[:, c + 1], label=series_label)
+                ax.step(arr[:, 0], arr[:, c + 1], where="post", label=series_label)
             ax.set_title(f"{self.sensor.name} - {label}")
             ax.set_xlabel("Time (s)")
             ax.set_ylabel(f"{label} ({unit})")
@@ -88,17 +76,9 @@ class _SensorPlots(ABC):
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def all(self, *, data=None):
-        """Plots all the measured data of the sensor.
-
-        Parameters
-        ----------
-        data : list, optional
-            Measured data to plot. When ``None`` (default) the sensor's own
-            ``measured_data`` buffer is used. Flight-scoped callers should
-            pass ``flight.sensor_data[sensor]``.
-        """
-        self.time_series(data=data)
+    def all(self):
+        """Plots all the measured data of the sensor."""
+        self.time_series()
 
 
 class _AccelerometerPlots(_SensorPlots):

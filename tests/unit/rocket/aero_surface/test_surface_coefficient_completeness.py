@@ -13,7 +13,6 @@ import pytest
 
 from rocketpy import (
     AirBrakes,
-    ControllableGenericSurface,
     EllipticalFin,
     EllipticalFins,
     FreeFormFin,
@@ -42,10 +41,11 @@ def _make_surfaces():
             reference_length=length,
             coefficients={"cN_alpha": 2.0},
         ),
-        "ControllableGenericSurface": ControllableGenericSurface(
+        "GenericSurfaceWithControls": GenericSurface(
             reference_area=area,
             reference_length=length,
             coefficients={"cL": lambda a, b, m, re, p, q, r, d: 1.0},
+            controls=("deflection",),
         ),
         "AirBrakes": AirBrakes(
             drag_coefficient_curve=lambda deployment, mach: 0.5,

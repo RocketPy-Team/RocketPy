@@ -57,8 +57,11 @@ def test_export_sensor_data_writes_json(flight_calisto, tmp_path, monkeypatch):
             self.name = name
 
     s1 = DummySensor("DummySensor")
+    # the rows are worked out from the flight's readings, so they are
+    # replaced for this test
     monkeypatch.setattr(
-        flight_calisto, "sensor_data", {s1: [1.0, 2.0, 3.0]}, raising=False
+        "rocketpy.simulation.flight_data_exporter._sensor_rows",
+        lambda _: {s1: [1.0, 2.0, 3.0]},
     )
     out = tmp_path / "sensors.json"
 

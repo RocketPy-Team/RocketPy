@@ -2,6 +2,7 @@ import warnings
 
 import numpy as np
 
+from ..tools import snake_case_key
 from .helpers.dynamics import (
     BUILT_IN_DYNAMICS,
     CANONICAL_INDEX,
@@ -16,9 +17,6 @@ __all__ = [
     "CANONICAL_STATE_NAMES",
     "Solution",
 ]
-
-# Time plus the 13 canonical states: the width of every canonical row.
-CANONICAL_WIDTH = len(CANONICAL_STATE_NAMES) + 1
 
 
 def _nearest_time_index(times, t, atol, where):
@@ -50,6 +48,51 @@ def _nearest_time_index(times, t, atol, where):
             UserWarning,
         )
     return index
+
+
+class _ResultsDict(dict):
+    """A dictionary of results by name, also read as attributes in snake_case.
+
+    ``results["Canards"]["deflection"]`` is the value as a plain dictionary
+    gives it; ``results.canards.deflection`` is the same value, by each name
+    in snake_case, and so is ``results["canards"]``: a name is found by its
+    snake_case form when it is not there as given. Everything else is the
+    dictionary: ``list(results)`` gives the names as given, ``results.items()``
+    the pairs.
+
+    A name that is also a method of a dictionary (``items``, ``keys``,
+    ``values``, ``get``, ``copy``, ``update``, ``pop``, ``clear``) is read with
+    brackets only: ``results["values"]``, since ``results.values`` is the
+    method.
+    """
+
+    def __init__(self, data):
+        # A value that is a dictionary is a group of its own
+        super().__init__(
+            (name, _ResultsDict(value) if isinstance(value, dict) else value)
+            for name, value in data.items()
+        )
+
+    def __missing__(self, key):
+        wanted = snake_case_key(key)
+        for name in self:
+            if snake_case_key(name) == wanted:
+                return self[name]
+        raise KeyError(
+            f"Nothing here is named {key!r}. The names are: "
+            f"{', '.join(self) or 'none'}."
+        )
+
+    def __getattr__(self, key):
+        if key.startswith("_"):
+            raise AttributeError(key)
+        try:
+            return self[key]
+        except KeyError as error:
+            raise AttributeError(error.args[0]) from None
+
+    def __dir__(self):
+        return [*super().__dir__(), *(snake_case_key(name) for name in self)]
 
 
 class _PhaseSolution:
@@ -260,7 +303,19 @@ class _PhaseSolution:
         # The dynamics is code, so it was saved by name. A built-in one is
         # used again, so the canonical states it rebuilds are rebuilt here too.
         dynamics = BUILT_IN_DYNAMICS.get(data.get("dynamics"))
-        if dynamics is None or list(dynamics.states) != data["state_names"]:
+        names = list(data["state_names"])
+        if dynamics is not None and names[: dynamics.width] == list(dynamics.states):
+            if len(names) > dynamics.width:
+                # Flown with the states of the rocket's controllables after its own
+                dynamics = _PhaseDynamics(
+                    dynamics.name,
+                    None,
+                    names,
+                    dynamics.post_process_vars,
+                    dynamics.to_canonical,
+                    dynamics.to_canonical_dot,
+                )
+        else:
             # Unknown, or changed since the flight was saved: its own states
             # can still be read by name, and every other canonical state is
             # held at its start-of-phase value.
@@ -277,18 +332,21 @@ class _PhaseSolution:
 
 
 class Solution:
-    """The state history of a whole flight.
+    """Everything a flight produced over time, as raw numbers.
 
-    A ``Solution`` answers queries by state name. ``solution["vz"]`` returns the
-    ``[t, value]`` history of the vertical velocity across the whole flight;
-    ``solution.at(t)`` returns the whole state at the nearest stored time as a
-    name-to-value dictionary. ``solution.phases`` gives the individual flight
-    phases, each a :class:`_PhaseSolution`; :meth:`phase_span` says which rows
-    belong to one, so ``solution[start:stop]`` reads them.
+    A ``Solution`` answers queries by name. ``solution.vz`` or
+    ``solution["vz"]`` is the ``[t, value]`` history of the vertical velocity
+    across the whole flight; so are ``solution.ax`` for a variable the flight
+    worked out without integrating it (accelerations, forces, moments, thrust)
+    and ``solution.controls.canards.deflection`` for a control input.
+    :attr:`names` lists them all; ``solution.at(t)`` returns every one of them
+    at the nearest stored time as a name-to-value dictionary.
+    ``solution.sensors.barometer.pressure`` is what a sensor read, at its own
+    sampling times.
 
-    The variables the flight computed without integrating them, such as the
-    accelerations and the aerodynamic forces, are read through
-    ``solution.post``: see :class:`PostProcessSolution`.
+    ``solution.phases`` gives the individual flight phases, each a
+    :class:`_PhaseSolution`; :meth:`phase_span` says which rows belong to one,
+    so ``solution[start:stop]`` reads them.
 
     It also reads like a plain list of rows: ``len(solution)``, iteration,
     ``solution[-1]``, slicing and ``numpy.array(solution)`` all give 14-value
@@ -322,28 +380,31 @@ class Solution:
         # The flight's phases, in the order they were flown.
         self.phases = list(phases) if phases else []
         self._rows = list(rows) if rows else []
-        # Post-process values, one entry per row and in the same order, so a row
-        # and its values can never drift apart. They carry no time of their own:
-        # the row they sit beside supplies it. ``None`` where nothing was
-        # recorded. Not saved to file: a solution read back has no live flight
-        # to post-process against.
-        self._post_values = [None] * len(self._rows)
-        # Set by a flight that records its post-process values as it runs. Such
-        # a flight changes the rocket mid-flight, so working the values out
-        # again afterwards would read the rocket in the configuration it ended
-        # in. Once this is on, recorded values are the only acceptable answer.
-        self.records_post_values = False
-        self.post = PostProcessSolution(self)
+        # The control inputs in force from each row's time on (a dictionary of
+        # name to value), one entry per row, kept beside the rows the
+        # same way. A row worked out again after the flight is given its own.
+        # ``None`` where nothing was stored. Saved with the rows.
+        self._controls = [None] * len(self._rows)
+        # What the sensors read, at their own sampling times: sensor position
+        # name to channel name to ``[(time, reading), ...]``. Saved with the
+        # rows, and cut with them when the flight goes back in time.
+        self._sensors = {}
         # Bumped by every change to the rows. The canonical table and the
         # histories of non-canonical states are cached against it.
         self._version = 0
-        # Bumped whenever a recorded post-process value changes, so
-        # ``post`` can tell its own answers are stale without the row caches
-        # having to be thrown away too.
+        # Bumped whenever a row's control inputs change, so the post-process
+        # values and the control histories can tell they are stale without
+        # the row caches having to be thrown away too.
         self._post_version = 0
         self._canonical_cache = None
         self._canonical_version = -1
         self._series_cache = {}
+        self._control_cache = {}
+        self._control_names_cache = (None, ())
+        # The post-process values of every phase, worked out on the first read
+        # and kept until the rows or their control inputs change
+        self._post_tables = None
+        self._post_key = None
         self._validate_starts()
 
     def __repr__(self):
@@ -445,16 +506,6 @@ class Solution:
         return phase
 
     # -- Row access --------------------------------------------------------
-
-    def _last_row_phase(self):
-        """Return the phase owning the most recent row.
-
-        A phase that has only just begun holds no rows, so this skips it and
-        gives the phase before it. Raises ``IndexError`` if there are no rows.
-        """
-        if not self._rows:
-            raise IndexError("this solution has no stored rows")
-        return self._phase_at(len(self._rows) - 1)
 
     def _normalize(self, index):
         """Return ``index`` counted from the start, checking it is in range.
@@ -630,47 +681,6 @@ class Solution:
             return list(row)
         return [row[0], *phase.canonical_state(row[1:])]
 
-    # -- Per-phase reads ---------------------------------------------------
-
-    def _phase_series_or_none(self, phase, start, stop, name):
-        """Return a phase's ``[t, value]`` history, or ``None`` if undefined.
-
-        Lets :meth:`series` skip the phases that do not define a state while
-        gathering its history across the whole flight.
-
-        Parameters
-        ----------
-        phase : _PhaseSolution
-            The phase to read.
-        start, stop : int
-            The phase's rows in the flight's row list, as a slice would bound
-            them.
-        name : str
-            The state name (for example ``"vz"``).
-
-        Returns
-        -------
-        numpy.ndarray or None
-            An ``(n, 2)`` array whose columns are time and value, or ``None``
-            if the phase cannot report the state or holds no rows.
-        """
-        if start == stop:
-            return None
-        rows = self._rows[start:stop]
-        times = np.array([row[0] for row in rows])
-        # A state the phase integrates is a plain column of its rows; any other
-        # canonical state comes from the phase's canonical view.
-        index = phase.dynamics.state_index.get(name)
-        if index is not None:
-            return np.column_stack([times, [row[index + 1] for row in rows]])
-        slot = CANONICAL_INDEX.get(name)
-        if slot is None:
-            return None
-        canonical_state = phase.canonical_state
-        return np.column_stack(
-            [times, [canonical_state(row[1:])[slot] for row in rows]]
-        )
-
     # -- Mutation ----------------------------------------------------------
 
     def _shift_starts_after(self, position, delta):
@@ -700,42 +710,30 @@ class Solution:
         ----------
         row : sequence of float
             Time followed by the states the current phase integrates, in the
-            order that phase integrates them.
-
-        Raises
-        ------
-        IndexError
-            If no phase has been started yet.
+            order that phase integrates them. A phase must have been started
+            first (see :meth:`_start_phase`): this is not checked.
         """
         self._rows.append(row)
-        self._post_values.append(None)
+        self._controls.append(None)
         self._version += 1
 
-    def _set_post_values(self, index, values):
-        """Record the post-process values of one row.
-
-        Called as the simulation runs, right after the row is written, so the
-        values are the ones the rocket really had at that state. They are kept
-        beside the row and move with it, so a rollback cannot leave the two out
-        of step.
+    def _set_controls(self, index, controls):
+        """Store the control inputs in force from one row's time on.
 
         Parameters
         ----------
         index : int
             Row position across the whole flight. Negative values count from
             the end.
-        values : sequence of float
-            The values in that row's phase ``post_process_vars`` order.
+        controls : dict
+            Name to value, a copy of the flight's control inputs.
 
         Raises
         ------
         IndexError
             If ``index`` is outside the flight's rows.
         """
-        # Deliberately does not count as a change to the flight: the states are
-        # untouched, so the cached times and tables stay valid. Only ``post``
-        # needs to know, and it watches its own counter.
-        self._post_values[self._normalize(int(index))] = values
+        self._controls[self._normalize(int(index))] = controls
         self._post_version += 1
 
     def _replace_last(self, row):
@@ -753,7 +751,7 @@ class Solution:
             If the flight has no rows yet.
         """
         self._rows[-1] = row
-        self._post_values[-1] = None
+        self._controls[-1] = None
         self._version += 1
 
     def _insert_before_last(self, row):
@@ -775,7 +773,7 @@ class Solution:
         """
         position = len(self._rows) - 1
         self._rows.insert(position, row)
-        self._post_values.insert(position, None)
+        self._controls.insert(position, None)
         self._shift_starts_after(position, 1)
         self._version += 1
 
@@ -795,57 +793,8 @@ class Solution:
         if not self._rows:
             raise IndexError("this solution has no stored rows")
         row = self._rows.pop()
-        self._post_values.pop()
+        self._controls.pop()
         self._shift_starts_after(len(self._rows), -1)
-        self._version += 1
-        return row
-
-    def _insert(self, index, row):
-        """Insert a raw state row before the row at ``index``.
-
-        Parameters
-        ----------
-        index : int
-            Row position across the whole flight to insert before. Negative
-            values count from the end.
-        row : sequence of float
-            Time followed by the states the phase at ``index`` integrates, in
-            the order that phase integrates them.
-
-        Raises
-        ------
-        IndexError
-            If ``index`` is outside the flight's rows.
-        """
-        position = self._normalize(int(index))
-        self._rows.insert(position, row)
-        self._post_values.insert(position, None)
-        self._shift_starts_after(position, 1)
-        self._version += 1
-
-    def _pop(self, index=-1):
-        """Remove and return the raw state row at ``index``.
-
-        Parameters
-        ----------
-        index : int, optional
-            Row position across the whole flight. Negative values count from
-            the end. Default is ``-1``, the most recent row.
-
-        Returns
-        -------
-        list of float
-            The removed row, ``[t, *state]``, as it was stored.
-
-        Raises
-        ------
-        IndexError
-            If ``index`` is outside the flight's rows.
-        """
-        position = self._normalize(int(index))
-        row = self._rows.pop(position)
-        self._post_values.pop(position)
-        self._shift_starts_after(position, -1)
         self._version += 1
         return row
 
@@ -908,28 +857,6 @@ class Solution:
             f"not {type(key).__name__}."
         )
 
-    def _set_row(self, index, row):
-        """Overwrite the row at ``index`` with a raw state row ``[t, *state]``.
-
-        Parameters
-        ----------
-        index : int
-            Row position across the whole flight. Negative values count from
-            the end.
-        row : sequence of float
-            Time followed by the states the phase at ``index`` integrates, in
-            the order that phase integrates them.
-
-        Raises
-        ------
-        IndexError
-            If ``index`` is outside the flight's rows.
-        """
-        position = self._normalize(int(index))
-        self._rows[position] = row
-        self._post_values[position] = None
-        self._version += 1
-
     def __array__(self, dtype=None, copy=None):  # pylint: disable=unused-argument
         """Return the whole flight as the ``(n, 14)`` canonical table.
 
@@ -969,21 +896,149 @@ class Solution:
         # above is the flight's cache, shared by every later read of it.
         return array.astype(dtype) if dtype is not None else array.copy()
 
+    @property
+    def time(self):
+        """The time column of the whole flight, in seconds, as a 1-D array."""
+        return self.canonical_array[:, 0]
+
+    @property
+    def canonical_array(self):
+        """The whole flight as a rectangular ``(n, 14)`` canonical table.
+
+        Each row is ``[t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``.
+        States a phase does not integrate are rebuilt or held.
+
+        The table belongs to the flight and cannot be written to. For a table
+        of your own to edit, use ``numpy.array(solution)``.
+        """
+        if self._canonical_cache is None or self._canonical_version != self._version:
+            spans = list(self._spans())
+            if not spans:
+                result = np.empty((0, len(CANONICAL_STATE_NAMES) + 1))
+            elif all(phase.dynamics.is_canonical for _, phase, _, _ in spans):
+                # Every phase already stores the 14 canonical values, so the
+                # stored rows are the table. Guarded on all of them, since a
+                # phase storing fewer values would make the rows uneven.
+                result = np.array(self._rows)
+            else:
+                result = np.array(list(self))
+            # Read-only so that a caller writing to the table it was handed
+            # is told, rather than silently rewriting every later read of it.
+            result.flags.writeable = False
+            self._canonical_cache = result
+            self._canonical_version = self._version
+        return self._canonical_cache
+
     # -- Queries by name ---------------------------------------------------
 
-    def series(self, name):
-        """Return the ``[t, value]`` history of one state over the flight.
+    @property
+    def names(self):
+        """Every quantity this flight holds per row, by name.
 
-        The history spans only the phases that define the state. A canonical
+        The 13 canonical states first, then the states only some phases
+        integrate (a controllable's own states, for example), then the
+        post-process variables (accelerations, forces, moments, thrust) and
+        the control inputs. Each is read as ``solution.<name>`` or
+        ``solution["<name>"]``.
+
+        Returns
+        -------
+        tuple of str
+        """
+        names = list(CANONICAL_STATE_NAMES)
+        for phase in self.phases:
+            for name in phase.dynamics.states:
+                if name not in names:
+                    names.append(name)
+        for name in self.post_process_names:
+            if name not in names:
+                names.append(name)
+        names.extend(self.control_names)
+        return tuple(names)
+
+    @property
+    def post_process_names(self):
+        """Names of every post-process variable this flight computes.
+
+        The phases of a flight need not all compute the same variables: a
+        parachute descent reports no moments and no thrust. This lists every
+        name any phase computes, in the order the phases first introduce them.
+        A phase that does not compute one of them reports zero for it, which is
+        the physically right answer for the variables RocketPy defines.
+
+        Returns
+        -------
+        tuple of str
+        """
+        names = []
+        for phase in self.phases:
+            for name in phase.dynamics.post_process_vars:
+                # What a continuous controller's law wrote to each control
+                # input is kept with the post-process values, but it is read
+                # as the control input itself
+                if name not in names and not name.startswith("controls."):
+                    names.append(name)
+        return tuple(names)
+
+    @property
+    def control_names(self):
+        """Names of the control inputs stored with the rows, in order.
+
+        Returns
+        -------
+        tuple of str
+        """
+        # Kept until the rows or their control inputs change: looking for the
+        # first row with controls is a pass over the rows
+        key = (self._version, self._post_version)
+        if self._control_names_cache[0] != key:
+            names = next(
+                (
+                    tuple(controls)
+                    for controls in self._controls
+                    if controls is not None
+                ),
+                (),
+            )
+            self._control_names_cache = (key, names)
+        return self._control_names_cache[1]
+
+    def __contains__(self, name):
+        """Return whether ``name`` is one of :attr:`names`."""
+        return isinstance(name, str) and name in self.names
+
+    def __getattr__(self, name):
+        """Read a quantity by name: ``solution.vz``, ``solution.ax``."""
+        # Only names that are not attributes get here. Dunder and private
+        # names are asked for by copying and pickling before __init__ ran
+        if name.startswith("_"):
+            raise AttributeError(name)
+        try:
+            return self.series(name)
+        except KeyError as error:
+            raise AttributeError(error.args[0]) from None
+
+    def __dir__(self):
+        return [*super().__dir__(), *self.names]
+
+    def series(self, name):
+        """Return the ``[t, value]`` history of one quantity over the flight.
+
+        The same as ``solution[name]`` and ``solution.<name>``. A canonical
         state is defined in every phase (rebuilt or held where a phase does not
-        integrate it), so its history covers the whole flight. A phase-specific
-        state's history covers only the phases that integrate it, and a warning
-        names the phases left out.
+        integrate it), so its history covers the whole flight. A state only
+        some phases integrate covers those phases, and a warning names the
+        ones left out. A post-process variable covers the phases that can be
+        worked out: all of them on a live flight, none on a flight read back
+        from a file. A control input covers every row, with the value in
+        force from that row's time on, or what a continuous controller's law
+        left at that row.
 
         Parameters
         ----------
         name : str
-            The state name (for example ``"vz"``).
+            One of :attr:`names`, for example ``"vz"``, ``"ax"`` or
+            ``"canards.deflection"``.
 
         Returns
         -------
@@ -993,32 +1048,46 @@ class Solution:
         Raises
         ------
         KeyError
-            If no phase defines the state.
+            If the flight has nothing by that name, or a post-process
+            variable cannot be worked out.
 
         Warns
         -----
         UserWarning
-            If some phases do not define the state, so its history has a gap.
+            If some phases do not define a state, so its history has a gap.
         """
         slot = CANONICAL_INDEX.get(name)
         if slot is not None:
             # Every phase reports the canonical states, so the history is two
             # columns of the canonical table.
             return self.canonical_array[:, [0, slot + 1]]
+        if name in self.control_names:
+            return self._control_history(name)[0]
+        if name in self.post_process_names:
+            return self._post_series(name)
+        return self._state_series(name)
+
+    def _state_series(self, name):
+        """The history of a state only some phases integrate."""
         cached = self._series_cache.get(name)
         if cached is not None and cached[0] == self._version:
             return cached[1]
         parts = []
         missing = []
         for index, phase, start, stop in self._spans():
-            part = self._phase_series_or_none(phase, start, stop, name)
-            if part is None:
+            # A state the phase integrates is a column of its rows
+            column = phase.dynamics.state_index.get(name)
+            if column is None:
                 missing.append(phase.name or f"phase {index}")
-            else:
-                parts.append(part)
+                continue
+            rows = self._rows[start:stop]
+            parts.append(
+                np.array([(row[0], row[column + 1]) for row in rows], dtype=float)
+            )
         if not parts:
             raise KeyError(
-                f"State '{name}' is not defined in any flight phase of this solution."
+                f"This flight has nothing named '{name}'. It has: "
+                f"{', '.join(self.names)}."
             )
         if missing:
             warnings.warn(
@@ -1031,8 +1100,53 @@ class Solution:
         self._series_cache[name] = (self._version, result)
         return result
 
+    def _control_history(self, name):
+        """The history of one control input, and whether a continuous
+        controller's law wrote it.
+
+        The history is the value in force at each row (``nan`` for a row
+        stored without controls) or, where a law wrote it, the value the law
+        left at each row. A law's value changes between the rows; a sampled
+        value holds until the next write."""
+        key = (self._version, self._post_version)
+        cached = self._control_cache.get(name)
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        values = [
+            np.nan if controls is None else controls[name]
+            for controls in self._controls
+        ]
+        result = np.column_stack([self.time, values])
+        written = self._post_series_or_none(f"controls.{name}")
+        by_law = written is not None and not np.array_equal(written[:, 1], result[:, 1])
+        history = (written if by_law else result, by_law)
+        self._control_cache[name] = (key, history)
+        return history
+
+    @property
+    def controls(self):
+        """The control inputs over the flight, by controllable.
+
+        ``solution.controls.canards.deflection`` is an ``(n, 2)`` array of time
+        and value, one entry per row: the value in force from that row's time
+        on, or what a continuous controller's law left at that row. The same
+        array is ``solution["canards.deflection"]``;
+        ``flight.controls.canards.deflection`` is it as a Function of time.
+
+        Returns
+        -------
+        dict
+            Controllable to its control inputs. Empty for a flight without
+            controls.
+        """
+        grouped = {}
+        for name in self.control_names:
+            owner, _, control = name.partition(".")
+            grouped.setdefault(owner, {})[control] = self._control_history(name)[0]
+        return _ResultsDict(grouped)
+
     def at(self, t, atol=1e-3):
-        """Return the flight state at the stored time nearest ``t``.
+        """Return everything the flight knows at the stored time nearest ``t``.
 
         Parameters
         ----------
@@ -1045,16 +1159,19 @@ class Solution:
         Returns
         -------
         dict
-            State name to value, for example ``state["vz"]``. Holds the 13
-            canonical states (reconstructed or held at their value when the
-            phase began, where the phase does not integrate them) plus any
-            state the phase integrates that is not one of them.
+            Name to value: the states (see :meth:`at_index`), the control
+            inputs in force at that row, and the post-process variables the
+            phase that time falls in computes, when the flight can work them
+            out. Phases do not all compute the same variables, so a parachute
+            descent reports fewer names than a powered ascent.
         """
         index = _nearest_time_index(self.time, t, atol, "solution")
-        return self.at_index(index)
+        values = self.at_index(index)
+        values.update(self._post_at_index(index))
+        return values
 
     def at_index(self, index):
-        """Return the state stored at row ``index`` as a name to value map.
+        """Return the state and control inputs stored at row ``index``.
 
         Reads a single row, so it stays cheap no matter how long the flight is.
         Use it instead of ``solution["vz"][index, 1]`` when only one row is
@@ -1069,7 +1186,11 @@ class Solution:
         Returns
         -------
         dict
-            State name to value, as described in :meth:`at`.
+            Name to value, for example ``values["vz"]``. Holds the 13
+            canonical states (reconstructed or held at their value when the
+            phase began, where the phase does not integrate them), any state
+            the phase integrates that is not one of them, and the control
+            inputs in force at that row.
 
         Raises
         ------
@@ -1078,7 +1199,11 @@ class Solution:
         """
         position = self._normalize(int(index))
         phase = self._phase_at(position)
-        return phase.state_dict(self._rows[position][1:])
+        values = phase.state_dict(self._rows[position][1:])
+        controls = self._controls[position]
+        if controls:
+            values.update(controls)
+        return values
 
     def value_at(self, index, name):
         """Return one state's value at row ``index``.
@@ -1123,38 +1248,176 @@ class Solution:
             f"It integrates {', '.join(phase.dynamics.states)}."
         )
 
-    @property
-    def time(self):
-        """The time column of the whole flight, in seconds, as a 1-D array."""
-        return self.canonical_array[:, 0]
+    # -- Sensor readings ---------------------------------------------------
 
     @property
-    def canonical_array(self):
-        """The whole flight as a rectangular ``(n, 14)`` canonical table.
+    def sensors(self):
+        """What the sensors read over the flight, by sensor.
 
-        Each row is ``[t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``.
-        States a phase does not integrate are rebuilt or held.
+        ``solution.sensors.barometer.pressure`` is an ``(n, 2)`` array of time
+        and reading, one entry per sampling time of that sensor, with its
+        noise and resolution. A sensor added in several positions is numbered
+        from 2 at the positions after the first: ``"Accelerometer"``,
+        ``"Accelerometer 2"``, read as ``accelerometer`` and
+        ``accelerometer_2``. ``flight.sensor_history.barometer.pressure`` is
+        the same reading as a Function of time.
 
-        The table belongs to the flight and cannot be written to. For a table
-        of your own to edit, use ``numpy.array(solution)``.
+        Returns
+        -------
+        dict
+            Sensor to its channels. Empty for a flight without sensors.
         """
-        if self._canonical_cache is None or self._canonical_version != self._version:
-            spans = list(self._spans())
-            if not spans:
-                result = np.empty((0, CANONICAL_WIDTH))
-            elif all(phase.dynamics.is_canonical for _, phase, _, _ in spans):
-                # Every phase already stores the 14 canonical values, so the
-                # stored rows are the table. Guarded on all of them, since a
-                # phase storing fewer values would make the rows uneven.
-                result = np.array(self._rows)
-            else:
-                result = np.array(list(self))
-            # Read-only so that a caller writing to the table it was handed
-            # is told, rather than silently rewriting every later read of it.
-            result.flags.writeable = False
-            self._canonical_cache = result
-            self._canonical_version = self._version
-        return self._canonical_cache
+        return _ResultsDict(
+            {
+                name: {
+                    channel: np.array(points, dtype=float)
+                    for channel, points in channels.items()
+                }
+                for name, channels in self._sensors.items()
+            }
+        )
+
+    def _add_reading(self, name, time, readings):
+        """Store what the sensor position ``name`` read at ``time``: channel
+        name to value."""
+        channels = self._sensors.setdefault(name, {})
+        for channel, value in readings.items():
+            channels.setdefault(channel, []).append((time, value))
+
+    def _latest_reading(self, name, channel):
+        """The last value the sensor position ``name`` read on ``channel``,
+        with its time, or ``None`` before its first reading."""
+        points = self._sensors.get(name, {}).get(channel)
+        return points[-1] if points else None
+
+    def _drop_readings_after(self, time):
+        """Forget every reading made after ``time``, when the flight goes back
+        to it."""
+        for channels in self._sensors.values():
+            for points in channels.values():
+                while points and points[-1][0] > time:
+                    points.pop()
+
+    # -- Post-process variables --------------------------------------------
+    # On its way to each state derivative, a flight phase works out quantities
+    # it never integrates: the accelerations, the aerodynamic forces and
+    # moments, the net thrust. They are worked out again after the flight
+    # from the stored rows, each with its control inputs and with the surface
+    # switches replayed by time, the first time one is read, and kept until
+    # the rows or their control inputs change. They are not saved to file: a
+    # flight read back from one cannot report them, since that needs the
+    # equations of motion.
+
+    def _phase_table(self, phase, start, stop):
+        """Return the post-process values of a phase holding rows ``start`` to
+        ``stop``, as an ``(n_rows, n_variables)`` array, or ``None`` if the
+        phase cannot be worked out again (a phase read back from a saved
+        flight)."""
+        if phase.bound_dynamics is None:
+            return None
+        rows = self._rows[start:stop]
+        # A row with no controls of its own was written since the flight last
+        # stored them, and is worked out with the flight's controls as they
+        # are now
+        controls = self._controls[start:stop]
+        return np.array(
+            [
+                phase.dynamics.post_process_values(
+                    phase.bound_dynamics.post_process_at(row[0], row[1:], row_controls)
+                )
+                for row, row_controls in zip(rows, controls)
+            ],
+            dtype=float,
+        )
+
+    def _phase_tables(self):
+        """Return every phase's post-process values, worked out once and kept
+        until the rows or their control inputs change, so reading a second
+        variable costs nothing."""
+        key = (self._version, self._post_version)
+        if self._post_tables is None or self._post_key != key:
+            # ``None`` for a phase with no rows
+            tables = [None] * len(self.phases)
+            for index, phase, start, stop in self._spans():
+                tables[index] = self._phase_table(phase, start, stop)
+            self._post_tables = tables
+            self._post_key = key
+        return self._post_tables
+
+    def phase_values(self, phase_index):
+        """Return one phase's post-process values, one row per row of the phase.
+
+        Parameters
+        ----------
+        phase_index : int
+            Position of the phase in the solution's phases. Negative values
+            count from the end.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            An array with one row per row of the phase and one column per name
+            in that phase's ``post_process_vars``, or ``None`` if the phase
+            holds no rows or its values cannot be worked out.
+
+        Raises
+        ------
+        IndexError
+            If ``phase_index`` is outside this flight's phases.
+        """
+        return self._phase_tables()[phase_index]
+
+    def _post_series_or_none(self, name):
+        """The history of one post-process variable over the phases that can
+        be worked out, or ``None`` when none can."""
+        if not any(name in phase.dynamics.post_process_index for phase in self.phases):
+            return None
+        tables = self._phase_tables()
+        parts = []
+        for index, phase, start, stop in self._spans():
+            table = tables[index]
+            if table is None:
+                continue
+            times = self.time[start:stop]
+            column = phase.dynamics.post_process_index.get(name)
+            values = np.zeros(len(times)) if column is None else table[:, column]
+            parts.append(np.column_stack([times, values]))
+        if not parts:
+            return None
+        return parts[0] if len(parts) == 1 else np.concatenate(parts, axis=0)
+
+    def _post_series(self, name):
+        """The history of one post-process variable, or a ``KeyError`` when
+        the flight cannot work it out."""
+        result = self._post_series_or_none(name)
+        if result is None:
+            raise KeyError(
+                f"The post-process variable '{name}' cannot be worked out for "
+                f"this flight. Either it has no stored states yet, or it was "
+                f"read back from a saved file, which does not carry the "
+                f"equations of motion needed to work the variable out again."
+            )
+        return result
+
+    def _post_at_index(self, index):
+        """The post-process variables at row ``index``, worked out for that
+        row alone, and the control inputs as a continuous controller's law
+        left them there. Empty when the phase computes none or cannot be
+        worked out."""
+        position = self._normalize(int(index))
+        phase = self._phase_at(position)
+        if not phase.dynamics.post_process_vars or phase.bound_dynamics is None:
+            return {}
+        row = self._rows[position]
+        values = phase.dynamics.post_process_values(
+            phase.bound_dynamics.post_process_at(
+                row[0], row[1:], self._controls[position]
+            )
+        )
+        return {
+            name.removeprefix("controls."): value
+            for name, value in zip(phase.dynamics.post_process_vars, values)
+        }
 
     # -- Serialization -----------------------------------------------------
 
@@ -1171,15 +1434,44 @@ class Solution:
         Returns
         -------
         dict
-            A format marker, the flight's rows, and one entry per phase as
-            produced by :meth:`_PhaseSolution.to_dict`. Pass it to
-            :meth:`from_dict` to rebuild the solution.
+            A format marker, the flight's rows, one entry per phase as
+            produced by :meth:`_PhaseSolution.to_dict`, for a flight with
+            controls the control values stored with each row, and for a
+            flight with sensors what they read. Pass it to :meth:`from_dict`
+            to rebuild the solution.
         """
-        return {
+        data = {
             "format": "rocketpy/solution",
             "phases": [phase.to_dict() for phase in self.phases],
             "rows": self._rows,
         }
+        if any(self._controls):
+            # Control input names once, then one list of values per row. A
+            # control input a continuous controller's law wrote is saved as
+            # the law left it, since that is not worked out again on loading
+            names = self.control_names
+            histories = {name: self._control_history(name) for name in names}
+            data["control_names"] = list(names)
+            data["controls"] = [
+                None
+                if controls is None
+                else [
+                    float(histories[name][0][position, 1])
+                    if histories[name][1]
+                    else controls[name]
+                    for name in names
+                ]
+                for position, controls in enumerate(self._controls)
+            ]
+        if self._sensors:
+            data["sensors"] = {
+                name: {
+                    channel: [[float(t), float(value)] for t, value in points]
+                    for channel, points in channels.items()
+                }
+                for name, channels in self._sensors.items()
+            }
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -1198,7 +1490,22 @@ class Solution:
         """
         phases = [_PhaseSolution.from_dict(entry) for entry in data.get("phases", [])]
         rows = [list(row) for row in data.get("rows", [])]
-        return cls(phases, rows)
+        solution = cls(phases, rows)
+        names = data.get("control_names")
+        if names:
+            solution._controls = [
+                None if values is None else dict(zip(names, values))
+                for values in data["controls"]
+            ]
+            solution._post_version += 1
+        solution._sensors = {
+            name: {
+                channel: [tuple(point) for point in points]
+                for channel, points in channels.items()
+            }
+            for name, channels in data.get("sensors", {}).items()
+        }
+        return solution
 
     @classmethod
     def from_legacy_list(cls, rows):
@@ -1228,305 +1535,3 @@ class Solution:
             start=0,
         )
         return cls([phase], rows)
-
-
-class PostProcessSolution:
-    """The variables a flight computes besides the states it integrates.
-
-    On its way to each state derivative, a flight phase works out quantities it
-    never integrates: the accelerations, the aerodynamic forces and moments, and
-    the net thrust. This class is how you read them. Reach it as
-    ``flight.solution.post``.
-
-    Read one variable over the whole flight with ``post["ax"]``, which gives an
-    ``(n, 2)`` array of time and value, the same shape ``solution["vz"]`` gives
-    for a state. Read every variable at one instant with ``post.at(t)``, which
-    gives a name-to-value dictionary. :attr:`names` lists what this flight
-    computes.
-
-    Where the values come from depends on the flight. A flight whose controllers
-    move an air brake records them as it runs, since replaying the stored states
-    afterwards would read the rocket in the configuration it ended the flight
-    in. Any other flight works them out from its stored states the first time
-    you ask, and keeps the answer. Either way the values are not saved to file,
-    so a flight read back from a saved file cannot report them: recomputing them
-    needs the equations of motion, which are code and cannot be written out.
-
-    Examples
-    --------
-    >>> flight.solution.post.names  # doctest: +SKIP
-    ('ax', 'ay', 'az', 'alpha1', ..., 'net_thrust')
-    >>> flight.solution.post["az"]  # doctest: +SKIP
-    array([[0.   , 0.   ],
-           [0.001, 9.81 ],
-           ...
-    >>> flight.solution.post.at(3.0)["net_thrust"]  # doctest: +SKIP
-    1834.2
-    """
-
-    # This is Solution's own reading layer, so it works with Solution's
-    # internals on purpose. The values themselves stay in the Solution, next to
-    # the rows they were computed from, so a rollback cannot leave the two out
-    # of step.
-    # pylint: disable=protected-access
-
-    def __init__(self, solution):
-        """Attach a reading layer to ``solution``.
-
-        Parameters
-        ----------
-        solution : Solution
-            The flight whose post-process variables this reads.
-        """
-        self._solution = solution
-        self._tables = None
-        self._key = None
-
-    def __repr__(self):
-        """Return which variables this flight computes."""
-        return f"PostProcessSolution(names={self.names!r})"
-
-    @property
-    def names(self):
-        """Names of every post-process variable this flight computes.
-
-        The phases of a flight need not all compute the same variables: a
-        parachute descent reports no moments and no thrust. This lists every
-        name any phase computes, in the order the phases first introduce them.
-        A phase that does not compute one of them reports zero for it, which is
-        the physically right answer for the variables RocketPy defines.
-        """
-        names = []
-        for phase in self._solution.phases:
-            for name in phase.dynamics.post_process_vars:
-                if name not in names:
-                    names.append(name)
-        return tuple(names)
-
-    def __contains__(self, name):
-        """Return whether any phase of this flight computes ``name``."""
-        return name in self.names
-
-    def __iter__(self):
-        """Iterate over :attr:`names`."""
-        return iter(self.names)
-
-    def _phase_table(self, phase_index, phase):
-        """Return one phase's values as an ``(n_rows, n_variables)`` array.
-
-        Values recorded while the simulation ran are used as they are. A phase
-        with none is worked out again from its stored states, which gives the
-        same answer for a flight whose rocket did not change mid-flight.
-
-        Parameters
-        ----------
-        phase_index : int
-            Position of the phase in the solution's phases.
-        phase : _PhaseSolution
-            That same phase.
-
-        Returns
-        -------
-        numpy.ndarray or None
-            One row of values per row of the phase, or ``None`` if the phase
-            holds no rows or can neither be read back nor worked out again.
-        """
-        start, stop = self._solution.phase_span(phase_index)
-        rows = self._solution._rows[start:stop]
-        if not rows:
-            return None
-        recorded = self._solution._post_values[start:stop]
-        if self._solution.records_post_values:
-            # This flight changes the rocket as it flies, so the values it
-            # recorded are the only right answer. Working them out again would
-            # read the rocket in the configuration it ended the flight in and
-            # report, for the whole flight, the air brake deflection it landed
-            # with. A row with nothing recorded is a bug, not a reason to fall
-            # back on that.
-            missing = [index for index, values in enumerate(recorded) if values is None]
-            if missing:
-                raise ValueError(
-                    f"This flight recorded its post-process variables as it "
-                    f"ran, because one of its events changes the rocket "
-                    f"mid-flight, but row {start + missing[0]} has none. They "
-                    f"cannot be worked out now: the rocket is no longer in the "
-                    f"configuration it had at that moment. This is a bug in "
-                    f"RocketPy, not something a flight can cause."
-                )
-            return np.array(recorded, dtype=float)
-        if phase.bound_dynamics is None:
-            # A phase read back from a saved flight cannot be worked out again,
-            # since that needs the equations of motion of a live flight.
-            return None
-        return np.array(
-            [
-                phase.dynamics.post_process_values(
-                    phase.bound_dynamics.post_process_at(row[0], row[1:])
-                )
-                for row in rows
-            ],
-            dtype=float,
-        )
-
-    def _phase_tables(self):
-        """Return every phase's values, working out the ones not recorded.
-
-        The answer is kept until the flight's rows or its recorded values
-        change, so asking for a second variable costs nothing.
-        """
-        key = (self._solution._version, self._solution._post_version)
-        if self._tables is None or self._key != key:
-            self._tables = [
-                self._phase_table(index, phase)
-                for index, phase in enumerate(self._solution.phases)
-            ]
-            self._key = key
-        return self._tables
-
-    def phase_values(self, phase_index):
-        """Return one phase's post-process values, one row per row of the phase.
-
-        Parameters
-        ----------
-        phase_index : int
-            Position of the phase in the solution's phases. Negative values
-            count from the end.
-
-        Returns
-        -------
-        numpy.ndarray or None
-            An array with one row per row of the phase and one column per name
-            in that phase's ``post_process_vars``, or ``None`` if the phase
-            holds no rows or its values cannot be worked out.
-
-        Raises
-        ------
-        IndexError
-            If ``phase_index`` is outside this flight's phases.
-        """
-        tables = self._phase_tables()
-        return tables[phase_index]
-
-    def __getitem__(self, name):
-        """Return the ``[t, value]`` history of one variable over the flight.
-
-        Parameters
-        ----------
-        name : str
-            The variable name, for example ``"az"`` or ``"net_thrust"``.
-
-        Returns
-        -------
-        numpy.ndarray
-            An ``(n, 2)`` array whose columns are time and value.
-
-        Raises
-        ------
-        KeyError
-            If no phase of this flight computes the variable, or if the flight
-            has no stored rows, or if it was read back from a saved file and so
-            cannot compute it.
-        """
-        names = self.names
-        if name not in names:
-            raise KeyError(
-                f"No flight phase computed the post-process variable '{name}'. "
-                f"This flight computes: {', '.join(names) or '(none)'}."
-            )
-        tables = self._phase_tables()
-        parts = []
-        for index, phase in enumerate(self._solution.phases):
-            table = tables[index]
-            if table is None:
-                continue
-            start, stop = self._solution.phase_span(index)
-            times = self._solution.time[start:stop]
-            column = phase.dynamics.post_process_index.get(name)
-            values = np.zeros(len(times)) if column is None else table[:, column]
-            parts.append(np.column_stack([times, values]))
-        if not parts:
-            raise KeyError(
-                f"The post-process variable '{name}' cannot be worked out for "
-                f"this flight. Either it has no stored states yet, or it was "
-                f"read back from a saved file, which does not carry the "
-                f"equations of motion needed to work the variable out again."
-            )
-        return parts[0] if len(parts) == 1 else np.concatenate(parts, axis=0)
-
-    def at(self, t, atol=1e-3):
-        """Return every post-process variable at the stored time nearest ``t``.
-
-        Parameters
-        ----------
-        t : float
-            Time in seconds.
-        atol : float, optional
-            If the nearest stored time differs from ``t`` by more than this, a
-            warning is raised. Default is ``1e-3``.
-
-        Returns
-        -------
-        dict
-            Variable name to value, holding the variables the phase that time
-            falls in computes. Phases do not all compute the same variables, so
-            a parachute descent reports fewer names than a powered ascent.
-        """
-        index = _nearest_time_index(self._solution.time, t, atol, "solution")
-        return self.at_index(index)
-
-    def at_index(self, index):
-        """Return every post-process variable at row ``index``.
-
-        Reads a single row, so it stays cheap no matter how long the flight is.
-        Use it instead of ``post["az"][index, 1]`` when only one row is needed,
-        since that works out the variable's whole history first.
-
-        Parameters
-        ----------
-        index : int
-            Row position across the whole flight. Negative values count from
-            the end.
-
-        Returns
-        -------
-        dict
-            Variable name to value, as described in :meth:`at`. Empty for a row
-            of a phase that computes no post-process variables.
-
-        Raises
-        ------
-        IndexError
-            If ``index`` is outside the flight's rows.
-        KeyError
-            If the row's values were not recorded and the phase was read back
-            from a saved file, so they cannot be worked out again.
-        """
-        solution = self._solution
-        position = solution._normalize(int(index))
-        phase_index = solution.phase_index_at(position)
-        phase = solution.phases[phase_index]
-        if not phase.dynamics.post_process_vars:
-            return {}
-        values = solution._post_values[position]
-        if values is None:
-            if solution.records_post_values:
-                raise ValueError(
-                    f"This flight recorded its post-process variables as it "
-                    f"ran, because one of its events changes the rocket "
-                    f"mid-flight, but row {position} has none. They cannot be "
-                    f"worked out now: the rocket is no longer in the "
-                    f"configuration it had at that moment. This is a bug in "
-                    f"RocketPy, not something a flight can cause."
-                )
-            if phase.bound_dynamics is None:
-                raise KeyError(
-                    "This flight phase was read back from a saved file, so its "
-                    "post-process variables were not recorded and cannot be "
-                    "worked out again: that needs the equations of motion, "
-                    "which are code and are not saved with a flight."
-                )
-            row = solution.raw_row(position)
-            values = phase.dynamics.post_process_values(
-                phase.bound_dynamics.post_process_at(row[0], row[1:])
-            )
-        return dict(zip(phase.dynamics.post_process_vars, values))

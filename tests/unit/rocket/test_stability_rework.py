@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 from rocketpy import (
-    ControllableGenericSurface,
     Function,
     GenericSurface,
     LinearGenericSurface,
@@ -349,6 +348,26 @@ def test_add_full_body_aerodynamics_single_phase(calisto_robust):
     created = rocket.add_full_body_aerodynamics(surface)
     assert created is surface
     assert surface.active_during == "power_off"
+
+
+def test_add_full_body_aerodynamics_overwrite_keeps_the_air_brakes(calisto_robust):
+    """The air brakes and the controller that sets them go together: an
+    overwrite keeps both, so the controller still finds its control input."""
+    rocket = calisto_robust
+    air_brakes = rocket.add_air_brakes(
+        drag_coefficient_curve=0.5,
+        controller_function=lambda context: None,
+        sampling_rate=10,
+    )
+    surface = _full_body_surface(rocket, {"cA": 0.4})
+    with pytest.warns(UserWarning, match="Air brakes, if any, are kept"):
+        rocket.add_full_body_aerodynamics(surface, overwrite=True)
+
+    assert rocket.aerodynamic_surfaces.get_components() == [air_brakes, surface]
+    assert rocket.control_names == ("air_brakes.deployment_level",)
+    assert len(rocket.controllers) == 1
+    assert rocket._is_at_center_of_dry_mass(air_brakes)
+    assert set(rocket.surfaces_cp_to_cdm) == {air_brakes, surface}
 
 
 def test_add_full_body_aerodynamics_overwrite_replaces_surfaces_and_drag(
@@ -1009,7 +1028,7 @@ def test_lumping_follows_the_reynolds_number(model):
 
 def _canard(name):
     area, diameter = math.pi * 0.0635**2, 2 * 0.0635
-    return ControllableGenericSurface(
+    return GenericSurface(
         area,
         diameter,
         {
@@ -1017,16 +1036,18 @@ def _canard(name):
             "cY": lambda beta: -1.5 * beta,
         },
         name=name,
+        controls=("deflection",),
     )
 
 
 def test_lumping_keeps_a_control():
     """A control listed in ``controls`` becomes an input of the coefficients,
-    the surface built from them is controllable and matches the rocket at a
-    deflection, and the rocket's own control is left where it was."""
+    the surface built from them has that control and matches the rocket at a
+    deflection, and the default of the rocket's own control is left where it
+    was."""
     canard = _canard("Canard")
     rocket = _rocket_with(canard, 0.8)
-    canard.set_control("deflection", 0.02)
+    canard.control_defaults["deflection"] = 0.02
     machs, angles = [0.2, 0.5, 0.8], np.radians([-10, 0, 10])
     controls = {"deflection": np.radians([-10, 0, 10])}
 
@@ -1034,17 +1055,17 @@ def test_lumping_keeps_a_control():
     assert linear["cN_0"](0.5, math.radians(10)) == pytest.approx(
         1.5 * math.radians(10)
     )
-    assert canard.get_control("deflection") == 0.02
+    assert canard.control_defaults["deflection"] == 0.02
 
     power_off = rocket.to_surface(
         machs=machs, model="table", angles=angles, controls=controls
     )[0]
-    assert isinstance(power_off, ControllableGenericSurface)
-    assert power_off.control_variables == ["deflection"]
+    assert power_off.controls == ("deflection",)
     alpha, deflection = math.radians(3), math.radians(5)
-    power_off.set_control("deflection", deflection)
-    canard.set_control("deflection", deflection)
-    args = power_off._coefficient_arguments(alpha, 0, 0.5, 0, 0, 0, 0)
+    canard.control_defaults["deflection"] = deflection
+    args = power_off._coefficient_arguments(
+        alpha, 0, 0.5, 0, 0, 0, 0, controls=(deflection,)
+    )
     expected = _source_coefficients(rocket, alpha, 0.5)
     assert power_off.cN.get_value_opt(*args) == pytest.approx(expected[0])
     assert power_off.cm.get_value_opt(*args) == pytest.approx(expected[1])

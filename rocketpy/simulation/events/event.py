@@ -1,36 +1,88 @@
 import inspect
+import keyword
+import logging
 import warnings
 from copy import deepcopy
 from numbers import Real
 
 from ..._logging import logger
 from .commands import Commands
+from .event_context import EventContext, refresh_event_kwargs
 from .exact_time_solvers import SOLVERS
 
+
+def _past_apogee(context):
+    """Whether the rocket is coming down: at or past its apogee and above the
+    ground. It holds at every check after the apogee, however far apart the
+    checks are."""
+    return context["canonical_state"][5] <= 0 < context["height_agl"]
+
+
+def _reached_apogee(context):
+    """Whether this is the event's first check at or past the apogee."""
+    previous = context["event"]._previous_state  # pylint: disable=protected-access
+    return _past_apogee(context) and (previous is None or previous[5] > 0)
+
+
+# The conditions a trigger can name. "apogee" fires once, at the event's
+# first check past the apogee.
 PRESETS = {
-    "apogee": lambda context: (
-        len(context["flight"].solution) >= 2
-        and context["flight"].solution.at_index(-2)["vz"]
-        > 0
-        >= context["canonical_state"][5]
-    ),
+    "apogee": _reached_apogee,
     "burnout": lambda context: context["time"] >= context["rocket"].motor.burn_out_time,
 }
+# The same for ``enable_on`` and ``disable_on``, which hold from then on: a
+# gate is not checked at every check of the event, so it must not depend on
+# catching the one check where the apogee was crossed
+_GATE_PRESETS = {**PRESETS, "apogee": _past_apogee}
+
+
+def _copied(value):
+    """Return a number as it is and anything else as a copy, or as it is when
+    it cannot be copied."""
+    if isinstance(value, Real):
+        return value
+    try:
+        return deepcopy(value)
+    except Exception:  # pylint: disable=broad-exception-caught
+        return value
 
 
 class Event:
-    """Event helper with trigger/callback execution and exact-time support.
+    """An action that runs when a condition is met during a flight.
 
-    An ``Event`` is the main way RocketPy reacts to conditions during a
-    flight. It pairs a ``trigger`` predicate with a ``callback`` action: at
-    each evaluation the trigger is checked and, when it returns ``True``,
-    the callback runs. Callbacks can inspect the simulation state, store
-    persistent data in ``memory``, log return values, and queue commands
-    (through ``event.commands``) that modify the simulation, such as
-    starting a new flight phase, replacing the derivative, scheduling other
-    events, or terminating the flight.
+    An event pairs a ``trigger``, the condition, with a ``callback``, the
+    action. Each time the event is checked, the trigger is evaluated and, when
+    it returns ``True``, the callback runs. Both receive the ``context``, a
+    :class:`rocketpy.EventContext` with the time, the rocket's state, the
+    sensor readings and the rest of what is known at that moment.
+
+    A callback can keep data from one check to the next in
+    ``context.memory``, record values to read after the flight with
+    ``context.record``, share values with other events through
+    ``context.outputs``, and change the course of the flight through
+    ``context.commands``: start a new flight phase, change the equations of
+    motion, add other events or end the flight.
 
     See :ref:`eventusage` for a full guide with runnable examples.
+
+    Attributes
+    ----------
+    name : str
+        Name of the event.
+    enabled : bool
+        Whether the event is currently checked.
+    memory : dict
+        The event's own data, as the last check left it.
+    triggered_times : list of float
+        The times the event fired in the last flight, in s.
+    enabled_times, disabled_times : list of float
+        The times the event was turned on and off in the last flight, in s.
+    records : dict
+        What the event recorded in the last flight.
+    outputs : tuple of str
+        Names of the values the event shares with other events.
+    output_history : dict
+        What the event wrote to its outputs in the last flight.
     """
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -39,166 +91,168 @@ class Event:
         trigger=None,
         sampling_rate=None,
         memory=None,
-        disable_on=None,
-        enable_on=None,
-        exact_time_function=None,
-        exact_time_config=None,
-        trigger_only_once=False,
-        time_overshootable=True,
-        changes_dynamics=False,
+        *,
+        outputs=None,
         name="Custom Event",
         enabled=True,
-        verbose=False,
+        enable_on=None,
+        disable_on=None,
+        trigger_only_once=False,
+        time_overshootable=True,
+        exact_time_function=None,
+        exact_time_config=None,
         priority=4,
+        verbose=False,
     ):
-        """Initialize an Event object.
+        """Build an event.
 
         Parameters
         ----------
-        callback : function
-            Required callable executed when the event triggers, with signature
-            ``callback(context) -> None or dict``. A returned ``dict`` is
-            appended to ``self.callback_log``. Queue commands via
-            ``context.event.commands`` and keep the event's own data in
-            ``context.event.memory``.
-            ``context`` holds the following values, each read as
-            ``context.<name>``:
-            ``time`` (float, s),
-            ``state`` (the rocket's states, read by name, such as
-            ``context.state.vz``. The names are ``x``, ``y``, ``z``
-            (position, m), ``vx``, ``vy``, ``vz`` (velocity, m/s), ``e0``,
-            ``e1``, ``e2``, ``e3`` (attitude quaternion) and ``w1``, ``w2``,
-            ``w3`` (angular velocity, rad/s), plus any state the current
-            flight phase follows on its own, read as
-            ``context.state.my_state`` for a state the phase calls
-            ``my_state``),
-            ``height_agl`` (float, m),
-            ``sensors`` (list of sensor objects),
-            ``sensors_by_name`` (dict of sensor objects),
-            ``environment`` (:class:`rocketpy.Environment`),
-            ``rocket`` (:class:`rocketpy.Rocket`),
-            ``flight`` (:class:`rocketpy.Flight`),
-            ``phase`` (current flight phase),
-            ``event`` (this :class:`Event` instance),
-            ``sampling_rate`` (float, Hz or ``None``),
-            ``step_size`` (float, s, how long the simulation has been inside
-            the solver step being evaluated; not the interval between checks
-            of this callback, and not ``1 / sampling_rate``),
-            ``state_dot`` (the derivative of each state with respect to
-            time, read by the same names as in :class:`rocketpy.Flight`:
-            ``context.state_dot.az`` is the vertical acceleration in m/s²
-            and ``context.state_dot.alpha1`` an angular acceleration in
-            rad/s²),
-            ``pressure`` (float, Pa, at the rocket's altitude),
-            ``previous_state`` (the ``state`` from the previous time this
-            event was checked, or ``None`` on the first check),
-            ``previous_time`` (float, s, or ``None`` on the first check).
-            ``state_dot`` and ``pressure`` are only worked out when a
-            function reads them, and once per solver step, so reading them
-            costs nothing unless they are used. Do not add values to
-            ``context``: it is shared by every event checked in the step.
-        trigger : function, optional
-            Predicate that returns ``True`` when the event should fire. It
-            receives the same ``context`` as ``callback`` (see above), but
-            its return value is interpreted as a boolean rather than logged.
-            If ``None`` (default), the event fires every time it is evaluated.
+        callback : callable
+            The action, ``callback(context)``, run when the event triggers.
+            ``context`` is a :class:`rocketpy.EventContext`, read by attribute:
+            ``context.time``, ``context.state.vz``, ``context.height_agl``,
+            ``context.sensors.barometer.pressure``. What the callback returns
+            is ignored.
+        trigger : callable, str or float, optional
+            The condition that fires the event. One of:
+
+            - a function ``trigger(context)`` that returns ``True`` when the
+              event should fire, given the same ``context`` as ``callback``;
+            - ``"apogee"`` or ``"burnout"``;
+            - a number, the simulation time in s from which it fires.
+
+            Default ``None``: the event fires every time it is checked.
         sampling_rate : float, optional
-            Evaluation frequency in hertz. If ``None`` (default), the event is
-            evaluated continuously at every solver time step. If a float (e.g.
-            ``10``), the event is sampled at that rate, i.e. every
-            ``1 / sampling_rate`` seconds.
+            How many times per second the event is checked, in Hz: with
+            ``10``, every 0.1 s. Default ``None``: the event is checked at the
+            end of every solver step.
         memory : dict, optional
             The event's own dictionary, kept from one check to the next and
             from trigger to callback. Read and write it as
-            ``context.event.memory``. Useful for counters, thresholds and
-            data shared between trigger and callback. It is restored to the
-            values given here when the event is reset for a new flight.
-            Defaults to an empty dict.
-        disable_on : str or int or float or callable, optional
-            Condition that automatically disables the event. May be a string
-            preset (``"apogee"`` or ``"burnout"``), a simulation time in seconds
-            (int or float), or a callable ``function(context)`` that returns
-            ``True`` when the event should be disabled. The times at which the
-            event is disabled are recorded in ``self.disabled_times``.
-        enable_on : str or int or float or callable, optional
-            Condition that automatically (re-)enables a disabled event. Uses the
-            same formats as ``disable_on`` (string preset, time threshold, or
-            callable predicate). The times at which the event is enabled are
-            recorded in ``self.enabled_times``.
-        exact_time_function : function, optional
-            Function that pins down the exact moment the event happened, between
+            ``context.memory``. It starts every flight with the values given
+            here. Defaults to an empty dictionary.
+        outputs : sequence of str or dict, optional
+            Values this event computes for other events to read. Give the name
+            of each output. It is then written and read through
+            ``context.outputs``, under the event's name in snake_case. For
+            example, an event named ``"Guidance"`` with
+            ``outputs=("pitch_setpoint",)`` writes its output in its callback,
+            and any other event reads it:
+
+            .. code-block:: python
+
+                context.outputs.guidance.pitch_setpoint = 0.1  # in "Guidance"
+                setpoint = context.outputs.guidance.pitch_setpoint  # elsewhere
+
+            An output can hold any value: a number, a vector, a text. It keeps
+            its value until it is written again, and only the event that
+            declared it can write it. Every output starts each flight as
+            ``None``, or at the value given with a dictionary, such as
+            ``outputs={"pitch_setpoint": 0.05}``. After the flight,
+            ``flight.event_outputs.guidance.pitch_setpoint`` is the list of
+            ``(time, value)`` pairs written. Two events with outputs cannot
+            have the same name. Default ``None``, no outputs.
+        name : str, optional
+            Name of the event. It names the event's records and outputs
+            (``flight.records.<name in snake_case>``) and appears in the log
+            messages. Defaults to ``"Custom Event"``.
+        enabled : bool, optional
+            Whether the event is checked from the start of the flight. An
+            event that is not can be turned on later by its ``enable_on``, or
+            by another event with ``context.commands.enable_event(event)``.
+            Defaults to ``True``.
+        enable_on : str, float or callable, optional
+            When a disabled event is turned on: ``"apogee"``, ``"burnout"``, a
+            simulation time in s, or a function ``f(context)`` that returns
+            ``True`` when the event should be turned on. The times it happens
+            are kept in ``event.enabled_times``. Default ``None``, never.
+        disable_on : str, float or callable, optional
+            When the event is turned off, in the same forms as ``enable_on``.
+            The times it happens are kept in ``event.disabled_times``. Default
+            ``None``, never.
+        trigger_only_once : bool, optional
+            If ``True``, the event turns itself off after the first time it
+            fires. Defaults to ``False``.
+        time_overshootable : bool, optional
+            How the flight reaches each sample of a sampled event. When
+            ``True`` (default) the solver may step past the sample and the
+            event runs at the interpolated state; if its commands or control
+            writes change the trajectory, the step is cut back to the sample
+            and the solver restarted there. When ``False`` every sample is a
+            point the solver stops at, so the event runs on the solver's own
+            state and no restart follows a change. The default is the faster
+            one, even for a controller that changes a control at every sample;
+            ``False`` is for an event that must run on the solver's own state
+            rather than an interpolated one. Always ``False`` for an event
+            without a ``sampling_rate``. Ignored when the flight has
+            ``time_overshoot=False``.
+        exact_time_function : callable, optional
+            Function that finds the exact moment the event happened, between
             two solver steps. It receives the same ``context`` as ``trigger``,
             worked out again at every moment the search tries, and returns a
             number that crosses zero (or the configured ``target``) at the
-            event. For example, to fire exactly at 500 m above ground level::
+            event. For example, to fire exactly at 500 m above ground level:
+
+            .. code-block:: python
 
                 def altitude(context):
                     return context.height_agl - 500
 
             When a crossing is found, ``callback`` runs with the ``context``
-            of that exact moment. Only supported for continuous events
-            (``sampling_rate=None``).
+            of that exact moment. Only for an event without a
+            ``sampling_rate``.
         exact_time_config : dict, optional
             How the exact moment is searched for. The ``"solver"`` key selects
             the method: ``"brentq"`` (default), ``"linear"`` or
             ``"cubic_hermite"``. Every solver accepts ``target`` (float, default
             ``0.0``); ``"brentq"`` also accepts ``xtol``, ``rtol`` and
             ``maxiter``; ``"cubic_hermite"`` requires ``derivative_function``
-            (the time derivative of ``exact_time_function``, taking the same
-            ``context``). Any other key raises a ``ValueError``. See
+            (the derivative of ``exact_time_function`` with respect to time,
+            taking the same ``context``). Any other key raises a ``ValueError``. See
             :ref:`eventusage` for what each key does.
-        trigger_only_once : bool, optional
-            If ``True``, the event disables itself after the first successful
-            trigger. Useful for one-shot actions such as deployment or
-            separation. Defaults to ``False``.
-        time_overshootable : bool, optional
-            Enables overshoot-path evaluation for sampled events. Only relevant
-            when ``sampling_rate`` is a float. When ``True`` (default) the
-            simulation may integrate past the next sampling time and step back to
-            evaluate the event at the correct instant, allowing fewer integration
-            steps and faster simulation. When ``False`` the solver places strict
-            time nodes at multiples of the sampling interval, which is much
-            slower with no gain in accuracy. Automatically forced to ``False``
-            when ``sampling_rate`` is ``None``.
-        changes_dynamics : bool, optional
-            Set to ``True`` when the callback changes anything that affects the
-            equations of motion. This includes changing an attribute of any
-            simulation object, and using the ``set_dynamics``,
-            ``start_flight_phase``, or ``terminate_flight`` commands.
-            Defaults to ``False``.
-        name : str, optional
-            Human-readable identifier used in logs and debugging. Defaults to
-            ``"Custom Event"``.
-        enabled : bool, optional
-            Initial enabled state. Disabled events can be re-enabled through the
-            ``enable`` command or via the ``enable_on`` parameter. Defaults to
-            ``True``.
-        verbose : bool, optional
-            When ``True``, the event prints a message and stores extra execution
-            logs in ``self.verbose_log`` whenever it triggers. Defaults to
-            ``False``.
         priority : int, optional
-            Integer event evaluation priority; lower numbers are evaluated
-            earlier. String aliases are not supported. Recommended mapping (used
-            by built-in events):
+            The order events are checked in when several are due at the same
+            time: lower numbers first. RocketPy's own events use:
 
-            - 0: Core events (out of rail, apogee, landing)
-            - 1: Sensor events
-            - 2: Parachute events
-            - 3: Controller events
-            - 4: Custom / user-defined events (default)
+            - 0: out of rail, apogee and landing
+            - 1: sensors
+            - 2: parachutes
+            - 3: controllers
+            - 4: events given to the flight (default)
+        verbose : bool, optional
+            When ``True``, every check of the event is reported by RocketPy's
+            logger at the ``INFO`` level instead of ``DEBUG``, which is shown
+            with ``Flight(..., verbose=True)`` or ``rocketpy.enable_logging()``.
+            Defaults to ``False``.
+
+        Raises
+        ------
+        ValueError
+            If ``callback``, ``trigger`` or ``exact_time_function`` is not a
+            function of the context alone, if a name given to ``trigger``,
+            ``enable_on`` or ``disable_on`` is not ``"apogee"`` or
+            ``"burnout"``, if an output name cannot be used, if
+            ``exact_time_config`` has a key its solver does not take, or if
+            ``exact_time_function`` is given with a ``sampling_rate``.
+        TypeError
+            If ``enable_on`` or ``disable_on`` is not one of the accepted
+            forms.
 
         See Also
         --------
+        rocketpy.EventContext : The values a trigger and a callback are given.
         :ref:`eventusage` : User guide for building and using events.
         """
         self.callback = self.__validate_callback(callback)
         self.name = name
         self.trigger = self.__validate_trigger(trigger) if trigger is not None else None
         self.memory = memory if memory is not None else {}
+        self._output_defaults = self.__validate_outputs(outputs)
+        self._outputs = deepcopy(self._output_defaults)
+        self._output_history = {}
         self.sampling_rate = sampling_rate
         self.trigger_only_once = trigger_only_once
-        self.changes_dynamics = bool(changes_dynamics)
         self.priority = priority
         self.time_overshootable = bool(time_overshootable)
         if self.time_overshootable and self.sampling_rate is None:
@@ -206,10 +260,8 @@ class Event:
         self._initial_enabled = bool(enabled)
         self.enabled = bool(enabled)
         self.verbose = verbose
-        self.verbose_log = []
-        self.callback_log = []
         self.triggered_times = []
-        self._trigger_checked = False
+        self._records = {}
         self._forget_previous_check()
 
         self.is_discrete = self.sampling_rate is not None
@@ -222,8 +274,6 @@ class Event:
         self.enabled_times = []
         self.disabled_times = []
         self._initial_memory = deepcopy(self.memory)
-        self._initial_enabled_times = list(self.enabled_times)
-        self._initial_disabled_times = list(self.disabled_times)
 
         self.commands = Commands()
 
@@ -242,43 +292,16 @@ class Event:
 
         if self.exact_time_function is not None and self.sampling_rate is not None:
             raise ValueError(
-                "exact_time_function is only supported for continuous hooks "
-                "with sampling_rate=None."
+                "exact_time_function is only supported for an event without a "
+                "sampling_rate."
             )
-
-    def _reset_commands(self):
-        self.commands.reset()
-
-    def reset(self):
-        """Reset event runtime state.
-
-        This clears per-run command/results state and internal logging buffers,
-        restores the initial ``enabled`` flag, and restores ``memory`` to its
-        construction-time snapshot.
-
-        Returns
-        -------
-        None
-        """
-        self._reset_commands()
-        self.enabled = self._initial_enabled
-        self.verbose_log.clear()
-        self.callback_log.clear()
-        self.triggered_times.clear()
-        self._trigger_checked = False
-        self._forget_previous_check()
-        self.memory = deepcopy(self._initial_memory)
-
-        # Restore enable/disable time history to initial snapshot
-        self.enabled_times = list(self._initial_enabled_times)
-        self.disabled_times = list(self._initial_disabled_times)
 
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(name={self.name!r}, enabled={self.enabled}, "
             f"sampling_rate={self.sampling_rate}, "
             f"time_overshootable={self.time_overshootable}, "
-            f"trigger_only_once={self.trigger_only_once}, "
+            f"trigger_only_once={self.trigger_only_once})"
         )
 
     def __str__(self):
@@ -286,87 +309,80 @@ class Event:
             f"{self.__class__.__name__} '{self.name}' (enabled={self.enabled}, "
             f"sampling_rate={self.sampling_rate}, "
             f"time_overshootable={self.time_overshootable}, "
-            f"trigger_only_once={self.trigger_only_once}, "
+            f"trigger_only_once={self.trigger_only_once})"
         )
 
-    def _forget_previous_check(self):
-        """Drop what this event saw the last time it was checked.
-
-        Called when the event is built and again when it is reset, so a second
-        flight does not compare its first check against the last check of the
-        one before it. The context answers ``previous_state`` and
-        ``previous_time`` from these.
-        """
-        self._previous_state = None
-        self._previous_time = None
-        self._previous_raw_state = None
-        self._previous_phase_names = ()
+    # Running the event
 
     def __call__(self, context, trigger_only=False, callback_only=False, reset=True):
-        """Evaluate the event trigger and execute the callback if triggered.
+        """Check the event: evaluate its trigger and, if it fires, run its
+        callback.
 
         Parameters
         ----------
         context : EventContext
-            The values to hand the trigger and callback. It is shared with the
-            other events checked in this solver step, so this event is bound to
-            it here and unbound again when the next event is bound.
+            The values the trigger and the callback are given. It is shared
+            with the other events checked in this solver step, and points at
+            this event until the next one is checked.
         trigger_only : bool, optional
-            If True, only evaluate the trigger condition without executing the
-            callback. The enable_on function is also called.
+            If ``True``, the trigger and ``enable_on`` are evaluated and the
+            callback is not run. Defaults to ``False``.
         callback_only : bool, optional
-            If True, only execute the callback without evaluating the trigger
-            condition. The exact time function and disable_on function are also
-            called.
+            If ``True``, the callback is run without evaluating the trigger.
+            ``exact_time_function`` and ``disable_on`` are still evaluated.
+            Defaults to ``False``.
         reset : bool, optional
-            If True (default), reset the event's queued commands (via
-            ``_reset_commands``) before evaluating the trigger.
+            If ``True`` (default), the commands left by the previous check are
+            cleared first.
 
         Returns
         -------
         bool
-            True if the event was triggered, False otherwise.
+            ``True`` if the event fired, ``False`` otherwise.
         """
         context.bind(self)
 
-        if self.enabled is False:
-            # If event is disabled, only evaluate enable_on function if it exists.
-            if self._call_enable_on(context) is False:
-                return False
-
         if reset:
-            self._reset_commands()
+            self.commands.reset()
+
+        # If event is disabled, only evaluate enable_on function if it exists.
+        if self._call_enable_on(context) is False:
+            return False
 
         # --- Trigger Phase ---
         # Skip evaluating triggers if we are only running the callback.
         if callback_only is False:
-            if self._call_enable_on(context) is False:
-                return False
-
             triggered = self._call_trigger(context)
 
-            # Remember this check, whether or not it triggered, so the next one
-            # can be compared against it. Recorded before the early return so a
-            # trigger that did not fire is still part of the sequence. The
-            # plain arrays are kept, with the names of the phase's own states;
-            # the context builds a state view from them if asked.
-            self._previous_state = context["canonical_state"]
-            self._previous_time = context["time"]
-            self._previous_raw_state = context["raw_state"]
-            self._previous_phase_names = context["phase_names"]
-
-            if triggered is False:
-                return False
-
-            if trigger_only:
-                return True
+            # Kept for the next check, triggered or not. Read from the context
+            # now, since it is rewritten during the step, and stored only after
+            # the callback, which must still see the check before this one.
+            check = (
+                context["canonical_state"],
+                context["time"],
+                context["raw_state"],
+                context["phase_names"],
+            )
+            if triggered is False or trigger_only:
+                (
+                    self._previous_state,
+                    self._previous_time,
+                    self._previous_raw_state,
+                    self._previous_phase_names,
+                ) = check
+                return triggered
 
         # --- Callback Phase ---
         context = self._call_exact_time(context)
 
-        callback_log = self.callback(context)
-
-        self.callback_log.append(callback_log)
+        self.callback(context)
+        if callback_only is False:
+            (
+                self._previous_state,
+                self._previous_time,
+                self._previous_raw_state,
+                self._previous_phase_names,
+            ) = check
         self.triggered_times.append(context.get("time"))
 
         self._call_disable_on(context)
@@ -374,13 +390,12 @@ class Event:
         if self.trigger_only_once:
             self.commands.disable()
 
-        self._log(
-            triggered=True,
-            context=context,
-        )
+        self._log(triggered=True, context=context)
         return True
 
     def _call_enable_on(self, context):
+        """Return ``False`` if the event is disabled and stays so. If its
+        ``enable_on`` condition is met, ask the flight to enable it."""
         if not self.enabled:
             # No enable_on function. Event stays disabled
             if self.enable_on is None:
@@ -400,6 +415,8 @@ class Event:
                 return False
 
     def _call_trigger(self, context):
+        """Return whether the trigger fires. An event without one always
+        does."""
         if self.trigger is not None:
             if not self.trigger(context):
                 self._log(triggered=False, context=context)
@@ -437,8 +454,7 @@ class Event:
             ``context`` itself is shared with the other events of this step and
             is left as it is.
         """
-        flight = context["flight"]
-        solution = flight.solution
+        solution = context._solution  # pylint: disable=protected-access
         if len(solution) < 2:
             raise ValueError(
                 "It fired before the first solver step, so there is no solver "
@@ -453,7 +469,8 @@ class Event:
         stored = {t1: state1}
         if len(solution) - 2 >= solution.phases[-1].start:
             stored[t0] = state0
-        dense_output = context["phase"].solver.dense_output()
+        phase = context._phase  # pylint: disable=protected-access
+        dense_output = phase.solver.dense_output()
 
         # A solver may ask for the value and its rate at the same moment, so the
         # last context built is kept.
@@ -463,7 +480,14 @@ class Event:
             if t not in cached:
                 raw_state = stored[t] if t in stored else dense_output(t)
                 cached.clear()
-                cached[t] = context.at(t, raw_state)
+                # A copy, since the other events of this step share ``context``
+                moved = EventContext(
+                    context,
+                    solution=solution,
+                    phase=phase,
+                    output_events=context._output_events,  # pylint: disable=protected-access
+                )
+                cached[t] = refresh_event_kwargs(moved, t, raw_state)
             return cached[t]
 
         options = dict(self.exact_time_config)
@@ -508,6 +532,8 @@ class Event:
         return exact_context
 
     def _call_disable_on(self, context):
+        """Ask the flight to disable the event if its ``disable_on`` condition
+        is met."""
         if self.disable_on is not None:
             try:
                 if self.disable_on(context):
@@ -518,32 +544,178 @@ class Event:
                     UserWarning,
                 )
 
-    def _log(
-        self,
-        triggered,
-        context,
-        callback_executed=None,
-        skip_reason=None,
-    ):
-        if self.verbose:
-            self.verbose_log.append(
-                {
-                    "time": context.get("time"),
-                    "triggered": triggered,
-                    "callback_executed": callback_executed,
-                    "skip_reason": skip_reason,
-                }
-            )
-        logger.debug(
-            "Event '%s' at t=%s: triggered=%s, callback_executed=%s, skip_reason=%s",
+    def _log(self, triggered, context):
+        """Report one check of the event to RocketPy's logger, at the ``INFO``
+        level for a verbose event and ``DEBUG`` otherwise."""
+        logger.log(
+            logging.INFO if self.verbose else logging.DEBUG,
+            "Event '%s' at t=%s: triggered=%s",
             self.name,
             context.get("time"),
             triggered,
-            callback_executed,
-            skip_reason,
         )
 
+    # What the event keeps: its outputs and records
+
+    @property
+    def outputs(self):
+        """The names of the values this event computes for other events to
+        read, as ``context.outputs.<event name in snake_case>.<output>``.
+        Empty for an event without outputs.
+
+        Returns
+        -------
+        tuple of str
+        """
+        return tuple(self._output_defaults)
+
+    @property
+    def output_defaults(self):
+        """The value each output starts every flight with, by name.
+
+        Returns
+        -------
+        dict
+        """
+        return dict(self._output_defaults)
+
+    @property
+    def output_history(self):
+        """What this event wrote to its outputs, by name.
+
+        Each output is the list of ``(time, value)`` pairs written, with the
+        value as it was when written. The list starts empty at every flight.
+        ``flight.event_outputs`` holds the outputs of every event of a flight.
+
+        Returns
+        -------
+        dict
+            Output name to list of ``(time, value)``.
+        """
+        return {name: list(points) for name, points in self._output_history.items()}
+
+    def _write_output(self, time, name, value):
+        """Set an output at ``time``. The value is kept as given for the events
+        that read it, and a copy is kept with its time, so a later change to
+        the object does not change what was written."""
+        self._outputs[name] = value
+        self._output_history.setdefault(name, []).append((time, _copied(value)))
+
+    @property
+    def records(self):
+        """What this event recorded with ``context.record``, by name, exactly
+        as recorded.
+
+        Each record is the list of ``(time, value)`` pairs the event stored,
+        with ``value`` the object passed to ``context.record``: a number, a
+        vector, a text, a dictionary. Records exist only at the times the
+        event ran, and start empty at every flight. ``flight.records`` holds
+        the records of every event of a flight.
+
+        Returns
+        -------
+        dict
+            Record name to list of ``(time, value)``.
+        """
+        return {name: list(points) for name, points in self._records.items()}
+
+    def _record(self, time, values):
+        """Store named values at ``time``, as given: a number as it is,
+        anything else as a copy, so a later change to the object does not
+        change what was recorded."""
+        for name, value in values.items():
+            self._records.setdefault(name, []).append((time, _copied(value)))
+
+    # Starting a new flight, and going back in time
+
+    def reset(self):
+        """Prepare the event for a new flight.
+
+        The event is enabled or not as it was built, its memory and outputs
+        are back at the values it was built with, and its records and the
+        times it fired or was turned on and off are cleared. A flight calls
+        this on each of its events when it starts.
+        """
+        self.commands.reset()
+        self.enabled = self._initial_enabled
+        self._records = {}
+        self._outputs = deepcopy(self._output_defaults)
+        self._output_history = {}
+        self.triggered_times.clear()
+        self._forget_previous_check()
+        self.memory = deepcopy(self._initial_memory)
+
+        self.enabled_times = []
+        self.disabled_times = []
+
+    def _forget_previous_check(self):
+        """Drop what this event saw the last time it was checked.
+
+        Called when the event is built and again when it is reset, so a second
+        flight does not compare its first check against the last check of the
+        one before it. The context answers ``previous_state`` and
+        ``previous_time`` from these.
+        """
+        self._previous_state = None
+        self._previous_time = None
+        self._previous_raw_state = None
+        self._previous_phase_names = ()
+
+    def _check_state(self):
+        """Whether the event is enabled and what it saw at its previous check:
+        what a rollback puts back with :meth:`_restore_check_state`."""
+        return (
+            self.enabled,
+            self._previous_state,
+            self._previous_time,
+            self._previous_raw_state,
+            self._previous_phase_names,
+        )
+
+    def _restore_check_state(self, saved):
+        """Put back what :meth:`_check_state` returned."""
+        (
+            self.enabled,
+            self._previous_state,
+            self._previous_time,
+            self._previous_raw_state,
+            self._previous_phase_names,
+        ) = saved
+
+    def _drop_after(self, time):
+        """Forget what was recorded, what was written to the outputs, and when
+        the event ran or was turned on or off, after ``time``, a moment the
+        flight went back to. An output is again the last value written up to
+        ``time``, or the value it started the flight with."""
+        for points in self._records.values():
+            while points and points[-1][0] > time:
+                points.pop()
+        for name, points in self._output_history.items():
+            dropped = False
+            while points and points[-1][0] > time:
+                points.pop()
+                dropped = True
+            if dropped:
+                self._outputs[name] = _copied(
+                    points[-1][1] if points else self._output_defaults[name]
+                )
+        for times in (self.triggered_times, self.enabled_times, self.disabled_times):
+            while times and times[-1] > time:
+                times.pop()
+
+    # Checks of the arguments given to the event
+
+    def __validate_callback(self, callback):
+        """Check that ``callback`` is a function of the context alone."""
+        if not callable(callback):
+            raise ValueError("Callback must be a callable.")
+
+        # What it returns is ignored, so its return annotation is not checked
+        return self.__validate_context_function(callback, "Callback function")
+
     def __validate_trigger(self, trigger):
+        """Return the trigger as a function of the context: the one given, the
+        condition a preset names, or "the time has reached this number"."""
         if isinstance(trigger, str):
             if trigger not in PRESETS:
                 raise ValueError(
@@ -568,39 +740,44 @@ class Event:
 
         return trigger
 
-    def __validate_callback(self, callback):
-        if not callable(callback):
-            raise ValueError("Callback must be a callable.")
-
-        callback = self.__validate_context_function(callback, "Callback function")
-
-        return_annotation = inspect.signature(callback).return_annotation
-        valid_return_annotations = (
-            inspect.Signature.empty,
-            type(None),
-            None,
-            dict,
-            "dict",
-        )
-
-        if return_annotation not in valid_return_annotations:
+    def __validate_outputs(self, outputs):
+        """Return the event's outputs as a dictionary of name to the value
+        each starts a flight with (``None`` unless given)."""
+        if not outputs:
+            return {}
+        defaults = dict(outputs) if isinstance(outputs, dict) else {}
+        names = tuple(outputs)
+        for name in names:
+            # Read as an attribute, ``context.outputs.<event>.<name>``
+            if (
+                not isinstance(name, str)
+                or not name.isidentifier()
+                or keyword.iskeyword(name)
+                or name.startswith("_")
+            ):
+                raise ValueError(
+                    f"The output name {name!r} of the event '{self.name}' cannot "
+                    "be used: a name is made of letters, digits and underscores, "
+                    "and starts with a letter."
+                )
+        if len(set(names)) != len(names):
             raise ValueError(
-                "Callback function return annotation must be None, dict, or unspecified when provided."
+                f"The event '{self.name}' has two outputs with the same name."
             )
-
-        return callback
+        return {name: defaults.get(name) for name in names}
 
     def __validate_gate_condition(self, condition, parameter_name):
-        """Normalize a gate condition to a callable or None."""
+        """Return an ``enable_on`` or ``disable_on`` condition as a function of
+        the context, in the same forms as a trigger, or ``None``."""
         if condition is None:
             return None
         if isinstance(condition, str):
-            if condition not in PRESETS:
+            if condition not in _GATE_PRESETS:
                 raise ValueError(
                     f"Unknown disable_on or enable_on preset: {condition!r}. "
-                    f"Supported presets: {list(PRESETS.keys())}"
+                    f"Supported presets: {list(_GATE_PRESETS.keys())}"
                 )
-            return PRESETS[condition]
+            return _GATE_PRESETS[condition]
         if isinstance(condition, Real) and not isinstance(condition, bool):
             return lambda context: context["time"] >= float(condition)
         if callable(condition):
