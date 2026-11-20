@@ -19,56 +19,62 @@ LAUNCH_DATE = datetime(*LAUNCH)
 SURFACE_HEIGHT = 1400.0
 
 
+FIELDS = ("time", "isobaric", "lat", "lon")
+
+
+def _write_coordinates(data, runs, hours, masked_run):
+    """Write the times, the model run behind each of them and the grid."""
+    for name, size in zip(FIELDS, (len(hours), 5, 3, 3)):
+        data.createDimension(name, size)
+    time = data.createVariable("time", "f8", ("time",))
+    time.units = UNITS
+    time[:] = hours
+    if runs is not None:
+        reference_time = data.createVariable("reftime", "f8", ("time",))
+        reference_time.units = UNITS
+        reference_time[:] = runs
+        if masked_run is not None:
+            reference_time[masked_run] = np.ma.masked
+    data.createVariable("lat", "f8", ("lat",))[:] = [34.0, 33.0, 32.0]
+    data.createVariable("lon", "f8", ("lon",))[:] = [252.0, 253.0, 254.0]
+    level = data.createVariable("isobaric", "f8", ("isobaric",))
+    level.units = "Pa"
+    level[:] = [30000.0, 50000.0, 70000.0, 85000.0, 100000.0]
+    # Named by the AIGFS shortcut, whose forecast has no surface height
+    data.createVariable("LatLon_Projection", "i4")
+
+
+def _write_fields(data, runs, hours):
+    """Write profiles that are the same over the grid. The temperature and
+    the wind depend on the model run, so two runs give different profiles."""
+    shape = (len(hours), 5, 3, 3)
+    run = np.array([0] * len(hours) if runs is None else runs, dtype=float)
+    run = run[:, None, None, None]
+
+    def field(name, values, shift=0.0):
+        values = np.array(values, dtype=float)[None, :, None, None]
+        variable = data.createVariable(name, "f8", FIELDS)
+        variable[:] = np.broadcast_to(values, shape) + shift
+
+    field("Geopotential_height_isobaric", [9200, 5600, 3000, 1500, 100])
+    field("Temperature_isobaric", [229, 253, 268, 278, 288], shift=run / 6)
+    field("u-component_of_wind_isobaric", [3, 2, 1, -1, -2])
+    field("v-component_of_wind_isobaric", [12, 10, 8, 6, 4], shift=run / 6)
+    surface = data.createVariable(
+        "Geopotential_height_surface", "f8", FIELDS[:1] + FIELDS[2:]
+    )
+    surface[:] = SURFACE_HEIGHT
+
+
 def _write_forecast(path, runs, hours=HOURS, masked_run=None):
     """Write a forecast with a few pressure levels around the launch site.
 
     ``runs`` holds the hour of the model run behind each forecast time, or is
-    None for a dataset that does not say. The temperature and the wind depend
-    on the run, so two runs give different profiles.
+    None for a dataset that does not say.
     """
     with netCDF4.Dataset(path, "w") as data:
-        sizes = {"time": len(hours), "isobaric": 5, "lat": 3, "lon": 3}
-        for name, size in sizes.items():
-            data.createDimension(name, size)
-        time = data.createVariable("time", "f8", ("time",))
-        time.units = UNITS
-        time[:] = hours
-        if runs is not None:
-            reference_time = data.createVariable("reftime", "f8", ("time",))
-            reference_time.units = UNITS
-            reference_time[:] = runs
-            if masked_run is not None:
-                reference_time[masked_run] = np.ma.masked
-        data.createVariable("lat", "f8", ("lat",))[:] = [34.0, 33.0, 32.0]
-        data.createVariable("lon", "f8", ("lon",))[:] = [252.0, 253.0, 254.0]
-        level = data.createVariable("isobaric", "f8", ("isobaric",))
-        level.units = "Pa"
-        # Named by the AIGFS shortcut, whose forecast has no surface height
-        data.createVariable("LatLon_Projection", "i4")
-        level[:] = [30000.0, 50000.0, 70000.0, 85000.0, 100000.0]
-
-        fields = ("time", "isobaric", "lat", "lon")
-        shape = tuple(sizes[name] for name in fields)
-        run = np.array([0] * len(hours) if runs is None else runs, dtype=float)
-        run = run[:, None, None, None]
-
-        def along_levels(values):
-            values = np.array(values, dtype=float)[None, :, None, None]
-            return np.broadcast_to(values, shape)
-
-        def field(name, values):
-            data.createVariable(name, "f8", fields)[:] = values
-
-        field(
-            "Geopotential_height_isobaric", along_levels([9200, 5600, 3000, 1500, 100])
-        )
-        field("Temperature_isobaric", along_levels([229, 253, 268, 278, 288]) + run / 6)
-        field("u-component_of_wind_isobaric", along_levels([3, 2, 1, -1, -2]))
-        field("v-component_of_wind_isobaric", along_levels([12, 10, 8, 6, 4]) + run / 6)
-        surface = data.createVariable(
-            "Geopotential_height_surface", "f8", ("time", "lat", "lon")
-        )
-        surface[:] = SURFACE_HEIGHT
+        _write_coordinates(data, runs, hours, masked_run)
+        _write_fields(data, runs, hours)
 
 
 class _Server:
