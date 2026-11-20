@@ -818,6 +818,27 @@ def test_previous_state_detects_a_crossing_across_checks():
     assert fired == [3.0]
 
 
+def test_previous_state_is_built_once_per_check():
+    """Reading ``previous_state`` twice in a check gives the same object, and
+    the next check gives a new one holding the new values."""
+    seen = []
+
+    def trigger(context):
+        seen.append((context.previous_state, context.previous_state))
+        return False
+
+    event = Event(callback=lambda context: None, trigger=trigger)
+    for t in (1.0, 2.0, 3.0):
+        event(EventContext(_build_event_call_kwargs(t, [t] * 13)))
+
+    assert seen[0] == (None, None)
+    assert seen[1][0] is seen[1][1]
+    assert seen[2][0] is seen[2][1]
+    assert seen[1][0] is not seen[2][0]
+    assert list(seen[1][0]) == [1.0] * 13
+    assert list(seen[2][0]) == [2.0] * 13
+
+
 def test_reset_clears_previous_state():
     event = Event(callback=lambda context: None, trigger=lambda context: False)
     event(EventContext(_build_event_call_kwargs(1.0, [1.0] * 13)))

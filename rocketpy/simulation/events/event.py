@@ -297,6 +297,7 @@ class Event:
         one before it. The context answers ``previous_state`` and
         ``previous_time`` from these.
         """
+        self._previous_view = None
         self._previous_state = None
         self._previous_time = None
         self._previous_raw_state = None
