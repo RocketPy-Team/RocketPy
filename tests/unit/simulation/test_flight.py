@@ -679,7 +679,9 @@ def test_potential_energy_matches_altitude_dependent_gravity_integral():
     mass = flight.rocket.total_mass(flight.apogee_time)
     z_initial = flight.z(flight.t_initial)
     z_apogee = flight.z(flight.apogee_time)
-    expected_delta = mass * flight.env.gravity.integral(z_initial, z_apogee)
+    expected_delta = mass * (
+        9.81 * (z_apogee - z_initial) - (z_apogee**2 - z_initial**2) / 2e5
+    )
     delta_potential = flight.potential_energy(
         flight.apogee_time
     ) - flight.potential_energy(flight.t_initial)
@@ -687,6 +689,48 @@ def test_potential_energy_matches_altitude_dependent_gravity_integral():
     assert z_apogee > z_initial
     assert delta_potential > 0
     assert delta_potential == pytest.approx(expected_delta, rel=1e-5)
+
+
+def test_potential_energy_with_callable_gravity_assigned_on_environment():
+    """Users can replace ``env.gravity`` with a non-discretized Function
+    after construction. Potential energy must still integrate that model
+    without falling back to a per-node numerical quadrature.
+    """
+    flight = _drag_free_ballistic_flight(gravity=9.81)
+    flight.env.gravity = Function(lambda height: 9.81 - height / 1e5)
+
+    assert not flight.env.gravity.is_array_source()
+
+    mass = flight.rocket.total_mass(flight.apogee_time)
+    z_initial = flight.z(flight.t_initial)
+    z_apogee = flight.z(flight.apogee_time)
+    expected_delta = mass * (
+        9.81 * (z_apogee - z_initial) - (z_apogee**2 - z_initial**2) / 2e5
+    )
+    delta_potential = flight.potential_energy(
+        flight.apogee_time
+    ) - flight.potential_energy(flight.t_initial)
+
+    assert z_apogee > z_initial
+    assert delta_potential > 0
+    assert delta_potential == pytest.approx(expected_delta, rel=1e-4)
+    assert not flight.env.gravity.is_array_source()
+
+
+def test_gravitational_potential_per_mass_nan_altitude():
+    """A NaN altitude must yield NaN potential per mass so a diverged
+    trajectory node appears as a gap rather than a finite (often zero)
+    value.
+    """
+    flight = _drag_free_ballistic_flight(gravity=9.81)
+    altitudes = np.array([0.0, np.nan, 100.0])
+
+    potential_per_mass = flight._gravitational_potential_per_mass(altitudes)
+
+    assert potential_per_mass[0] == pytest.approx(0.0)
+    assert np.isnan(potential_per_mass[1])
+    assert potential_per_mass[2] == pytest.approx(9.81 * 100.0)
+    assert np.isnan(flight._gravitational_potential_per_mass(np.nan))
 
 
 @pytest.mark.parametrize(
