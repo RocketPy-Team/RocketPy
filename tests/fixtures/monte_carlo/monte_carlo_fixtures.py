@@ -1,6 +1,7 @@
 """Defines the fixtures for the Monte Carlo tests. The fixtures should be
 instances of the MonteCarlo class, ideally."""
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -52,10 +53,10 @@ def monte_carlo_calisto_pre_loaded(
         rocket=stochastic_calisto,
         flight=stochastic_flight,
     )
-    # Resolved against this file rather than the working directory, which is
-    # what the caller happened to start pytest from. import_outputs opens it
-    # "r+", and "w+" if it is missing, so a wrong guess writes into the tree.
-    monte_carlo.import_results(
-        filename=str(Path(__file__).parent / "example.outputs.txt")
-    )
+    # import_results opens what it is given "r+" and points all three logs at
+    # it, so it gets a copy: the tracked file may be read-only, and must not
+    # be written. copyfile, because copy would keep a read-only mode.
+    copied = tmp_path / "example.outputs.txt"
+    shutil.copyfile(Path(__file__).parent / "example.outputs.txt", copied)
+    monte_carlo.import_results(filename=str(copied))
     return monte_carlo

@@ -17,9 +17,6 @@ def _post_test_file_cleanup():
     """Clean monte carlo files after test session if they exist."""
     files_to_cleanup = [
         "monte_carlo_class_example.kml",
-        "monte_carlo_test.errors.txt",
-        "monte_carlo_test.inputs.txt",
-        "monte_carlo_test.outputs.txt",
         "test_histogram_apogee.png",
         "test_multi_apogee.png",
         "test_multi_x_impact.png",

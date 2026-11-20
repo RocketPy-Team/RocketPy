@@ -256,9 +256,7 @@ def test_ellipses_background_saves_file_successfully(mock_show, tmp_path):
     mock_show : unittest.mock.MagicMock
         Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     tmp_path : pathlib.Path
-        Directory to save into, this is a pytest fixture. The bare name this
-        used resolved against whatever directory pytest was started from, and
-        the finally that removed it again does not run if the run is killed.
+        Directory to save into, this is a pytest fixture.
     """
 
     stem = tmp_path / "monte_carlo_test"
