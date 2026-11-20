@@ -27,12 +27,15 @@ Other generic forecasts can also be imported.
 
     Within one Python session, RocketPy keeps in memory the forecasts it
     downloaded with the shortcuts on this page (``file="GFS"``, ``"NAM"`` and
-    so on). When the same model, place and launch time are asked for again, it
-    asks the server which model run is current and downloads the data again
-    only if a newer run was published. The server is always contacted and
+    so on), so that asking again for the same forecast, as when a notebook
+    cell is run again, takes a couple of seconds instead of a full download.
+    When the same model, place and launch time are asked for again, it asks
+    the server which model run is current and downloads the data again only
+    if the server published something new. The server is always contacted and
     nothing is written to disk, so a forecast that cannot be confirmed as the
-    current one is never used. To keep a forecast between sessions, save the
-    ``Environment`` itself.
+    current one is never used. Each forecast takes about 50 kB of memory and
+    the 100 most recent ones are kept. To keep a forecast between sessions,
+    save the ``Environment`` itself.
 
 
 .. _global-forecast-system:
