@@ -92,6 +92,55 @@ def test_static_margin_rebuilds_after_adding_surface(calisto):
     assert margin_after != pytest.approx(margin_before, abs=1e-6)
 
 
+def test_static_margin_assignment_warns_and_is_returned(calisto):
+    """Assigning static_margin warns at the caller's line and sticks."""
+    with pytest.warns(DeprecationWarning, match="static_margin") as record:
+        calisto.static_margin = 2.0
+
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert "will be removed in a future version" in str(record[0].message)
+    assert calisto.static_margin == 2.0
+
+
+def test_static_margin_assignment_is_recomputed_after_geometry_change(calisto):
+    """A later surface change discards an assigned value, as evaluate does."""
+    with pytest.warns(DeprecationWarning):
+        calisto.static_margin = 2.0
+
+    calisto.add_nose(length=0.55829, kind="ogive", position=1.160)
+
+    margin = calisto.static_margin
+    assert isinstance(margin, Function)
+    assert margin(0) != pytest.approx(2.0, abs=1e-6)
+
+
+def test_evaluate_static_margin_overwrites_assigned_value(calisto):
+    """Explicit evaluate_static_margin replaces an assigned float."""
+    expected = calisto.static_margin(0)
+    with pytest.warns(DeprecationWarning):
+        calisto.static_margin = 2.0
+
+    calisto.evaluate_static_margin()
+
+    assert calisto.static_margin(0) == pytest.approx(expected, abs=1e-8)
+
+
+def test_static_margin_internal_use_does_not_warn(calisto_motorless):
+    """Building and updating a rocket never triggers the assignment warning."""
+    rocket = calisto_motorless
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        rocket.add_trapezoidal_fins(
+            4, span=0.100, root_chord=0.120, tip_chord=0.040, position=-1.04956
+        )
+        _ = rocket.static_margin(0)
+        rocket.evaluate_static_margin()
+        rocket.static_margin.get_value_opt(0)
+        rocket.to_dict()
+
+
 @pytest.mark.parametrize(
     "k, type_",
     ([2 / 3, "conical"], [0.46469957130675876, "ogive"], [0.563, "lvhaack"]),
