@@ -30,9 +30,18 @@ is a two-column array: the first column is geometric height above sea level in
 meters, and the second column uses Pa for pressure, K for temperature and m/s
 for either wind component.
 
-The pressure profiles determine a common isobaric grid. Temperature and wind
-are interpolated onto that grid, then written to a GEFS-compatible NetCDF file.
-Every pressure profile must overlap the others and decrease with height.
+The pressure profiles determine a common isobaric grid, and temperature and
+wind are interpolated onto that grid. Every pressure profile must overlap the
+others and decrease with height.
+
+The profiles are not tied to a date. The Environment does not need one, and
+the ensemble stays the same if the launch date is changed later.
+
+.. note::
+
+    Below the lowest height of a profile, its lowest value is used. Start the
+    profiles at or below the ground level of the launch site, so the values
+    near the ground are the ones you gave.
 
 .. code-block:: python
 
@@ -41,15 +50,14 @@ Every pressure profile must overlap the others and decrease with height.
     from rocketpy import Environment
 
     env = Environment(
-        date=(2026, 9, 1, 12),
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
     )
 
     pressure = np.array([85000, 70000, 50000])  # Pa
-    height_0 = np.array([1500, 3000, 5500])  # m ASL
-    height_1 = np.array([1550, 3100, 5650])  # m ASL
+    height_0 = np.array([1400, 3000, 5500])  # m ASL
+    height_1 = np.array([1400, 3100, 5650])  # m ASL
 
     profiles = [
         {
@@ -66,21 +74,29 @@ Every pressure profile must overlap the others and decrease with height.
         },
     ]
 
-    ensemble_file = env.create_ensemble(profiles, "my_ensemble.nc")
+    env.create_ensemble(profiles)
 
-The method activates member 0 after writing the file. Select another member
-with the same method used for forecast ensembles:
+The method activates member 0. Select another member with the same method used
+for forecast ensembles:
 
 .. code-block:: python
 
     env.select_ensemble_member(1)
 
-Another Environment can load the returned file with the ``GEFS`` mapping:
+By default the ensemble is kept in memory and no file is written. To use it
+again later, give a file name. RocketPy then also saves the ensemble as a
+GEFS-compatible NetCDF file and returns its path:
+
+.. code-block:: python
+
+    ensemble_file = env.create_ensemble(profiles, "my_ensemble.nc")
+
+Another Environment, with any launch date or none, can load that file with the
+``GEFS`` mapping:
 
 .. code-block:: python
 
     saved_env = Environment(
-        date=(2026, 9, 1, 12),
         latitude=32.990254,
         longitude=-106.974998,
         elevation=1400,
