@@ -186,7 +186,7 @@ def test_convergence_seed_reproduces_inputs_across_batch_sizes(release_study):
         batch_size=2,
         random_seed=42,
     )
-    expected = [row["mass"] for row in _rows(release_study.input_file)]
+    expected = _rows(release_study.input_file)
     release_study.simulate(0, append=False, random_seed=42)
 
     release_study.simulate_convergence(
@@ -197,7 +197,7 @@ def test_convergence_seed_reproduces_inputs_across_batch_sizes(release_study):
         random_seed=42,
     )
 
-    assert [row["mass"] for row in _rows(release_study.input_file)] == expected
+    assert _rows(release_study.input_file) == expected
 
 
 def _converge_by_threes(study, random_seed=None):
