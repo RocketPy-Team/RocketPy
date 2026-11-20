@@ -1580,3 +1580,76 @@ def test_the_ends_of_the_step_are_read_from_the_stored_rows():
     )
 
     assert seen == stored, "the ends came from the interpolator, not the rows"
+
+
+# ---------------------------------------------------------------------------
+# context.state as a value: copies, comparisons and the names it keeps
+# ---------------------------------------------------------------------------
+
+
+def _state_view(values, heading=None):
+    """The ``context.state`` of a moment with the given thirteen values, in a
+    phase that also follows a ``heading`` of its own when one is given."""
+    kwargs = _build_event_call_kwargs(0.0, values)
+    if heading is not None:
+        kwargs["phase_names"] = ("x", "y", "z", "vx", "vy", "vz", "heading")
+        kwargs["raw_state"] = [*values[:6], heading]
+    return EventContext(kwargs).state
+
+
+def test_an_array_made_from_the_state_is_a_copy():
+    """``np.array(context.state)`` can be changed without changing the state
+    the solver is integrating."""
+    solver_state = np.arange(13.0)
+    state = _state_view(solver_state)
+
+    copy = np.array(state)
+    copy[2] -= 100.0
+
+    assert solver_state[2] == 2.0
+    assert state.z == 2.0
+    assert np.array(state, dtype=int).dtype == int
+    assert list(np.asarray(state)) == list(range(13))
+
+
+def test_states_are_compared_by_their_values():
+    values = np.arange(13.0)
+
+    assert _state_view(values) == _state_view(values.copy())
+    assert _state_view(values) == list(values)
+    assert _state_view(values) != _state_view(values + 1.0)
+    assert _state_view(values) != list(values[:6])
+    assert _state_view(values) != "not a state"
+
+
+def test_states_with_different_phase_states_are_not_equal():
+    values = np.arange(13.0)
+
+    assert _state_view(values, heading=0.25) == _state_view(values, heading=0.25)
+    assert _state_view(values, heading=0.25) != _state_view(values, heading=0.5)
+    assert _state_view(values, heading=0.25) != _state_view(values)
+
+
+def test_a_state_is_not_equal_to_a_state_dot_with_the_same_numbers():
+    values = np.arange(13.0)
+    kwargs = _build_event_call_kwargs(0.0, values)
+    kwargs["canonical_state_dot"] = values
+    kwargs["raw_state_dot"] = values
+    context = EventContext(kwargs)
+
+    assert context.state != context.state_dot
+    assert context.state_dot == list(values)
+
+
+def test_a_state_cannot_be_hashed():
+    """It compares by value and its values change, so it is no dictionary key."""
+    with pytest.raises(TypeError, match="unhashable"):
+        hash(_state_view(np.arange(13.0)))
+
+
+@pytest.mark.parametrize("taken", ["names", "values"])
+def test_a_phase_state_cannot_take_a_name_the_state_uses(taken):
+    """``context.state.names`` and ``context.state.values`` are the names and
+    the values of the state, so a phase's own state could not be read by them."""
+    with pytest.raises(ValueError, match=f"cannot have a state called '{taken}'"):
+        _PhaseDynamics("custom", None, ("x", "y", "z", taken))
