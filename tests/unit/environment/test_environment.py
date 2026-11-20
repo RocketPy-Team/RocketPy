@@ -1402,3 +1402,22 @@ def test_set_atmospheric_model_rejects_unknown_pressure_unit(example_plain_env):
         example_plain_env.set_atmospheric_model(
             type="Forecast", file="dummy", pressure_conversion_factor="parsecs"
         )
+
+
+@pytest.mark.parametrize(("file", "model"), [(None, "ECMWF"), ("GFS", "GFS")])
+def test_windy_uses_its_default_model_when_none_is_given(
+    example_plain_env, monkeypatch, file, model
+):
+    asked = []
+
+    def fetch(latitude, longitude, model):  # pylint: disable=unused-argument
+        asked.append(model)
+        raise RuntimeError("stop before any download")
+
+    monkeypatch.setattr(
+        "rocketpy.environment.environment.fetch_atmospheric_data_from_windy", fetch
+    )
+
+    with pytest.raises(RuntimeError, match="stop before any download"):
+        example_plain_env.set_atmospheric_model(type="windy", file=file)
+    assert asked == [model]

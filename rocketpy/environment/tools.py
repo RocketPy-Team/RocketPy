@@ -705,7 +705,8 @@ def get_model_run(dataset, time_name, datetime_date):
     reference time of the run each forecast time comes from. While a new run
     is being published, some forecast times already come from it and others
     still come from the previous one, so the run is read at the forecast time
-    closest to ``datetime_date``.
+    closest to ``datetime_date``. The first and last forecast times are part
+    of the answer, so it also changes when the dataset covers other times.
 
     Parameters
     ----------
@@ -718,11 +719,12 @@ def get_model_run(dataset, time_name, datetime_date):
 
     Returns
     -------
-    tuple of str or None
-        The address of the dataset and the reference time of the model run
-        that supplies ``datetime_date``. None if the dataset does not carry
-        reference times along its time variable, in which case the model run
-        cannot be identified.
+    tuple or None
+        The address of the dataset, the reference time of the model run that
+        supplies ``datetime_date``, and the first and last forecast times of
+        the dataset. None if the model run cannot be identified: the dataset
+        does not carry reference times along its time variable, they cannot
+        be read, or ``datetime_date`` is outside the forecast times.
     """
     variables = getattr(dataset, "variables", None)
     if variables is None or datetime_date is None or time_name not in variables:
@@ -739,10 +741,20 @@ def get_model_run(dataset, time_name, datetime_date):
     )
     if reference_times is None:
         return None
-    wanted = netCDF4.date2num(datetime_date, time_array.units, calendar="gregorian")
-    time_index = int(np.argmin(np.abs(np.asarray(time_array[:], dtype=float) - wanted)))
-    model_run = netCDF4.num2date(reference_times[time_index], reference_times.units)
-    return dataset.filepath(), str(model_run)
+    try:
+        times = time_array[:]
+        wanted = netCDF4.date2num(datetime_date, time_array.units, calendar="gregorian")
+        if np.ma.is_masked(times) or not np.min(times) <= wanted <= np.max(times):
+            return None
+        times = np.asarray(times, dtype=float)
+        # Same choice as find_time_index: the closest time, the earlier on a tie
+        reference_time = reference_times[int(np.argmin(np.abs(times - wanted)))]
+        if np.ma.is_masked(reference_time) or not np.isfinite(reference_time):
+            return None
+        model_run = netCDF4.num2date(reference_time, reference_times.units)
+    except (TypeError, ValueError, OverflowError, OSError, RuntimeError):
+        return None
+    return dataset.filepath(), str(model_run), float(times[0]), float(times[-1])
 
 
 def get_final_date_from_time_array(time_array, units=None):

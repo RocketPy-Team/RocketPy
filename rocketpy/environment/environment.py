@@ -66,6 +66,41 @@ logger = logging.getLogger(__name__)
 # request (model, place, launch time and so on) maps to the model run that
 # supplied the launch time and to what processing it set on the Environment.
 _FORECASTS_IN_MEMORY = {}
+# One forecast takes about 50 kB. Past this number the oldest one is dropped.
+_MAX_FORECASTS_IN_MEMORY = 100
+# What process_forecast_reanalysis always sets on the Environment. Kept apart:
+# the elevation, set only when the model has a surface height, and
+# wind_heading and wind_direction, which are built from their unwrapped
+# versions listed here.
+_FORECAST_ATTRIBUTES = (
+    "pressure",
+    "barometric_height",
+    "temperature",
+    "wind_velocity_x",
+    "wind_velocity_y",
+    "wind_speed",
+    "wind_heading_unwrapped",
+    "wind_direction_unwrapped",
+    "_max_expected_height",
+    "atmospheric_model_init_date",
+    "atmospheric_model_end_date",
+    "atmospheric_model_interval",
+    "atmospheric_model_init_lat",
+    "atmospheric_model_end_lat",
+    "atmospheric_model_init_lon",
+    "atmospheric_model_end_lon",
+    "lat_array",
+    "lon_array",
+    "lat_index",
+    "lon_index",
+    "geopotentials",
+    "wind_us",
+    "wind_vs",
+    "levels",
+    "temperatures",
+    "time_array",
+    "height",
+)
 
 
 class Environment:
@@ -571,11 +606,7 @@ class Environment:
                 interpolation="linear",
             )
             setattr(self, f"{attribute}_unwrapped", unwrapped)
-            source = Function(
-                lambda h: unwrapped(h) % 360,
-                inputs="Height Above Sea Level (m)",
-                outputs=output,
-            )
+            source = self.__wrapped_wind_angle(unwrapped)
         else:
             source = Function(
                 source,
@@ -584,6 +615,16 @@ class Environment:
                 interpolation="linear",
             )
         setattr(self, attribute, source)
+
+    @staticmethod
+    def __wrapped_wind_angle(unwrapped):
+        """Wind angle from 0 to 360 degrees as a Function of height, read from
+        the Function that holds the same angle unwrapped."""
+        return Function(
+            lambda h: unwrapped(h) % 360,
+            inputs="Height Above Sea Level (m)",
+            outputs=unwrapped.get_outputs()[0],
+        )
 
     def __set_wind_direction_function(self, source):
         self.__set_wind_angle_function(
@@ -714,9 +755,10 @@ class Environment:
         from the same model run for the same request.
 
         The server has already been reached to open ``dataset``, and it is
-        asked which model run supplies the launch time. The data is downloaded
-        and processed again whenever that run differs from the one kept in
-        memory, or cannot be identified. Nothing is written to disk.
+        asked which model run supplies the launch time and which times the
+        forecast covers. The data is downloaded and processed again whenever
+        that differs from what is kept in memory, or cannot be identified.
+        Nothing is written to disk.
 
         Parameters
         ----------
@@ -735,7 +777,6 @@ class Environment:
             self.latitude,
             self.longitude,
             self.datetime_date,
-            self.elevation,
             conversion_factor,
             tuple(sorted(dictionary.items(), key=str)),
         )
@@ -743,20 +784,33 @@ class Environment:
         if model_run is not None and kept is not None and kept[0] == model_run:
             dataset.close()
             self.__dict__.update(deepcopy(kept[1]))
+            # Built here, so they read the copies this Environment now owns
+            self.wind_heading = self.__wrapped_wind_angle(self.wind_heading_unwrapped)
+            self.wind_direction = self.__wrapped_wind_angle(
+                self.wind_direction_unwrapped
+            )
             return
 
-        before = dict(self.__dict__)
-        self.process_forecast_reanalysis(
-            dataset, dictionary, conversion_factor=conversion_factor
-        )
+        # The processing sets the elevation only when the model has a surface
+        # height, and never reads it. A placeholder tells which case this is.
+        elevation = self.elevation
+        self.elevation = placeholder = object()
+        try:
+            self.process_forecast_reanalysis(
+                dataset, dictionary, conversion_factor=conversion_factor
+            )
+        finally:
+            sets_elevation = self.elevation is not placeholder
+            if not sets_elevation:
+                self.elevation = elevation
         if model_run is not None:
-            # Everything the processing set on this Environment
-            results = {
-                name: value
-                for name, value in self.__dict__.items()
-                if name not in before or before[name] is not value
-            }
+            results = {name: getattr(self, name) for name in _FORECAST_ATTRIBUTES}
+            if sets_elevation:
+                results["elevation"] = self.elevation
+            _FORECASTS_IN_MEMORY.pop(request, None)
             _FORECASTS_IN_MEMORY[request] = (model_run, deepcopy(results))
+            while len(_FORECASTS_IN_MEMORY) > _MAX_FORECASTS_IN_MEMORY:
+                del _FORECASTS_IN_MEMORY[next(iter(_FORECASTS_IN_MEMORY))]
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
@@ -1458,7 +1512,9 @@ class Environment:
             case "custom_atmosphere":
                 self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
             case "windy":
-                self.process_windy_atmosphere(file)
+                self.process_windy_atmosphere(
+                    **({} if file is None else {"model": file})
+                )
             case "open_meteo":
                 self.process_open_meteo_atmosphere(
                     **({} if file is None else {"model": file})
