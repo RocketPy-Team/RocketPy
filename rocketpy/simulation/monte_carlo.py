@@ -985,6 +985,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         -------
         confidence_interval_history : list of float
             History of confidence interval widths, one value per batch of simulations.
+            A batch that leaves fewer than two results contributes no width, since a
+            confidence interval cannot be estimated from a single observation.
             The last element corresponds to the width when the simulation stopped for
             either meeting the tolerance or reaching the maximum number of simulations.
         """
@@ -1026,6 +1028,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             )
 
             self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+
+            # scipy.stats.bootstrap needs two or more observations, so the first
+            # batch of a fresh study with batch_size=1 cannot be summarised yet.
+            # Keep simulating until the logs hold two rows.
+            if self.num_of_loaded_sims < 2:
+                continue
 
             ci = self.estimate_confidence_interval(
                 attribute=target_attribute,
