@@ -703,6 +703,9 @@ def test_repr_and_str_include_key_configuration():
     assert "Example" in string_value
     assert "sampling_rate=4.0" in string_value
     assert "trigger_only_once=True" in string_value
+    # both close the parenthesis they open
+    assert representation.endswith("trigger_only_once=True)")
+    assert string_value.endswith("trigger_only_once=True)")
 
 
 def test_key_errors_inside_a_trigger_are_reraised():

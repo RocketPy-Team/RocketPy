@@ -278,7 +278,7 @@ class Event:
             f"{self.__class__.__name__}(name={self.name!r}, enabled={self.enabled}, "
             f"sampling_rate={self.sampling_rate}, "
             f"time_overshootable={self.time_overshootable}, "
-            f"trigger_only_once={self.trigger_only_once}, "
+            f"trigger_only_once={self.trigger_only_once})"
         )
 
     def __str__(self):
@@ -286,7 +286,7 @@ class Event:
             f"{self.__class__.__name__} '{self.name}' (enabled={self.enabled}, "
             f"sampling_rate={self.sampling_rate}, "
             f"time_overshootable={self.time_overshootable}, "
-            f"trigger_only_once={self.trigger_only_once}, "
+            f"trigger_only_once={self.trigger_only_once})"
         )
 
     def _forget_previous_check(self):
