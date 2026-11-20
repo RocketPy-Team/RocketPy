@@ -9,10 +9,7 @@ from .exact_time_solvers import SOLVERS
 
 PRESETS = {
     "apogee": lambda context: (
-        len(context["flight"].solution) >= 2
-        and context["flight"].solution.at_index(-2)["vz"]
-        > 0
-        >= context["canonical_state"][5]
+        context["canonical_state"][5] <= 0 < context["height_agl"]
     ),
     "burnout": lambda context: context["time"] >= context["rocket"].motor.burn_out_time,
 }
@@ -101,6 +98,11 @@ class Event:
             Predicate that returns ``True`` when the event should fire. It
             receives the same ``context`` as ``callback`` (see above), but
             its return value is interpreted as a boolean rather than logged.
+            It may also be the string ``"apogee"`` (the rocket is coming down
+            and above the ground) or ``"burnout"`` (the motor has burned
+            out), or a simulation time in seconds. These three stay ``True``
+            from that moment on, so the event fires at every check after it.
+            Set ``trigger_only_once=True`` to fire once.
             If ``None`` (default), the event fires every time it is evaluated.
         sampling_rate : float, optional
             Evaluation frequency in hertz. If ``None`` (default), the event is

@@ -162,14 +162,11 @@ def test_trigger_accepts_string_presets_and_numeric_thresholds():
         trigger=3.0,
     )
 
-    apogee_flight = SimpleNamespace(
-        solution=_canonical_solution(_sample_state(0.0, 1.0), _sample_state(1.0, -1.0))
-    )
     burnout_flight = SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0))
 
-    assert apogee_event.trigger(
-        _context(flight=apogee_flight, state=_sample_state(1.0, -1.0)[1:])
-    )
+    # Coming down and above the ground
+    falling = {"state": _sample_state(1.0, -1.0)[1:], "height_agl": 100.0}
+    assert apogee_event.trigger(_context(event=apogee_event, **falling))
     assert burnout_event.trigger(_context(time=2.0, rocket=burnout_flight))
     assert time_event.trigger(_context(time=3.0))
     assert time_event.trigger(_context(time=2.9)) is False
@@ -816,6 +813,58 @@ def test_previous_state_detects_a_crossing_across_checks():
         event(EventContext(_build_event_call_kwargs(t, state)))
 
     assert fired == [3.0]
+
+
+def _check_at(event, time, vz, height):
+    """Check ``event`` once with the rocket at ``height`` above the ground,
+    moving vertically at ``vz``. Returns whether it fired."""
+    state = [0.0] * 13
+    state[2], state[5] = height, vz
+    return event(EventContext(_build_event_call_kwargs(time, state)))
+
+
+def test_the_apogee_trigger_holds_from_the_first_check_past_apogee():
+    """Whatever the time between checks: the check does not have to fall in
+    the solver step where the apogee was crossed. Like the other named
+    triggers it holds from then on. On the pad, at rest, it does not fire."""
+    event = Event(lambda context: None, trigger="apogee", sampling_rate=1)
+    checks = ((0, 0.0, 0.0), (1, 50.0, 30.0), (2, 5.0, 90.0), (3, -4.0, 91.0))
+
+    fired = [_check_at(event, *check) for check in (*checks, (4, -9.0, 85.0))]
+
+    assert fired == [False, False, False, True, True]
+
+
+def test_the_apogee_trigger_fires_at_the_first_check_of_a_flight_past_apogee():
+    """A flight that starts coming down, or at rest above the ground, has no
+    climb to compare against: its first check is already past the apogee."""
+    descending = Event(lambda context: None, trigger="apogee")
+    dropped = Event(lambda context: None, trigger="apogee")
+
+    assert _check_at(descending, 0.0, -3.0, 500.0) is True
+    assert _check_at(dropped, 0.0, 0.0, 500.0) is True
+
+
+def test_the_apogee_gates_hold_from_the_apogee_on():
+    """``enable_on`` and ``disable_on`` are not checked at every check of the
+    event, so they must hold at any check past the apogee, not only the
+    first."""
+    event = Event(
+        lambda context: None, enabled=False, enable_on="apogee", disable_on="apogee"
+    )
+
+    def context_at(time, vz, height=100.0):
+        state = [0.0] * 13
+        state[2], state[5] = height, vz
+        context = EventContext(_build_event_call_kwargs(time, state))
+        context.bind(event)
+        return context
+
+    for gate in (event.enable_on, event.disable_on):
+        assert gate(context_at(1.0, 50.0)) is False
+        assert gate(context_at(3.0, -4.0)) is True
+        assert gate(context_at(9.0, -30.0)) is True
+        assert gate(context_at(0.0, 0.0, height=0.0)) is False
 
 
 def test_previous_state_is_built_once_per_check():

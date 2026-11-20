@@ -7,7 +7,7 @@ from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..mathutils.function import Function, funcify_method
 from ..prints.parachute_prints import _ParachutePrints
-from ..simulation.events.event import Event
+from ..simulation.events.event import PRESETS, Event
 from ..simulation.helpers.dynamics import PARACHUTE_DYNAMICS
 
 
@@ -336,15 +336,9 @@ class Parachute:
 
         # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
-
-            def triggerfunc(context):
-                # Deploy when the rocket stops climbing
-                previous = context["event"]._previous_state
-                if previous is None:
-                    return False  # nothing to compare against yet
-                return previous[5] > 0 >= context["canonical_state"][5]
-
-            self.triggerfunc = triggerfunc
+            # The same condition an Event with trigger="apogee" uses. It holds
+            # from the apogee on; the parachute's event fires only once
+            self.triggerfunc = PRESETS["apogee"]
             self._trigger_is_positional = False
 
         # Case 4: Invalid trigger input

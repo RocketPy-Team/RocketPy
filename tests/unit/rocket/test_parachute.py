@@ -6,7 +6,8 @@ import warnings
 import numpy as np
 import pytest
 
-from rocketpy import Parachute, Rocket
+from rocketpy import Event, Parachute, Rocket
+from rocketpy.simulation.events.event_context import EventContext
 
 
 def _make_parachute(**kwargs):
@@ -230,3 +231,75 @@ def test_to_dict_outputs_carry_no_noise_entries():
         "clean_pressure_signal",
     ):
         assert key not in data
+
+
+def _check_apogee_trigger(parachute, time, vz, height=100.0):
+    """Check the parachute's event once, as the flight does, with the rocket
+    ``height`` above the ground and moving vertically at ``vz``. Returns
+    whether the trigger fired."""
+    state = [0.0] * 5 + [vz] + [0.0] * 7
+    context = EventContext(
+        time=time,
+        canonical_state=state,
+        raw_state=state,
+        phase_names=(),
+        height_agl=height,
+    )
+    return parachute.event(context, trigger_only=True)
+
+
+def test_the_apogee_trigger_holds_once_the_climb_turns_into_a_descent():
+    """The trigger holds from the apogee on. The parachute deploys once
+    because its event fires only once."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    fired = [
+        _check_apogee_trigger(parachute, time, vz)
+        for time, vz in ((1.0, 5.0), (2.0, 1.0), (3.0, -1.0), (4.0, -5.0))
+    ]
+
+    assert fired == [False, False, True, True]
+    assert parachute.event.trigger_only_once is True
+
+
+def test_the_apogee_trigger_fires_at_once_for_a_rocket_already_descending():
+    """A flight that starts past its apogee has no climb to compare against,
+    so the first check of a descending rocket deploys the parachute."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert _check_apogee_trigger(parachute, 0.0, -3.0) is True
+
+
+def test_the_apogee_trigger_fires_at_once_for_a_rocket_dropped_from_rest():
+    """Released at rest above the ground, as from a helicopter or a balloon,
+    the rocket is at its apogee at the first check."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert _check_apogee_trigger(parachute, 0.0, 0.0, height=1000.0) is True
+
+
+def test_the_apogee_trigger_does_not_fire_for_a_rocket_at_rest_on_the_pad():
+    """On the pad the rocket is not moving and not above the ground, and
+    nothing deploys."""
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert _check_apogee_trigger(parachute, 0.0, 0.0, height=0.0) is False
+    assert _check_apogee_trigger(parachute, 0.1, 2.0, height=0.1) is False
+
+
+def test_the_apogee_trigger_is_the_one_an_event_uses():
+    parachute = Parachute(
+        name="Drogue", cd_s=1.0, trigger="apogee", sampling_rate=100, lag=0
+    )
+
+    assert (
+        parachute.triggerfunc is Event(lambda context: None, trigger="apogee").trigger
+    )
