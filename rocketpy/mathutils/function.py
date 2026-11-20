@@ -3523,7 +3523,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 validate=False,
             )
 
-    def compose(self, func, extrapolate=False):
+    def compose(self, func, extrapolate=False, tol=1e-9):
         """
         Returns a Function object which is the result of inputting a function
         into a function (i.e. f(g(x))). The domain will become the domain of
@@ -3538,8 +3538,13 @@ class Function:  # pylint: disable=too-many-public-methods
         extrapolate : bool, optional
             Whether or not to extrapolate the function if the input function's
             range is outside of the original function's domain. The default is
-            False. If False, values outside the domain by at most 1e-9 of the
-            domain size are clipped to it; larger overshoots raise ValueError.
+            False. If False, values outside the domain by at most ``tol`` times
+            the domain size are clipped to it; larger overshoots raise
+            ValueError.
+
+        tol : float, optional
+            Overshoot accepted outside the domain when ``extrapolate`` is
+            False, relative to the domain size. The default is 1e-9.
 
         Returns
         -------
@@ -3559,7 +3564,7 @@ class Function:  # pylint: disable=too-many-public-methods
             if not extrapolate:
                 # Roundoff-sized overshoots (e.g. -1e-17 for 0) are clipped
                 # to the domain edge instead of rejected.
-                tolerance = 1e-9 * (self.x_final - self.x_initial)
+                tolerance = tol * (self.x_final - self.x_initial)
                 if (
                     func.min < self.x_initial - tolerance
                     or func.max > self.x_final + tolerance

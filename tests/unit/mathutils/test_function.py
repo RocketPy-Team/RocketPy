@@ -2306,6 +2306,16 @@ def test_compose_tolerance_is_relative_to_domain_size():
         narrow.compose(inner)
 
 
+def test_compose_tol_widens_accepted_overshoot():
+    times = np.linspace(0.0, 5.0, 6)
+    inner = Function(np.column_stack([times, np.full_like(times, -1e-6)]))
+    outer = _doubling_function()
+
+    with pytest.raises(ValueError, match="must be within the domain"):
+        outer.compose(inner)
+    assert float(outer.compose(inner, tol=1e-6)(2.0)) == pytest.approx(0.0, abs=1e-9)
+
+
 @pytest.mark.parametrize("bad_value", [-1e-6, 10.0 + 1e-6])
 def test_compose_raises_beyond_domain_tolerance(bad_value):
     times = np.linspace(0.0, 5.0, 6)
