@@ -334,7 +334,10 @@ class SolidMotor(Motor):
             and rest against the nozzle-side face of the initial grain stack, so
             the propellant center of mass moves toward the nozzle as the grains
             get shorter. The shift is ``(grain_number / 2) *
-            (grain_initial_height - grain_height(t))``. ``grain_separation`` is
+            (grain_initial_height - grain_height(t))``, subtracted from
+            ``grains_center_of_mass_position`` when ``coordinate_system_orientation``
+            is ``"nozzle_to_combustion_chamber"`` and added when it is
+            ``"combustion_chamber_to_nozzle"``. ``grain_separation`` is
             treated as a solid spacer, not an air gap, so the spacing between
             grains stays constant. With ``only_radial_burn=True`` the grain
             height is constant and there is no shift. This is a simple model
@@ -504,7 +507,8 @@ class SolidMotor(Motor):
         When ``grains_bonded`` is False, the grains rest against the
         nozzle-side face of the initial grain stack. As the grain height
         regresses, the stack gets shorter and the CM moves toward the nozzle by
-        ``(grain_number / 2) * (grain_initial_height - grain_height(t))``.
+        ``(grain_number / 2) * (grain_initial_height - grain_height(t))``,
+        signed by ``coordinate_system_orientation``.
         """
         if self.grains_bonded:
             time_source = self.grain_inner_radius.x_array
