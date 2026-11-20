@@ -122,6 +122,7 @@ height does not change and the center of mass does not move.
       f"unbonded {unbonded_solid.center_of_propellant_mass(t):.3f} m"
     )
 
-The effect is usually small. For the Calisto rocket of the
-:doc:`First Simulation </user/first_simulation>` example, the static margin
-is lower by at most about 0.03 calibers during the burn.
+The effect is usually small. We measured it separately on the Calisto rocket
+of the :doc:`First Simulation </user/first_simulation>` example, not with the
+code above: the static margin is lower by at most about 0.03 calibers during
+the burn.
