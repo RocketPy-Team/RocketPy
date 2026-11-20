@@ -3744,20 +3744,31 @@ class Flight:
         Returns
         -------
         float or np.ndarray
-            ``∫_0^z g(h) dh`` in J/kg, using ``Environment.gravity``. The
-            antiderivative of the interpolant used during integration is
-            evaluated so that the potential stays consistent with the
-            dynamics, including constant extrapolation of ``g`` outside
-            its sampled domain.
+            ``∫_0^z g(h) dh`` in J/kg, using ``Environment.gravity``.
+            Non-sampled gravity is discretized once over the altitude
+            range without mutating ``Environment.gravity``. The
+            antiderivative of the interpolant is evaluated so that the
+            potential stays consistent with the dynamics, including
+            constant extrapolation of ``g`` outside its sampled domain.
+            NaN altitudes yield NaN potential.
         """
         gravity = self.env.gravity
         altitudes = np.asarray(altitude, dtype=float)
-        if gravity.is_array_source() and gravity.__dom_dim__ == 1:
-            potential_per_mass = gravity._evaluator.definite_integral(0.0, altitudes)
-        else:
-            potential_per_mass = np.array(
-                [gravity.integral(0.0, float(z)) for z in np.atleast_1d(altitudes)]
-            )
+        if not (gravity.is_array_source() and gravity.__dom_dim__ == 1):
+            finite_altitudes = np.atleast_1d(altitudes)
+            finite_altitudes = finite_altitudes[np.isfinite(finite_altitudes)]
+            if finite_altitudes.size:
+                lower = min(0.0, float(np.min(finite_altitudes)))
+                upper = max(0.0, float(np.max(finite_altitudes)))
+            else:
+                lower, upper = 0.0, 1.0
+            if lower == upper:
+                upper = lower + 1.0
+            gravity = gravity.set_discrete(lower, upper, mutate_self=False)
+        potential_per_mass = gravity._evaluator.definite_integral(0.0, altitudes)
+        potential_per_mass = np.where(
+            np.isfinite(altitudes), potential_per_mass, np.nan
+        )
         if np.ndim(altitude) == 0:
             return float(np.reshape(potential_per_mass, -1)[0])
         return potential_per_mass
