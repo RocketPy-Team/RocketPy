@@ -3023,6 +3023,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.plots.all()
 
     def to_dict(self, **kwargs):
+        # A surface is saved with the rocket, not by identity, so each switch
+        # names its surface by its place in the rocket's list of surfaces
+        surface_switches = [
+            [index, float(time), bool(active)]
+            for index, (surface, _) in enumerate(self.rocket.aerodynamic_surfaces)
+            for time, active in self._surface_switches.get(surface, ())
+        ]
         data = {
             "rocket": self.rocket,
             "env": self.env,
@@ -3067,6 +3074,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "M2": self.M2,
             "M3": self.M3,
             "net_thrust": self.net_thrust,
+            "surface_switches": surface_switches,
         }
 
         if kwargs.get("include_outputs", False):

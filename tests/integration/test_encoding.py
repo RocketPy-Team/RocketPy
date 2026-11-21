@@ -5,6 +5,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+from rocketpy import Event, Flight, GenericSurface
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.tools import from_hex_decode
 
@@ -327,3 +328,66 @@ def test_encoder_no_pickle(parachute_name, request):
 
     with pytest.raises(ValueError, match=r"non-hexadecimal number found"):
         from_hex_decode(trigger_loaded)
+
+
+def test_a_loaded_flight_keeps_the_surfaces_its_events_switched(
+    calisto_robust, example_plain_env
+):
+    """The surfaces an event switched on or off are saved with the flight, so
+    a loaded flight answers ``is_active`` as the flight that was flown."""
+    rocket = calisto_robust
+    area, length = rocket.area, 2 * rocket.radius
+    fairing = GenericSurface(area, length, {"cA": 0.3}, name="Fairing")
+    brake = GenericSurface(area, length, {"cA": 5.0}, name="Brake", active=False)
+    # Not side by side in the rocket's list, so the order is put to the test
+    rocket.add_surfaces(fairing, 0.0)
+    rocket.add_surfaces(GenericSurface(area, length, {"cA": 0.1}, name="Probe"), 0.2)
+    rocket.add_surfaces(brake, 0.0)
+
+    def switch(context):
+        context.event.commands.deactivate_surface(fairing)
+        context.event.commands.activate_surface(brake)
+
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        custom_events=[
+            Event(switch, trigger=8.0, sampling_rate=100, trigger_only_once=True)
+        ],
+    )
+
+    saved = json.dumps(flight, cls=RocketPyEncoder)
+    loaded = json.loads(saved, cls=RocketPyDecoder, resimulate=False)
+
+    by_name = {
+        surface.name: surface for surface, _ in loaded.rocket.aerodynamic_surfaces
+    }
+    assert [surface.name for surface, _ in loaded.rocket.aerodynamic_surfaces] == [
+        surface.name for surface, _ in rocket.aerodynamic_surfaces
+    ]
+    for time in (7.0, 9.0):
+        for original in (fairing, brake):
+            assert by_name[original.name].is_active(time, loaded) is (
+                original.is_active(time, flight)
+            )
+    assert by_name["Brake"].is_active(7.0, loaded) is False
+    assert by_name["Brake"].is_active(9.0, loaded) is True
+    assert by_name["Fairing"].is_active(9.0, loaded) is False
+    assert by_name["Probe"].is_active(9.0, loaded) is True
+
+    # Saving the loaded flight keeps them, and a file from before they were
+    # saved loads with none
+    assert (
+        json.loads(json.dumps(loaded, cls=RocketPyEncoder))["surface_switches"]
+        == (json.loads(saved)["surface_switches"])
+    )
+    old_file = json.loads(saved)
+    del old_file["surface_switches"]
+    from_old_file = json.loads(
+        json.dumps(old_file), cls=RocketPyDecoder, resimulate=False
+    )
+    assert from_old_file._surface_switches == {}
