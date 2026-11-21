@@ -70,6 +70,7 @@ def test_every_documented_trigger_form_is_accepted(calisto_main_chute, trigger):
         [True],
         [_at_apogee, None],
         [("time", -1.0)],
+        [("time", 0.0)],
         [("time", True)],
         [("burnout", 3.0)],
     ],

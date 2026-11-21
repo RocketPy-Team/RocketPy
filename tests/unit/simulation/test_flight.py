@@ -943,3 +943,74 @@ def test_solid_propulsion_and_generalized_equations_agree_in_the_burn(
     ]
     assert damping[0] < 0
     assert damping[0] == pytest.approx(damping[1], rel=0.03)
+
+
+# Parachute triggers while the rocket is still on the rail
+
+
+def _calisto_with_early_chute(calisto_motorless, cesaroni_m1670, trigger):
+    """Calisto on a 5.2 m rail (exit at about 0.363 s) with one early chute."""
+    rocket = calisto_motorless
+    rocket.add_motor(cesaroni_m1670, position=-1.373)
+    rocket.add_nose(length=0.55829, kind="vonKarman", position=1.160)
+    rocket.add_trapezoidal_fins(
+        4, root_chord=0.120, tip_chord=0.040, span=0.100, position=-1.168
+    )
+    rocket.set_rail_buttons(0.0818, -0.6182, 45)
+    rocket.add_parachute("early", cd_s=1.0, trigger=trigger, sampling_rate=100, lag=0)
+    return rocket
+
+
+def _fly(rocket, env, **kwargs):
+    return Flight(
+        rocket=rocket,
+        environment=env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        max_time=600,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("time_overshoot", [True, False])
+@pytest.mark.parametrize("t_deploy", [0.05, 0.2, 0.3])
+def test_time_trigger_before_rail_exit_is_refused(
+    calisto_motorless, cesaroni_m1670, example_plain_env, t_deploy, time_overshoot
+):
+    """Deploying on the rail used to end in 'No valid roots found' or, for
+    later times, in a flight that silently lost the parachute."""
+    rocket = _calisto_with_early_chute(
+        calisto_motorless, cesaroni_m1670, ("time", t_deploy)
+    )
+    with pytest.raises(
+        ValueError,
+        match=(
+            rf"Parachute 'early' is set to deploy at {t_deploy:g} s, "
+            r"before the rocket leaves the rail at 0\.363 s"
+        ),
+    ):
+        _fly(rocket, example_plain_env, time_overshoot=time_overshoot)
+
+
+def test_callable_trigger_on_the_rail_is_refused(
+    calisto_motorless, cesaroni_m1670, example_plain_env
+):
+    """A callable that fires on the rail is as impossible as a time trigger."""
+    rocket = _calisto_with_early_chute(
+        calisto_motorless, cesaroni_m1670, lambda p, h, y: y[2] > 0.5
+    )
+    with pytest.raises(ValueError, match="before the rocket leaves the rail"):
+        _fly(rocket, example_plain_env)
+
+
+@pytest.mark.parametrize("time_overshoot", [True, False])
+def test_time_trigger_after_rail_exit_still_deploys(
+    calisto_motorless, cesaroni_m1670, example_plain_env, time_overshoot
+):
+    rocket = _calisto_with_early_chute(calisto_motorless, cesaroni_m1670, ("time", 1.0))
+    flight = _fly(rocket, example_plain_env, time_overshoot=time_overshoot)
+    assert [(round(t, 6), p.name) for t, p in flight.parachute_events] == [
+        (1.0, "early")
+    ]

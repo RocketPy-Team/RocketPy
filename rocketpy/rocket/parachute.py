@@ -81,9 +81,10 @@ class Parachute:
 
         - A tuple ``("time", t_deploy)`` where ``t_deploy`` is the flight time
           in seconds at or after which the parachute triggers (from ``t = 0``
-          at flight start). Useful for fixed delay charges that start at
-          ignition/launch. For a motor delay charge that starts at burnout,
-          pass ``("time", motor.burn_out_time + delay)``.
+          at flight start). It must be positive and fall after the rocket leaves
+          the rail, or ``Flight`` raises. Useful for fixed delay charges that
+          start at ignition/launch. For a motor delay charge that starts at
+          burnout, pass ``("time", motor.burn_out_time + delay)``.
 
 
     Parachute.triggerfunc : function
@@ -202,8 +203,9 @@ class Parachute:
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
             - A tuple ``("time", t_deploy)`` that triggers when flight time \
-                ``t >= t_deploy`` (seconds from flight start). For a delay \
-                charge referenced to motor burnout, use \
+                ``t >= t_deploy`` (seconds from flight start). It must be \
+                positive and after the rail exit, or ``Flight`` raises. For a \
+                delay charge referenced to motor burnout, use \
                 ``("time", motor.burn_out_time + delay)``.
 
             .. note::
@@ -439,14 +441,14 @@ class Parachute:
             if not _is_a_height_trigger(trigger[1]):
                 raise ValueError(
                     f"Unable to set the trigger function for parachute '{self.name}'. "
-                    + "Time trigger delay must be a non-negative number of seconds, "
+                    + "Time trigger delay must be a positive number of seconds, "
                     + f"got {trigger[1]!r}."
                 )
             t_deploy = float(trigger[1])
-            if t_deploy < 0:
+            if t_deploy <= 0:
                 raise ValueError(
                     f"Unable to set the trigger function for parachute '{self.name}'. "
-                    + "Time trigger delay must be non-negative, "
+                    + "Time trigger delay must be positive, "
                     + f"got {t_deploy}."
                 )
 
