@@ -2298,8 +2298,11 @@ class Rocket:
         return rocket_dict
 
     @classmethod
-    def from_dict(cls, data):
-        rocket = cls(
+    def _new_from_dict(cls, data):
+        """Build the rocket itself from a saved dictionary, before its motor,
+        surfaces and other parts are added. A subclass whose constructor takes
+        other arguments overrides this."""
+        return cls(
             radius=data["radius"],
             mass=data["mass"],
             inertia=(
@@ -2315,6 +2318,10 @@ class Rocket:
             center_of_mass_without_motor=data["center_of_mass_without_motor"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
         )
+
+    @classmethod
+    def from_dict(cls, data):
+        rocket = cls._new_from_dict(data)
 
         if (motor := data["motor"]) is not None:
             rocket.add_motor(

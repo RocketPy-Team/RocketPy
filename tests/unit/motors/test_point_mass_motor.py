@@ -1,5 +1,9 @@
+import json
+
+import numpy as np
 import pytest
 
+from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.motors.point_mass_motor import PointMassMotor
 
 
@@ -77,3 +81,29 @@ def test_callable_thrust():
         burn_time=4,
     )
     assert m.thrust_source(0.5) == 50
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"thrust_source": 10, "burn_time": 1.2},
+        {"thrust_source": np.array([(0, 0), (0.1, 30), (1.0, 25), (1.2, 0)])},
+        {"thrust_source": 10, "burn_time": 1.2, "propellant_final_mass": 0.1},
+    ],
+)
+def test_save_and_load_give_the_same_motor(arguments):
+    """A point mass motor takes other arguments than the motors it is saved
+    like, so it is rebuilt from its own."""
+    motor = PointMassMotor(dry_mass=1.0, propellant_initial_mass=0.5, **arguments)
+
+    loaded = json.loads(json.dumps(motor, cls=RocketPyEncoder), cls=RocketPyDecoder)
+
+    assert isinstance(loaded, PointMassMotor)
+    assert loaded.dry_mass == motor.dry_mass
+    assert loaded.propellant_initial_mass == motor.propellant_initial_mass
+    assert loaded.propellant_final_mass == motor.propellant_final_mass
+    assert loaded.burn_time == pytest.approx(motor.burn_time)
+    assert loaded.total_impulse == pytest.approx(motor.total_impulse)
+    for time in (0.0, 0.5, 1.0):
+        assert loaded.thrust(time) == pytest.approx(motor.thrust(time))
+        assert loaded.total_mass(time) == pytest.approx(motor.total_mass(time))

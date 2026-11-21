@@ -104,3 +104,24 @@ class PointMassMotor(Motor):
     @cached_property
     def propellant_I_33(self):
         return self._zero_inertia_func()
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data.update(
+            {
+                "propellant_initial_mass": self.propellant_initial_mass,
+                "propellant_final_mass": self.propellant_final_mass,
+            }
+        )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            thrust_source=data["thrust_source"],
+            dry_mass=data["dry_mass"],
+            propellant_initial_mass=data["propellant_initial_mass"],
+            burn_time=data["burn_time"],
+            propellant_final_mass=data.get("propellant_final_mass"),
+            interpolation_method=data["interpolate"],
+        )

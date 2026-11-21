@@ -1,3 +1,8 @@
+import json
+
+import pytest
+
+from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.motors.point_mass_motor import PointMassMotor
 from rocketpy.rocket.point_mass_rocket import PointMassRocket
 
@@ -57,3 +62,47 @@ def test_add_motor_overwrites():
     rocket.add_motor(motor1, position=0)
     rocket.add_motor(motor2, position=0)
     assert rocket.motor == motor2
+
+
+@pytest.mark.parametrize("with_motor", [True, False])
+def test_save_and_load_give_the_same_rocket(with_motor):
+    """A point mass rocket is rebuilt with its own arguments, and keeps its
+    weathercock coefficient and its motor."""
+    rocket = PointMassRocket(
+        radius=0.05,
+        mass=2.0,
+        center_of_mass_without_motor=0.1,
+        power_off_drag=0.3,
+        power_on_drag=0.4,
+        weathercock_coeff=2.5,
+    )
+    if with_motor:
+        motor = PointMassMotor(
+            thrust_source=10, dry_mass=1.0, propellant_initial_mass=0.5, burn_time=1.2
+        )
+        rocket.add_motor(motor, position=0)
+
+    loaded = json.loads(json.dumps(rocket, cls=RocketPyEncoder), cls=RocketPyDecoder)
+
+    assert isinstance(loaded, PointMassRocket)
+    assert loaded.radius == rocket.radius
+    assert loaded.mass == rocket.mass
+    assert loaded.weathercock_coeff == 2.5
+    assert loaded.center_of_mass_without_motor == rocket.center_of_mass_without_motor
+    assert loaded.power_off_drag(0.5) == pytest.approx(0.3)
+    assert loaded.power_on_drag(0.5) == pytest.approx(0.4)
+    assert (loaded.dry_I_11, loaded.dry_I_22, loaded.dry_I_33) == (0.0, 0.0, 0.0)
+    if with_motor:
+        assert isinstance(loaded.motor, PointMassMotor)
+        for time in (0.0, 0.6, 1.2):
+            assert loaded.total_mass(time) == pytest.approx(rocket.total_mass(time))
+
+
+def test_a_file_saved_without_the_weathercock_coefficient_still_loads():
+    rocket = PointMassRocket(0.05, 2.0, 0.0, 0.3, 0.4, weathercock_coeff=2.5)
+    saved = json.loads(json.dumps(rocket, cls=RocketPyEncoder))
+    del saved["weathercock_coeff"]
+
+    loaded = json.loads(json.dumps(saved), cls=RocketPyDecoder)
+
+    assert loaded.weathercock_coeff == 0.0
