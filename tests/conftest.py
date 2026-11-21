@@ -8,14 +8,12 @@ matplotlib.use("Agg")
 
 
 @pytest.fixture(autouse=True)
-def isolate_atmosphere_cache(monkeypatch, tmp_path):
-    """Keep the atmosphere disk cache out of the developer's home directory.
+def forget_forecasts_in_memory():
+    """Start every test with no forecast kept in memory, so that no test
+    reuses what an earlier one downloaded."""
+    from rocketpy.environment import environment  # pylint: disable=import-outside-toplevel
 
-    Without this, ``set_atmospheric_model`` would write to
-    ``~/.rocketpy_cache`` during the test run and later tests could silently
-    read profiles cached by an earlier one.
-    """
-    monkeypatch.setenv("ROCKETPY_CACHE", str(tmp_path / "rocketpy_cache"))
+    environment._FORECASTS_IN_MEMORY.clear()
 
 
 # Pytest configuration
