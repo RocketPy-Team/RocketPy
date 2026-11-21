@@ -44,6 +44,13 @@ class EventContext(dict):
     as the step goes on. Do not keep a reference to it after the function
     returns, and do not add values to it, since the other events of the step
     would see them. Keep an event's own data in ``context.memory``.
+
+    During a flight the context is built by the flight. To check an event by
+    hand, as in a test, build one with at least the time and the state:
+    ``EventContext(time=0.0, canonical_state=state, raw_state=state,
+    phase_names=())``, with ``state`` the 13 values ``[x, y, z, vx, vy, vz,
+    e0, e1, e2, e3, w1, w2, w3]``. An event checked with anything less raises
+    an error that names what is missing.
     """
 
     # The values are stored as dictionary items, which is what RocketPy's own

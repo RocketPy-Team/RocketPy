@@ -1972,3 +1972,45 @@ def test_a_rollback_does_not_change_how_the_event_starts_a_flight():
     assert event.enabled is False
     event.reset()
     assert event.enabled is True
+
+
+# An event checked by hand
+
+
+def test_an_event_checked_with_a_plain_dictionary_is_refused():
+    event = Event(lambda context: None)
+    with pytest.raises(
+        TypeError, match="checked with an EventContext.*not with a dict"
+    ):
+        event({"time": 1.0})
+
+
+@pytest.mark.parametrize("missing", ["canonical_state", "raw_state", "phase_names"])
+def test_a_context_without_the_state_is_refused_before_the_trigger_runs(missing):
+    """The error names what is missing, and none of the event's functions was
+    called with the incomplete context."""
+    called = []
+    event = Event(
+        lambda context: called.append("callback"),
+        trigger=lambda context: called.append("trigger") or True,
+    )
+    state = [0.0] * 13
+    values = {"canonical_state": state, "raw_state": state, "phase_names": ()}
+    del values[missing]
+
+    with pytest.raises(KeyError, match=f"has no '{missing}'.*built by the flight"):
+        event(EventContext(time=1.0, **values))
+
+    assert called == []
+
+
+def test_a_context_built_by_hand_with_the_time_and_the_state_is_enough():
+    seen = []
+    event = Event(lambda context: seen.append(context.state.vz))
+    state = [0.0] * 5 + [12.0] + [0.0] * 7
+
+    fired = event(
+        EventContext(time=1.0, canonical_state=state, raw_state=state, phase_names=())
+    )
+
+    assert fired is True and seen == [12.0]

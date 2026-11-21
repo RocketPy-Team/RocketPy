@@ -332,7 +332,15 @@ class Event:
         bool
             ``True`` if the event fired, ``False`` otherwise.
         """
-        context.bind(self)
+        try:
+            context.bind(self)
+        except AttributeError:
+            raise TypeError(
+                "An event is checked with an EventContext, which the flight "
+                f"builds, not with a {type(context).__name__}. To check an event "
+                "by hand, build one: EventContext(time=0.0, "
+                "canonical_state=state, raw_state=state, phase_names=())."
+            ) from None
 
         if reset:
             self.commands.reset()
@@ -344,17 +352,27 @@ class Event:
         # --- Trigger Phase ---
         # Skip evaluating triggers if we are only running the callback.
         if callback_only is False:
-            triggered = self._call_trigger(context)
-
             # Kept for the next check, triggered or not. Read from the context
             # now, since it is rewritten during the step, and stored only after
             # the callback, which must still see the check before this one.
-            check = (
-                context["canonical_state"],
-                context["time"],
-                context["raw_state"],
-                context["phase_names"],
-            )
+            # Read before the trigger, so a context that lacks them, which no
+            # flight builds, is refused before the trigger is called.
+            try:
+                check = (
+                    context["canonical_state"],
+                    context["time"],
+                    context["raw_state"],
+                    context["phase_names"],
+                )
+            except KeyError as error:
+                raise KeyError(
+                    f"The event context has no {error.args[0]!r}. During a flight "
+                    "the context is built by the flight. One built by hand needs "
+                    "'time', 'canonical_state' (the 13 states), 'raw_state' (the "
+                    "states of the flight phase being flown) and 'phase_names' "
+                    "(the names of the states the phase adds, or an empty tuple)."
+                ) from None
+            triggered = self._call_trigger(context)
             if triggered is False or trigger_only:
                 (
                     self._previous_state,
