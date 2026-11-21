@@ -75,32 +75,11 @@ OPEN_METEO_ENSEMBLE_MODELS = ("gfs05", "ecmwf_ifs025")
 OPEN_METEO_HISTORICAL_START_DATE = datetime(2021, 4, 1, tzinfo=timezone.utc)
 
 
-def build_hourly_variables(levels=OPEN_METEO_PRESSURE_LEVELS):
-    """Builds the comma-separated ``hourly`` query parameter for Open-Meteo.
-
-    Parameters
-    ----------
-    levels : sequence of int, optional
-        Pressure levels, in hPa, to request. Defaults to
-        :data:`OPEN_METEO_PRESSURE_LEVELS`.
-
-    Returns
-    -------
-    str
-        The value to pass as the ``hourly`` query parameter, e.g.
-        ``"temperature_1000hPa,geopotential_height_1000hPa,..."``.
-
-    Examples
-    --------
-    >>> from rocketpy.environment.fetchers.open_meteo_fetcher import (
-    ...     build_hourly_variables,
-    ... )
-    >>> build_hourly_variables(levels=[500])
-    'temperature_500hPa,geopotential_height_500hPa,wind_speed_500hPa,wind_direction_500hPa'
-    """
+def _build_hourly_variables():
+    """Returns the ``hourly`` query parameter for every pressure level."""
     return ",".join(
         f"{variable}_{level}hPa"
-        for level in levels
+        for level in OPEN_METEO_PRESSURE_LEVELS
         for variable in OPEN_METEO_LEVEL_VARIABLES
     )
 
@@ -214,7 +193,7 @@ def fetch_open_meteo_forecast(latitude, longitude, model="best_match", date=None
     params = {
         "latitude": latitude,
         "longitude": longitude,
-        "hourly": build_hourly_variables(),
+        "hourly": _build_hourly_variables(),
         "models": model,
         "wind_speed_unit": "ms",
         "timeformat": "unixtime",
@@ -279,7 +258,7 @@ def fetch_open_meteo_ensemble(latitude, longitude, model="gfs05", date=None):
     params = {
         "latitude": latitude,
         "longitude": longitude,
-        "hourly": build_hourly_variables(),
+        "hourly": _build_hourly_variables(),
         "models": model,
         "wind_speed_unit": "ms",
         "timeformat": "unixtime",
