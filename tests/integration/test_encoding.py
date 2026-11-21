@@ -366,3 +366,22 @@ def test_encoder_no_pickle(parachute_name, request):
 
     with pytest.raises(ValueError, match=r"non-hexadecimal number found"):
         from_hex_decode(trigger_loaded)
+
+
+@pytest.mark.parametrize("resimulate", [False, True])
+def test_point_mass_flight_save_load(flight_3dof_with_weathercock, resimulate):
+    """A flight of a point mass rocket and motor can be saved and loaded."""
+    flight = flight_3dof_with_weathercock
+
+    loaded = json.loads(
+        json.dumps(flight, cls=RocketPyEncoder),
+        cls=RocketPyDecoder,
+        resimulate=resimulate,
+    )
+
+    assert type(loaded.rocket).__name__ == "PointMassRocket"
+    assert type(loaded.rocket.motor).__name__ == "PointMassMotor"
+    assert loaded.rocket.weathercock_coeff == flight.rocket.weathercock_coeff
+    assert loaded.apogee_time == pytest.approx(flight.apogee_time, rel=1e-6)
+    assert loaded.apogee == pytest.approx(flight.apogee, rel=1e-6)
+    assert loaded.t_final == pytest.approx(flight.t_final, rel=1e-3)
