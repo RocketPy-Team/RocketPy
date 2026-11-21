@@ -9,6 +9,24 @@ from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from .plot_helpers import show_or_save_plot
 
 
+def _default_vis_args():
+    """The same default ``vis_args`` draw() builds when none is given,
+    as a fresh dict each call - shared so other callers that draw onto
+    an existing Axes (e.g. MultiStageRocket.draw_motor()) match draw()'s
+    own defaults instead of drifting from them independently.
+    """
+    return {
+        "background": "#EEEEEE",
+        "tail": "black",
+        "nose": "black",
+        "body": "black",
+        "fins": "black",
+        "motor": "black",
+        "buttons": "black",
+        "line_width": 1.0,
+    }
+
+
 class _RocketPlots:
     """Class that holds plot methods for Rocket class.
 
@@ -150,7 +168,7 @@ class _RocketPlots:
             lower=0, upper=self.rocket.motor.burn_out_time
         )
 
-    def draw(self, vis_args=None, plane="xz", *, filename=None):
+    def draw(self, vis_args=None, plane="xz", *, filename=None, return_axes=False):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -182,21 +200,17 @@ class _RocketPlots:
             the plot will be shown instead of saved. Supported file endings are:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
             and webp (these are the formats supported by matplotlib).
+        return_axes : bool, optional
+            If ``True``, skip showing/saving the plot and return the
+            matplotlib ``Axes`` instead, so a caller can add its own
+            annotations before showing/saving it. Default ``False``
+            (existing behavior, unchanged).
         """
 
         self.__validate_aerodynamic_surfaces(plane)
 
         if vis_args is None:
-            vis_args = {
-                "background": "#EEEEEE",
-                "tail": "black",
-                "nose": "black",
-                "body": "black",
-                "fins": "black",
-                "motor": "black",
-                "buttons": "black",
-                "line_width": 1.0,
-            }
+            vis_args = _default_vis_args()
 
         _, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
         ax.set_aspect("equal")
@@ -220,7 +234,30 @@ class _RocketPlots:
         plt.ylabel("Radius (m)")
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
+
+        if return_axes:
+            return ax
         show_or_save_plot(filename)
+        return None
+
+    def draw_motor(self, ax, vis_args=None):
+        """Draw just this rocket's own motor (grains/chamber/nozzle)
+        onto an existing Axes - no aerodynamic surfaces, no connecting
+        body-tube segment down to it.
+
+        For a caller that already has its own Axes (e.g. via
+        ``draw(..., return_axes=True)``) and only needs one more motor
+        added to it - MultiStageRocket.draw() is exactly this case: a
+        composed multi-stage Rocket can only ever carry ONE active
+        motor (RocketPy's Rocket supports a single motor), so every
+        stage past the currently-firing one has its own motor riding
+        along inert, invisible to the composed Rocket's own draw().
+        Reuses the same per-motor-type patch generation draw() itself
+        uses, rather than a second implementation of it.
+        """
+        if vis_args is None:
+            vis_args = _default_vis_args()
+        self._draw_motor(self.rocket.radius, self.rocket.motor_position, ax, vis_args)
 
     def __validate_aerodynamic_surfaces(self, plane):
         if not self.rocket.aerodynamic_surfaces:
