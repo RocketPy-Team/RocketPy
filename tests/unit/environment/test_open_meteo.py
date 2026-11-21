@@ -446,7 +446,7 @@ class TestOpenMeteoFetchers:
 
     def test_build_hourly_variables_covers_every_level(self):
         """Request all four variables for every pressure level."""
-        hourly = open_meteo_fetcher.build_hourly_variables()
+        hourly = open_meteo_fetcher._build_hourly_variables()
 
         variables = hourly.split(",")
         expected_count = 4 * len(open_meteo_fetcher.OPEN_METEO_PRESSURE_LEVELS)
