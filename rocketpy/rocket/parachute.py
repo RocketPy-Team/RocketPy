@@ -223,7 +223,9 @@ class Parachute:
             List in the format (mean, standard deviation, time-correlation).
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is ``(0, 0, 0)``.
-            Units are in Pa.
+            Units are in Pa. The noise is reproducible only through the seed a
+            ``MonteCarlo`` run records, or with ``from_dict`` on a dict that
+            carries one; ``numpy.random.seed`` does not affect it.
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
             hemispheroid parachute. If not provided, it is estimated from
