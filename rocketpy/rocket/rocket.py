@@ -482,9 +482,9 @@ class Rocket:
     def _set_drag(self, which, source):
         """Set one of the rocket's drag curves from a user input.
 
-        Builds the two attributes of that curve: ``<which>_drag_7d``, the
-        coefficient used in the simulation, and ``<which>_drag_by_mach``, its
-        view against Mach number alone (also read as ``<which>_drag``).
+        Builds ``<which>_drag_7d``, the coefficient used in the simulation, and
+        with it ``<which>_drag_by_mach``, its view against Mach number alone
+        (also read as ``<which>_drag``).
 
         Parameters
         ----------
@@ -505,16 +505,46 @@ class Rocket:
                 single_var="mach",
             ),
         )
-        # Reads the coefficient on each call, so it follows a later change of it
-        # (for example the Monte Carlo drag factor).
-        by_mach = Function(
-            lambda mach: getattr(self, f"{which}_drag_7d")(0, 0, mach, 0, 0, 0, 0),
+
+    @staticmethod
+    def _drag_by_mach(coefficient, label):
+        """Return ``coefficient`` against Mach number alone, read at zero
+        angle of attack and zero rates.
+
+        The view keeps the coefficient it was built from. A drag curve worked
+        out from the view, such as ``rocket.power_off_drag * 1.1``, can then
+        be assigned back without the new curve reading itself.
+        """
+        return Function(
+            lambda mach: coefficient(0, 0, mach, 0, 0, 0, 0),
             inputs="Mach Number",
             outputs=f"Drag Coefficient with {label}",
             interpolation="linear",
             extrapolation="constant",
         )
-        setattr(self, f"{which}_drag_by_mach", by_mach)
+
+    # Properties, so that the view against Mach number is built again whenever
+    # the coefficient is replaced, by any route (the drag setters, the Monte
+    # Carlo drag factor, a direct assignment).
+    @property
+    def power_off_drag_7d(self):
+        """Drag coefficient with the motor off, over the seven variables."""
+        return self._power_off_drag_7d
+
+    @power_off_drag_7d.setter
+    def power_off_drag_7d(self, coefficient):
+        self._power_off_drag_7d = coefficient
+        self.power_off_drag_by_mach = self._drag_by_mach(coefficient, "Power Off")
+
+    @property
+    def power_on_drag_7d(self):
+        """Drag coefficient with the motor on, over the seven variables."""
+        return self._power_on_drag_7d
+
+    @power_on_drag_7d.setter
+    def power_on_drag_7d(self, coefficient):
+        self._power_on_drag_7d = coefficient
+        self.power_on_drag_by_mach = self._drag_by_mach(coefficient, "Power On")
 
     @property
     def power_off_drag(self):
