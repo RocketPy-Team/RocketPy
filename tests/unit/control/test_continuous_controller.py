@@ -117,6 +117,44 @@ def test_a_law_write_is_kept_inside_the_limits():
     )
 
 
+@pytest.mark.parametrize("limits", [(-0.2, 0.2), None])
+def test_a_law_that_writes_a_nan_is_refused(limits):
+    """With limits or without, the error names the control and the
+    controller, where the value was written."""
+
+    def divides_by_zero(states, controls, conditions):  # pylint: disable=unused-argument
+        controls.canards.deflection = float("nan")
+
+    extended = _with_controllables(
+        _PHASE,
+        _rocket(
+            _canards(limits=limits),
+            ContinuousController(divides_by_zero, name="Roll law"),
+        ),
+    )
+    with pytest.raises(
+        ValueError,
+        match="'canards.deflection' was set to nan by the continuous "
+        "controller 'Roll law'",
+    ):
+        extended.derivative(_FLIGHT, 0.0, _state(1.0), {"canards.deflection": 0})
+
+
+def test_a_law_that_writes_an_infinite_value_is_limited_or_refused():
+    def runs_away(states, controls, conditions):  # pylint: disable=unused-argument
+        controls.canards.deflection = float("inf")
+
+    def derivative(limits):
+        extended = _with_controllables(
+            _PHASE, _rocket(_canards(limits=limits), ContinuousController(runs_away))
+        )
+        return extended.derivative(_FLIGHT, 0.0, _state(1.0), {"canards.deflection": 0})
+
+    assert derivative((-0.2, 0.2))[0] == 0.2
+    with pytest.raises(ValueError, match="'canards.deflection' was set to inf"):
+        derivative(None)
+
+
 def test_a_law_cannot_invent_a_control_input():
     def wrong(states, controls, conditions):  # pylint: disable=unused-argument
         controls.canards.deflexion = 0.1

@@ -1,8 +1,9 @@
 import inspect
+import math
 
 import numpy as np
 
-from ...control._helpers import initial_controls
+from ...control._helpers import initial_controls, not_finite_error
 from ..events.views import ControlsView
 from .conditions import FlightConditions
 from .flight_derivatives import (
@@ -575,7 +576,7 @@ class _BoundDynamics:
         return f"_BoundDynamics(name={self.dynamics.name!r})"
 
 
-def _with_controllables(dynamics, rocket):
+def _with_controllables(dynamics, rocket):  # pylint: disable=too-many-statements
     """Return a new ``_PhaseDynamics`` that also integrates the rocket's
     controllables, or ``dynamics`` itself when there is nothing to add.
 
@@ -665,6 +666,9 @@ def _with_controllables(dynamics, rocket):
     limited = tuple(
         (name, *bounds) for name, bounds in limits.items() if bounds is not None
     )
+    # The ones without: a law's write is only checked to be a finite number
+    unlimited = tuple(name for name, bounds in limits.items() if bounds is None)
+    is_finite = math.isfinite
     # The laws read and write the control inputs as a sampled controller
     # does, ``controls.canards.fin_1``. One view, pointed at each call's
     # values: building one per call costs more than everything else here
@@ -672,6 +676,9 @@ def _with_controllables(dynamics, rocket):
     width, equations = dynamics.width, dynamics.derivative
     state_names = (*dynamics.states, *names)
     is_canonical, canonicalize = dynamics.is_canonical, dynamics.canonicalize
+
+    def written_by(controller):
+        return f"the continuous controller {controller.name!r}"
 
     def derivative(
         flight,
@@ -709,9 +716,17 @@ def _with_controllables(dynamics, rocket):
                     value = actual[name]
                     if value != controls[name]:
                         value = float(value)
+                        # A NaN is the only value that differs from itself. An
+                        # infinite one goes to the limit below
+                        if value != value:  # pylint: disable=comparison-with-itself
+                            raise not_finite_error(name, value, written_by(controller))
                         actual[name] = (
                             low if value < low else high if value > high else value
                         )
+                for name in unlimited:
+                    value = actual[name]
+                    if value != controls[name] and not is_finite(value):
+                        raise not_finite_error(name, value, written_by(controller))
             for controller, piece in integrated:
                 rates.extend(controller.state_derivative(u[piece], view, conditions))
         # The control inputs as the laws left them, before the

@@ -17,13 +17,26 @@ functions of v1.13 are in :mod:`rocketpy.control._legacy`.
 """
 
 import inspect
+import math
 import pickle
 import warnings
 
 from rocketpy.tools import snake_case_key
 
 
-def limited_value(value, limits):
+def not_finite_error(name, value, writer=None):
+    """Return the error for a control input set to a value that is not a
+    finite number. ``writer`` says what wrote it, such as ``"'Roll loop'"``,
+    the name of an event or controller, when that is known."""
+    by = f" by {writer}" if writer else ""
+    return ValueError(
+        f"The control input {name!r} was set to {value}{by}. A control input "
+        "must be a finite number. Check what writes it, for example for a "
+        "division by zero."
+    )
+
+
+def limited_value(value, limits, name="control", writer=None):
     """Return ``value`` as a float, moved to the nearest of ``limits`` when it
     is outside them.
 
@@ -33,15 +46,29 @@ def limited_value(value, limits):
         The value written to a control.
     limits : tuple of float or None
         ``(low, high)``, or ``None`` for a control without limits.
+    name : str, optional
+        The name of the control input, for the error message.
+    writer : str, optional
+        What wrote the value, for the error message.
 
     Returns
     -------
     float
+
+    Raises
+    ------
+    ValueError
+        If the value is not a number (NaN), or is infinite and the control
+        has no limit on that side to bring it back to.
     """
     if limits is not None:
         low, high = limits
+        # In this order a NaN stays a NaN, and is refused below
         value = min(max(value, low), high)
-    return float(value)
+    value = float(value)
+    if not math.isfinite(value):
+        raise not_finite_error(name, value, writer)
+    return value
 
 
 def initial_controls(controllables):
@@ -93,7 +120,7 @@ def initial_controls(controllables):
     return controls, names, limits
 
 
-def check_writes(controls, before, limits):
+def check_writes(controls, before, limits, writer=None):
     """Check the writes an event made to the control inputs.
 
     Called right after an event's callback, with a copy of ``controls`` taken
@@ -108,6 +135,9 @@ def check_writes(controls, before, limits):
         A copy of them taken before the callback.
     limits : dict
         Control input name to its ``(low, high)``, or ``None``.
+    writer : str, optional
+        The name of the event or controller that ran the callback, such as
+        ``"Roll loop"``, for the error messages.
 
     Returns
     -------
@@ -120,6 +150,9 @@ def check_writes(controls, before, limits):
     KeyError
         If the callback added or removed a control input, such as by writing a
         misspelled name. The inputs are put back as they were.
+    ValueError
+        If the callback wrote a value that is not a finite number, such as the
+        NaN of a division by zero. The inputs are put back as they were.
     """
     if controls.keys() != before.keys():
         added = sorted(controls.keys() - before.keys())
@@ -136,7 +169,13 @@ def check_writes(controls, before, limits):
         if value != before[name]:
             # Compared again once inside the limits: a write beyond a limit
             # the control already sits at changes nothing
-            controls[name] = value = limited_value(value, limits[name])
+            try:
+                by = None if writer is None else repr(writer)
+                value = limited_value(value, limits[name], name, by)
+            except ValueError:
+                controls.update(before)
+                raise
+            controls[name] = value
             if value != before[name]:
                 changed[name] = value
     return changed

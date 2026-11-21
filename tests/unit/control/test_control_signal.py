@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from rocketpy import ForceEffector, GenericSurface, ThrustEffector
-from rocketpy.control._helpers import check_writes, initial_controls
+from rocketpy import ForceEffector, GenericSurface
+from rocketpy.control._helpers import check_writes, initial_controls, limited_value
 from rocketpy.control.controllable import Controllable
 from rocketpy.simulation.events import Event
 from rocketpy.simulation.events.commands import Commands
@@ -208,6 +208,45 @@ def test_a_write_beyond_the_limit_the_control_sits_at_changes_nothing():
     controls["canards.deflection"] = 0.7
     assert check_writes(controls, before, limits) == {}
     assert controls["canards.deflection"] == 0.2
+
+
+@pytest.mark.parametrize(
+    "value, limits",
+    [
+        (float("nan"), (-0.2, 0.2)),
+        (float("nan"), None),
+        (float("inf"), None),
+        (float("-inf"), None),
+    ],
+)
+def test_a_value_that_is_not_a_finite_number_is_refused(value, limits):
+    with pytest.raises(ValueError, match="'canards.deflection' was set to"):
+        limited_value(value, limits, "canards.deflection")
+
+
+def test_an_infinite_value_goes_to_the_limit_of_its_side():
+    assert limited_value(float("inf"), (-0.2, 0.2)) == 0.2
+    assert limited_value(float("-inf"), (-0.2, 0.2)) == -0.2
+
+
+@pytest.mark.parametrize("name", ["canards.deflection", "gimbal.yaw"])
+def test_a_nan_written_to_a_control_is_refused_and_undone(name):
+    """With limits or without, the error names the control and what wrote it,
+    and the controls are again what they were before the callback."""
+    controls, limits = _controls(_canard(), Gimbal())
+    before = dict(controls)
+    controls["gimbal.pitch"] = 0.05
+    controls[name] = float("nan")
+
+    with pytest.raises(ValueError, match=f"{name!r} was set to nan by 'Loop'"):
+        check_writes(controls, before, limits, "Loop")
+
+    assert controls == before
+
+
+def test_a_control_cannot_start_at_a_value_that_is_not_a_number():
+    with pytest.raises(ValueError, match="'deflection' was set to nan"):
+        _canard(control_defaults={"deflection": float("nan")})
 
 
 def test_a_misspelled_channel_is_refused_and_undone():
@@ -426,6 +465,26 @@ def _writer(name, value, **kwargs):
         setattr(getattr(context.controls, key), channel, value)
 
     return Event(callback=callback, name=f"Write {value}", **kwargs)
+
+
+def test_an_event_that_writes_a_nan_is_named_in_the_error():
+    """As after a division by zero in its callback. The flight stops there,
+    with the control as it was."""
+    flight = _flight_in_a_step({"canards.deflection": 0.1})
+    event = _writer("canards.deflection", float("nan"))
+    state = [0.0] * 13
+    context = EventContext(
+        time=2.0,
+        controls=flight._controls,
+        canonical_state=state,
+        raw_state=state,
+        phase_names=(),
+    )
+
+    with pytest.raises(ValueError, match="set to nan by 'Write nan'"):
+        call_event(flight, event, context, None, 0, 0)
+
+    assert flight._controls == {"canards.deflection": 0.1}
 
 
 def test_a_rollback_undoes_writes_made_after_the_time_it_goes_back_to():

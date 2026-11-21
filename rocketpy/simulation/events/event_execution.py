@@ -55,7 +55,7 @@ def call_event(
     save_for_rollback(flight, event, context["time"], before, phase)
     fired = event(context)
     limits = flight._control_limits  # pylint: disable=protected-access
-    changes = check_writes(controls, before, limits)
+    changes = check_writes(controls, before, limits, event.name)
     event.commands.control_changes.update(changes)
     if changes:
         # The derivatives were worked out with the controls as they were

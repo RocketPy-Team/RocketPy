@@ -1005,7 +1005,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             for name, value in previous_controls.items():
                 if name in self._controls:
                     self._controls[name] = limited_value(
-                        value, self._control_limits[name]
+                        value, self._control_limits[name], name
                     )
             self._previous_states = previous_flight.solution.phases[-1].state_dict(
                 previous_flight.solution.raw_row(-1)[1:]

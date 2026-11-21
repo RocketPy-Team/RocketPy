@@ -145,7 +145,7 @@ class _AirBrakesView:
     @deployment_level.setter
     def deployment_level(self, value):
         self._controls[self._name] = limited_value(
-            value, self._air_brakes.control_limits["deployment_level"]
+            value, self._air_brakes.control_limits["deployment_level"], self._name
         )
 
     def __getattr__(self, name):

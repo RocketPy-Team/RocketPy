@@ -123,7 +123,7 @@ class Controllable:
             given = self.control_limits.get(control)
             self.control_limits[control] = None if given is None else tuple(given)
             self.control_defaults[control] = limited_value(
-                self.control_defaults[control], self.control_limits[control]
+                self.control_defaults[control], self.control_limits[control], control
             )
 
     def _check_controls(self):

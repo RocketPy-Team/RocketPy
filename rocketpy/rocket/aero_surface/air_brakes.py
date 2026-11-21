@@ -228,7 +228,7 @@ class AirBrakes(GenericSurface):
     @initial_deployment_level.setter
     def initial_deployment_level(self, value):
         self.control_defaults["deployment_level"] = limited_value(
-            value, self.control_limits["deployment_level"]
+            value, self.control_limits["deployment_level"], "deployment_level"
         )
 
     @property
