@@ -487,11 +487,6 @@ class StochasticModel:
         -------
         list
             Validated list.
-
-        Raises
-        ------
-        StochasticTypeError, StochasticValueError
-            If the input is not in a valid format.
         """
         if not input_value:
             return [self._nominal(input_name, getattr)]
@@ -683,19 +678,20 @@ class StochasticModel:
 
         Raises
         ------
+        StochasticTypeError
+            If the input is not a list of integers.
         StochasticValueError
-            If the input is not in a valid format.
+            If any member is negative.
         """
         if input_value is not None:
+            error_msg = f"`{input_name}` must be a list of positive integers"
             if not (
                 isinstance(input_value, list)
-                and all(
-                    isinstance(member, int) and member >= 0 for member in input_value
-                )
+                and all(isinstance(member, int) for member in input_value)
             ):
-                raise StochasticValueError(
-                    f"`{input_name}` must be a list of positive integers"
-                )
+                raise StochasticTypeError(error_msg)
+            if not all(member >= 0 for member in input_value):
+                raise StochasticValueError(error_msg)
 
     def _reset_custom_samplers(self, seed):
         """Seed each sampler, and each shared generator once.

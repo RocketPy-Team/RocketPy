@@ -35,7 +35,8 @@ def _free_form_fins(fins, shape_points):
 
 @pytest.mark.parametrize("error", [StochasticTypeError, StochasticValueError])
 def test_stochastic_errors_keep_their_old_and_new_bases(error):
-    assert issubclass(error, (RocketPyError, AssertionError))
+    assert issubclass(error, RocketPyError)
+    assert issubclass(error, AssertionError)
     assert getattr(rocketpy, error.__name__) is error
 
 
@@ -91,6 +92,16 @@ def test_stochastic_errors_are_the_matching_builtin():
             id="negative_int_list",
         ),
         pytest.param(
+            lambda: _model_with_mass()._validate_positive_int_list("m", "abc"),
+            StochasticTypeError,
+            id="int_list_not_a_list",
+        ),
+        pytest.param(
+            lambda: _model_with_mass()._validate_positive_int_list("m", [1.5]),
+            StochasticTypeError,
+            id="int_list_float_member",
+        ),
+        pytest.param(
             lambda: _model_with_mass()._validate_1d_array_like("m", "path"),
             StochasticTypeError,
             id="array_like_not_a_list",
@@ -113,6 +124,20 @@ def test_stochastic_errors_are_the_matching_builtin():
         ),
         pytest.param(
             lambda: StochasticEnvironment._validate_ensemble(
+                SimpleNamespace(), ["a"], ENSEMBLE_ENVIRONMENT
+            ),
+            StochasticTypeError,
+            id="ensemble_member_not_an_int",
+        ),
+        pytest.param(
+            lambda: StochasticEnvironment._validate_ensemble(
+                SimpleNamespace(), [-1], ENSEMBLE_ENVIRONMENT
+            ),
+            StochasticValueError,
+            id="ensemble_member_negative",
+        ),
+        pytest.param(
+            lambda: StochasticEnvironment._validate_ensemble(
                 SimpleNamespace(), [3], ENSEMBLE_ENVIRONMENT
             ),
             StochasticValueError,
@@ -130,6 +155,12 @@ def test_stochastic_model_inputs_raise_the_matching_error(build, error):
 def test_wrong_flight_inputs_raise_the_matching_error(flight_calisto_robust):
     with pytest.raises(StochasticTypeError):
         StochasticFlight(flight=flight_calisto_robust, terminate_on_apogee="yes")
+    with pytest.raises(StochasticTypeError):
+        StochasticFlight(flight=flight_calisto_robust, time_overshoot="yes")
+    with pytest.raises(StochasticTypeError):
+        StochasticFlight(flight=flight_calisto_robust, max_time="5")
+    with pytest.raises(StochasticTypeError):
+        StochasticFlight(flight=flight_calisto_robust, initial_solution=5)
     with pytest.raises(StochasticValueError):
         StochasticFlight(flight=flight_calisto_robust, initial_solution=(0.0, 1.0))
     with pytest.raises(AssertionError):
@@ -139,6 +170,8 @@ def test_wrong_flight_inputs_raise_the_matching_error(flight_calisto_robust):
 def test_wrong_parachute_trigger_raises_the_matching_error(calisto_main_chute):
     with pytest.raises(StochasticTypeError):
         StochasticParachute(calisto_main_chute, trigger="banana")
+    with pytest.raises(StochasticValueError):
+        StochasticParachute(calisto_main_chute, trigger=[])
     with pytest.raises(AssertionError):
         StochasticParachute(calisto_main_chute, trigger="banana")
 
@@ -169,5 +202,11 @@ def test_wrong_rocket_components_raise_the_matching_error(calisto_robust, calist
         stochastic.add_free_form_fins(calisto_tail)
     with pytest.raises(StochasticTypeError):
         stochastic.set_rail_buttons("buttons")
+    with pytest.raises(StochasticTypeError):
+        stochastic.add_motor("motor")
+    with pytest.raises(StochasticTypeError):
+        stochastic.add_parachute("parachute")
+    with pytest.raises(StochasticTypeError):
+        stochastic.add_air_brakes("air_brakes", controller=None)
     with pytest.raises(AssertionError):
         stochastic.set_rail_buttons("buttons")

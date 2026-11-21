@@ -1,6 +1,6 @@
 """Defines the StochasticParachute class."""
 
-from rocketpy.exceptions import StochasticTypeError
+from rocketpy.exceptions import StochasticTypeError, StochasticValueError
 from rocketpy.rocket import Parachute
 from rocketpy.rocket.parachute import _is_a_height_trigger
 
@@ -166,19 +166,19 @@ class StochasticParachute(StochasticModel):
         if trigger is None:
             return
 
-        valid = (
-            isinstance(trigger, list)
-            and bool(trigger)
-            and all(_is_a_trigger(member) for member in trigger)
+        error_msg = (
+            "`trigger` must be a non-empty list whose members are "
+            "callables, the string 'apogee', heights, or ('time', t_deploy)"
         )
         # Raised rather than asserted: `python -O` strips an assert, and this
         # is the only thing standing between a bad trigger and a Parachute
         # that either refuses it much later or reads True as a height of 1.
-        if not valid:
-            raise StochasticTypeError(
-                "`trigger` must be a non-empty list whose members are "
-                "callables, the string 'apogee', heights, or ('time', t_deploy)"
-            )
+        if not isinstance(trigger, list) or not all(
+            _is_a_trigger(member) for member in trigger
+        ):
+            raise StochasticTypeError(error_msg)
+        if not trigger:
+            raise StochasticValueError(error_msg)
 
     def _validate_noise(self, noise):
         """Validates the noise input. If the noise input argument is not
