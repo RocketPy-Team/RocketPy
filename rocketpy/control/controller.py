@@ -91,7 +91,9 @@ class Controller(Event):
             ``"Apogee Controller"`` gives ``flight.records.apogee_controller``.
             Defaults to ``"Controller"``.
         enabled : bool, optional
-            Whether the controller runs from the start of the flight. Defaults
+            Whether the controller runs from the start of the flight. It can
+            be changed after the controller is built, ``controller.enabled =
+            False``, and every flight from then on starts that way. Defaults
             to ``True``.
         enable_on : str, float or callable, optional
             When a stopped controller starts running: ``"apogee"``,

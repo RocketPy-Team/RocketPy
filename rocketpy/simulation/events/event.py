@@ -151,6 +151,8 @@ class Event:
             Whether the event is checked from the start of the flight. An
             event that is not can be turned on later by its ``enable_on``, or
             by another event with ``context.commands.enable_event(event)``.
+            It can be changed after the event is built, ``event.enabled =
+            False``, and every flight from then on starts that way.
             Defaults to ``True``.
         enable_on : str, float or callable, optional
             When a disabled event is turned on: ``"apogee"``, ``"burnout"``, a
@@ -248,7 +250,7 @@ class Event:
         if self.time_overshootable and self.sampling_rate is None:
             self.time_overshootable = False
         self._initial_enabled = bool(enabled)
-        self.enabled = bool(enabled)
+        self._enabled = bool(enabled)
         self.verbose = verbose
         self.triggered_times = []
         self._records = {}
@@ -386,7 +388,7 @@ class Event:
     def _call_enable_on(self, context):
         """Return ``False`` if the event is disabled and stays so. If its
         ``enable_on`` condition is met, ask the flight to enable it."""
-        if not self.enabled:
+        if not self._enabled:
             # No enable_on function. Event stays disabled
             if self.enable_on is None:
                 self._log(triggered=False, context=context)
@@ -618,16 +620,38 @@ class Event:
 
     # Starting a new flight, and going back in time
 
+    @property
+    def enabled(self):
+        """Whether the event is checked.
+
+        Before a flight it is how the event starts each flight. During a
+        flight and after it, it is whether the event is on at that moment: a
+        flight turns an event on or off through its ``enable_on`` and
+        ``disable_on``, ``trigger_only_once`` and the commands of events.
+
+        Setting it, ``event.enabled = False``, chooses how the event starts
+        every flight from then on. Inside a callback, use
+        ``context.commands.disable()`` or ``context.commands.enable_event``
+        instead, which act on the flight being flown only.
+        """
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        # Set from outside a flight: also what the next flights start from.
+        # A flight writes ``_enabled`` alone, which ``reset`` undoes
+        self._enabled = self._initial_enabled = bool(value)
+
     def reset(self):
         """Prepare the event for a new flight.
 
-        The event is enabled or not as it was built, its memory and outputs
-        are back at the values it was built with, and its records and the
-        times it fired or was turned on and off are cleared. A flight calls
-        this on each of its events when it starts.
+        The event is enabled or not as it was built, or as ``enabled`` was
+        set since, its memory and outputs are back at the values it was built
+        with, and its records and the times it fired or was turned on and off
+        are cleared. A flight calls this on each of its events when it starts.
         """
         self.commands.reset()
-        self.enabled = self._initial_enabled
+        self._enabled = self._initial_enabled
         self._records = {}
         self._outputs = deepcopy(self._output_defaults)
         self._output_history = {}
@@ -656,7 +680,7 @@ class Event:
         """Whether the event is enabled and what it saw at its previous check:
         what a rollback puts back with :meth:`_restore_check_state`."""
         return (
-            self.enabled,
+            self._enabled,
             self._previous_state,
             self._previous_time,
             self._previous_raw_state,
@@ -666,7 +690,7 @@ class Event:
     def _restore_check_state(self, saved):
         """Put back what :meth:`_check_state` returned."""
         (
-            self.enabled,
+            self._enabled,
             self._previous_state,
             self._previous_time,
             self._previous_raw_state,

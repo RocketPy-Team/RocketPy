@@ -691,7 +691,7 @@ def test_a_rollback_restores_the_previous_check_and_the_enabled_flag():
     event = _writer("canards.deflection", 0.1, sampling_rate=10)
     _run(event, flight, 2.0)
     event._previous_time = 2.0
-    event.enabled = False
+    event._enabled = False  # as a flight turns it off
 
     rewind(flight, 1.5)
 

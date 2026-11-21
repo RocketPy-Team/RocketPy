@@ -869,6 +869,11 @@ Available commands include:
   not run, so it cannot turn itself back on (give it an ``enable_on`` for
   that).
 
+  These commands act on the flight being flown. To choose how an event starts
+  every flight, set ``event.enabled`` before the flight, such as
+  ``event.enabled = False``. Do not set ``context.event.enabled`` inside a
+  callback: that changes the event itself, for every later flight too.
+
   ``disable()`` and ``disable_on`` do the same thing. Use ``disable_on`` for a
   condition you know when you build the event, such as ``"apogee"`` or a time:
   it is checked for you and saved with the event. Use ``disable()`` when the

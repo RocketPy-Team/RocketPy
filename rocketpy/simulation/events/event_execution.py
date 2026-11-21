@@ -324,9 +324,9 @@ def rewind(flight, time, event_results=None):
         # In place, so the dictionary a callback reads stays the same object
         event.memory.clear()
         event.memory.update(memory)
-        was_enabled = event.enabled
+        was_enabled = event._enabled
         event._restore_check_state(check_state)  # pylint: disable=protected-access
-        if event.enabled and not was_enabled and event.sampling_rate is None:
+        if event._enabled and not was_enabled and event.sampling_rate is None:
             # Turned off after ``time``: checked at every step again
             continuous = phase.time_nodes.continuous_events
             if event not in continuous:
@@ -409,7 +409,7 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
     """
     if event_results.disable_events:
         for event_to_disable in event_results.disable_events:
-            event_to_disable.enabled = False
+            event_to_disable._enabled = False
             event_to_disable.disabled_times.append(time)
             _safe_disable_time_nodes_event(
                 phase=phase,
@@ -419,7 +419,7 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
             )
 
     if event_results._disabled:
-        event.enabled = False
+        event._enabled = False
         event.disabled_times.append(time)
         _safe_disable_time_nodes_event(
             phase=phase,
@@ -450,7 +450,7 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
     """
     if event_results.enable_events:
         for event_to_enable in event_results.enable_events:
-            event_to_enable.enabled = True
+            event_to_enable._enabled = True
             event_to_enable.enabled_times.append(time)
             if event_to_enable in flight._non_overshootable_events:
                 _safe_enable_time_nodes_event(
@@ -462,7 +462,7 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
 
     # Commands API uses `_disabled` flag: True -> disable, False -> enable
     if event_results._disabled is False:
-        event.enabled = True
+        event._enabled = True
         event.enabled_times.append(time)
 
         # if the event is non-overshootable, we need to create discrete nodes

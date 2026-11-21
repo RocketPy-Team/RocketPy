@@ -483,7 +483,7 @@ class _TimeNodes:
             # `enable_on` cannot become enabled again and are therefore
             # skipped here to avoid scheduling unnecessary checks.
             if (
-                not event.enabled and event.enable_on is None
+                not event._enabled and event.enable_on is None
             ) or event.sampling_rate is None:
                 continue
 
@@ -514,7 +514,7 @@ class _TimeNodes:
         """
         # Register the event only when it's present and either enabled or
         # able to re-enable itself via `enable_on`.
-        if not event.enabled and event.enable_on is None:
+        if not event._enabled and event.enable_on is None:
             return
 
         if event.sampling_rate is None:

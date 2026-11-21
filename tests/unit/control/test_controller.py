@@ -488,3 +488,16 @@ def test_a_preset_gate_is_loaded_as_saved():
     controller = Controller(lambda context: None, 10, disable_on="apogee")
     loaded = Controller.from_dict(controller.to_dict())
     assert loaded.enabled and loaded._gates[0] == "apogee"
+
+
+def test_enabled_set_after_the_controller_is_built_is_kept_and_saved():
+    """Turning a controller off after it was built, as with the one
+    ``rocket.add_air_brakes`` creates, holds for every flight and is what is
+    saved with the rocket."""
+    controller = Controller(lambda context: None, sampling_rate=10)
+    controller.enabled = False
+
+    controller.reset()
+
+    assert controller.enabled is False
+    assert controller.to_dict()["enabled"] is False

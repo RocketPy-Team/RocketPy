@@ -323,7 +323,7 @@ def test_reset_restores_initial_runtime_state():
     event.enabled_times.append(2.0)
     event.disabled_times.append(3.0)
     event.commands.disable()
-    event.enabled = True
+    event._enabled = True  # as a flight turns it on
 
     event.reset()
 
@@ -1675,3 +1675,32 @@ def test_a_phase_state_cannot_take_a_name_the_state_uses(taken):
     the values of the state, so a phase's own state could not be read by them."""
     with pytest.raises(ValueError, match=f"cannot have a state called '{taken}'"):
         _PhaseDynamics("custom", None, ("x", "y", "z", taken))
+
+
+# ``enabled`` set by the user, and by a flight
+
+
+def test_enabled_set_after_the_event_is_built_is_how_every_flight_starts():
+    """A flight resets each of its events when it starts: what the user set
+    stands, in both directions."""
+    event = Event(lambda context: None, name="Logger")
+    event.enabled = False
+    event.reset()
+    assert event.enabled is False
+
+    event.enabled = True
+    event.reset()
+    assert event.enabled is True
+
+
+def test_a_rollback_does_not_change_how_the_event_starts_a_flight():
+    event = Event(lambda context: None, name="Logger")
+    saved = event._check_state()
+    event._enabled = False  # as a flight turns it off
+    event._restore_check_state(saved)
+    assert event.enabled is True
+
+    event._restore_check_state((False, *saved[1:]))
+    assert event.enabled is False
+    event.reset()
+    assert event.enabled is True
