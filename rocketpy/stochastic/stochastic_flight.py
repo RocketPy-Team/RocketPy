@@ -93,10 +93,10 @@ class StochasticFlight(StochasticModel):
             raise StochasticTypeError("`terminate_on_apogee` must be a boolean")
         if time_overshoot is not None:
             if not isinstance(time_overshoot, bool):
-                raise TypeError("`time_overshoot` must be a boolean")
+                raise StochasticTypeError("`time_overshoot` must be a boolean")
         if max_time is not None:
             if not isinstance(max_time, (int, float)):
-                raise TypeError("`max_time` must be a number")
+                raise StochasticTypeError("`max_time` must be a number")
         super().__init__(
             flight,
             rail_length=rail_length,
@@ -158,7 +158,9 @@ class StochasticFlight(StochasticModel):
                         "`initial_solution` must be a tuple of numbers"
                     )
             else:
-                raise TypeError("`initial_solution` must be a tuple of numbers")
+                raise StochasticTypeError(
+                    "`initial_solution` must be a tuple of numbers"
+                )
 
     def _sample_flight_inputs(self):
         """Sample rail_length, inclination, and heading in a single draw.

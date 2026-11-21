@@ -138,12 +138,11 @@ class StochasticEnvironment(StochasticModel):
         if ensemble_member is not None:
             if not isinstance(ensemble_member, list):
                 raise StochasticTypeError("`ensemble_member` must be a list")
-            if not (
-                all(
-                    isinstance(member, int) and member >= 0
-                    for member in ensemble_member
+            if not all(isinstance(member, int) for member in ensemble_member):
+                raise StochasticTypeError(
+                    "`ensemble_member` must be a list of positive integers"
                 )
-            ):
+            if not all(member >= 0 for member in ensemble_member):
                 raise StochasticValueError(
                     "`ensemble_member` must be a list of positive integers"
                 )

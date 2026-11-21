@@ -265,7 +265,7 @@ class StochasticRocket(StochasticModel):
 
         # checks if input is a Motor
         if not isinstance(motor, (Motor, StochasticMotorModel)):
-            raise TypeError("`motor` must be a StochasticMotor or Motor type")
+            raise StochasticTypeError("`motor` must be a StochasticMotor or Motor type")
         if isinstance(motor, Motor):
             # TODO implement HybridMotor and LiquidMotor stochastic models
             if isinstance(motor, SolidMotor):
@@ -407,7 +407,7 @@ class StochasticRocket(StochasticModel):
         """
         # checks if input is a StochasticParachute type
         if not isinstance(parachute, (Parachute, StochasticParachute)):
-            raise TypeError(
+            raise StochasticTypeError(
                 "`parachute` must be of Parachute or StochasticParachute type"
             )
         if isinstance(parachute, Parachute):
@@ -450,7 +450,7 @@ class StochasticRocket(StochasticModel):
             Deterministic air brake controller.
         """
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
-            raise TypeError(
+            raise StochasticTypeError(
                 "`air_brake` must be of AirBrakes or StochasticAirBrakes type"
             )
         if isinstance(air_brakes, AirBrakes):
@@ -547,7 +547,7 @@ class StochasticRocket(StochasticModel):
 
         Raises
         ------
-        ValueError
+        StochasticTypeError, StochasticValueError
             If the position argument does not conform to the specified formats.
         """
         if isinstance(position, tuple):
@@ -591,7 +591,7 @@ class StochasticRocket(StochasticModel):
 
         Raises
         ------
-        ValueError
+        StochasticTypeError, StochasticValueError
             If the position argument does not conform to the specified formats.
         """
         if isinstance(position, tuple):
