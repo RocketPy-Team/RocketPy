@@ -237,7 +237,8 @@ class _RegularGrid:
         Returns
         -------
         float or numpy.ndarray
-            A number for a single point, an array otherwise.
+            A number when the variables are given as numbers, and an array
+            when they are given as sequences, even of a single value.
         """
         extrapolation = self.extrapolation
         single_point = not isinstance(args[0], (np.ndarray, list, tuple))
@@ -283,4 +284,4 @@ class _RegularGrid:
             result = self._scipy_interpolator(np.clip(points, lower, upper))
             if extrapolation == "zero":
                 result[((points < lower) | (points > upper)).any(axis=1)] = 0.0
-        return float(result[0]) if len(result) == 1 else result
+        return float(result[0]) if single_point else result

@@ -130,6 +130,26 @@ def test_single_point_lookup_matches_scipy(sizes, extrapolation):
     assert grid.evaluate(*columns) == pytest.approx(one_by_one)
 
 
+@pytest.mark.parametrize("method", ["linear", "cubic"])
+def test_sequences_of_one_value_give_an_array(plane_points, method):
+    """What comes back follows what was given, so a batch of one point reads
+    like any other batch."""
+    grid = _RegularGrid.from_points(plane_points, method, "constant")
+
+    number = grid.evaluate(0.5, 0.5)
+    assert isinstance(number, float)
+    assert number == pytest.approx(5.5)
+    for one in (np.array([0.5]), [0.5], (0.5,)):
+        batch = grid.evaluate(one, one)
+        assert isinstance(batch, np.ndarray)
+        assert batch.shape == (1,)
+        assert batch[0] == pytest.approx(5.5)
+
+    function = Function(plane_points, interpolation=method)
+    assert isinstance(function(0.5, 0.5), float)
+    assert np.shape(function(np.array([0.5]), np.array([0.5]))) == (1,)
+
+
 def test_points_from_axes_accepts_any_axis_order():
     rows = _RegularGrid.points_from_axes(
         [[2.0, 0.0, 1.0], [0.0, 1.0]], [[4.0, 5.0], [0.0, 1.0], [2.0, 3.0]]
