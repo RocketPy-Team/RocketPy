@@ -1213,3 +1213,20 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
 
     assert flight.t_final > 0
     assert flight.apogee > 0
+
+
+def test_the_deprecated_stability_plot_saves_one_file_per_plot(
+    flight_calisto_robust, tmp_path
+):
+    """The old plot is now three, and each one is saved to a file of its own
+    instead of over the one before."""
+    with pytest.warns(DeprecationWarning, match="stability_and_control_data"):
+        flight_calisto_robust.plots.stability_and_control_data(
+            filename=str(tmp_path / "stability.png")
+        )
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "stability_dynamics.png",
+        "stability_frequency.png",
+        "stability_margin.png",
+    ]

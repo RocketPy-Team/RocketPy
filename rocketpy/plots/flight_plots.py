@@ -1425,7 +1425,12 @@ class _FlightPlots:
         Parameters
         ----------
         filename : str | None, optional
-            Passed through to the replacement plots.
+            The path the plots should be saved to. By default None, in which
+            case the plots are shown instead of saved. The three plots are
+            saved to three files, named after ``filename`` with ``_margin``,
+            ``_dynamics`` and ``_frequency`` added before the file ending:
+            ``"stability.png"`` gives ``"stability_margin.png"``,
+            ``"stability_dynamics.png"`` and ``"stability_frequency.png"``.
         """
         warnings.warn(
             "stability_and_control_data() is deprecated and will be removed in "
@@ -1436,9 +1441,17 @@ class _FlightPlots:
             DeprecationWarning,
             stacklevel=2,
         )
-        self.stability_margin_data(filename=filename)
-        self.dynamic_stability_data(filename=filename)
-        self.attitude_frequency_response_data(filename=filename)
+
+        def named(suffix):
+            # One file per plot, so that a plot is not saved over the one before
+            if filename is None:
+                return None
+            path = Path(filename)
+            return str(path.with_name(f"{path.stem}_{suffix}{path.suffix}"))
+
+        self.stability_margin_data(filename=named("margin"))
+        self.dynamic_stability_data(filename=named("dynamics"))
+        self.attitude_frequency_response_data(filename=named("frequency"))
 
     def dynamic_stability_data(self, *, filename=None):
         """Plots the rocket's dynamic-stability quantities over the ascent: the
