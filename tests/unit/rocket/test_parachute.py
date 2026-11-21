@@ -230,8 +230,8 @@ def _noise_context(pressure=90000.0, vz=-10.0):
         raw_state=state,
         phase_names=(),
         height_agl=500.0,
-        pressure=pressure,
-        sensors=[],
+        conditions=SimpleNamespace(pressure=pressure),
+        sensors={},
         environment=SimpleNamespace(
             barometric_height=SimpleNamespace(get_value_opt=lambda p: 100000.0 - p),
             elevation=9500.0,

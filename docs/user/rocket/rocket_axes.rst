@@ -69,7 +69,8 @@ Angular Position Inputs
 Angular position inputs (``angular_position``) refer to the roll angle position
 of that surface along the rocket's tube. The roll angle is defined as the angle 
 from the ``y`` axis to the surface.
-Currently, only the :class:`rocketpy.RailButtons` class uses this kind of input.  
+:class:`rocketpy.RailButtons`, the fins and :meth:`rocketpy.Rocket.add_effector`
+take this kind of input.
 
 The following figure shows the roll angle
 definition for both ``coordinate_system_orientation`` options:

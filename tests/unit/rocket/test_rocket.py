@@ -1247,3 +1247,85 @@ def test_axisymmetric_linear_surface_refuses_what_singles_out_a_plane():
     )
     assert surface.cN(0.2, 0, 0, 0, 0, 0, 0) == pytest.approx(1.48)
     assert surface.cY(0, 0.2, 0, 0, 0, 0, 0) == pytest.approx(-1.48)
+
+
+def test_nozzle_gyration_tensor_follows_the_thrust_eccentricity(calisto):
+    """The tensor of a disk at the nozzle exit, about the center of dry mass:
+    the on-axis one plus the parallel axis terms of the eccentricity."""
+    on_axis = calisto.nozzle_gyration_tensor
+    calisto.add_thrust_eccentricity(0.003, -0.002)
+    x, y, z = calisto.nozzle_exit
+    tensor = calisto.nozzle_gyration_tensor
+    assert tensor[0][0] == pytest.approx(on_axis[0][0] + y**2)
+    assert tensor[1][1] == pytest.approx(on_axis[1][1] + x**2)
+    assert tensor[2][2] == pytest.approx(on_axis[2][2] + x**2 + y**2)
+    assert tensor[0][1] == pytest.approx(-x * y)
+    assert tensor[0][2] == pytest.approx(-x * z)
+    assert tensor[1][2] == pytest.approx(-y * z)
+
+
+def test_a_surface_added_again_with_a_position_is_placed_there(calisto):
+    surface = GenericSurface(0.01, 0.1, {"cN": 1.0}, name="Probe")
+    calisto.add_surfaces(surface, None)
+    assert calisto._is_at_center_of_dry_mass(surface)
+    calisto.add_surfaces(surface, 0.5)
+    assert not calisto._is_at_center_of_dry_mass(surface)
+
+
+def test_static_margin_of_a_surface_at_the_center_of_dry_mass_ignores_motor_order(
+    cesaroni_m1670,
+):
+    """A surface added without a position follows the center of dry mass, so
+    the static margin is the same whether the motor is added before or after."""
+
+    def build(motor_first):
+        rocket = Rocket(
+            radius=0.0635,
+            mass=14.426,
+            inertia=(6.321, 6.321, 0.034),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0,
+            coordinate_system_orientation="tail_to_nose",
+        )
+        surface = LinearGenericSurface(
+            rocket.area,
+            2 * rocket.radius,
+            {"cN_alpha": 5.0, "cm_alpha": -3.0},
+            axisymmetric=True,
+        )
+        if motor_first:
+            rocket.add_motor(cesaroni_m1670, position=-1.373)
+            rocket.add_full_body_aerodynamics(surface)
+        else:
+            rocket.add_full_body_aerodynamics(surface)
+            rocket.add_motor(cesaroni_m1670, position=-1.373)
+        return rocket, surface
+
+    after, surface_after = build(motor_first=True)
+    before, surface_before = build(motor_first=False)
+    assert before.static_margin(0) == pytest.approx(after.static_margin(0))
+    for rocket, surface in ((after, surface_after), (before, surface_before)):
+        ((_, position),) = rocket.aerodynamic_surfaces
+        assert position.z == pytest.approx(rocket.center_of_dry_mass_position)
+        assert list(rocket.surfaces_cp_to_cdm[surface]) == [0, 0, 0]
+
+
+def test_a_surface_shared_by_two_rockets_keeps_its_place_on_each(calisto):
+    """Where a surface sits is kept by each rocket: placing it on a second
+    rocket does not move it on the first."""
+    other = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0,
+    )
+    surface = GenericSurface(0.01, 0.1, {"cN": 1.0}, name="Probe")
+    calisto.add_surfaces(surface, None)
+    other.add_surfaces(surface, 0.5)
+    assert calisto._is_at_center_of_dry_mass(surface)
+    assert not other._is_at_center_of_dry_mass(surface)
+    calisto._refresh_aerodynamics()
+    assert list(calisto.surfaces_cp_to_cdm[surface]) == [0, 0, 0]

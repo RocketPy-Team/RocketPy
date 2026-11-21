@@ -143,7 +143,6 @@ class _GenericSurfacePlots:
         if "mach" not in index:
             return
         machs = np.atleast_1d(np.asarray(mach, dtype=float))
-        n_args = len(independent_vars)
 
         entries = []
         for name, candidates in self._COEFFICIENT_SWEEP.items():
@@ -169,7 +168,7 @@ class _GenericSurfacePlots:
             for curve_mach in curve_machs:
                 values = np.empty_like(x)
                 for i, value in enumerate(x):
-                    args = [0.0] * n_args
+                    args = surface._reference_arguments()  # pylint: disable=protected-access
                     args[index["mach"]] = machs[0] if curve_mach is None else curve_mach
                     args[index[var]] = value
                     values[i] = coeff(*args)
@@ -1029,24 +1028,172 @@ class _TailPlots(_BarrowmanSurfacePlots):
         pass
 
 
-class _AirBrakesPlots(_GenericSurfacePlots):
-    """Class that contains all air brakes plots."""
-
-    def drag_coefficient_curve(self):
-        """Plots the drag coefficient curve of the air_brakes."""
-        if self.aero_surface.clamp is True:
-            return self.aero_surface.drag_coefficient.plot(0, 1)
-        else:
-            return self.aero_surface.drag_coefficient.plot()
+class _ControlFinsPlots(_GenericSurfacePlots):
+    """Plots of a set of control fins: the fins' effectiveness, then the
+    generic coefficients."""
 
     def draw(self, *, filename=None):
-        raise NotImplementedError
+        """Draw the fin the set is copied from, or its first fin."""
+        self.aero_surface.fins[0].plots.draw(filename=filename)
+
+    def effectiveness(self, *, mach=(0.05, 0.95), alpha=0.0, beta=0.0, filename=None):
+        """Plot the moment the fins produce per radian of each command of
+        :meth:`rocketpy.ControlFins.deflections`, against Mach: the roll
+        moment coefficient and, for a set that is on a rocket, the pitch and
+        yaw moment coefficients about the rocket's center of dry mass.
+
+        Parameters
+        ----------
+        mach : tuple of float, optional
+            ``(low, high)``: the Mach range plotted. Default ``(0.05, 0.95)``.
+        alpha, beta : float, optional
+            The angle of attack and the sideslip angle, in radians, the
+            effectiveness is taken at. Default 0.
+        filename : str | None, optional
+            Where to save the figure. ``None`` (the default) shows it.
+        """
+        effectiveness = self.aero_surface.effectiveness(alpha=alpha, beta=beta)
+        machs = np.linspace(mach[0], mach[1], 100)
+        sideways = [command for command in ("pitch", "yaw") if command in effectiveness]
+        _, axes = plt.subplots(1, 2 if sideways else 1, figsize=(9, 4), squeeze=False)
+        roll_axis = axes[0][0]
+        roll_axis.plot(machs, [effectiveness["roll"](m) for m in machs])
+        roll_axis.set_title("Roll moment per rad of the roll command")
+        roll_axis.set_xlabel("Mach Number")
+        roll_axis.set_ylabel("Roll Moment Coefficient per rad")
+        roll_axis.grid(True)
+        if sideways:
+            moment_axis = axes[0][1]
+            for command in sideways:
+                moment_axis.plot(
+                    machs, [effectiveness[command](m) for m in machs], label=command
+                )
+            moment_axis.set_title("Moment per rad of the pitch and yaw commands")
+            moment_axis.set_xlabel("Mach Number")
+            moment_axis.set_ylabel("Moment Coefficient per rad")
+            moment_axis.grid(True)
+            moment_axis.legend()
+        plt.suptitle(f"Effectiveness of {self.aero_surface.name}")
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def hinge_moments(self, flight, *, filename=None):
+        """Plot the torque the air put on each fin about its hinge line over a
+        flight, in N m, one line per fin: the load the mechanism turning the
+        fin had to hold. Positive pushes the fin toward a larger deflection.
+
+        The fin model's center of pressure is fixed while the real one moves
+        with speed and angle of attack, so with the hinge close to it trust
+        the size of the torque, not its sign.
+
+        Parameters
+        ----------
+        flight : Flight
+            A flight of a rocket carrying this set of fins.
+        filename : str | None, optional
+            Where to save the figure. ``None`` (the default) shows it.
+        """
+        torques = self.aero_surface._hinge_moments_in(flight)
+        _, axis = plt.subplots(figsize=(9, 4))
+        for control, torque in torques.items():
+            axis.plot(torque.x_array, torque.y_array, label=control)
+        axis.set_title(f"Hinge moments of {self.aero_surface.name}")
+        axis.set_xlabel("Time (s)")
+        axis.set_ylabel("Hinge Moment (N m)")
+        axis.grid(True)
+        axis.legend()
+        plt.tight_layout()
+        show_or_save_plot(filename)
 
     def all(self):
-        """Plots all available air_brakes plots.
+        """Plots the first fin, the effectiveness and the coefficients."""
+        self.draw()
+        self.effectiveness()
+        self.coefficients()
 
-        Returns
-        -------
-        None
+
+class _AirBrakesPlots(_GenericSurfacePlots):
+    """Plots of air brakes: the drag coefficient curve, and the drag they made
+    in a flight."""
+
+    def _data_points(self):
+        """The ``(level, mach, cd)`` rows the curve was given as, or ``None``
+        for a curve given as a number or a function."""
+        source = self.aero_surface.drag_coefficient.source
+        if isinstance(source, np.ndarray) and source.ndim == 2 and source.shape[1] == 3:
+            return source
+        return None
+
+    def drag_coefficient(self, *, levels=None, mach=None, filename=None):
+        """Plot the drag coefficient against Mach, one line per deployment
+        level.
+
+        Parameters
+        ----------
+        levels : sequence of float, optional
+            The deployment levels drawn. Default ``None``: the levels of the
+            curve's data points, or 0.25, 0.5, 0.75 and 1 for a curve given as
+            a number or a function.
+        mach : tuple of float, optional
+            ``(low, high)``: the Mach range drawn. Default ``None``: the range
+            of the curve's data points, or 0.05 to 0.95.
+        filename : str | None, optional
+            Where to save the figure. ``None`` (the default) shows it.
         """
-        self.drag_coefficient_curve()
+        points = self._data_points()
+        if levels is None:
+            levels = (
+                [level for level in np.unique(points[:, 0]) if level > 0]
+                if points is not None
+                else (0.25, 0.5, 0.75, 1.0)
+            )
+        if mach is None:
+            mach = (
+                (points[:, 1].min(), points[:, 1].max())
+                if points is not None
+                else (0.05, 0.95)
+            )
+        machs = np.linspace(mach[0], mach[1], 100)
+        curve = self.aero_surface.drag_coefficient
+        _, axis = plt.subplots(figsize=(9, 4))
+        for level in levels:
+            axis.plot(machs, [curve(level, m) for m in machs], label=f"level {level:g}")
+        axis.set_title(f"Drag coefficient of {self.aero_surface.name}")
+        axis.set_xlabel("Mach Number")
+        axis.set_ylabel("Drag Coefficient")
+        axis.grid(True)
+        axis.legend()
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def drag_coefficient_curve(self):
+        """The same as :meth:`drag_coefficient`, kept for older scripts."""
+        self.drag_coefficient()
+
+    def drag(self, flight, *, filename=None):
+        """Plot the drag force the air brakes made over a flight, in N, next
+        to the rocket's total drag.
+
+        Parameters
+        ----------
+        flight : Flight
+            A flight of a rocket carrying these air brakes.
+        filename : str | None, optional
+            Where to save the figure. ``None`` (the default) shows it.
+        """
+        drag = self.aero_surface._drag_in(flight)
+        _, axis = plt.subplots(figsize=(9, 4))
+        axis.plot(drag.x_array, drag.y_array, label=self.aero_surface.name)
+        total = flight.aerodynamic_drag
+        axis.plot(total.x_array, total.y_array, label="Whole rocket", alpha=0.6)
+        axis.set_title(f"Drag of {self.aero_surface.name}")
+        axis.set_xlabel("Time (s)")
+        axis.set_ylabel("Drag (N)")
+        axis.grid(True)
+        axis.legend()
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def all(self):
+        """Plot the drag coefficient curve."""
+        self.drag_coefficient()

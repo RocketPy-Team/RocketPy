@@ -658,6 +658,10 @@ of ``[[time, speed], ...]``:
     :class:`rocketpy.Flight`. These attributes are usually instances of the
     :class:`rocketpy.Function` class, see the :ref:`Function Class Usage <functionusage>` for more information.
 
+    The same results are in ``test_flight.solution`` as the numbers the
+    simulation stored at each time step: ``test_flight.solution.vz``,
+    ``test_flight.solution.at(t)``. See :ref:`flight_solution`.
+
 Exporting Flight Data
 ---------------------
 
@@ -712,8 +716,9 @@ This exports the same data at a sampling rate of 1 second. The flight data is
 interpolated to match the new sampling rate.
 
 Finally, ``test_flight.exports.data`` also provides a convenient way to
-export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`)
-by not passing any attribute names:
+export the states of the whole flight (the table in
+``test_flight.solution.canonical_array``, see :ref:`flight_solution`) by not
+passing any attribute names:
 
 .. jupyter-execute::
 

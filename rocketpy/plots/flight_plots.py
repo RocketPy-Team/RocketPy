@@ -1,15 +1,17 @@
 import warnings
 from functools import cached_property
+from numbers import Real
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
+from ..tools import snake_case_key
 from .plot_helpers import show_or_save_plot
 
 
-class _FlightPlots:
+class _FlightPlots:  # pylint: disable=too-many-public-methods
     """Class that holds plot methods for Flight class.
 
     Attributes
@@ -654,6 +656,153 @@ class _FlightPlots:
         ax4.grid(True)
 
         plt.subplots_adjust(hspace=0.5)
+        show_or_save_plot(filename)
+
+    def controls(self, *, filename=None):
+        """Plot the control inputs over the flight: one plot per part of the
+        rocket that has controls, one line per control. Each value is drawn
+        held until it was written again.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        controls = self.flight.solution.controls
+        if not controls:
+            print("This flight has no controls.")
+            return
+        names = {
+            snake_case_key(owner.name): owner.name
+            for owner in self.flight._control_owners
+        }
+        _, axes = plt.subplots(
+            len(controls), 1, figsize=(9, 3 * len(controls)), squeeze=False
+        )
+        for ax, (owner, histories) in zip(axes[:, 0], controls.items()):
+            for control, history in histories.items():
+                ax.step(history[:, 0], history[:, 1], where="post", label=control)
+            part_name = names.get(owner, owner)
+            ax.set_title(part_name)
+            ax.set_xlabel("Time (s)")
+            ax.legend()
+            ax.grid(True)
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def state_history(self, *, filename=None):
+        """Plot the states of the rocket's controllables over the flight: one
+        plot per controllable that has states, one line per state, such as
+        the integral of a continuous controller.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        history = self.flight.state_history
+        if not history:
+            print("No controllable of this flight has states.")
+            return
+        _, axes = plt.subplots(
+            len(history), 1, figsize=(9, 3 * len(history)), squeeze=False
+        )
+        for ax, (name, states) in zip(axes[:, 0], history.items()):
+            for state, function in states.items():
+                ax.plot(function.x_array, function.y_array, label=state)
+            ax.set_title(name)
+            ax.set_xlabel("Time (s)")
+            ax.legend()
+            ax.grid(True)
+        plt.tight_layout()
+        show_or_save_plot(filename)
+
+    def records(self, *, filename=None):
+        """Plot what the events of the flight recorded with
+        ``context.record``, one plot per record, as the recorded points.
+        Only records whose values are all numbers are plotted; the others
+        are read in ``flight.records``.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        self._plot_points(
+            self.flight.records,
+            "No event of this flight recorded numbers to plot.",
+            filename,
+        )
+
+    def event_outputs(self, *, filename=None):
+        """Plot what the events of the flight wrote to their outputs, the
+        values they share through ``context.outputs``, one plot per output,
+        as the points written. Only outputs whose values are all numbers are
+        plotted; the others are read in ``flight.event_outputs``.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        self._plot_points(
+            self.flight.event_outputs,
+            "No event of this flight wrote numbers to its outputs.",
+            filename,
+        )
+
+    @staticmethod
+    def _plot_points(by_event, nothing_to_plot, filename):
+        """Plot each list of ``(time, value)`` points of ``by_event``, event
+        name to its lists by name, that holds only numbers: one plot per
+        list, each value held until the next."""
+        series = {}
+        for name in by_event:
+            for series_name in by_event[name]:
+                points = by_event[name][series_name]
+                if all(isinstance(value, Real) for _, value in points):
+                    series[f"{name}: {series_name}"] = points
+        if not series:
+            print(nothing_to_plot)
+            return
+        _, axes = plt.subplots(
+            len(series), 1, figsize=(9, 3 * len(series)), squeeze=False
+        )
+        for ax, (name, points) in zip(axes[:, 0], series.items()):
+            times, values = zip(*points)
+            ax.step(times, values, where="post", marker=".")
+            ax.set_title(name)
+            ax.set_xlabel("Time (s)")
+            ax.grid(True)
+        plt.tight_layout()
         show_or_save_plot(filename)
 
     def flight_path_angle_data(self, *, filename=None):
@@ -1582,57 +1731,62 @@ class _FlightPlots:
         """Deprecated. Pressure signal plots have been removed.
 
         Use a Sensor (e.g. a Barometer) with built-in noise and access its
-        recorded measurements via ``flight.sensor_data`` instead.
+        recorded measurements via ``flight.sensor_history`` instead.
         """
         warnings.warn(
             "pressure_signals() is deprecated and will be removed in v1.16. "
             "Use a Barometer Sensor with built-in noise and access its data "
-            "via flight.sensor_data instead.",
+            "via flight.sensor_history instead.",
             DeprecationWarning,
             stacklevel=2,
         )
 
-    def sensor_data(self, *, filename=None):
-        """Plots the measured data of every sensor attached to the flight.
-
-        Delegates to each sensor's own ``plots`` object. A sensor added to the
-        rocket multiple times appears once in the output.
+    def sensors(self, *, filename=None):
+        """Plot what the sensors of the flight read: one plot per sensor, one
+        line per channel, each reading drawn held until the next one. A sensor
+        whose channels have different units, such as a GNSS receiver, gets one
+        plot per unit.
 
         Parameters
         ----------
         filename : str | None, optional
-            The path the plots should be saved to. By default None, in which
-            case the plots will be shown instead of saved. When given, a
-            per-sensor suffix is appended to keep one file per sensor.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
         """
-        if not self.flight.sensors:
-            print("No sensors were registered in this flight.")
+        history = self.flight.sensor_history
+        groups = {}
+        for sensor, event in self.flight._sensors_by_key.values():
+            name = event._position_name
+            if name not in history:
+                continue
+            readings = history[name]
+            for label, unit in sensor.channels:
+                if label in readings:
+                    groups.setdefault((name, unit), []).append(
+                        (label, getattr(readings, label))
+                    )
+        if not groups:
+            print("No sensor readings to plot.")
             return
-
-        # A flight loaded from a file without being re-simulated has no recorded
-        # measurements, so fall back to an empty mapping instead of raising.
-        sensor_data = getattr(self.flight, "sensor_data", None) or {}
-
-        seen = []
-        for sensor in self.flight.sensors:
-            if sensor in seen:  # a multiply-added sensor is listed more than once
-                continue
-            seen.append(sensor)
-            measured_data = sensor_data.get(sensor)
-            if not measured_data:
-                print(
-                    f"\n\n{sensor.name}: no data available (flight was not simulated)."
-                )
-                continue
-            print(f"\n\n{sensor.name} Sensor Data\n")
-            if filename is None:
-                sensor.plots.all(data=measured_data)
-            else:
-                path = Path(filename)
-                sensor_filename = str(
-                    path.with_name(f"{path.stem}_{sensor.name}{path.suffix}")
-                )
-                sensor.plots.time_series(filename=sensor_filename, data=measured_data)
+        _, axes = plt.subplots(
+            len(groups), 1, figsize=(9, 3 * len(groups)), squeeze=False
+        )
+        for ax, ((name, unit), channels) in zip(axes[:, 0], groups.items()):
+            for label, channel in channels:
+                ax.step(channel.x_array, channel.y_array, where="post", label=label)
+            ax.set_title(name)
+            ax.set_xlabel("Time (s)")
+            ax.set_ylabel(unit)
+            ax.legend()
+            ax.grid(True)
+        plt.tight_layout()
+        show_or_save_plot(filename)
 
     def altitude_data(self, *, filename=None):
         """Plots altitude AGL vs time with event markers.
@@ -1964,5 +2118,21 @@ class _FlightPlots:
         self.fluid_mechanics_data()
 
         if self.flight.sensors:
-            print("\n\nSensor Data Plots\n")
-            self.sensor_data()
+            print("\n\nSensor Plots\n")
+            self.sensors()
+
+        if self.flight.solution.control_names:
+            print("\n\nControl Inputs Plots\n")
+            self.controls()
+
+        if self.flight.state_history:
+            print("\n\nControllable States Plots\n")
+            self.state_history()
+
+        if self.flight.records:
+            print("\n\nRecords Plots\n")
+            self.records()
+
+        if self.flight.event_outputs:
+            print("\n\nEvent Outputs Plots\n")
+            self.event_outputs()

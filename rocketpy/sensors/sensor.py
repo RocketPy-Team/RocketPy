@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 import numpy as np
 
@@ -45,6 +46,12 @@ class Sensor(ABC):
         The stored measured data of the sensor after quantization, noise and
         temperature drift.
     """
+
+    # Whether ``measure`` reads ``u_dot``, the derivative of the state with
+    # respect to time. Working it out takes an evaluation of the equations of
+    # motion at every reading, so a sensor that never reads it sets this to
+    # ``False`` and is given ``u_dot=None`` during a flight.
+    _reads_state_derivative = True
 
     def __init__(
         self,
@@ -136,6 +143,7 @@ class Sensor(ABC):
         self._counter = 0
         self._save_data = self._save_data_single
         self._random_walk_drift = 0
+        self._drift_log = []
         self.normal_vector = Vector([0, 0, 0])
 
         # handle measurement range
@@ -166,7 +174,7 @@ class Sensor(ABC):
         self.info()
         self.plots.all()
 
-    def to_event(self, position):
+    def to_event(self, position, index=0):
         """Create a simulation event for this sensor.
 
         Parameters
@@ -178,29 +186,37 @@ class Sensor(ABC):
             measurements (e.g. accelerometers). The position should be given as
             a Vector object representing the x, y and z coordinates of the
             sensor in meters.
+        index : int, optional
+            Which of the sensor's positions on the rocket this is, counted
+            from 0 in the order they were added. A sensor added more than once
+            keeps the measurements of each position in its own list of
+            ``measured_data``, at this index. Default is 0.
 
         Returns
         -------
         Event
             Event object with an always-true trigger that delegates runtime
-            execution to this sensor.
+            execution to this sensor. Each reading goes into the flight's
+            solution, which drops the readings the flight goes back over and
+            keeps the rest with its other results.
         """
-        # Local import avoids import-time coupling with simulation package.
 
         def sensor_callback(context):
             time = context["time"]
             state = context["canonical_state"]
-            state_dot = context["canonical_state_dot"]
+            # Asked for only when the sensor reads it: the context works it
+            # out with an evaluation of the equations of motion
+            state_dot = (
+                context["canonical_state_dot"] if self._reads_state_derivative else None
+            )
             rocket = context["rocket"]
             environment = context["environment"]
-            event = context["event"]
-
-            # Get position from event memory (set when sensor added to rocket)
-            position = event.memory.get("position")
 
             relative_position = position - rocket._csys * Vector(
                 [0, 0, rocket.center_of_dry_mass_position]
             )
+            # The list of measured_data this position's measurement goes to
+            self._counter = index
 
             self.measure(
                 time,
@@ -213,22 +229,47 @@ class Sensor(ABC):
                 earth_radius=environment.earth_radius,
                 initial_coordinates=(environment.latitude, environment.longitude),
             )
+            self._drift_log.append((time, self._random_walk_drift))
+            reading = self.measurement
+            if not isinstance(reading, tuple):
+                reading = (reading,)
+            # Kept with the flight's other results, under the name the
+            # flight gives this position
+            context._solution._add_reading(  # pylint: disable=protected-access
+                context["event"]._position_name,  # pylint: disable=protected-access
+                time,
+                {label: value for (label, _), value in zip(self.channels, reading)},
+            )
 
         return Event(
             callback=sensor_callback,
             name=f"{self.name} Measurement",
             sampling_rate=self.sampling_rate,
-            memory={"position": position, "sensor": self},
             trigger_only_once=False,
             priority=1,
             time_overshootable=True,
         )
 
-    def _reset(self, simulated_rocket):
-        """Reset the sensor data for a new simulation."""
-        self._random_walk_drift = (
-            Vector([0, 0, 0]) if isinstance(self._random_walk_drift, Vector) else 0
+    def _detached_copy(self):
+        """Return a copy of the sensor with the same settings, attached to no
+        rocket and holding no measurements."""
+        # The copy starts with these empty, instead of copying the rockets the
+        # sensor is on and what it measured
+        return deepcopy(
+            self,
+            {
+                id(self._attached_rockets): {},
+                id(self.measured_data): [],
+                id(self._drift_log): [],
+            },
         )
+
+    def _reset(self, simulated_rocket):
+        """Reset the sensor data for a new simulation: no measurement yet, and
+        the noise drift back at zero."""
+        self._random_walk_drift = self._no_drift()
+        self._drift_log = []
+        self.measurement = None
         self.measured_data = []
         if self._attached_rockets[simulated_rocket] > 1:
             self.measured_data = [
@@ -237,6 +278,21 @@ class Sensor(ABC):
             self._save_data = self._save_data_multiple
         else:
             self._save_data = self._save_data_single
+
+    def _no_drift(self):
+        """The drift of the random walk before any reading."""
+        return Vector([0, 0, 0]) if isinstance(self._random_walk_drift, Vector) else 0
+
+    def _drop_drift_after(self, time):
+        """Take the random walk back to ``time``: its drift is again the one
+        after the last reading up to ``time``, without the steps of the
+        readings made after it, which the flight went back over."""
+        log = self._drift_log
+        if not log or log[-1][0] <= time:
+            return
+        while log and log[-1][0] > time:
+            log.pop()
+        self._random_walk_drift = log[-1][1] if log else self._no_drift()
 
     def _save_data_single(self, data):
         """Save the measured data to the sensor data list for a sensor that is

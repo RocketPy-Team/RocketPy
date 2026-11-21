@@ -1,20 +1,23 @@
+from functools import partial
+
 from ..events.event import Event
 
 
-def out_of_rail_trigger(context):
+def out_of_rail_trigger(flight, context):
     """Check whether the rocket has left the launch rail.
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``state``.
+        Event context containing ``state``.
 
     Returns
     -------
     bool
         ``True`` when the rail-exit condition is satisfied.
     """
-    flight = context["flight"]
     state = context["canonical_state"]
     return len(flight.out_of_rail_state) == 1 and (
         state[0] ** 2 + state[1] ** 2 + (state[2] - flight.env.elevation) ** 2
@@ -22,7 +25,7 @@ def out_of_rail_trigger(context):
     )
 
 
-def out_of_rail_callback(context):
+def out_of_rail_callback(flight, context):
     """Handle the rail-exit event.
 
     The callback records the rail-exit state and time, switches the derivative
@@ -30,15 +33,16 @@ def out_of_rail_callback(context):
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``event``.
+        Event context containing ``event``.
 
     Returns
     -------
     None
         This callback performs in-place updates on ``flight`` and ``event``.
     """
-    flight = context["flight"]
     event = context["event"]
 
     flight.out_of_rail_time = context["time"]
@@ -56,13 +60,15 @@ def out_of_rail_callback(context):
     event.commands.start_flight_phase("free_flight")
 
 
-def out_of_rail_exact_time_function(context):
+def out_of_rail_exact_time_function(flight, context):
     """Evaluate the rail-exit event function.
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``state``.
+        Event context containing ``state``.
 
     Returns
     -------
@@ -70,7 +76,6 @@ def out_of_rail_exact_time_function(context):
         Value of the event function. The root corresponds to the effective rail
         length being reached.
     """
-    flight = context["flight"]
     state = context["canonical_state"]
     return (
         state[0] ** 2
@@ -80,20 +85,21 @@ def out_of_rail_exact_time_function(context):
     )
 
 
-def out_of_rail_exact_time_derivative(context):
+def out_of_rail_exact_time_derivative(flight, context):
     """Evaluate the time derivative of the rail-exit event function.
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``state``.
+        Event context containing ``state``.
 
     Returns
     -------
     float
         Time derivative of :func:`out_of_rail_exact_time_function`.
     """
-    flight = context["flight"]
     state = context["canonical_state"]
     return 2.0 * (
         state[0] * state[3]
@@ -102,13 +108,15 @@ def out_of_rail_exact_time_derivative(context):
     )
 
 
-def apogee_trigger(context):
+def apogee_trigger(flight, context):
     """Check whether the apogee event should fire.
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``state``.
+        Event context containing ``state``.
 
     Returns
     -------
@@ -116,7 +124,6 @@ def apogee_trigger(context):
         ``True`` when the vertical velocity crosses from positive to non-positive
         after the apogee state has not yet been recorded.
     """
-    flight = context["flight"]
     state = context["canonical_state"]
     if len(flight.apogee_state) != 1 or len(flight.solution) < 2:
         return False
@@ -126,7 +133,7 @@ def apogee_trigger(context):
     return previous_vz > 0 >= current_vz
 
 
-def apogee_callback(context):
+def apogee_callback(flight, context):
     """Handle the apogee event.
 
     The callback records the apogee state and time, updates the apogee position
@@ -134,15 +141,16 @@ def apogee_callback(context):
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``event``.
+        Event context containing ``event``.
 
     Returns
     -------
     bool
         Always returns ``False`` so the event remains non-blocking.
     """
-    flight = context["flight"]
     event = context["event"]
     flight.apogee_state = context["canonical_state"]
     flight.apogee_time = context["time"]
@@ -178,19 +186,17 @@ def impact_trigger(context):
     Parameters
     ----------
     context : EventContext
-        Event context containing ``flight`` and ``state``.
+        Event context containing ``height_agl``.
 
     Returns
     -------
     bool
         ``True`` when altitude is below the environment elevation.
     """
-    flight = context["flight"]
-    state = context["canonical_state"]
-    return state[2] < flight.env.elevation
+    return context["height_agl"] < 0
 
 
-def impact_callback(context):
+def impact_callback(flight, context):
     """Handle the impact event.
 
     The callback stores the impact state and velocity and terminates the flight
@@ -198,15 +204,16 @@ def impact_callback(context):
 
     Parameters
     ----------
+    flight : Flight
+        The flight the event belongs to.
     context : EventContext
-        Event context containing ``flight`` and ``event``.
+        Event context containing ``event``.
 
     Returns
     -------
     None
         This callback performs in-place updates on ``flight`` and ``event``.
     """
-    flight = context["flight"]
     event = context["event"]
 
     flight.impact_state = context["canonical_state"]
@@ -251,8 +258,17 @@ def impact_event_exact_time_derivative(context):
     return context["canonical_state"][5]
 
 
-def build_core_events():
-    """Build the default core flight events.
+def build_core_events(flight):
+    """Build the default core flight events of ``flight``.
+
+    The events are the flight's own: they hold the flight and write its
+    results (rail exit, apogee, impact) on it, so the flight never has to be
+    handed to them through the context, which users' functions also see.
+
+    Parameters
+    ----------
+    flight : Flight
+        The flight the events belong to.
 
     Returns
     -------
@@ -260,14 +276,14 @@ def build_core_events():
         ``(out_of_rail_event, apogee_event, impact_event)``.
     """
     out_of_rail_event = Event(
-        trigger=out_of_rail_trigger,
-        callback=out_of_rail_callback,
+        trigger=partial(out_of_rail_trigger, flight),
+        callback=partial(out_of_rail_callback, flight),
         name="Out Of Rail",
         memory=None,
-        exact_time_function=out_of_rail_exact_time_function,
+        exact_time_function=partial(out_of_rail_exact_time_function, flight),
         exact_time_config={
             "solver": "cubic_hermite",
-            "derivative_function": out_of_rail_exact_time_derivative,
+            "derivative_function": partial(out_of_rail_exact_time_derivative, flight),
         },
         sampling_rate=None,
         trigger_only_once=True,
@@ -276,8 +292,8 @@ def build_core_events():
     )
 
     apogee_event = Event(
-        trigger=apogee_trigger,
-        callback=apogee_callback,
+        trigger=partial(apogee_trigger, flight),
+        callback=partial(apogee_callback, flight),
         name="Apogee",
         memory=None,
         exact_time_function=apogee_event_exact_time_function,
@@ -289,7 +305,7 @@ def build_core_events():
 
     impact_event = Event(
         trigger=impact_trigger,
-        callback=impact_callback,
+        callback=partial(impact_callback, flight),
         name="Impact",
         memory=None,
         exact_time_function=impact_event_exact_time_function,

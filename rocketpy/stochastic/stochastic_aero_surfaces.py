@@ -459,15 +459,12 @@ class StochasticAirBrakes(StochasticModel):
     reference_area : tuple, list, int, float
         Reference area used to non-dimensionalize the drag coefficients.
     clamp : bool
-        If True, the simulation will clamp the deployment level to 0 or 1 if
-        the deployment level is out of bounds. If False, the simulation will
-        not clamp the deployment level and will instead raise a warning if
-        the deployment level is out of bounds.
+        Whether the deployment level is kept between 0 and 1. Can't be randomized.
     override_rocket_drag : bool
-        If False, the air brakes drag coefficient will be added to the
-        rocket's power off drag coefficient curve. If True, during the
-        simulation, the rocket's power off drag will be ignored and the air
-        brakes drag coefficient will be used for the entire rocket instead.
+        If False, the drag coefficient curve is of the air brakes alone,
+        added to the rocket's drag. If True, the curve is of the whole
+        rocket at each deployment level, and the air brakes add the
+        difference between the curve and its value at deployment level 0.
     deployment_level : tuple, list, int, float
         Initial deployment level, ranging from 0 to 1.
     name : list[str]
@@ -504,15 +501,13 @@ class StochasticAirBrakes(StochasticModel):
         reference_area : tuple, list, int, float, optional
             Reference area used to non-dimensionalize the drag coefficients.
         clamp : bool, optional
-            If True, the simulation will clamp the deployment level to 0 or 1 if
-            the deployment level is out of bounds. If False, the simulation will
-            not clamp the deployment level and will instead raise a warning if
-            the deployment level is out of bounds.
+            Whether the deployment level is kept between 0 and 1. Can't be
+            randomized.
         override_rocket_drag : bool, optional
-            If False, the air brakes drag coefficient will be added to the
-            rocket's power off drag coefficient curve. If True, during the
-            simulation, the rocket's power off drag will be ignored and the air
-            brakes drag coefficient will be used for the entire rocket instead.
+            If False, the drag coefficient curve is of the air brakes alone,
+            added to the rocket's drag. If True, the curve is of the whole
+            rocket at each deployment level, and the air brakes add the
+            difference between the curve and its value at deployment level 0.
         deployment_level : tuple, list, int, float, optional
             Initial deployment level, ranging from 0 to 1.
         """
@@ -542,7 +537,11 @@ class StochasticAirBrakes(StochasticModel):
             reference_area=generated_dict["reference_area"],
             clamp=generated_dict["clamp"],
             override_rocket_drag=generated_dict["override_rocket_drag"],
-            deployment_level=generated_dict["deployment_level"],
+            initial_deployment_level=generated_dict["deployment_level"],
+            # The name sets the names of its control inputs
+            name=self.obj.name,
+            active_during=self.obj.active_during,
+            active=self.obj.active,
         )
         air_brakes.drag_coefficient *= generated_dict["drag_coefficient_curve_factor"]
         return air_brakes

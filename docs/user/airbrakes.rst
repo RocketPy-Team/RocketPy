@@ -17,7 +17,7 @@ First, lets define everything we need for the simulation up to the rocket:
 
 .. jupyter-execute::
 
-    from rocketpy import Environment, SolidMotor, Rocket, Flight
+    from rocketpy import AirBrakes, Controller, Environment, SolidMotor, Rocket, Flight
 
     env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
 
@@ -91,60 +91,41 @@ To create an air brakes model, we essentially need to define the following:
   specific deployment level and Mach number.
 
 - The **controller function**, which takes in as argument information about the
-  simulation up to the current time step, and the ``AirBrakes`` instance being
-  defined, and sets the desired air brakes' deployment level. The air brakes'
-  deployment level must be between 0 and 1, and is set using the
-  ``deployment_level`` attribute. Inside this function, any controller logic,
-  filters, and apogee prediction can be implemented.
+  simulation up to the current time step and sets the desired air brakes'
+  deployment level. The air brakes' deployment level must be between 0 and 1,
+  and is set by writing ``context.controls.air_brakes.deployment_level``.
+  Inside this function, any controller logic, filters, and apogee prediction
+  can be implemented.
 
-- The **sampling rate** of the controller function, in seconds. This is the time
-  between each call of the controller function, in simulation time. Must be
-  given in Hertz.
+- The **sampling rate** of the controller function, in Hertz (Hz): how many
+  times per second of simulation time the controller function is called.
 
 Defining the Controller Function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Lets start by defining a very simple controller function.
 
-The ``controller_function`` must take in the following arguments, in this
-order:
+The ``controller_function`` takes one argument, ``context``, which holds what
+the flight computer knows at the current time step:
 
-1. ``time`` (float): The current simulation time in seconds.
-2. ``sampling_rate`` (float): The rate at which the controller
-   function is called, measured in Hertz (Hz).
-3. ``state`` (list): The state vector of the simulation. The state
-   is a list containing the following values, in this order:
-
-   - ``x``: The x position of the rocket, in meters.
-   - ``y``: The y position of the rocket, in meters.
-   - ``z``: The z position of the rocket, in meters.
-   - ``v_x``: The x component of the velocity of the rocket, in meters per
-     second.
-   - ``v_y``: The y component of the velocity of the rocket, in meters per
-     second.
-   - ``v_z``: The z component of the velocity of the rocket, in meters per
-     second.
-   - ``e0``: The first component of the quaternion representing the rotation
-     of the rocket.
-   - ``e1``: The second component of the quaternion representing the rotation
-     of the rocket.
-   - ``e2``: The third component of the quaternion representing the rotation
-     of the rocket.
-   - ``e3``: The fourth component of the quaternion representing the rotation
-     of the rocket.
-   - ``w_x``: The x component of the angular velocity of the rocket, in
-     radians per second.
-   - ``w_y``: The y component of the angular velocity of the rocket, in
-     radians per second.
-   - ``w_z``: The z component of the angular velocity of the rocket, in
-     radians per second.
-
-4. ``observed_variables`` (list): A list containing the variables that
-   the controller function returns. The return of each controller
-   function call is appended to the observed_variables list. The
-   initial value in the first step of the simulation of this list is
-   provided by the ``initial_observed_variables`` argument.
-5. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
+- ``context.time``: the current simulation time, in seconds.
+- ``context.sampling_rate``: the rate at which the controller function is
+  called, in Hertz (Hz).
+- ``context.state``: the state of the rocket, read by name: ``state.z``
+  (altitude above sea level, in meters), ``state.vx``, ``state.vy``,
+  ``state.vz`` (velocity, in m/s), ``state.e0`` to ``state.e3`` (the
+  quaternion of the attitude) and ``state.w1`` to ``state.w3`` (angular
+  velocity, in rad/s).
+- ``context.controls``: the control inputs of the rocket, such as
+  ``context.controls.air_brakes.deployment_level``.
+- ``context.record(...)``: keeps named values with their time, to look at
+  after the flight.
+- ``context.memory``: a dictionary the controller keeps from one call to the
+  next, for what the next call needs (a filter state, an integral, a
+  counter). It starts again from its initial values at every flight.
+- ``context.environment``, ``context.rocket``, ``context.sensors`` and
+  ``context.height_agl``, among others. See :ref:`eventusage` for the full
+  list.
 
 Our example ``controller_function`` will deploy the air brakes when the rocket
 reaches 1500 meters above the ground. The deployment level will be function of the
@@ -174,10 +155,13 @@ Lets define the controller function:
         sampling_rate = context.sampling_rate
         motor = context.rocket.motor
         environment = context.environment
-        air_brakes = context.controlled.air_brakes
+        air_brakes = context.controls.air_brakes  # the air brakes' controls
         altitude_ASL = state.z
         altitude_AGL = context.height_agl
         vx, vy, vz = state.vx, state.vy, state.vz
+
+        # The deployment level in force since the previous call
+        deployment_level = air_brakes.deployment_level
 
         # Get winds in x and y directions
         wind_x, wind_y = environment.wind_velocity_x(altitude_ASL), environment.wind_velocity_y(altitude_ASL)
@@ -192,73 +176,66 @@ Lets define the controller function:
         previous_state = context.previous_state
         previous_vz = previous_state.vz if previous_state is not None else vz
 
-        # If we wanted to we could get the returned values from observed_variables:
-        # returned_time, deployment_level, drag_coefficient = observed_variables[-1]
-
         # Check if the rocket has reached burnout
         if time < motor.burn_out_time:
-            air_brakes.deployment_level = 0
+            deployment_level = 0
 
         # If below 1500 meters above ground level, air_brakes are not deployed
         if altitude_AGL < 1500:
-            air_brakes.deployment_level = 0
+            deployment_level = 0
 
         # Else calculate the deployment level
         else:
             # Controller logic
-            new_deployment_level = (
-                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
-            )
+            new_deployment_level = deployment_level + 0.1 * vz + 0.01 * previous_vz**2
 
             # Limiting the speed of the air_brakes to 0.2 per second
             # Since this function is called every 1/sampling_rate seconds
             # the max change in deployment level per call is 0.2/sampling_rate
             max_change = 0.2 / sampling_rate
-            lower_bound = air_brakes.deployment_level - max_change
-            upper_bound = air_brakes.deployment_level + max_change
-            new_deployment_level = min(max(new_deployment_level, lower_bound), upper_bound)
+            lower_bound = deployment_level - max_change
+            upper_bound = deployment_level + max_change
+            deployment_level = min(max(new_deployment_level, lower_bound), upper_bound)
 
-            air_brakes.deployment_level = new_deployment_level
+        air_brakes.deployment_level = deployment_level
 
-        # Return variables of interest to be saved in the observed_variables list
-        return (
-            time,
-            air_brakes.deployment_level,
-            air_brakes.drag_coefficient(air_brakes.deployment_level, mach_number),
-        )
+        # Keep the Mach number with its time, to look at after the flight
+        context.record(mach_number=mach_number)
 
 .. note::
 
-    - The ``controller_function`` accepts 5, 6, or 7 parameters for backward
-      compatibility:
+    - The ``context`` gives access to atmospheric conditions through
+      ``context.environment`` (wind, temperature, pressure, elevation), such
+      as ``context.environment.wind_velocity_x(altitude)`` or
+      ``context.environment.speed_of_sound(altitude)``, without relying on
+      global variables.
 
-      * **5 parameters** (original): ``time``, ``sampling_rate``, ``state``,
-        ``observed_variables``, ``air_brakes``
-      * **6 parameters** (with sensors): adds ``sensors`` as the 6th parameter
-      * **7 parameters** (with environment): adds ``sensors`` and ``environment``
-        as the 6th and 7th parameters
-
-    - The **environment parameter** provides access to atmospheric conditions
-      (wind, temperature, pressure, elevation) without relying on global variables.
-      This enables proper serialization of rockets with air brakes and improves
-      code modularity. Available methods include ``environment.elevation``,
-      ``environment.wind_velocity_x(altitude)``, ``environment.wind_velocity_y(altitude)``,
-      ``environment.speed_of_sound(altitude)``, and others.
+    - The positional form of v1.13,
+      ``controller_function(time, sampling_rate, state, state_history,
+      observed_variables, air_brakes[, sensors[, environment]])``, still
+      works but is deprecated and will be removed in v1.16. Write the
+      function as ``controller_function(context)`` instead.
 
     - The code inside the ``controller_function`` can be as complex as needed.
       Anything can be implemented inside the function, including filters,
       apogee prediction, and any controller logic.
 
-    - The ``air_brakes`` instance ``deployment_level`` is clamped between 0 and 1.
-      This means that the deployment level will never be set to a value lower than
-      0 or higher than 1. If you want to disable this feature, set ``clamp`` to
-      ``False`` when defining the air brakes.
+    - The deployment level written to
+      ``context.controls.air_brakes.deployment_level`` is kept between 0
+      and 1: a value outside that range is moved to the nearest end. To put
+      no limit on it, set ``clamp`` to ``False`` when defining the air
+      brakes. The control input is named
+      after the air brakes, in snake_case: ``name="AirBrakes"`` (the default)
+      gives ``context.controls.air_brakes``, and ``name="Main Brakes"`` gives
+      ``context.controls.main_brakes``, or as given,
+      ``context.controls["Main Brakes"]``. To skip the name, use the air brakes
+      returned by ``rocket.add_air_brakes``:
+      ``context.controls[air_brakes].deployment_level``.
 
-    - Anything can be returned by the ``controller_function``. The returned
-      values will be saved in the ``observed_variables`` list at every time step
-      and can then be accessed by the ``controller_function`` at the next time
-      step. The saved values can also be accessed after the simulation is
-      finished. This is useful for debugging and for plotting the results.
+    - What the ``controller_function`` passes to ``context.record`` is kept
+      at every call and can be read after the flight in ``flight.records``.
+      Each record is a list of ``(time, value)`` pairs, with the value as it
+      was given. This is useful for debugging and for plotting the results.
 
     - The ``controller_function`` can also be defined in a separate file and
       imported into the simulation script. This includes importing a ``c`` or
@@ -319,58 +296,87 @@ Part of the data from the CSV can be seen in the code block below.
     1.0, 0.8, 0.218
 
 .. note::
-  The air brakes' drag coefficient curve can represent either the air brakes
-  alone or both the air brakes and the rocket. This is determined by the
-  ``override_rocket_drag`` argument. If set to True, the drag
-  coefficient curve will include both the air brakes and the rocket. If set to
-  False, the curve will exclusively represent the air brakes.
+  The air brakes' drag coefficient curve can be of the air brakes alone or of
+  the whole rocket at each deployment level. This is set by the
+  ``override_rocket_drag`` argument.
 
-  When the curve represents only the air brakes, its drag coefficient will be
-  added to the rocket's existing drag coefficient. Conversely, if the curve
-  represents both the air brakes and the rocket, the drag coefficient will be
-  set to match that of the curve. This feature is particularly useful when you
-  have a drag coefficient curve for the entire rocket with the air brakes
-  deployed, such as data from a wind tunnel test, and you want to incorporate
-  it into the simulation.
+  With ``override_rocket_drag=False`` (the default) the curve is of the air
+  brakes alone, and their drag is added to the rocket's.
+
+  With ``override_rocket_drag=True`` the curve is of the whole rocket, as
+  measured in a wind tunnel or computed for the complete rocket at several
+  deployment levels. The air brakes then add the difference between the curve
+  and its value at deployment level 0, at the same Mach number, to the
+  rocket's own drag. The curve must include deployment level 0, and the
+  rocket's ``power_off_drag`` should be those retracted values: the total drag
+  is then the curve. A warning is shown when the two differ by more than 5%.
+
+  The whole-rocket curve is taken as the rocket with its motor off. The rocket
+  keeps switching between its two drag curves, and open air brakes add the
+  same difference to either one:
+
+  - Motor off: ``power_off_drag`` + (curve at the deployment level − curve at
+    deployment level 0)
+  - Motor burning: ``power_on_drag`` + the same difference
+
+  To have the air brakes add no drag while the motor burns, build the
+  :class:`rocketpy.AirBrakes` with ``active_during="power_off"``.
+
+  In both cases retracted air brakes add no drag, and the rocket flies with its
+  own drag curves.
 
 Adding the Air Brakes to the Rocket
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now we can add the air brakes to the rocket.
+The air brakes are an aerodynamic surface with one control, and the controller
+is a :class:`rocketpy.Controller` that writes it. Build each and add both to
+the rocket, as for any other controllable:
 
-We will set the ``reference_area`` to ``None``. This means that the reference
-area for the calculation of the drag force from the coefficient will be the
-rocket's reference area (the area of the cross section of the rocket). If we
-wanted to set a different reference area, we would set ``reference_area`` to
-the desired value.
+- ``reference_area`` is the area the drag coefficient was made with. Here it
+  is the rocket's cross section, ``calisto.area``.
+- ``clamp=True`` (the default) keeps the deployment level between 0 and 1: a
+  controller asking for more gets the limit. With ``clamp=False`` there is no
+  limit and the drag curve is extrapolated.
+- ``positions`` is where the air brakes are on the rocket, in meters, in the
+  rocket's coordinate system, as for any surface. The drag acts along the
+  rocket's axis, so the position only matters while the rocket turns.
 
-Also, we will set ``clamp`` to ``True``. This means that the deployment level will
-be clamped between 0 and 1. This means that the deployment level will never be set
-to a value lower than 0 or higher than 1. This can alter the behavior of the
-controller function. If you want to disable this feature, set ``clamp`` to
-``False``.
+``air_brakes.info()`` prints the settings and the drag coefficient at a few
+deployment levels and Mach numbers; ``air_brakes.plots.drag_coefficient()``
+draws the curve, one line per deployment level.
 
 .. jupyter-execute::
+
+    air_brakes = AirBrakes(
+        drag_coefficient_curve="../data/rockets/calisto/air_brakes_cd.csv",
+        reference_area=calisto.area,
+        clamp=True,
+        override_rocket_drag=False,
+        name="Air Brakes",
+    )
+    calisto.add_surfaces(air_brakes, positions=-0.5)  # where they are, in meters
+
+    controller = Controller(
+        controller_function,
+        sampling_rate=10,
+        name="AirBrakes Controller",
+    )
+    calisto.add_controller(controller)
+
+    air_brakes.all_info()
+
+``rocket.add_air_brakes`` does the same in one call, building the air brakes
+and the controller together. It is kept for scripts written that way:
+
+.. code-block:: python
 
     air_brakes = calisto.add_air_brakes(
         drag_coefficient_curve="../data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
-        reference_area=None,
-        clamp=True,
-        initial_observed_variables=[0, 0, 0],
-        override_rocket_drag=False,
         name="Air Brakes",
+        position=-0.5,
     )
-
-    air_brakes.all_info()
-
-.. note::
-
-    The ``initial_observed_variables`` argument is optional. It is used as
-    the initial value for the ``observed_variables`` list passed on the
-    ``controller_function`` at the first time step. If not given, the
-    ``observed_variables`` list will be initialized as an empty list.
 
 .. seealso::
 
@@ -381,7 +387,7 @@ Simulating a Flight
 -------------------
 
 We will be terminating the simulation at apogee, by setting
-``terminate_at_apogee`` to ``True``. This way the simulation will stop when the
+``terminate_on_apogee`` to ``True``. This way the simulation will stop when the
 rocket reaches apogee, and we will save some time.
 
 .. jupyter-execute::
@@ -398,44 +404,32 @@ rocket reaches apogee, and we will save some time.
 Analyzing the Results
 ---------------------
 
-Now we can create some plots to analyze the results. We rely on the
-``observed_variables`` list to get the data we want to plot. Since we returned
-the ``time``, ``deployment_level`` and the ``drag_coefficient`` in the
-``controller_function``, the ``observed_variables`` list will contain these
-values at every time step.
-
-We can retrieve the ``observed_variables`` list by calling the
-``get_controller_observed_variables`` method of the ``Flight`` instance.
-Then we can plot the data we want.
+Now we can create some plots to analyze the results. The deployment level
+the air brakes flew with is stored with the flight:
+``flight.solution.controls.air_brakes.deployment_level`` is the array of
+time and value, and ``flight.controls.air_brakes.deployment_level`` the same
+as a function of time. What the ``controller_function`` recorded is in
+``flight.records``, named after the controller, exactly as it was recorded:
+the default ``controller_name="AirBrakes Controller"`` gives
+``flight.records["AirBrakes Controller"].mach_number``, a list of
+``(time, value)`` pairs.
 
 .. jupyter-execute::
 
-    import matplotlib.pyplot as plt
+    test_flight.plots.controls()
 
-    time_list, deployment_level_list, drag_coefficient_list = [], [], []
+    deployment_level = test_flight.controls["Air Brakes"].deployment_level
+    mach_number = test_flight.records["AirBrakes Controller"].mach_number
+    print(f"Deployment level at 10 s: {deployment_level(10):.3f}")
+    time, mach = mach_number[-1]
+    print(f"Last Mach number recorded, at {time:.1f} s: {mach:.3f}")
 
-    obs_vars = test_flight._controllers[0].log
+The drag the air brakes made during the flight, from the air they met and the
+deployment level they flew with, next to the rocket's total drag:
 
-    for time, deployment_level, drag_coefficient in obs_vars:
-        time_list.append(time)
-        deployment_level_list.append(deployment_level)
-        drag_coefficient_list.append(drag_coefficient)
+.. jupyter-execute::
 
-    # Plot deployment level by time
-    plt.plot(time_list, deployment_level_list)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Deployment Level")
-    plt.title("Deployment Level by Time")
-    plt.grid()
-    plt.show()
-
-    # Plot drag coefficient by time
-    plt.plot(time_list, drag_coefficient_list)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Drag Coefficient")
-    plt.title("Drag Coefficient by Time")
-    plt.grid()
-    plt.show()
+    air_brakes.plots.drag(test_flight)
 
 .. seealso::
 

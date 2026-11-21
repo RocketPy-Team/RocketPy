@@ -1,3 +1,4 @@
+from rocketpy.rocket.aero_surface.fins.control_fins import ControlFins
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
 from rocketpy.rocket.aero_surface.fins.elliptical_fins import EllipticalFins
 from rocketpy.rocket.aero_surface.fins.fin import Fin

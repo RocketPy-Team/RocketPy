@@ -1,483 +1,275 @@
-import warnings
-from inspect import signature
-from keyword import iskeyword
+"""Controllers: events that set the rocket's control inputs while it flies."""
 
-from rocketpy.simulation.events.event import Event
+import warnings
+from copy import deepcopy
+
+from rocketpy.control._helpers import (
+    _LOAD_ERRORS,
+    _check_controller_function,
+    _missing_controller_function,
+)
+from rocketpy.control._legacy import _legacy_controller, _PositionalController
+from rocketpy.simulation.events.event import PRESETS, Event
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints
-from .controlled import Controlled
 
 
-class _Controller:
-    """A controller that modifies rocket state during simulation.
+class Controller(Event):
+    """Adds a controller to the rocket: a flight computer that runs at a fixed
+    sampling rate and sets the rocket's controls. Add it with
+    :meth:`rocketpy.Rocket.add_controller`.
 
-    Controllers execute at a fixed sampling rate and can mutate rocket
-    objects (e.g. air brakes, fins) during flight. Like :class:`Event`
-    objects, controllers use a callback pattern with a persistent ``memory``,
-    but they explicitly expect external object state to change.
+    At every sample the controller reads what the rocket knows, its state
+    and its sensors, and decides the controls: the deployment level of the
+    air brakes, the deflection of the canards, the firing of a thruster. A
+    value it sets stays in force until the next sample, as a real flight
+    computer holds its outputs between cycles, and the rocket responds to it
+    through the part it controls.
 
-    Internally a controller is a thin wrapper around an :class:`Event`: it
-    builds an event (see :meth:`to_event`) whose callback invokes the
-    user-supplied ``controller_function``. The wrapping event is created with
-    ``changes_dynamics=True``, ``trigger_only_once=False``, and
-    ``priority=3``, and it mirrors the controller's ``enabled`` flag,
-    ``memory``, ``sampling_rate``, ``disable_on`` and ``enable_on`` settings.
+    The controller can keep values from one sample to the next, such as the
+    integral of a PID loop, record values to look at after the flight, and
+    be switched off and on during the flight, at apogee, at burnout or when
+    a condition it defines is met. After the flight, what it set is read
+    from ``flight.controls`` and what it recorded from
+    ``flight.records``. A controller can also share values with other
+    controllers, such as the setpoint an outer loop gives an inner one, as
+    outputs.
 
-    The controller function is responsible for:
-
-    1. Reading simulation state and sensor data,
-    2. Computing control actions,
-    3. Mutating ``controlled_objects`` to apply those actions,
-    4. Returning logging information (appended to :attr:`log`).
-
-    The key difference from :class:`Event` is that object mutations are
-    intentional and expected -- this is the controller's primary purpose.
-
-    Attributes
-    ----------
-    event : Event
-        The wrapping :class:`Event` consumed by the simulation loop.
-    log : list
-        Per-execution return values of ``controller_function`` (alias
-        :attr:`return_log`). Backed by the wrapped event's ``callback_log``.
-    enabled : bool
-        Current enabled state, mirrored from the wrapped event.
-    context : dict
-        Persistent state shared across executions.
+    See :ref:`controllers` for examples and :ref:`eventusage` for what the
+    controller is told about the flight.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         controller_function,
-        controlled_objects,
         sampling_rate,
         memory=None,
+        *,
+        outputs=None,
         name="Controller",
-        controlled_objects_name=None,
         enabled=True,
-        disable_on=None,
         enable_on=None,
+        disable_on=None,
+        time_overshootable=True,
     ):
-        """Initialize the controller.
+        """Build a controller.
 
         Parameters
         ----------
         controller_function : callable
-            Function that executes the control logic, with signature
-            ``controller_function(context) -> dict or None``. Invoked once
-            per sample; its return value is appended to :attr:`log`. Mutate
-            ``controlled_objects`` directly to apply control actions.
-            ``context`` holds the values listed in :class:`rocketpy.Event`
-            (``context.time``, ``context.state``, ``context.height_agl``,
-            ``context.sensors``, ``context.environment``, ``context.rocket``,
-            ``context.flight``, ``context.state_dot``, ``context.pressure``,
-            ``context.previous_state`` and so on) plus ``context.controller``
-            (this :class:`_Controller` instance) and ``context.controlled``
-            (the objects to mutate). Read a controlled object by the name
-            given in ``controlled_objects_name``, such as
-            ``context.controlled.air_brakes``, or by its position, such as
-            ``context.controlled[0]``.
-            For the trajectory itself, read ``context.flight.solution``.
-        controlled_objects : object or list of object
-            Object(s) the controller is allowed to modify (e.g. an air brakes
-            instance). May be a single object or a list. They are held by
-            reference, so mutations persist in the simulation.
+            The control logic, ``controller_function(context)``, called once
+            per sample. It writes the controls as
+            ``context.controls.<controllable>.<control>``, among the names
+            ``rocket.control_names`` lists, and may keep values for after
+            the flight with ``context.record``. What it returns is ignored.
         sampling_rate : float
-            Rate in hertz at which the controller executes; it runs every
-            ``1 / sampling_rate`` seconds.
+            How many times per second the controller runs, in Hz. Must be
+            positive. For a law that acts at every instant instead of at a
+            fixed rate, use :class:`rocketpy.ContinuousController`.
         memory : dict, optional
-            The controller's own dictionary, kept from one run to the next.
-            Read and write it as ``context.controller.memory``. It is the
-            same dict as the wrapped event's ``memory``. Defaults to an empty
-            dict.
+            Values the controller keeps from one run to the next, read and
+            written as ``context.memory``, such as the integral of a PID
+            controller. It starts again from this dictionary at every flight.
+            Defaults to an empty dictionary.
+        outputs : sequence of str or dict, optional
+            Values this controller computes for other controllers or events
+            to read. Give the name of each output. It is then written and
+            read through ``context.outputs``, under the controller's name in
+            snake_case: a controller with ``name="Guidance"`` and
+            ``outputs=("setpoint",)`` writes
+            ``context.outputs.guidance.setpoint = 0.1``, and any other
+            controller or event reads the same name. An output can hold any
+            value, keeps it until it is written again, and can be written
+            only by the controller that declared it. It starts every flight
+            as ``None``, or at the value given with a dictionary, such as
+            ``outputs={"setpoint": 0.05}``. After the flight,
+            ``flight.event_outputs.guidance.setpoint`` is the list of
+            ``(time, value)`` pairs written. Default ``None``, no outputs.
         name : str, optional
-            Human-readable controller name, used for identification and
-            logging. Defaults to ``"Controller"``.
-        controlled_objects_name : str or list of str, optional
-            Name(s) under which the controller function reads the controlled
-            objects, as ``context.controlled.<name>``. For example, with
-            ``controlled_objects_name="air_brakes"`` the function reads
-            ``context.controlled.air_brakes``. Pass a single string for a
-            single object, or a list/tuple of unique strings, one per object,
-            when ``controlled_objects`` is a list. Each name must be usable
-            after a dot in Python: letters, digits and underscores, not
-            starting with a digit or an underscore. Defaults to ``None``, in
-            which case the objects are read by position, as
-            ``context.controlled[0]``.
+            Name of the controller, which names its records and outputs:
+            ``"Apogee Controller"`` gives ``flight.records.apogee_controller``.
+            Defaults to ``"Controller"``.
         enabled : bool, optional
-            Initial enabled state of the wrapped event. If ``False``, the
-            controller does not execute until re-enabled, either via the
-            ``enable`` command or the ``enable_on`` condition. Defaults to
-            ``True``.
-        disable_on : str or int or float or callable, optional
-            Condition that automatically disables the controller. May be a
-            string preset (``"apogee"`` or ``"burnout"``), a simulation time in
-            seconds (int or float), or a callable ``function(context)`` that
-            returns ``True`` when the controller should be disabled. The
-            condition is forwarded to the wrapped event. Defaults to ``None``
-            (no automatic disabling).
-        enable_on : str or int or float or callable, optional
-            Condition that automatically re-enables a disabled controller,
-            using the same formats as ``disable_on``. When the condition is met
-            while the controller is disabled, it re-enables before the next
-            trigger evaluation. Defaults to ``None`` (no automatic enabling).
+            Whether the controller runs from the start of the flight. It can
+            be changed after the controller is built, ``controller.enabled =
+            False``, and every flight from then on starts that way. Defaults
+            to ``True``.
+        enable_on : str, float or callable, optional
+            When a stopped controller starts running: ``"apogee"``,
+            ``"burnout"``, a time in seconds, or a function ``f(context)`` that
+            returns ``True`` when the controller should start. Defaults to
+            ``None``, never.
+        disable_on : str, float or callable, optional
+            When to stop running, in the same forms as ``enable_on``. Defaults
+            to ``None``, never. To stop from inside ``controller_function``
+            instead, such as after detecting a fault, call
+            ``context.commands.disable()``.
+        time_overshootable : bool, optional
+            ``True`` (the default) lets the solver step past each sample and
+            runs the controller on the interpolated state, restarting the
+            solver at the sample only when a control changes. ``False`` stops
+            the solver at every sample. The default is faster; the results
+            differ only by the solver's choice of steps. Ignored when the
+            flight has ``time_overshoot=False``.
 
         See Also
         --------
-        to_event : Builds the :class:`Event` that wraps this controller.
-        :ref:`eventusage` : Description of the callback ``context``.
+        rocketpy.Event : What the context offers and how events are gated.
+        rocketpy.ContinuousController : A controller that runs with the
+            dynamics instead of at a fixed rate.
+        rocketpy.Rocket.add_controller : Add the controller to a rocket.
+        rocketpy.Flight.controls : The control inputs after the flight.
+        rocketpy.Flight.records : The values recorded with ``context.record``.
+        rocketpy.Flight.event_outputs : The outputs written during the flight.
         """
-        # TODO: rethink controllers
-        self.controller_function = self.__evaluate_controller_function(
-            controller_function
-        )
-        self.controlled_objects = controlled_objects
-        # Optional name(s) the controller function reads the objects by.
-        # Accept either a single string name or an iterable of string names
-        self.controlled_objects_name = controlled_objects_name
-        self._controlled = self.__build_controlled()
-        self.sampling_rate = sampling_rate
-        self.name = name
-        self.memory = memory if memory is not None else {}
-        self.prints = _ControllerPrints(self)
-        self.enabled = enabled
-        self.disable_on = disable_on
-        self.enable_on = enable_on
-
-        # Create the event during initialization
-        self.event = self.to_event()
-        self.log = self.event.callback_log
-
-    def __evaluate_controller_function(self, controller_function):
-        """Detect legacy positional-argument signatures and wrap them for compatibility."""
-        sig = signature(controller_function)
-        params = list(sig.parameters.values())
-        positional_count = sum(
-            p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) for p in params
-        )
-        accepts_var_positional = any(p.kind == p.VAR_POSITIONAL for p in params)
-
-        if positional_count == 1 and not accepts_var_positional:
-            return controller_function
-
-        if positional_count == 0 and not accepts_var_positional:
+        controller_function = _check_controller_function(controller_function)
+        # A controller with no rate would run once per solver step, so how
+        # often it ran would depend on the solver's tolerances
+        if sampling_rate is None or not sampling_rate > 0:
             raise ValueError(
-                "controller_function must take the event context as its single "
-                "positional argument, like `def controller(context): ...`."
+                f"The sampling rate of the controller '{name}' must be a "
+                f"positive number of Hz, got {sampling_rate!r}. For a law that "
+                "acts at every instant, use rocketpy.ContinuousController."
             )
-
-        warnings.warn(
-            "It is recommended not to use positional arguments when defining "
-            "a controller function. Instead, define it as "
-            "`controller_function(context)` and read values such as "
-            "`context.time`, `context.state`, `context.sensors` and "
-            "`context.environment`. See the controller documentation for "
-            "the full list of available values.",
-            UserWarning,
-            stacklevel=3,
-        )
-
-        def wrapped(context):
-            args = [
-                context["time"],
-                self.sampling_rate,
-                context["canonical_state"],
-                self.log,
-                self.controlled_objects,
-            ]
-            if positional_count >= 6 or accepts_var_positional:
-                args.append(context["sensors"])
-            if positional_count >= 7 or accepts_var_positional:
-                args.append(context["environment"])
-            return controller_function(*args)
-
-        return wrapped
-
-    def to_event(self):
-        """Create an Event that wraps this controller for simulation execution.
-
-        Returns
-        -------
-        Event
-            Event configured for controller sampling rate and callback.
-
-        Notes
-        -----
-        The Event callback directly invokes the controller function with
-        proper parameters. The controller is responsible for mutating
-        controlled_objects to apply control actions.
-        """
-
-        def controller_callback(context):
-            """Execute controller and handle mutations.
-
-            Parameters
-            ----------
-            context : EventContext
-                Event context including:
-                - time: float, simulation time
-                - state: list, state vector
-                - sensors: dict, sensor measurements
-                - environment: Environment, environmental model
-                - event: Event, the event object itself
-                - controller: _Controller, this controller instance
-                - (other standard Event context keys)
-
-            Returns
-            -------
-            dict or None
-                callback_log dict from controller function, logged to callback_log.
-            """
-            # These belong to this controller alone; the context is shared
-            # with the other events of the step, so they are owned rather
-            # than written outright and are removed when the next event binds.
-            context.own(controller=self, controlled=self._controlled)
-            return self.controller_function(context)
-
-        return Event(
-            callback=controller_callback,
-            name=f"{self.name}",
-            sampling_rate=self.sampling_rate,
-            memory=self.memory,
-            changes_dynamics=True,
+        # Kept as given, for saving: the event turns them into functions
+        self._gates = (disable_on, enable_on)
+        super().__init__(
+            callback=controller_function,
+            sampling_rate=sampling_rate,
+            memory=memory,
+            disable_on=disable_on,
+            enable_on=enable_on,
             trigger_only_once=False,
-            enabled=self.enabled,
-            disable_on=self.disable_on,
-            enable_on=self.enable_on,
+            time_overshootable=time_overshootable,
+            name=name,
+            enabled=enabled,
             priority=3,
+            outputs=outputs,
         )
+        self.prints = _ControllerPrints(self)
 
     @property
-    def enabled(self):
-        """Return the current enabled state mirrored from the wrapped event."""
-        if hasattr(self, "event"):
-            return self.event.enabled
-        return self._enabled
+    def controller_function(self):
+        """The control logic, ``controller_function(context)``: the event's
+        callback."""
+        return self.callback
 
-    @enabled.setter
-    def enabled(self, value):
-        self._enabled = bool(value)
-        if hasattr(self, "event"):
-            self.event.enabled = self._enabled
+    @controller_function.setter
+    def controller_function(self, function):
+        self.callback = _check_controller_function(function)
+
+    def reset(self):
+        """Reset the controller for a new flight: what :class:`rocketpy.Event`
+        resets, and the ``observed_variables`` of a deprecated positional
+        controller function."""
+        super().reset()
+        if isinstance(self.callback, _PositionalController):
+            self.callback.reset()
 
     def __str__(self):
         return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
 
-    @property
-    def log(self):
-        """Return the controller callback log."""
-        return self._log
-
-    @log.setter
-    def log(self, value):
-        self._log = value
-        if hasattr(self, "event"):
-            self.event.callback_log = value
-
-    @property
-    def return_log(self):
-        """Alias for :attr:`log`."""
-        return self.log
-
-    @return_log.setter
-    def return_log(self, value):
-        self.log = value
-
-    def __build_controlled(self):
-        """Validate controlled_objects_name and build ``context.controlled``."""
-        objects = self.controlled_objects
-        names = self.controlled_objects_name
-        many = isinstance(objects, (list, tuple))
-        if names is None:
-            return Controlled(objects if many else (objects,))
-
-        if isinstance(names, str):
-            # A single name stands for whatever was passed, object or list.
-            names, objects = (names,), (objects,)
-        elif not isinstance(names, (list, tuple)):
-            raise TypeError(
-                "controlled_objects_name must be a string or list/tuple of strings"
-            )
-        elif not many:
-            raise ValueError(
-                "controlled_objects_name is a list but controlled_objects is not "
-                "a list/tuple"
-            )
-
-        if not all(isinstance(name, str) for name in names):
-            raise TypeError(
-                "All entries in controlled_objects_name list must be strings"
-            )
-        if len(set(names)) != len(names):
-            raise ValueError("controlled_objects_name entries must be unique")
-        if len(names) != len(objects):
-            raise ValueError(
-                "Length of controlled_objects_name must match number of "
-                "controlled_objects"
-            )
-        for name in names:
-            if not name.isidentifier() or iskeyword(name) or name.startswith("_"):
-                raise ValueError(
-                    f"controlled_objects_name entry '{name}' cannot be read as "
-                    f"`context.controlled.{name}`. Use letters, digits and "
-                    "underscores only, not starting with a digit or an "
-                    "underscore, and not a Python keyword."
-                )
-        return Controlled(objects, names)
-
     def info(self):
-        """Prints out summarized information about the controller."""
+        """Print what the controller is and what it does."""
         self.prints.all()
 
     def all_info(self):
-        """Prints out all information about the controller."""
+        """Print all the information about the controller."""
         self.info()
 
     def to_dict(self, **kwargs):
-        """Serialize controller to dictionary.
+        """Return the controller as a dictionary, to be saved.
 
         Parameters
         ----------
         **kwargs : dict
-            allow_pickle : bool, optional
-                If True, serialize controller_function, disable_on, and
-                enable_on callables using hex encoding. If False, use function
-                name. Default is True.
+            ``allow_pickle`` (default ``True``): save the controller function
+            and the gate functions themselves. With ``False`` only their names
+            are saved, and a loaded controller cannot run.
 
         Returns
         -------
         dict
-            Serialized controller state.
         """
         allow_pickle = kwargs.get("allow_pickle", True)
 
-        if allow_pickle:
-            controller_function = to_hex_encode(self.controller_function)
-        else:
-            controller_function = self.controller_function.__name__
+        def encode(function):
+            if not callable(function):
+                return function
+            if allow_pickle:
+                return to_hex_encode(function)
+            return getattr(function, "__name__", type(function).__name__)
 
-        # Serialize gate conditions: if callable, use hex encoding; if string or None, keep as-is
-        disable_on = self.disable_on
-        if allow_pickle and callable(disable_on):
-            disable_on = to_hex_encode(disable_on)
-
-        enable_on = self.enable_on
-        if allow_pickle and callable(enable_on):
-            enable_on = to_hex_encode(enable_on)
-
+        disable_on, enable_on = self._gates
         return {
-            "controller_function": controller_function,
+            "controller_function": encode(self.controller_function),
             "sampling_rate": self.sampling_rate,
+            "memory": deepcopy(self._initial_memory),
             "name": self.name,
-            "controlled_objects_name": getattr(self, "controlled_objects_name", None),
-            # Hash(es) identifying the controlled object(s), so Rocket
-            # deserialization can reconnect the controller to the rocket's own
-            # reconstructed objects (see Rocket.from_dict).
-            "controlled_objects_hash": self._controlled_objects_hash(),
-            "memory": self.memory.copy(),
-            "enabled": self.enabled,
-            "disable_on": disable_on,
-            "enable_on": enable_on,
-            # Note: controlled_objects are recovered in from_dict via
-            # object reference matching in Rocket deserialization
+            "enabled": self._initial_enabled,
+            "disable_on": encode(disable_on),
+            "enable_on": encode(enable_on),
+            "outputs": self.output_defaults,
+            "time_overshootable": self.time_overshootable,
         }
 
-    def _controlled_objects_hash(self):
-        """Return the identity hash of the controlled object(s), matching the
-        shape of ``controlled_objects`` (a single hash for a single object, a
-        list of hashes for a list). These hashes match the ones the encoder
-        stores in each object's signature, letting Rocket deserialization find
-        the reconstructed objects. Returns ``None`` for anything unhashable."""
-
-        def safe_hash(obj):
-            try:
-                return hash(obj)
-            except TypeError:
-                return None
-
-        controlled_objects = self.controlled_objects
-        if isinstance(controlled_objects, (list, tuple)):
-            return [safe_hash(obj) for obj in controlled_objects]
-        return safe_hash(controlled_objects)
-
     @classmethod
-    def from_dict(cls, data, controlled_objects=None):
-        """Reconstruct controller from dictionary.
+    def from_dict(cls, data):
+        """Build a controller from a dictionary made by :meth:`to_dict`.
+
+        A controller whose function cannot be loaded, such as one saved with
+        ``allow_pickle=False``, is loaded disabled, with a warning.
 
         Parameters
         ----------
         data : dict
-            Serialized controller data from to_dict().
-        controlled_objects : list or object, optional
-            Objects the controller will mutate. If not provided,
-            must be set manually after reconstruction.
 
         Returns
         -------
-        _Controller
-            Reconstructed controller instance.
+        Controller
         """
-        controller_function = data.get("controller_function")
-        sampling_rate = data.get("sampling_rate")
         name = data.get("name", "Controller")
-        controlled_objects_name = data.get("controlled_objects_name")
-        memory = data.get("memory", {})
+        sampling_rate = data.get("sampling_rate")
         enabled = data.get("enabled", True)
-        disable_on = data.get("disable_on")
-        enable_on = data.get("enable_on")
-
         try:
-            controller_function = from_hex_decode(controller_function)
-        except (TypeError, ValueError):
-            pass
-
-        # Deserialize disable_on: try hex decoding for callables, keep strings and None
-        try:
-            disable_on = from_hex_decode(disable_on)
-        except (TypeError, ValueError):
-            # If not hex-encoded, keep as string or None
-            pass
-
-        try:
-            enable_on = from_hex_decode(enable_on)
-        except (TypeError, ValueError):
-            pass
-
-        if controlled_objects is None:
-            controlled_objects = []
-
-        controller = cls(
-            controller_function=controller_function,
-            controlled_objects=controlled_objects,
+            function = from_hex_decode(data["controller_function"])
+        except _LOAD_ERRORS as error:
+            warnings.warn(
+                f"The function of the controller '{name}' could not be loaded "
+                f"({type(error).__name__}: {error}), so the controller is "
+                "loaded disabled. Build it again and add it to the rocket to "
+                "fly it.",
+                UserWarning,
+            )
+            function, enabled = _missing_controller_function, False
+        # Saved before controllers took the context
+        function = _legacy_controller(function, sampling_rate)
+        gates = []
+        for key in ("disable_on", "enable_on"):
+            gate = data.get(key)
+            # A preset name, a time or None is kept as saved
+            if isinstance(gate, str) and gate not in PRESETS:
+                try:
+                    gate = from_hex_decode(gate)
+                except _LOAD_ERRORS as error:
+                    warnings.warn(
+                        f"The `{key}` function of the controller '{name}' could "
+                        f"not be loaded ({type(error).__name__}: {error}), so "
+                        "the controller is loaded disabled. Build it again and "
+                        "add it to the rocket to fly it.",
+                        UserWarning,
+                    )
+                    gate, enabled = None, False
+            gates.append(gate)
+        return cls(
+            controller_function=function,
             sampling_rate=sampling_rate,
+            memory=data.get("memory"),
             name=name,
-            memory=memory,
-            controlled_objects_name=controlled_objects_name,
             enabled=enabled,
-            disable_on=disable_on,
-            enable_on=enable_on,
+            disable_on=gates[0],
+            enable_on=gates[1],
+            outputs=data.get("outputs") or None,
+            time_overshootable=data.get("time_overshootable", True),
         )
-        # Stash the serialized controlled-object hash(es) so Rocket.from_dict
-        # can reconnect the controller to the rocket's reconstructed objects.
-        controller._serialized_controlled_objects_hash = data.get(
-            "controlled_objects_hash"
-        )
-        return controller
-
-    def rebind_controlled_objects(self, controlled_objects):
-        """Point the controller at reconstructed controlled object(s) and
-        rebuild ``context.controlled`` from them.
-
-        Used when a rocket is loaded from a file: the controller is rebuilt
-        without its controlled objects (they are separate objects in the saved
-        data), so this reconnects it to the rocket's own objects, ensuring the
-        controller mutates them rather than orphaned copies.
-
-        Parameters
-        ----------
-        controlled_objects : object or list of object
-            The reconstructed object(s) the controller should control.
-        """
-        self.controlled_objects = controlled_objects
-        self._controlled = self.__build_controlled()

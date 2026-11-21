@@ -6,9 +6,13 @@ from functools import cached_property
 import numpy as np
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
-from rocketpy.simulation.flight_data_exporter import FlightDataExporter
+from rocketpy.simulation.flight_data_exporter import (
+    FlightDataExporter,
+    _sensor_rows,
+)
 
 from .._logging import enable_logging, logger
+from ..control._helpers import initial_controls, limited_value
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix
 from ..motors.solid_motor import SolidMotor
@@ -18,10 +22,13 @@ from ..tools import (
     deprecated,
     euler313_to_quaternions,
     find_closest,
+    history_function,
     inverted_haversine_array,
     quaternions_to_nutation,
     quaternions_to_precession,
     quaternions_to_spin,
+    snake_case_key,
+    unique_names,
 )
 from .events.event_builders import (
     build_core_events,
@@ -29,7 +36,11 @@ from .events.event_builders import (
     out_of_rail_trigger,
 )
 from .events.event_context import build_event_kwargs, refresh_event_kwargs
-from .events.event_execution import call_events, process_overshootable_event
+from .events.event_execution import (
+    call_events,
+    process_overshootable_event,
+)
+from .events.views import output_events, sensor_positions
 from .helpers.dynamics import (
     PARACHUTE_DYNAMICS,
     RAIL_DYNAMICS,
@@ -38,7 +49,7 @@ from .helpers.dynamics import (
     THREE_DOF_DYNAMICS,
 )
 from .helpers.flight_phase import _FlightPhases, _TimeNodes
-from .solution import Solution
+from .solution import Solution, _ResultsDict
 
 ODE_SOLVER_MAP = {
     "RK23": RK23,
@@ -80,8 +91,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         the beginning of the rail.
     Flight.name: str
         Name of the flight.
-    Flight._controllers : list
-        List of controllers to be used during simulation.
+    Flight.controllers : list
+        The controllers that flew with the rocket, from
+        ``rocket.add_controller`` and ``rocket.add_air_brakes``.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -223,6 +235,21 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     Flight.time_steps : array
         List of time steps taking during numerical integration in
         seconds.
+    Flight.controls : dict
+        The control inputs over the flight, by controllable, each a Function
+        of time, such as ``flight.controls.air_brakes.deployment_level``.
+    Flight.state_history : dict
+        The states of the rocket's controllables over the flight, by
+        controllable, each a Function of time.
+    Flight.sensor_history : dict
+        What the sensors read during the flight, by sensor, each channel a
+        Function of time.
+    Flight.records : dict
+        What the events and controllers recorded with ``context.record``, by
+        event, each record a list of ``(time, value)`` pairs.
+    Flight.event_outputs : dict
+        What the events and controllers wrote to their outputs, by event, each
+        output a list of ``(time, value)`` pairs.
     Flight.wind_velocity_x : Function
         Wind velocity X (East) experienced by the rocket as a
         function of time.
@@ -577,10 +604,14 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                     w1_init, w2_init, w3_init
                 ]
 
-            If a Flight object is used, the last state vector will be
-            used as initial solution. If None, the initial solution will start
-            with all null values, except for the euler parameters which will be
-            calculated based on given values of inclination and heading.
+            If a Flight object is used, the flight goes on from where that one
+            ended: its last state is the initial solution, and the control
+            inputs and the controllables' states (an air brake's deployment
+            level, a fin's angle...) keep the values they had at its end.
+            Controllers, events and sensors start fresh. If None, the initial
+            solution will start with all null values, except for the euler
+            parameters which will be calculated based on given values of
+            inclination and heading.
             Default is None.
         terminate_on_apogee : boolean, optional
             Whether to terminate simulation when rocket reaches apogee.
@@ -718,13 +749,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Initialize events and event triggers. The order of the list is the
         order that the events will be called. Core events should be first, then
         sensors, then parachutes, then controllers, then user defined events."""
-        self.__init_eventful_objects()
+        self.__init_eventful_objects(self.custom_events)
 
-        self.events = [*build_core_events()]
+        self.events = [*build_core_events(self)]
 
         # Sensor events (position-specific, created when sensors added to rocket)
-        if hasattr(self.rocket, "_sensor_events"):
-            self.events.extend(self.rocket._sensor_events)
+        for _, event in getattr(self.rocket, "_sensor_events", ()):
+            self.events.append(event)
 
         # Parachute events
         for parachute in self.parachutes:
@@ -732,15 +763,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.events.append(parachute.event)
 
         # Controller events
-        for controller in self._controllers:
-            self.events.append(controller.event)
+        self.events.extend(self.controllers)
 
         # User-defined events are appended last
         self.events.extend(self.custom_events)
 
         self._overshootable_events = []
         self._non_overshootable_events = []
-        self._has_change_dynamics_events = False
         for event in self.events:
             # Separate time overshootable and non overshootable events
             if (
@@ -752,28 +781,41 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             else:
                 self._non_overshootable_events.append(event)
 
-            self._has_change_dynamics_events |= event.changes_dynamics
-
             event.reset()  # Reset event state (commands/logs/enabled flag)
 
         # Sort by canonical order (lower priority runs first)
         self._overshootable_events.sort(key=lambda x: x.priority)
         self._non_overshootable_events.sort(key=lambda x: x.priority)
 
-    def __init_eventful_objects(self):
-        """Initialize controllers and sensors"""
-        self._controllers = self.rocket._controllers[:]
+    def __init_eventful_objects(self, user_events):
+        """Initialize the control inputs, controllers and sensors.
+        ``user_events`` are the events given to the flight."""
+        # Everything with control inputs in this flight
+        self._control_owners = self.rocket.controllables
+        # The events that share values with the others, by their name in
+        # snake_case: what context.outputs reads and writes
+        self._output_events = output_events((*self.rocket.controllers, *user_events))
+        # The control inputs of this flight: name to value, every one
+        # at its default. A new dictionary for every flight, so no
+        # flight inherits another's controls and the rocket itself is never
+        # changed by flying.
+        (
+            self._controls,
+            self._control_names,
+            self._control_limits,
+        ) = initial_controls(self._control_owners)
+        self.controllers = list(self.rocket.controllers)
         self.sensors = self.rocket.sensors.get_components()
         self.sensors_by_name = self.rocket.sensors_by_name
-
-        # reset controllable object to initial state (only airbrakes for now)
-        for air_brakes in self.rocket.air_brakes:
-            air_brakes._reset()
-
-        self.sensor_data = {}
         for sensor in self.sensors:
             sensor._reset(self.rocket)  # resets noise and measurement list
-            self.sensor_data[sensor] = []
+        # Each sensor position by its key (the sensor's name in snake_case,
+        # numbered from 2 at the positions after the first of a sensor added
+        # in several positions), with its event: what context.sensors reads,
+        # and how the results find the positions
+        self._sensors_by_key = sensor_positions(
+            getattr(self.rocket, "_sensor_events", ())
+        )
 
     def __init_solution_monitors(self):
         # Initialize solution monitors
@@ -795,14 +837,19 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         # Bind each phase's dynamics (states + equations of motion) to this
-        # flight. Each bound object is callable as (t, u), so it is a drop-in
-        # for the old derivative functions.
+        # flight. Each bound object is callable as (t, u), with the flight's
+        # control inputs as they are, which is what the ODE solver needs.
         self.u_dot = SOLID_PROPULSION_DYNAMICS.bind(self)
         self.u_dot_generalized = SIX_DOF_DYNAMICS.bind(self)
         self.u_dot_generalized_3dof = THREE_DOF_DYNAMICS.bind(self)
         self.u_dot_parachute = PARACHUTE_DYNAMICS.bind(self)
         self.udot_rail1 = RAIL_DYNAMICS.bind(self)
         self.udot_rail2 = self.u_dot_generalized
+
+        # The thrust acts through the nozzle exit, worked out again here in
+        # case the thrust eccentricity was set on the rocket directly
+        self.rocket.evaluate_nozzle_exit()
+        self.rocket.evaluate_nozzle_gyration_tensor()
 
         # The switches events make during the flight: surface -> [(time, active)]
         self._surface_switches = {}
@@ -863,26 +910,38 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.function_evaluations = []
         # Initialize solution state
         self.solution = Solution()
-        # A flight that changes the rocket as it flies has to record its
-        # post-process variables while it runs. Telling the solution so makes
-        # the recorded values the only answer it will give for them.
-        self.solution.records_post_values = self._has_change_dynamics_events
         self.__init_flight_state()
 
         self.t_initial = self.initial_solution[0]
+        self.initial_dynamics = self.initial_dynamics.started_from(
+            tuple(self.initial_solution[1:])
+        )
         self.solution._start_phase(
             self.initial_dynamics,
             start_canonical=tuple(self.initial_solution[1:]),
             t_start=self.t_initial,
             name="initial_phase",  # the same name _FlightPhases gives it
         )
-        self.solution._append(list(self.initial_solution))
+        # The first row: the phase's states seeded from the given initial
+        # solution, then the controllables' states, from the flight this one
+        # continues when it has them, else from their starting values
+        self.solution._append(
+            [
+                self.t_initial,
+                *self.initial_dynamics.initial_state(
+                    self.t_initial, self.initial_solution[1:], self._previous_states
+                ),
+            ]
+        )
         self.t, *self.y_sol = self.solution.raw_row(-1)
 
         self.__set_ode_solver(self.ode_solver)
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
+        # The states of the flight this one continues, by name, for the
+        # controllables' states; empty when the flight starts on its own
+        self._previous_states = {}
         if self.initial_solution is None:
             # Initialize time and state variables
             self.t_initial = 0
@@ -938,6 +997,19 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             previous_flight = self.initial_solution
             self.t_initial = previous_flight.solution.raw_row(-1)[0]
             self.initial_solution = previous_flight.solution.canonical_row(-1)
+            # The controllables go on from where that flight left them: its
+            # last control inputs, for the ones this flight also has and
+            # inside this flight's limits, and its last states, which the
+            # first phase takes by name
+            previous_controls = previous_flight.solution._controls[-1] or {}
+            for name, value in previous_controls.items():
+                if name in self._controls:
+                    self._controls[name] = limited_value(
+                        value, self._control_limits[name], name
+                    )
+            self._previous_states = previous_flight.solution.phases[-1].state_dict(
+                previous_flight.solution.raw_row(-1)[1:]
+            )
             # Set unused monitors
             self.out_of_rail_state = self.initial_solution[1:]
             self.out_of_rail_time = self.initial_solution[0]
@@ -1016,10 +1088,16 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def __simulate_phase(self, phase, phase_index):
         """Run one Flight phase across all time nodes."""
         if phase_index > 0:
-            # A new phase begins. Seed its raw state from the canonical state
-            # that ended the previous phase and open a fresh one in the solution.
+            # A new phase begins. Seed its raw state from the state that ended
+            # the previous phase and open a fresh one in the solution.
             previous_canonical = self.solution.canonical_row(-1)[1:]
-            y0 = phase.dynamics.initial_state(phase.t, previous_canonical)
+            previous = self.solution.phases[-1].state_dict(
+                self.solution.raw_row(-1)[1:]
+            )
+            # A phase that does not integrate every canonical state holds the
+            # others at the values it began with
+            phase.dynamics = phase.dynamics.started_from(previous_canonical)
+            y0 = phase.dynamics.initial_state(phase.t, previous_canonical, previous)
             self.solution._start_phase(
                 phase.dynamics,
                 start_canonical=tuple(previous_canonical),
@@ -1047,6 +1125,14 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
         # Initialize phase time nodes
         self.__setup_phase_time_nodes(phase)
+        if phase_index == 0:
+            # Every sensor reads once on the pad, as a flight computer has
+            # readings before launch, so no event or controller ever finds a
+            # sensor without one. The schedule never samples the start itself.
+            sensor_events = [
+                event for _, event in getattr(self.rocket, "_sensor_events", ())
+            ]
+            call_events(self, sensor_events, phase, phase_index, 0, phase.t, y0)
         self.__simulate_phase_nodes(phase, phase_index)
 
     def __setup_phase_time_nodes(self, phase):
@@ -1070,12 +1156,18 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self._non_overshootable_events, phase.t, phase.time_bound
         )
 
-        # Add motor burn nodes so that integration always happen during burn
+        # Add motor burn nodes so that integration always happen during burn.
+        # A rocket sitting still on the rail lets the solver's steps grow
+        # freely, and one step could go over the whole burn, leaving the
+        # rocket on the pad. A step that ends at the time of maximum thrust
+        # ends with the rocket being pushed, so the solver refines it.
         motor = self.rocket.motor
+        burn_times = [motor.max_thrust_time]
         if motor.burn_start_time > 0:
-            for t_burn in (motor.burn_start_time, motor.burn_out_time):
-                if phase.t < t_burn < phase.time_bound:
-                    phase.time_nodes.add_node(t_burn, [])
+            burn_times += [motor.burn_start_time, motor.burn_out_time]
+        for t_burn in burn_times:
+            if phase.t < t_burn < phase.time_bound:
+                phase.time_nodes.add_node(t_burn, [])
 
         # Organize time nodes
         phase.time_nodes.sort()
@@ -1137,10 +1229,19 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         while phase.solver.status == "running":
             self.__execute_solver_step(phase)
             self.__process_events(phase, phase_index, node_index)
-            self.__post_process_step()
+            self.__store_row_controls()
 
     def __execute_solver_step(self, phase):
         """Execute one solver step and update simulation history."""
+        # What each event run in this step found (controls and memory), so a
+        # rollback inside it can undo what was done after the time it goes
+        # back to, by time and event, in the order they ran. Filled by
+        # event_execution.save_for_rollback
+        self._step_log = {}
+        # What the flight's schedule was before each event that changed it in
+        # this step, in the order they ran. Filled by
+        # event_execution.save_schedule
+        self._schedule_log = []
         # Execute solver step, log solution and function evaluations
         phase.solver.step()
         self.solution._append([phase.solver.t, *phase.solver.y])
@@ -1156,17 +1257,17 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
 
     def __process_events(self, phase, phase_index, node_index):
-        # 1. Determine if we must rollback
-        time, state, events_to_evaluate, rolled_back = (
-            self.__process_overshootable_nodes(phase, phase_index, node_index)
+        # 1. The sampling times the step went past, which may cut it
+        time, state, rolled_back = self.__process_overshootable_nodes(
+            phase, phase_index, node_index
         )
 
-        # 2. Add continuous events to the pool and order based on priority
-        events_to_evaluate.extend(phase.time_nodes.continuous_events)
-        events_to_evaluate.sort(key=lambda event: event.priority)
-
-        # 3. Evaluate combined events in sequence ordered by priority
-        trajectory_changed = call_events(
+        # 2. The events checked at every step, in order of priority, at the
+        # step's end or where it was cut
+        events_to_evaluate = sorted(
+            phase.time_nodes.continuous_events, key=lambda event: event.priority
+        )
+        call_events(
             flight=self,
             events=events_to_evaluate,
             phase=phase,
@@ -1176,26 +1277,36 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             state=state,
         )
 
-        # 4. If the flight was rolled back, or a command moved this phase's
-        # end, and the phase is still being flown, restart the solver from
-        # the flight's current state.
-        if (rolled_back or trajectory_changed) and phase.solver.status == "running":
+        # 3. After a rollback, or an event that happened at an exact time
+        # inside the step and changed the trajectory, the solver stands past
+        # the flight, so it is rebuilt from the flight's state unless the
+        # node is over. An event that moved the phase's end without changing
+        # the trajectory (a new phase after a lag) only moves the solver's
+        # bound.
+        next_node_time = phase.time_nodes[node_index + 1].t
+        if (rolled_back or self.t < phase.solver.t) and self.t < next_node_time:
             self.__restart_phase_solver(phase, node_index)
+        elif phase.solver.status == "running" and (
+            phase.solver.t_bound != next_node_time
+        ):
+            self.__sync_node_solver_bound(
+                phase, phase.time_nodes[node_index], node_index
+            )
 
     def __process_overshootable_nodes(self, phase, phase_index, node_index):
-        """Checks for overshootable node triggers without executing state
-        changes, rolls back if needed."""
+        """Run the events of the sampling times the solver step went past, in
+        time order, and cut the step at the first one whose commands change the
+        trajectory. Returns the time and raw state the step now ends at, and
+        whether it was cut."""
         # Construct nodes considering all events discrete call times
         overshootable_nodes = self.__build_overshootable_nodes()
 
         if not any(node.events for node in overshootable_nodes.list):
-            return self.t, self.y_sol, [], False  # Nothing scheduled in this step
+            return self.t, self.y_sol, False  # Nothing scheduled in this step
 
         # Evaluate common kwargs parameters for event triggers.
         event_kwargs = build_event_kwargs(self, self.t, self.y_sol, phase)
 
-        # Feed overshootable time nodes trigger
-        events_to_evaluate = []
         interpolator = phase.solver.dense_output()
         for overshootable_node in overshootable_nodes.list:
             if not overshootable_node.events:
@@ -1204,18 +1315,17 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             interpolated_time = overshootable_node.t
 
             event_kwargs = refresh_event_kwargs(
-                flight=self,
                 event_kwargs=event_kwargs,
                 interpolated_time=interpolated_time,
                 interpolated_state=interpolated_state,
             )
-            if out_of_rail_trigger(event_kwargs) or impact_trigger(event_kwargs):
+            if out_of_rail_trigger(self, event_kwargs) or impact_trigger(event_kwargs):
                 continue  # past the rail exit or the impact, where the step is cut
 
             # Check events for current node
             rolled_back = False
             for event in overshootable_node.events:
-                rolled_back, should_recall = process_overshootable_event(
+                rolled_back = process_overshootable_event(
                     flight=self,
                     event=event,
                     event_kwargs=event_kwargs,
@@ -1224,21 +1334,18 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                     node_index=node_index,
                     rolled_back=rolled_back,
                 )
-                if should_recall:
-                    events_to_evaluate.append(event)
 
             if rolled_back:
-                return interpolated_time, interpolated_state, events_to_evaluate, True
+                return interpolated_time, interpolated_state, True
 
-        return self.t, self.y_sol, events_to_evaluate, False
+        return self.t, self.y_sol, False
 
     def __restart_phase_solver(self, phase, node_index):
         """Rebuild the phase's solver from the flight's current time and state.
 
-        Used when the state the solver holds is no longer the flight's: after
-        a rollback, or after a command moved the phase's end. The phase, its
-        equations and its node schedule are kept, so the solver simply runs on
-        to the next node.
+        Used when the state the solver holds is no longer the flight's, after
+        a rollback. The phase, its equations and its node schedule are kept,
+        so the solver simply runs on to the next node.
         """
         phase.solver = self._solver(
             phase.dynamics,
@@ -1277,80 +1384,35 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
         return overshootable_nodes
 
-    def __post_process_step(self):
-        """Record the post-process variables of every stored row that lacks them.
+    def __store_row_controls(self):
+        """Store a copy of the control inputs with every row that has none.
 
-        Does nothing unless the flight has an event that changes the dynamics.
-        Recording as the simulation runs captures a parameter change a
-        controller made, which a later replay over the stored states could not
-        reproduce: the replay would read the rocket in the configuration it
-        ended the flight in. This is what keeps the accelerations, forces and
-        moments accurate for a flight whose controllers move an air brake or a
-        fin.
-
-        Called once per solver step, after the step's events are handled. The
-        rows without values are the ones written since the last call, and they
-        always sit together at the end: normally just the step's own row. A
-        row an event inserts to mark its exact time is recorded when it is
-        inserted (see :meth:`_post_process_row`), since a later event of the
-        same step may change the rocket.
+        Called once per solver step, after the step's events are handled, so
+        a row carries what its events wrote. The rows without controls are the
+        ones written since the last call: normally just the step's own row,
+        plus the flight's first row on the first call. A row an event inserts
+        at its exact time gets its controls when it is inserted.
         """
-        solution = self.solution
-        if not solution.records_post_values:
+        controls = self.solution._controls
+        index = len(controls) - 1
+        if index < 0 or controls[index] is not None:
             return
-        post_values = solution._post_values
-        index = len(post_values) - 1
-        while index >= 0 and post_values[index] is None:
-            self._post_process_row(index)
+        stored = dict(self._controls)
+        while index >= 0 and controls[index] is None:
+            self.solution._set_controls(index, stored)
             index -= 1
-
-    def _post_process_row(self, index):
-        """Record the post-process variables of one stored row.
-
-        Computed from the row's own time and state, with the rocket as it is
-        now. Does nothing unless the flight records its post-process values.
-
-        Parameters
-        ----------
-        index : int
-            Row position across the whole flight. Negative values count from
-            the end.
-        """
-        solution = self.solution
-        if not solution.records_post_values:
-            return
-        # The phase that owns the row, which is not always the phase being
-        # flown: one that has only just begun holds no rows yet.
-        phase = solution.phases[solution.phase_index_at(index)]
-        row = solution.raw_row(index)
-        solution._set_post_values(
-            index,
-            phase.dynamics.post_process_values(
-                phase.bound_dynamics.post_process_at(row[0], row[1:])
-            ),
-        )
 
     def __finalize_simulation(self):
         """Finalize and cache simulation outputs."""
         self.t_final = self.t
-        if self.sensors:
-            self.__cache_sensor_data()
+        # Copied, since the events are reset if the rocket flies again
+        self._records = self.records
+        self._event_outputs = self.event_outputs
         logger.info("Simulation completed at time: %.4f s", self.t)
-
-    def __cache_sensor_data(self):
-        """Cache sensor data for simulations with sensors."""
-        sensor_data = {}
-        sensors = []
-        for sensor in self.sensors:
-            # skip sensors that are used more then once in the rocket
-            if sensor not in sensors:
-                sensors.append(sensor)
-                sensor_data[sensor] = sensor.measured_data[:]
-        self.sensor_data = sensor_data
 
     @deprecated(
         reason="Flight.get_solution_at_time is deprecated",
-        version="v1.14",
+        version="v1.16",
         alternative="flight.solution.at(t)",
     )
     def get_solution_at_time(self, t, atol=1e-3):
@@ -1449,7 +1511,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @cached_property
     @deprecated(
         reason="Flight.solution_array is deprecated",
-        version="v1.14",
+        version="v1.16",
         alternative="flight.solution['name'] for a single variable, or "
         "flight.solution.canonical_array for the full 14-column table",
     )
@@ -1570,84 +1632,84 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def ax(self):
         """Acceleration of the rocket's center of dry mass along the X (East)
         axis in the inertial frame as a function of time."""
-        return self.solution.post["ax"]
+        return self.solution.ax
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
         """Acceleration of the rocket's center of dry mass along the Y (North)
         axis in the inertial frame as a function of time."""
-        return self.solution.post["ay"]
+        return self.solution.ay
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
         """Acceleration of the rocket's center of dry mass along the Z (Up)
         axis in the inertial frame as a function of time."""
-        return self.solution.post["az"]
+        return self.solution.az
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
         """Angular acceleration of the rocket in the x direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         pitch acceleration."""
-        return self.solution.post["alpha1"]
+        return self.solution.alpha1
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
         """Angular acceleration of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration."""
-        return self.solution.post["alpha2"]
+        return self.solution.alpha2
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
         """Angular acceleration of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         roll acceleration."""
-        return self.solution.post["alpha3"]
+        return self.solution.alpha3
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
         """Aerodynamic force acting along the x-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self.solution.post["R1"]
+        return self.solution.R1
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
         """Aerodynamic force acting along the y-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self.solution.post["R2"]
+        return self.solution.R2
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
         """Aerodynamic force acting along the z-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self.solution.post["R3"]
+        return self.solution.R3
 
     @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
         """Aerodynamic moment acting along the x-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self.solution.post["M1"]
+        return self.solution.M1
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
         """Aerodynamic moment acting along the y-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self.solution.post["M2"]
+        return self.solution.M2
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
         """Aerodynamic moment acting along the z-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self.solution.post["M3"]
+        return self.solution.M3
 
     @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
     def net_thrust(self):
         """Net thrust of the rocket as a Function of time. This is the
         actual thrust force experienced by the rocket. It may be corrected
         with the atmospheric pressure if a reference pressure is defined."""
-        return self.solution.post["net_thrust"]
+        return self.solution.net_thrust
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
@@ -1680,7 +1742,214 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Wind velocity in the Y direction (north) as a Function of time."""
         return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
 
-    # Process fourth type of output - values calculated from previous outputs
+    # Process fourth type of outputs - the controls, the controllables' states,
+    # the sensor readings and the events' records, as the flight kept them
+    @cached_property
+    def controls(self):
+        """The control inputs over the flight, by controllable, as Functions
+        of time.
+
+        A controllable is found by its name as given, or by that name in
+        snake_case as an attribute, as a controller writes it in
+        ``context.controls``:
+
+        .. code-block:: python
+
+            flight.controls["Air Brakes"].deployment_level(5.0)
+            flight.controls.air_brakes.deployment_level(5.0)
+
+        both give the deployment level in force at 5 s. A control written by
+        sampled controllers holds its value until it was written again; one a
+        continuous controller's law wrote is known at every stored row and
+        interpolated between them. The raw numbers are
+        ``flight.solution.controls``. Looping over it gives the names of the
+        controllables. Empty for a flight without controls.
+
+        Returns
+        -------
+        dict
+            Controllable name to its control inputs.
+        """
+        owners = {
+            snake_case_key(owner.name): owner.name for owner in self._control_owners
+        }
+        data = {}
+        for name in self.solution.control_names:
+            key, _, control = name.partition(".")
+            owner = owners.get(key, key)
+            label = f"{owner} {control}"
+            history, by_law = self.solution._control_history(name)
+            if by_law:
+                function = Function(history, "Time (s)", label, "linear", "constant")
+            else:
+                function = history_function(history, label)
+            data.setdefault(owner, {})[control] = function
+        return _ResultsDict(data)
+
+    @cached_property
+    def state_history(self):
+        """The states of the rocket's controllables over the flight, by
+        controllable: the angle a lagging fin reached, the integral of a
+        continuous controller.
+
+        A controllable is found by its name as given, or by that name in
+        snake_case as an attribute, the two being the same, and each of its
+        states is a :class:`rocketpy.Function` of time:
+
+        .. code-block:: python
+
+            flight.state_history["Canards"].a1(2.0)
+            flight.state_history.canards.a1.plot()
+            flight.state_history.roll_pi.integral
+
+        Looping over it gives the names of the controllables with states.
+        Empty for a rocket whose controllables have none.
+
+        Returns
+        -------
+        dict
+            Controllable name to its states, by state name.
+        """
+        data = {}
+        rocket = self.rocket
+        for controllable in (
+            *rocket._parts_with_states,
+            *rocket._continuous_controllers,
+        ):
+            if controllable.states:
+                data[controllable.name] = {
+                    state: Function(
+                        self.solution[name],
+                        "Time (s)",
+                        f"{controllable.name} {state}",
+                        "linear",
+                        "constant",
+                    )
+                    for state, name in zip(
+                        controllable.states, controllable._state_names()
+                    )
+                }
+        return _ResultsDict(data)
+
+    @property
+    def records(self):
+        """What the events of the flight recorded with ``context.record``,
+        by event, exactly as recorded.
+
+        An event, such as a controller, is found by its name as given, or by
+        that name in snake_case as an attribute, the two being the same:
+
+        .. code-block:: python
+
+            flight.records["Roll Damper"].error
+            flight.records.roll_damper.error
+
+        Each record is the list of ``(time, value)`` pairs the event stored,
+        with ``value`` the object it passed to ``context.record``: a number, a
+        vector, a text, a dictionary. Events with the same name are numbered
+        from 2 in the order they were given to the flight (``"Event"``,
+        ``"Event 2"``). Looping over it gives the names of the events that
+        recorded something.
+
+        Returns
+        -------
+        dict
+            Event name to its records, each record name to its list of
+            ``(time, value)`` pairs.
+        """
+        # A flight that ended, or was loaded from a file, keeps its records;
+        # one still flying reads them off its events, where they are growing
+        kept = getattr(self, "_records", None)
+        if kept is not None:
+            return kept
+        events = list(getattr(self, "events", ()))
+        names = unique_names([event.name for event in events])
+        return _ResultsDict(
+            {
+                name: {
+                    record: list(values) for record, values in event._records.items()
+                }
+                for name, event in zip(names, events)
+                if event._records
+            }
+        )
+
+    @property
+    def event_outputs(self):
+        """What the events of the flight wrote to their outputs, by event.
+
+        An output is a value an event shares with the other events through
+        ``context.outputs``. An event, such as a controller, is found by its
+        name as given, or by that name in snake_case as an attribute, the two
+        being the same:
+
+        .. code-block:: python
+
+            flight.event_outputs["Guidance"].pitch_setpoint
+            flight.event_outputs.guidance.pitch_setpoint
+
+        Each output is the list of ``(time, value)`` pairs the event wrote,
+        with the value as it was when written: a number, a vector, a text, a
+        dictionary. Looping over it gives the names of the events that wrote
+        an output.
+
+        Returns
+        -------
+        dict
+            Event name to its outputs, each output name to its list of
+            ``(time, value)`` pairs.
+        """
+        # As for the records: kept once the flight ended or was loaded
+        kept = getattr(self, "_event_outputs", None)
+        if kept is not None:
+            return kept
+        return _ResultsDict(
+            {
+                event.name: {
+                    name: list(points) for name, points in event._output_history.items()
+                }
+                for event in getattr(self, "_output_events", {}).values()
+                if event._output_history
+            }
+        )
+
+    @cached_property
+    def sensor_history(self):
+        """What the sensors of the flight read, by sensor, as Functions of time.
+
+        A sensor is found by its name as given, or by that name in snake_case
+        as an attribute, the two being the same, as an event function reads
+        it in ``context.sensors``. Each channel holds each reading until the
+        next one, which is what a flight computer reading the sensor sees:
+
+        .. code-block:: python
+
+            flight.sensor_history["Barometer"].pressure(5.0)
+            flight.sensor_history.barometer.pressure(5.0)
+
+        both give the last pressure read at or before 5 s, with its noise and
+        resolution. A sensor added in several positions is numbered from 2 at
+        the positions after the first: ``"Accelerometer"``,
+        ``"Accelerometer 2"``. The readings themselves are
+        ``flight.solution.sensors``. Looping over it gives the names.
+
+        Returns
+        -------
+        dict
+            Sensor name to its channels. Empty for a flight without
+            sensors.
+        """
+        return _ResultsDict(
+            {
+                name: {
+                    channel: history_function(points, f"{name} {channel}")
+                    for channel, points in channels.items()
+                }
+                for name, channels in self.solution._sensors.items()
+            }
+        )
+
+    # Process fifth type of output - values calculated from previous outputs
     # Frame conversions
     @cached_property
     def _stacked_velocity_body_frame(self):
@@ -3128,6 +3397,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "M2": self.M2,
             "M3": self.M3,
             "net_thrust": self.net_thrust,
+            "records": self.records,
+            "event_outputs": self.event_outputs,
             "surface_switches": surface_switches,
         }
 
@@ -3191,24 +3462,59 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             simulation_mode=data.get("simulation_mode", "6DOF"),
         )
 
+    @property
+    @deprecated(
+        reason="Flight.sensor_data is deprecated",
+        version="v1.16.0",
+        alternative="`flight.sensor_history` for each sensor's readings as "
+        "Functions of time, or `flight.solution.sensors` for the readings",
+    )
+    def sensor_data(self):
+        """What each sensor read over the flight, as in v1.13: a dictionary
+        from the sensor object to its list of ``(time, *reading)`` tuples, or
+        to one such list per position when the sensor was added to the rocket
+        in more than one position.
+
+        .. deprecated:: 1.15
+           Use :attr:`sensor_history`, which gives each sensor's readings by
+           name as Functions of time, or ``flight.solution.sensors`` for the
+           readings themselves.
+        """
+        return _sensor_rows(self)
+
     @deprecated(
         reason="Controller observed variables are no longer supported.",
         version="v1.16.0",
-        alternative="Access the desired variables via controller.log",
+        alternative="Record values with `context.record(...)` in the controller "
+        "function and read them as `flight.records`",
     )
     def get_controller_observed_variables(self):
-        """Retrieve the observed variables from each controller.
+        """Retrieve the observed variables of each controller.
 
-        If there is only one controller, its log is returned directly. If
-        there are multiple controllers, a list of logs is returned.
+        For a controller function written the deprecated positional way, this
+        is its ``observed_variables`` list, as in v1.13: the
+        ``initial_observed_variables`` (if any), then every value it returned
+        other than ``None``. For any other controller, it is an empty list:
+        such a controller records values with ``context.record``, read after
+        the flight in ``flight.records``.
+
+        If there is only one controller, its list is returned directly. If
+        there are multiple controllers, a list of lists is returned.
 
         Returns
         -------
         list
-            Controller log(s) containing the return values of each
-            controller function call.
+            The observed variables of each controller.
         """
-        observed_variables = [controller.log for controller in self._controllers]
+        # pylint: disable-next=import-outside-toplevel
+        from ..control._legacy import _PositionalController
+
+        observed_variables = [
+            c.controller_function.observed_variables
+            if isinstance(c.controller_function, _PositionalController)
+            else []
+            for c in self.controllers
+        ]
         return (
             observed_variables[0]
             if len(observed_variables) == 1

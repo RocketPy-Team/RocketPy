@@ -202,6 +202,11 @@ class Gyroscope(InertialSensor):
         self.prints = _GyroscopePrints(self)
         self.plots = _GyroscopePlots(self)
 
+    @property
+    def _reads_state_derivative(self):
+        # Only the acceleration sensitivity reads the acceleration
+        return self.acceleration_sensitivity != Vector.zeros()
+
     def measure(self, time, **kwargs):
         """Measure the angular velocity of the rocket
 
@@ -214,8 +219,10 @@ class Gyroscope(InertialSensor):
 
             - u : np.array
                 State vector of the rocket.
-            - u_dot : np.array
-                Derivative of the state vector of the rocket.
+            - u_dot : np.array or None
+                Derivative of the state vector of the rocket. Read only when
+                the gyroscope has an acceleration sensitivity, and ``None``
+                during a flight otherwise.
             - relative_position : np.array
                 Position of the sensor relative to the rocket center of mass.
             - environment : Environment

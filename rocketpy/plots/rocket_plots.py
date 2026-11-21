@@ -5,7 +5,7 @@ import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
-from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
+from rocketpy.rocket.aero_surface import ControlFins, Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 from .plot_helpers import show_or_save_fig, show_or_save_plot
@@ -398,6 +398,9 @@ class _RocketPlots:
                 )
             elif isinstance(surface, Fin):
                 self._draw_fin(ax, surface, position, drawn_surfaces, vis_args, plane)
+            elif isinstance(surface, ControlFins):
+                for fin in surface.fins:
+                    self._draw_fin(ax, fin, position, drawn_surfaces, vis_args, plane)
             elif isinstance(surface, GenericSurface):
                 self._draw_generic_surface(
                     ax, surface, position, drawn_surfaces, vis_args, plane

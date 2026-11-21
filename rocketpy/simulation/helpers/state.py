@@ -1,6 +1,27 @@
+"""The rocket's state read by name: ``context.state`` in an event and
+``conditions.state`` in a controller or an effector, and the names of the 13
+standard states every flight phase reports."""
+
 import numpy as np
 
-from ..helpers.dynamics import CANONICAL_INDEX
+# The 13 states of RocketPy's full flight state, in order.
+CANONICAL_STATE_NAMES = (
+    "x",
+    "y",
+    "z",
+    "vx",
+    "vy",
+    "vz",
+    "e0",
+    "e1",
+    "e2",
+    "e3",
+    "w1",
+    "w2",
+    "w3",
+)
+# Each canonical state's position in that order.
+CANONICAL_INDEX = {name: index for index, name in enumerate(CANONICAL_STATE_NAMES)}
 
 
 class _StateView:

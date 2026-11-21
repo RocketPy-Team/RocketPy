@@ -4,7 +4,7 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Flight, Rocket, SolidMotor
+from rocketpy import AirBrakes, Flight, Rocket, SolidMotor
 from rocketpy.simulation.helpers.dynamics import FULL_POST_PROCESS_VARS
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -357,6 +357,29 @@ def test_flight_with_delayed_burn_leaves_rail(example_plain_env):
     assert flight.apogee - example_plain_env.elevation > 1000.0
 
 
+@pytest.mark.parametrize("options", [{"max_time": 8}, {"rtol": 1e-11}])
+def test_flight_leaves_the_rail_whatever_the_first_solver_steps(
+    calisto_robust, example_plain_env, options
+):
+    """A rocket whose thrust starts from zero sits still at first, so the
+    solver's steps grow freely: with a short ``max_time`` or a tight ``rtol``
+    one step used to go over the whole burn, and the rocket never left the
+    pad. The solver now stops at the time of maximum thrust."""
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        **options,
+    )
+
+    assert calisto_robust.motor.max_thrust_time in flight.time
+    assert 0 < flight.out_of_rail_time < 1
+    assert flight.z(4.0) - example_plain_env.elevation > 500
+
+
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(  # pylint: disable=unused-argument
     mock_show,
@@ -536,7 +559,7 @@ def test_the_rail_phase_reports_forces_but_no_angular_acceleration(
         heading=0,
         terminate_on_apogee=True,
     )
-    rail = flight.solution.post.phase_values(0)
+    rail = flight.solution.phase_values(0)
     column = FULL_POST_PROCESS_VARS.index
 
     assert flight.solution.phases[0].dynamics.name == "rail"
@@ -665,9 +688,11 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
         atol=13 * [hard_atol],
     )
 
+    # The value moves in its fifth digit with the solver's choice of steps
     assert np.isclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
         0.463944387965394,
+        rtol=1e-4,
         atol=hard_atol,
     )
     assert np.isclose(
@@ -680,10 +705,14 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     assert np.isclose(
         test_flight.free_stream_speed(test_flight.apogee_time),
         0.4639443879653988,
+        rtol=1e-4,
         atol=hard_atol,
     )
     assert np.isclose(
-        test_flight.apogee_freestream_speed, 0.4639443879653988, atol=hard_atol
+        test_flight.apogee_freestream_speed,
+        0.4639443879653988,
+        rtol=1e-4,
+        atol=hard_atol,
     )
 
 
@@ -769,19 +798,21 @@ def test_air_brakes_with_environment_parameter(
 
     # Verify controller was called and observed variables were stored
     # Controller is attached to the rocket, not the air brakes object
-    controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
+    controllers = [c for c in flight.controllers if "AirBrakes" in c.name]
     assert len(controllers) > 0
     controller = controllers[0]
-    assert len(controller.log) > 0
+    # A positional controller keeps what it returns, other than None, in its
+    # observed_variables, on the wrapper that runs it
+    observed_variables = controller.controller_function.observed_variables
+    assert len(observed_variables) > 0
 
     # Verify observed variables contain expected data (time, deployment_level, mach_number)
-    for observed in controller.log:
-        if observed is not None:
-            assert len(observed) == 3
-            time, deployment_level, mach_number = observed
-            assert time >= 0
-            assert 0 <= deployment_level <= 1  # Should be clamped
-            assert mach_number >= 0
+    for observed in observed_variables:
+        assert len(observed) == 3
+        time, deployment_level, mach_number = observed
+        assert time >= 0
+        assert 0 <= deployment_level <= 1  # Should be clamped
+        assert mach_number >= 0
 
 
 def test_air_brakes_serialization_with_environment(
@@ -813,9 +844,11 @@ def test_air_brakes_serialization_with_environment(
     # Serialize the rocket
     rocket_dict = calisto_robust.to_dict()
 
-    # Verify serialization succeeded and contains air brakes data
-    assert "air_brakes" in rocket_dict
-    assert len(rocket_dict["air_brakes"]) > 0
+    # Verify serialization succeeded and the air brakes are among the surfaces
+    assert any(
+        isinstance(surface, AirBrakes)
+        for surface, _ in rocket_dict["aerodynamic_surfaces"]
+    )
 
     # Run a flight with the original rocket
     flight_original = Flight(
@@ -832,10 +865,11 @@ def test_air_brakes_serialization_with_environment(
     assert flight_original.apogee > 0
 
 
-def test_backward_compatibility_5_parameter_controller(
+def test_backward_compatibility_6_parameter_controller(
     calisto_robust, example_plain_env
 ):
-    """Test that old 5-parameter controllers still work (backward compatibility).
+    """Test that the 6-parameter controllers of v1.13 still work (backward
+    compatibility).
 
     Parameters
     ----------
@@ -845,8 +879,8 @@ def test_backward_compatibility_5_parameter_controller(
         Environment object for the simulation
     """
 
-    def controller_5_params(  # pylint: disable=unused-argument
-        time, sampling_rate, state, observed_variables, air_brakes
+    def controller_6_params(  # pylint: disable=unused-argument
+        time, sampling_rate, state, state_history, observed_variables, air_brakes
     ):
         """Controller with the shortest supported positional signature."""
         altitude = state[2]
@@ -861,70 +895,7 @@ def test_backward_compatibility_5_parameter_controller(
             air_brakes.deployment_level = min(0.5, max(0, vz / 100))
         return None
 
-    # Add air brakes with old-style 5-parameter controller
-    calisto_robust.parachutes = []
-    calisto_robust.add_air_brakes(
-        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-        controller_function=controller_5_params,
-        sampling_rate=10,
-        clamp=True,
-    )
-
-    # Run flight simulation
-    flight = Flight(
-        rocket=calisto_robust,
-        environment=example_plain_env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=True,
-    )
-
-    # Verify flight completed successfully
-    assert flight.t_final > 0
-    assert flight.apogee > 0
-
-    # Verify controller exists
-    controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
-    assert len(controllers) > 0
-
-
-def test_6_parameter_controller_with_sensors(calisto_robust, example_plain_env):
-    """Test that 6-parameter controllers (with sensors, no environment) work correctly.
-
-    Parameters
-    ----------
-    calisto_robust : rocketpy.Rocket
-        Calisto rocket without air brakes
-    example_plain_env : rocketpy.Environment
-        Environment object for the simulation
-    """
-
-    # Define a 6-parameter controller
-    def controller_6_params(  # pylint: disable=unused-argument
-        time,
-        sampling_rate,
-        state,
-        observed_variables,
-        air_brakes,
-        sensors,
-    ):
-        """Controller with 6 parameters (includes sensors, but not environment)."""
-        altitude = state[2]
-        vz = state[5]
-
-        if time < 3.9:
-            return None
-
-        if altitude < 1500:
-            air_brakes.deployment_level = 0
-        else:
-            # Simple proportional control
-            air_brakes.deployment_level = min(0.5, max(0, vz / 100))
-
-        return (time, air_brakes.deployment_level)
-
-    # Add air brakes with 6-parameter controller
+    # Add air brakes with old-style 6-parameter controller
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
         drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
@@ -947,8 +918,72 @@ def test_6_parameter_controller_with_sensors(calisto_robust, example_plain_env):
     assert flight.t_final > 0
     assert flight.apogee > 0
 
+    # Verify controller exists
+    controllers = [c for c in flight.controllers if "AirBrakes" in c.name]
+    assert len(controllers) > 0
 
-@pytest.mark.parametrize("param_count", [4, 8])
+
+def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
+    """Test that 7-parameter controllers (with sensors, no environment) work correctly.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+
+    # Define a 7-parameter controller
+    def controller_7_params(  # pylint: disable=unused-argument
+        time,
+        sampling_rate,
+        state,
+        state_history,
+        observed_variables,
+        air_brakes,
+        sensors,
+    ):
+        """Controller with 7 parameters (includes sensors, but not environment)."""
+        altitude = state[2]
+        vz = state[5]
+
+        if time < 3.9:
+            return None
+
+        if altitude < 1500:
+            air_brakes.deployment_level = 0
+        else:
+            # Simple proportional control
+            air_brakes.deployment_level = min(0.5, max(0, vz / 100))
+
+        return (time, air_brakes.deployment_level)
+
+    # Add air brakes with 7-parameter controller
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller_7_params,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    # Run flight simulation
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Verify flight completed successfully
+    assert flight.t_final > 0
+    assert flight.apogee > 0
+
+
+@pytest.mark.parametrize("param_count", [5, 9])
 def test_invalid_controller_parameter_count(calisto_robust, param_count):
     """Test that positional controllers with an invalid parameter count raise
     ValueError. Only 6, 7 or 8 positional arguments are supported.
@@ -964,6 +999,7 @@ def test_invalid_controller_parameter_count(calisto_robust, param_count):
         "time",
         "sampling_rate",
         "state",
+        "state_history",
         "observed_variables",
         "air_brakes",
         "sensors",
@@ -979,7 +1015,7 @@ def test_invalid_controller_parameter_count(calisto_robust, param_count):
 
     calisto_robust.parachutes = []
 
-    with pytest.raises(ValueError, match="must have 5, 6, or 7"):
+    with pytest.raises(ValueError, match="must have 6, 7"):
         calisto_robust.add_air_brakes(
             drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
             controller_function=invalid_controller,
@@ -988,7 +1024,7 @@ def test_invalid_controller_parameter_count(calisto_robust, param_count):
         )
 
 
-@pytest.mark.parametrize("param_count", [5, 6, 7])
+@pytest.mark.parametrize("param_count", [6, 7, 8])
 def test_deprecated_positional_controller(calisto_robust, param_count):
     """Test that positional controllers with a valid parameter count (6, 7 or
     8) are accepted but emit a DeprecationWarning.
@@ -1004,6 +1040,7 @@ def test_deprecated_positional_controller(calisto_robust, param_count):
         "time",
         "sampling_rate",
         "state",
+        "state_history",
         "observed_variables",
         "air_brakes",
         "sensors",
@@ -1049,6 +1086,7 @@ def test_context_controller_no_warning(calisto_robust, recwarn):
         controller_function=context_controller,
         sampling_rate=10,
         clamp=True,
+        position=0.0,
     )
 
     assert not any(issubclass(w.category, DeprecationWarning) for w in recwarn.list)
@@ -1073,6 +1111,7 @@ def make_controller_test_environment_access(methods_called):
         time,
         sampling_rate,
         state,
+        state_history,
         observed_variables,
         air_brakes,
         sensors,
@@ -1165,7 +1204,7 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
         sampling_rate = context.sampling_rate
         state = context.state
         previous_state = context.previous_state
-        air_brakes = context.controlled.air_brakes
+        controls = context.controls
         environment = context.environment
 
         altitude_agl = context.height_agl
@@ -1180,19 +1219,19 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
         if time < 3.9:
             return None
 
+        air_brakes = controls["AirBrakes"]
+        level = air_brakes.deployment_level
         previous_vz = previous_state.vz if previous_state is not None else vz
         if altitude_agl < 1500:
             air_brakes.deployment_level = 0
         else:
-            new_level = air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+            new_level = level + 0.1 * vz + 0.01 * previous_vz**2
             max_change = 0.2 / sampling_rate
-            new_level = max(
-                air_brakes.deployment_level - max_change,
-                min(air_brakes.deployment_level + max_change, new_level),
+            air_brakes.deployment_level = max(
+                level - max_change, min(level + max_change, new_level)
             )
-            air_brakes.deployment_level = new_level
 
-        return (time, air_brakes.deployment_level, mach_number)
+        context.record(mach_number=mach_number)
 
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
@@ -1213,6 +1252,10 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
 
     assert flight.t_final > 0
     assert flight.apogee > 0
+    # the returned dict is recorded, from burnout on
+    mach = flight.records["AirBrakes Controller"].mach_number
+    assert mach[0][0] == pytest.approx(3.9, abs=0.1)
+    assert max(flight.solution.controls.air_brakes.deployment_level[:, 1]) > 0
 
 
 def test_the_deprecated_stability_plot_saves_one_file_per_plot(

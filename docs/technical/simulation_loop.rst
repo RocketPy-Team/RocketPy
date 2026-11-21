@@ -53,7 +53,14 @@ Building blocks
     Every phase can report the full 13-state canonical vector, so events and
     outputs never need to know which states a phase actually integrates.
     Bound to a flight (``dynamics.bind(flight)``) it is callable as ``(t, u)``,
-    which is what the SciPy solver expects.
+    which is what the SciPy solver expects; the equations themselves take
+    ``(flight, t, u, controls)``, where ``u`` is the state and ``controls``
+    the flight's control inputs, a dictionary from control input name to value.
+    ``controls`` is built from the rocket's controllables with controls
+    (``rocket.controllables``) at the start of every flight and kept by the
+    flight (``flight._controls``, private), written by events through
+    ``context.controls``, and a copy is stored with every row, so a row worked
+    out again after the flight reads its own controls.
 
 ``_TimeNodes`` / ``_TimeNode``
     The node schedule of one phase. A node is a time and the list of events
@@ -66,8 +73,8 @@ Building blocks
     The loop reads those commands right after the call.
 
 ``Solution`` (``solution.py``)
-    The stored rows ``[t, *state]`` of the flight, grouped by phase, plus the
-    post-process values recorded beside them.
+    The stored rows ``[t, *state]`` of the flight, grouped by phase, with the
+    control inputs in force at each row and the sensor readings.
 
 Setting up
 ----------
@@ -115,8 +122,8 @@ Running a phase
 After every solver step (``__execute_solver_step``), the new row
 ``[solver.t, *solver.y]`` is appended to the solution and ``flight.t`` /
 ``flight.y_sol`` are updated. Then ``__process_events`` runs, and finally
-``__post_process_step`` records the post-process variables of the rows the
-step wrote, if the flight records them (see below).
+``__store_row_controls`` stores a copy of the control inputs with the rows the
+step wrote.
 
 Checking events after a step
 ----------------------------
@@ -134,9 +141,16 @@ Checking events after a step
 3. **Evaluation.** One ``EventContext`` is built for that moment and every
    event in the list is called with it. After each event that fires, its
    commands are applied (``apply_event_commands``).
-4. **Restart the solver.** If the flight was rolled back, or a command moved
-   the end of the phase, and the phase is still being flown, the solver is
-   rebuilt from the flight's current state and runs on to the next node.
+4. **Restart the solver.** If the flight now stands before the solver, the
+   solver is rebuilt from the flight's current state and runs on to the next
+   node, unless the node is over. That happens after a rollback, and after an
+   event that solved its exact time inside the step and changed the
+   trajectory. An event that only moved the end of the phase (a new phase
+   after a lag) moves the solver's bound instead. A control write or a surface
+   switch at the step's end does not rebuild it: the solver is already at that time and
+   meets the new derivative on its next step. A rebuilt solver begins again
+   with a tiny step, so rebuilding on every write would make an event that
+   writes a control at every step cripple the integration.
 
 .. _time_overshoot_processing:
 
@@ -146,20 +160,14 @@ Time-overshoot processing
 A sampled event with ``time_overshootable=True`` does not force the solver to
 stop at its sampling times. Instead, after each step, ``__process_overshootable_nodes``
 builds the list of sampling times that fell inside the step and, for each one,
-interpolates the state there with the solver's dense output and evaluates the
-event's trigger on it (``trigger_only=True``). Then:
-
-- If the trigger is false, nothing happens.
-- If it is true and the event does **not** declare ``changes_dynamics``, its
-  callback runs right there on the interpolated state. If the commands it
-  queued change the trajectory (a new phase, new dynamics, or termination), the
-  flight is first rolled back to the interpolated point so the commands apply
-  from the crossing rather than from the overshot step end.
-- If it is true and the event declares ``changes_dynamics=True``, the flight
-  is rolled back to the interpolated point and the event is queued to be
-  called for real, together with the continuous events, at that rolled-back
-  moment. This guarantees the callback's changes to the rocket take effect from
-  the crossing on, and that the overshot part of the step is discarded.
+interpolates the state there with the solver's dense output and runs the
+event on it (``call_event``). If the trigger is true, the callback runs right
+there on the interpolated state. If the commands it queued change the
+trajectory (a new phase, new dynamics, termination, a surface switch, a change
+to the rocket or a control write), the flight is first rolled back to the
+interpolated point so the commands apply from the crossing rather than from
+the overshot step end. The other events of the same sampling time still run
+there.
 
 A rollback (``apply_rollback_command``) sets ``flight.t`` and ``flight.y_sol``
 to the interpolated point and replaces the last stored row with it. Sampling
@@ -180,7 +188,10 @@ event queued and applies them, in this order:
    into the solution. When the event changes the trajectory, the exact row
    replaces the end of the step and the flight continues from it; otherwise it
    is inserted just before the step's end and the step stands as flown.
-2. **New phase or dynamics.** ``set_dynamics`` and ``start_flight_phase`` add a
+2. **Surfaces.** Surface switches are recorded with their time, so a later
+   rollback drops the ones after the time it returns to and the post-processing
+   replays them.
+3. **New phase or dynamics.** ``set_dynamics`` and ``start_flight_phase`` add a
    phase to the list right after the current one, starting at the trigger time
    (plus ``lag``, if any) with the requested dynamics or, if none was given,
    the current ones, and the flight is rolled back to the trigger. Without a
@@ -189,34 +200,29 @@ event queued and applies them, in this order:
    lag the current phase keeps flying its own equations until the new phase
    begins: its schedule is cut at that time and its solver is restarted from
    the trigger (a parachute keeps falling freely while it opens).
-3. **Termination.** ``terminate_flight`` truncates the phase list after the
+4. **Termination.** ``terminate_flight`` truncates the phase list after the
    current phase and inserts a final phase at the trigger time, so the outer
    loop ends there.
-4. **Event list changes.** ``add_event`` registers a new event with the flight
+5. **Event list changes.** ``add_event`` registers a new event with the flight
    and, if it is non-overshootable, adds its nodes to the current phase.
    ``enable``/``disable`` commands, including ``trigger_only_once`` and the
    ``enable_on``/``disable_on`` gates, update the event and add or remove its
    nodes from the current phase's schedule.
 
 After the events of a node are checked, the solver bound is set again, since
-step 4 may have changed the node schedule.
+step 5 may have changed the node schedule.
 
 Post-process variables
 ----------------------
 
 The accelerations, aerodynamic forces and moments, and net thrust are not
 integrated; they are computed from a stored row by evaluating the equations of
-motion again with ``post_processing=True``. For most flights that is done once,
-after the simulation, over all stored rows.
+motion again with ``post_processing=True``. That is done once, after the
+simulation, over all stored rows.
 
-A flight with an event that declares ``changes_dynamics=True`` cannot do that:
-a controller may have moved an air brake mid-flight, and a replay afterwards
-would read the rocket as it ended the flight. Such a flight records the values
-step by step during the simulation (``__post_process_step``), one extra
-evaluation of the equations of motion per stored row. Whether the flight records
-is decided in ``__init__`` from the events it was built with, which is why an
-event added later with ``add_event`` cannot turn recording on for the rows
-already flown.
+Each row is computed with the control inputs stored with it. Surface switches
+are recorded with their time (``flight._surface_switches``), so the replay
+turns each surface on or off for the rows it was on or off in the flight.
 
 Where to look
 -------------
@@ -226,7 +232,7 @@ Where to look
   ``__process_overshootable_nodes``, ``__restart_phase_solver``.
 - ``events/event_context.py``: ``EventContext``, the values a trigger and
   callback are given, and ``build_event_kwargs``, which builds one.
-  ``events/state.py``: the private ``_State`` and ``_StateDot``, what
+  ``helpers/state.py``: the private ``_State`` and ``_StateDot``, what
   ``context.state`` and ``context.state_dot`` are.
 - ``events/event_execution.py``: ``call_events`` and
   ``process_overshootable_event``, which run an event, and

@@ -1,9 +1,9 @@
 """Defines the StochasticRocket class."""
 
 import warnings
+from copy import deepcopy
 from random import choice
 
-from rocketpy.control import _Controller
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import GenericMotor, Motor
@@ -99,7 +99,9 @@ class StochasticRocket(StochasticModel):
     Surfaces with no stochastic version yet, the ones built from their own
     coefficients (``GenericSurface`` and its linear and controllable versions),
     the free-form fins and the individual fins, are added to every generated
-    rocket unchanged, at their position.
+    rocket unchanged, at their position. So are the rocket's effectors, and a
+    copy of each of its controllers and sensors: every generated rocket flies
+    the same control loop, with its own measurements.
     """
 
     def __init__(
@@ -293,7 +295,10 @@ class StochasticRocket(StochasticModel):
         if not isinstance(surfaces, (type_, stochastic_type)):
             raise AssertionError(error_message)
         if isinstance(surfaces, type_):
-            surfaces = stochastic_type(component=surfaces)
+            # Positionally: the stochastic classes each name this first
+            # parameter after their own surface (`nosecone`, `tail`, ...), so
+            # there is no one keyword that reaches all of them.
+            surfaces = stochastic_type(surfaces)
         self.__components_map[surfaces] = positions
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)
@@ -419,9 +424,13 @@ class StochasticRocket(StochasticModel):
         Parameters
         ----------
         air_brakes : StochasticAirBrakes or Airbrakes
-            The air brake to be added to the stochastic rocket.
-        controller : _Controller
-            Deterministic air brake controller.
+            The air brake to be added to the stochastic rocket. Without this
+            call, every sampled rocket flies the rocket's air brakes as they
+            are, not dispersed.
+        controller : Controller
+            No longer used: every sampled rocket flies a copy of each
+            controller of the rocket, the one of the air brakes among them.
+            Kept so that existing scripts keep working.
         """
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
             raise TypeError(
@@ -717,6 +726,15 @@ class StochasticRocket(StochasticModel):
         )
         return rail_buttons, lower_button_position_rnd, upper_button_position_rnd
 
+    def _air_brake_position(self, air_brakes):
+        """Return where ``air_brakes`` sit on the base rocket, or its center of
+        dry mass when they are not on it."""
+        for surface, position in self.obj.aerodynamic_surfaces:
+            if surface is air_brakes:
+                at_center = self.obj._is_at_center_of_dry_mass(surface)
+                return None if at_center else position
+        return None
+
     def _create_air_brake(self, stochastic_air_brake):
         air_brake = stochastic_air_brake.create_object()
         self.last_rnd_dict["air_brakes"].append(stochastic_air_brake.last_rnd_dict)
@@ -792,24 +810,52 @@ class StochasticRocket(StochasticModel):
             surface, position_rnd = self._create_surface(component_surface)
             rocket.add_surfaces(surface, position_rnd)
 
-        # Surfaces with no stochastic version are carried over as they are
+        # Surfaces with no stochastic version are carried over as they are.
+        # Air brakes have one, added with add_air_brakes; when none was added,
+        # the rocket's air brakes are carried over as they are too, so that
+        # their controller, which is carried, finds them
+        dispersed = _DISPERSED_SURFACES
+        if self.air_brakes:
+            dispersed = (*dispersed, AirBrakes)
         for surface, position in self.obj.aerodynamic_surfaces:
-            if not isinstance(surface, _DISPERSED_SURFACES):
-                rocket.add_surfaces(surface, position)
+            if not isinstance(surface, dispersed):
+                at_center = self.obj._is_at_center_of_dry_mass(surface)
+                with warnings.catch_warnings():
+                    # The rocket was already warned when its air brakes were
+                    # added, if their curve and its drag disagree
+                    warnings.simplefilter("ignore", UserWarning)
+                    rocket.add_surfaces(surface, None if at_center else position)
 
         for air_brake in self.air_brakes:
-            air_brake = self._create_air_brake(air_brake)
-            base_controller = self.air_brake_controller
-            _controller = _Controller(
-                controller_function=base_controller.controller_function,
-                controlled_objects=air_brake,
-                controlled_objects_name=base_controller.controlled_objects_name,
-                sampling_rate=base_controller.sampling_rate,
-                memory=base_controller.memory.copy(),
-                name=base_controller.name,
-            )
-            rocket.air_brakes.append(air_brake)
-            rocket._add_controllers(_controller)
+            created = self._create_air_brake(air_brake)
+            with warnings.catch_warnings():
+                # The rocket these are sampled from was warned when its air
+                # brakes were added, if their curve and its drag disagree: no
+                # need to say it again at every sample
+                warnings.simplefilter("ignore", UserWarning)
+                rocket.add_surfaces(created, self._air_brake_position(air_brake.obj))
+
+        # Thrust effectors and force effectors have no stochastic
+        # version: they are carried over as they are, holding no state
+        for effector, position in self.obj.effectors:
+            rocket.add_effector(effector, position)
+        for controller in self.obj.continuous_controllers:
+            rocket.add_controller(controller)
+
+        # A controller sets its controls by name and points at no object, so
+        # each sampled rocket flies a copy of every controller of the rocket,
+        # in the order they were added
+        for controller in self.obj.controllers:
+            rocket.add_controller(deepcopy(controller))
+
+        # The sensors, each sampled rocket with its own copies. A sensor
+        # added in more than one position stays one sensor
+        sensor_copies = {}
+        for sensor, position in self.obj.sensors:
+            if sensor not in sensor_copies:
+                # pylint: disable-next=protected-access
+                sensor_copies[sensor] = sensor._detached_copy()
+            rocket.add_sensor(sensor_copies[sensor], position)
 
         for component_rail_buttons in self.rail_buttons:
             (

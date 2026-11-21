@@ -112,7 +112,7 @@ def test_surface_commands_are_queued_and_mark_a_trajectory_change():
     commands.activate_surface(deployable)
 
     assert commands.surface_switches == [(removable, False), (deployable, True)]
-    # the forces change, so the solver has to restart from the switch
+    # the forces change, so the flight rolls back to the switch
     assert commands.changes_trajectory is True
 
     commands.reset()
