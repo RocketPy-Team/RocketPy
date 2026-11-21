@@ -1238,6 +1238,10 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         # back to, by time and event, in the order they ran. Filled by
         # event_execution.save_for_rollback
         self._step_log = {}
+        # What the flight's schedule was before each event that changed it in
+        # this step, in the order they ran. Filled by
+        # event_execution.save_schedule
+        self._schedule_log = []
         # Execute solver step, log solution and function evaluations
         phase.solver.step()
         self.solution._append([phase.solver.t, *phase.solver.y])

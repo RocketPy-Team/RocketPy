@@ -66,6 +66,7 @@ def call_event(
         # An event turned on by its enable_on stays on, even if its trigger
         # did not fire in the same check
         if event.commands._disabled is False:
+            save_schedule(flight, phase, context["time"])
             apply_enable_commands(
                 flight, event.commands, node_index, event, phase, context["time"]
             )
@@ -104,6 +105,99 @@ def save_for_rollback(flight, event, time, controls, phase):
         return
     memory = _copy_of(event.memory) if event.memory else {}
     log[key] = (time, event, controls, memory, event._check_state(), phase)
+
+
+def save_schedule(flight, phase, time):
+    """Save what the flight's schedule is before an event run at ``time``
+    changes it, so a rollback to an earlier time can put it back (see
+    :func:`rewind`).
+
+    The schedule is everything an event's commands can change besides the
+    control inputs: the flight phases and where each ends, the time nodes of
+    the current phase and its solver's status, the events and which are
+    enabled, the surfaces switched on or off, and the parachutes noted as
+    deployed.
+    """
+    # There is no log before the first solver step, when nothing can be cut
+    log = getattr(flight, "_schedule_log", None)
+    if log is None:
+        return
+    nodes = phase.time_nodes
+    log.append(
+        (
+            # The time the event has in the step's log: its sampling time, or
+            # the flight's time once an exact time cut the step
+            min(time, flight.t),
+            phase,
+            [(kept, kept.time_bound) for kept in flight.flight_phases.list],
+            [(node, list(node.events)) for node in nodes.list],
+            list(nodes.continuous_events),
+            phase.solver.status,
+            [(event, event._enabled) for event in flight.events],
+            list(flight.custom_events),
+            list(flight._overshootable_events),
+            list(flight._non_overshootable_events),
+            dict(flight._output_events),
+            {surface: len(rows) for surface, rows in flight._surface_switches.items()},
+            len(flight.parachute_events),
+        )
+    )
+
+
+def restore_schedule(flight, time):
+    """Put the flight's schedule back to what it was at ``time``: as it was
+    before the first event that changed it after ``time`` in this step (see
+    :func:`save_schedule`). Nothing is done when no event did."""
+    log = getattr(flight, "_schedule_log", None)
+    if not log:
+        return
+    # Saved in the order the events ran, which is also in order of time
+    later = [saved for saved in log if saved[0] > time]
+    if not later:
+        return
+    log[:] = [saved for saved in log if saved[0] <= time]
+    (
+        _,
+        phase,
+        phases,
+        nodes,
+        continuous_events,
+        solver_status,
+        events,
+        custom_events,
+        overshootable,
+        non_overshootable,
+        outputs,
+        switches,
+        parachutes,
+    ) = later[0]
+
+    # In place, so every list stays the object the flight and its loops hold
+    flight.flight_phases.list[:] = [kept for kept, _ in phases]
+    for kept, time_bound in phases:
+        kept.time_bound = time_bound
+    phase.time_nodes.list[:] = [node for node, _ in nodes]
+    for node, node_events in nodes:
+        node.events[:] = node_events
+    phase.time_nodes.continuous_events[:] = continuous_events
+    phase.solver.status = solver_status
+
+    flight.events[:] = [event for event, _ in events]
+    for event, enabled in events:
+        event._enabled = enabled
+    flight.custom_events[:] = custom_events
+    flight._overshootable_events[:] = overshootable
+    flight._non_overshootable_events[:] = non_overshootable
+    flight._output_events.clear()
+    flight._output_events.update(outputs)
+
+    for surface in list(flight._surface_switches):
+        kept = switches.get(surface, 0)
+        if kept:
+            del flight._surface_switches[surface][kept:]
+        else:
+            del flight._surface_switches[surface]
+    del flight.parachute_events[parachutes:]
 
 
 def _copy_of(memory):
@@ -213,6 +307,21 @@ def apply_event_commands(
         t_apply = event_results.exact_time
         apply_exact_time_result(flight, event_results)
 
+    # Saved only before commands that change the schedule: the phases, the
+    # events and which are enabled, the surface switches or the flight's end.
+    # Written out, since this runs after every call of every event
+    if (  # pylint: disable=too-many-boolean-expressions
+        event_results.new_flight_phase is not None
+        or event_results.new_dynamics is not None
+        or event_results._terminate
+        or event_results.surface_switches
+        or event_results.new_events
+        or event_results.enable_events
+        or event_results.disable_events
+        or event_results._disabled is not None
+    ):
+        save_schedule(flight, phase, command_time)
+
     # Before a new phase is started, so its solver begins with these surfaces
     apply_surface_switches(flight, event_results, time=t_apply)
 
@@ -294,8 +403,11 @@ def rewind(flight, time, event_results=None):
     enabled and its previous check (all saved by :func:`save_for_rollback`).
     The records, the outputs and the sensor readings made after ``time`` are
     dropped, with the times events ran or were turned on or off after it. The
+    flight's schedule goes back too (see :func:`save_schedule`): a phase
+    started, an event added, enabled or disabled, a surface switched, a
+    parachute deployed or the flight ended after ``time`` is undone. The
     event that cuts the step happened at ``time``, so its control writes, its
-    memory and its own state stand.
+    memory and its own state stand, and its commands are applied afterwards.
 
     Parameters
     ----------
@@ -309,6 +421,9 @@ def rewind(flight, time, event_results=None):
     log = getattr(flight, "_step_log", None)
     if log is None or not time < flight.t:
         return
+    # Before the events are given back their own state, which is the state
+    # before their first run after ``time`` and may be older than the save
+    restore_schedule(flight, time)
     # In the order the events ran, as the log was filled
     later = [entry for entry in log.values() if entry[0] > time]
     for entry in later:

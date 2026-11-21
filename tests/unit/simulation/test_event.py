@@ -11,12 +11,18 @@ from rocketpy.simulation.events.event_context import (
     build_event_kwargs,
     refresh_event_kwargs,
 )
-from rocketpy.simulation.events.event_execution import apply_event_list_updates
+from rocketpy.simulation.events.event_execution import (
+    apply_event_commands,
+    apply_event_list_updates,
+    apply_rollback_command,
+    rewind,
+)
 from rocketpy.simulation.helpers.dynamics import (
     CANONICAL_STATE_NAMES,
     SIX_DOF_DYNAMICS,
     _PhaseDynamics,
 )
+from rocketpy.simulation.helpers.flight_phase import _FlightPhases, _TimeNodes
 from rocketpy.simulation.solution import Solution
 
 
@@ -1677,6 +1683,253 @@ def test_a_phase_state_cannot_take_a_name_the_state_uses(taken):
         _PhaseDynamics("custom", None, ("x", "y", "z", taken))
 
 
+# A rollback and the flight's schedule: its phases, its events and which are
+# enabled, its surface switches and its parachutes
+
+
+class _Surface:
+    """A stand-in for an aerodynamic surface."""
+
+    name = "Canard"
+
+
+def _flight_in_a_step(t=2.0):
+    """A stand-in flight at the end of a solver step from 1 s to ``t``, in a
+    phase that runs to 100 s, holding what an event's commands change. It has
+    one event checked at every step, one sampled event the solver steps over
+    and one it stops at, and one surface."""
+    every_step = Event(lambda context: None, name="Every step")
+    stepped_over = Event(lambda context: None, sampling_rate=10, name="Stepped over")
+    stopped_at = Event(
+        lambda context: None,
+        sampling_rate=1,
+        time_overshootable=False,
+        enabled=False,
+        enable_on=lambda context: False,
+        name="Stopped at",
+    )
+    events = [every_step, stepped_over, stopped_at]
+    phases = _FlightPhases(t_initial=0.0, initial_dynamics=None, max_time=100.0)
+    phase = phases[0]
+    phase.time_nodes = _TimeNodes()
+    for node_time in (0.0, 50.0, 100.0):
+        phase.time_nodes.add_node(node_time, [])
+    phase.time_nodes.add_continuous_events([every_step])
+    phase.solver = SimpleNamespace(status="running")
+    surface = _Surface()
+    flight = SimpleNamespace(
+        t=t,
+        y_sol=_sample_state(t, 1.0)[1:],
+        solution=_canonical_solution(_sample_state(1.0, 1.0), _sample_state(t, 1.0)),
+        flight_phases=phases,
+        events=list(events),
+        custom_events=list(events),
+        _overshootable_events=[stepped_over],
+        _non_overshootable_events=[every_step, stopped_at],
+        _output_events={},
+        _surface_switches={},
+        parachute_events=[],
+        time_overshoot=True,
+        _controls={},
+        _step_log={},
+        _schedule_log=[],
+        rocket=SimpleNamespace(aerodynamic_surfaces=[(surface, None)]),
+    )
+    return flight, phase, surface
+
+
+def _schedule(flight, phase):
+    """Everything of the flight's schedule, as plain values to compare."""
+    return (
+        [(kept.name, kept.t, kept.time_bound) for kept in flight.flight_phases.list],
+        [(node.t, list(node.events)) for node in phase.time_nodes.list],
+        list(phase.time_nodes.continuous_events),
+        phase.solver.status,
+        [(event.name, event.enabled) for event in flight.events],
+        [event.name for event in flight.custom_events],
+        [event.name for event in flight._overshootable_events],
+        [event.name for event in flight._non_overshootable_events],
+        dict(flight._output_events),
+        {s.name: list(rows) for s, rows in flight._surface_switches.items()},
+        list(flight.parachute_events),
+    )
+
+
+def _apply(flight, phase, time, queue, event=None):
+    """Apply at ``time`` the commands ``queue`` puts on ``event`` (a new one
+    by default), as the flight does once the event fired."""
+    event = event or Event(lambda context: None, name=f"Event at {time}")
+    event.commands.reset()
+    queue(event.commands, flight)
+    if event.commands.changes_trajectory and time < flight.t:
+        apply_rollback_command(flight, time, flight.y_sol, event.commands)
+    apply_event_commands(flight, event, event.commands, phase, 0, 0, time)
+    return event
+
+
+def _switch_the_surface(commands, flight):
+    commands.surface_switches.append((flight.rocket.aerodynamic_surfaces[0][0], True))
+
+
+def _start_a_phase(commands, _flight):
+    commands.start_flight_phase("new_phase")
+
+
+def _start_a_phase_after_a_lag(commands, _flight):
+    commands.start_flight_phase("new_phase", lag=1.5)
+
+
+def _deploy_a_parachute(commands, _flight):
+    commands.start_flight_phase("descent", lag=1.5)
+    commands.new_dynamics_kwargs["parachute"] = "Drogue"
+
+
+def _end_the_flight(commands, _flight):
+    commands.terminate_flight()
+
+
+def _add_a_sampled_event(commands, _flight):
+    commands.add_event(
+        Event(lambda context: None, sampling_rate=5, outputs=("level",), name="Added")
+    )
+
+
+def _add_an_event_the_solver_stops_at(commands, _flight):
+    commands.add_event(
+        Event(
+            lambda context: None,
+            sampling_rate=0.1,
+            time_overshootable=False,
+            name="Added",
+        )
+    )
+
+
+def _disable_another_event(commands, flight):
+    commands.disable_event(flight.events[0])
+
+
+def _enable_another_event(commands, flight):
+    commands.enable_event(flight.events[2])
+
+
+def _disable_itself(commands, _flight):
+    commands.disable()
+
+
+_SCHEDULE_CHANGES = [
+    _switch_the_surface,
+    _start_a_phase,
+    _start_a_phase_after_a_lag,
+    _deploy_a_parachute,
+    _end_the_flight,
+    _add_a_sampled_event,
+    _add_an_event_the_solver_stops_at,
+    _disable_another_event,
+    _enable_another_event,
+    _disable_itself,
+]
+
+
+@pytest.mark.parametrize(
+    "change", _SCHEDULE_CHANGES, ids=lambda change: change.__name__
+)
+def test_a_rollback_undoes_what_an_event_did_to_the_schedule(change):
+    """Whatever an event's commands changed after the time the flight goes
+    back to is put back as it was."""
+    flight, phase, _ = _flight_in_a_step()
+    before = _schedule(flight, phase)
+    event = flight.events[0] if change is _disable_itself else None
+
+    _apply(flight, phase, 2.0, change, event)  # at the step end
+    assert _schedule(flight, phase) != before
+
+    rewind(flight, 1.5)
+
+    assert _schedule(flight, phase) == before
+    assert not flight._schedule_log
+
+
+@pytest.mark.parametrize(
+    "change", _SCHEDULE_CHANGES, ids=lambda change: change.__name__
+)
+def test_a_rollback_keeps_what_an_event_did_before_the_time_it_goes_back_to(change):
+    flight, phase, _ = _flight_in_a_step()
+    event = flight.events[0] if change is _disable_itself else None
+    _apply(flight, phase, 1.2, change, event)
+    kept = _schedule(flight, phase)
+
+    rewind(flight, 1.5)
+
+    assert _schedule(flight, phase) == kept
+
+
+def test_a_rollback_undoes_only_the_changes_made_after_its_time():
+    """An event added at 1.2 s stays; the surface switched and the phase
+    started at the step end, both after the time gone back to, do not."""
+    flight, phase, _ = _flight_in_a_step()
+    _apply(flight, phase, 1.2, _add_a_sampled_event)
+    kept = _schedule(flight, phase)
+    _apply(flight, phase, 2.0, _switch_the_surface)
+    _apply(flight, phase, 2.0, _start_a_phase_after_a_lag)
+
+    rewind(flight, 1.5)
+
+    assert _schedule(flight, phase) == kept
+    assert [event.name for event in flight.events][-1] == "Added"
+
+
+def test_the_event_that_cuts_the_step_keeps_what_it_changed():
+    """An event at a sampling time the step went past cuts the step there and
+    then starts its phase: going back to its own time does not undo it."""
+    flight, phase, surface = _flight_in_a_step()
+
+    def switch_and_start(commands, flight):
+        _switch_the_surface(commands, flight)
+        _start_a_phase(commands, flight)
+
+    _apply(flight, phase, 1.2, switch_and_start)
+
+    assert flight.t == 1.2
+    assert [kept.name for kept in flight.flight_phases.list] == [
+        "initial_phase",
+        "new_phase",
+        "max_time_stop",
+    ]
+    assert flight._surface_switches == {surface: [(1.2, True)]}
+    assert phase.solver.status == "finished"
+
+
+def test_an_exact_time_event_undoes_the_sampled_event_it_is_found_before():
+    """A sampled event starts a phase and switches a surface at 1.8 s. An
+    event checked at the step end is then found to have happened at 1.5 s and
+    starts its own phase: the flight goes back to 1.5 s, where the sampled
+    event has not happened yet."""
+    flight, phase, _ = _flight_in_a_step()
+
+    def switch_and_start(commands, flight):
+        _switch_the_surface(commands, flight)
+        commands.start_flight_phase("sampled_phase")
+
+    _apply(flight, phase, 1.8, switch_and_start)
+
+    def start_at_the_exact_time(commands, _flight):
+        commands.start_flight_phase("exact_phase")
+        commands.exact_time = 1.5
+        commands.exact_state = _sample_state(1.5, 1.0)[1:]
+
+    _apply(flight, phase, 1.8, start_at_the_exact_time)
+
+    assert flight.t == 1.5
+    assert [(kept.name, kept.t) for kept in flight.flight_phases.list] == [
+        ("initial_phase", 0.0),
+        ("exact_phase", 1.5),
+        ("max_time_stop", 100.0),
+    ]
+    assert not flight._surface_switches
+    assert phase.time_bound == 1.5
+
+
 # ``enabled`` set by the user, and by a flight
 
 
@@ -1691,6 +1944,21 @@ def test_enabled_set_after_the_event_is_built_is_how_every_flight_starts():
     event.enabled = True
     event.reset()
     assert event.enabled is True
+
+
+def test_what_a_flight_did_to_enabled_is_undone_at_the_next_flight():
+    """An event the flight turned off, by its own command or by another
+    event's, starts the next flight as the user left it."""
+    flight, phase, _ = _flight_in_a_step()
+    every_step, _, stopped_at = flight.events
+
+    _apply(flight, phase, 2.0, _disable_itself, every_step)
+    _apply(flight, phase, 2.0, _enable_another_event)
+    assert every_step.enabled is False and stopped_at.enabled is True
+
+    every_step.reset()
+    stopped_at.reset()
+    assert every_step.enabled is True and stopped_at.enabled is False
 
 
 def test_a_rollback_does_not_change_how_the_event_starts_a_flight():
