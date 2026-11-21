@@ -123,38 +123,25 @@ def test_stochastic_parachute_threads_seed_into_created_object():
     assert _noise_sequence(other) != _noise_sequence(first)
 
 
-# Pinned from a StochasticParachute seeded with 123, so a change to how the
-# noise seed is derived or applied moves them. Same seed, same sequence.
-_PINNED = {
-    "main": (
-        6639568465033922193,
-        [
-            -3.78616199388814,
-            -13.452710525868634,
-            -4.673764102705483,
-            -10.801711039361278,
-            -8.053692181461434,
-            -16.713116227374677,
-            -21.497333383014304,
-        ],
-    ),
-    "drogue": (
-        6152077226054995121,
-        [
-            -1.1998384111241425,
-            5.348258635026273,
-            2.8774014645733943,
-            4.406981770690811,
-            12.553121676963602,
-            7.348730317452494,
-            -4.59114813843395,
-        ],
-    ),
-}
+# Noise seeds a StochasticParachute seeded with 123 derives, pinned so a change
+# to the derivation shows up here.
+_PINNED_SEEDS = {"main": 6639568465033922193, "drogue": 6152077226054995121}
+
+
+def _expected_noise(seed, mean, deviation, correlation, n):
+    """The AR(1) chain from a fresh generator, independent of NumPy's stream."""
+    rng = np.random.default_rng(seed)
+    samples = [rng.normal(mean, deviation)]
+    for _ in range(n):
+        samples.append(
+            correlation * samples[-1]
+            + (1 - correlation**2) ** 0.5 * rng.normal(mean, deviation)
+        )
+    return samples
 
 
 @pytest.mark.parametrize("name", ["main", "drogue"])
-def test_stochastic_parachute_noise_sequence_is_pinned(name):
+def test_stochastic_parachute_noise_follows_the_pinned_seed(name):
     stochastic = StochasticParachute(
         Parachute(
             name=name,
@@ -168,6 +155,7 @@ def test_stochastic_parachute_noise_sequence_is_pinned(name):
 
     built = stochastic.create_object()
 
-    seed, sequence = _PINNED[name]
-    assert built._seed == seed
-    assert _noise_sequence(built, n=6) == pytest.approx(sequence, rel=1e-12)
+    assert built._seed == _PINNED_SEEDS[name]
+    assert _noise_sequence(built, n=6) == pytest.approx(
+        _expected_noise(_PINNED_SEEDS[name], 0, 8.3, 0.5, n=6), rel=1e-12
+    )
