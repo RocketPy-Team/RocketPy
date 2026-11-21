@@ -542,6 +542,7 @@ class ConvergenceMockMonteCarlo(MonteCarlo):
         self.filename = pathlib.Path("dummy_mc")
         self._width_model = width_model
         self.simulate_calls = 0
+        self.inputs_log, self.outputs_log = [], []
 
     def import_outputs(self, *args, **kwargs):  # no-op, avoids file I/O
         pass

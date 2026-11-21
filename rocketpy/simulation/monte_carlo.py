@@ -987,9 +987,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             Non-negative study seed passed to every batch. If omitted, an existing
             study keeps its recorded seed; a new study generates and prints one.
             The bootstrap behind each width is seeded from it too, so the same
-            study run again with the same seed stops after the same batch. Runs
-            with the same seed draw a common prefix of one stream of samples;
-            where the study stops can still depend on ``batch_size``.
+            study run again with the same seed stops after the same batch,
+            in parallel or not. Runs with the same seed draw a common prefix of
+            one stream of samples; where the study stops can still depend on
+            ``batch_size``.
 
         Returns
         -------
@@ -1041,7 +1042,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 random_seed=random_seed,
             )
 
-            self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+            self.__read_outputs_in_simulation_order()
 
             ci = self.estimate_confidence_interval(
                 attribute=target_attribute,
@@ -1068,6 +1069,15 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 break
 
         return confidence_interval_history
+
+    def __read_outputs_in_simulation_order(self):
+        """Reads the outputs log, then sorts both logs by simulation index and
+        rebuilds ``results``. Parallel workers append rows as they finish, and
+        the seeded bootstrap must see the same sequence every time."""
+        self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+        for log in (self.inputs_log, self.outputs_log):
+            log.sort(key=lambda row: row[_SIMULATION_INDEX_KEY])
+        self.set_results()
 
     def __evaluate_flight_inputs(self, sim_idx):
         """Evaluates the inputs of a single flight simulation.
