@@ -128,6 +128,9 @@ def apply_event_commands(
         t_apply = event_results.exact_time
         apply_exact_time_result(flight, event_results)
 
+    # Before a new phase is started, so its solver begins with these surfaces
+    apply_surface_switches(flight, event_results, time=t_apply)
+
     apply_new_phase_or_dynamics(
         flight, event_results, phase, phase_index, node_index, time=t_apply
     )
@@ -140,6 +143,37 @@ def apply_event_commands(
     apply_disable_commands(
         flight, event_results, node_index, event, phase, time=t_apply
     )
+    if event.changes_dynamics:
+        # The callback may have changed a surface
+        flight.rocket._refresh_aerodynamics()
+
+
+def apply_surface_switches(flight, event_results, time):
+    """Record the surfaces an event switched on or off, with the time.
+
+    Parameters
+    ----------
+    flight : Flight
+        Flight instance being updated.
+    event_results : Commands
+        The commands the event queued.
+    time : float
+        The time the switches happen at, in seconds.
+
+    Raises
+    ------
+    ValueError
+        If a surface is not one of the rocket's aerodynamic surfaces.
+    """
+    for surface, active in event_results.surface_switches:
+        if all(surface is not known for known, _ in flight.rocket.aerodynamic_surfaces):
+            raise ValueError(
+                f"Cannot switch the surface {getattr(surface, 'name', surface)!r} "
+                "on or off: it is not one of the rocket's aerodynamic "
+                "surfaces. Add it to the rocket before the flight, with "
+                "`active=False` if it should start switched off."
+            )
+        flight._surface_switches.setdefault(surface, []).append((time, active))
 
 
 def apply_rollback_command(flight, time, state):
@@ -149,10 +183,6 @@ def apply_rollback_command(flight, time, state):
     ----------
     flight : Flight
         Flight instance being updated.
-    event_results : dict
-        Result payload returned by the event system.
-    phase : _FlightPhase
-        Current flight phase.
     time : float
         Interpolated simulation time to restore.
     state : array_like
@@ -173,6 +203,8 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
 
     Parameters
     ----------
+    _ : Flight
+        Flight instance (unused; accepted for a uniform command signature).
     event_results : dict
         Result payload returned by the event system.
     node_index : int
@@ -181,6 +213,8 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
         Event currently being processed.
     phase : _FlightPhase
         Current flight phase.
+    time : float
+        Simulation time at which the events are disabled.
 
     """
     if event_results.disable_events:
@@ -214,6 +248,8 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
 
     Parameters
     ----------
+    flight : Flight
+        Flight instance being updated.
     event_results : dict
         Result payload returned by the event system.
     node_index : int
@@ -222,6 +258,8 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
         Event currently being processed.
     phase : _FlightPhase
         Current flight phase.
+    time : float
+        Simulation time at which the events are enabled.
 
     """
     if event_results.enable_events:
@@ -339,6 +377,8 @@ def apply_new_phase_or_dynamics(
         Index of the current flight phase.
     node_index : int
         Index of the current time node.
+    time : float
+        Simulation time at which the new phase or derivative takes effect.
 
     Returns
     -------
@@ -392,6 +432,8 @@ def apply_termination(flight, event_results, phase, phase_index, node_index, tim
         Index of the current flight phase.
     node_index : int
         Index of the current time node.
+    time : float
+        Simulation time at which the flight is terminated.
 
     Returns
     -------
@@ -426,12 +468,10 @@ def apply_event_list_updates(flight, event_results, phase, time):
         Flight instance being updated.
     event_results : dict
         Result payload returned by the event system.
-    node_index : int
-        Index of the current time node.
-    event : Event
-        Event currently being processed.
     phase : _FlightPhase
         Current flight phase.
+    time : float
+        Simulation time at which the new events are scheduled.
 
     """
     if event_results.new_events:

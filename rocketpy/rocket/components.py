@@ -1,6 +1,17 @@
 from collections import namedtuple
 from copy import deepcopy
 
+from rocketpy.mathutils.vector_matrix import Vector
+
+
+def position_vector(position):
+    """The position of a component as a Vector. A single number is the
+    coordinate along the rocket axis, with x = y = 0; a tuple, list or Vector
+    is the full (x, y, z) position."""
+    if isinstance(position, (Vector, tuple, list)):
+        return Vector(position)
+    return Vector([0, 0, position])
+
 
 class Components:
     """A Collection Class to hold components of the Rocket class. Each component
@@ -152,6 +163,31 @@ class Components:
                 self.__component_list.pop(index)
                 self.__position_list.pop(index)
                 self._components.pop(index)
+                break
+        else:
+            raise ValueError(f"Component {component} not found in components {self}")
+
+    def set_position(self, component, position):
+        """Move a component to a new position, keeping its place in the list.
+
+        Parameters
+        ----------
+        component : Any
+            The component to be moved.
+        position : int, float, tuple, list, Vector
+            The new position of the component relative to the rocket's
+            coordinate system origin: a number is the coordinate along the
+            rocket axis, a tuple, list or Vector the full (x, y, z) position.
+
+        Returns
+        -------
+        None
+        """
+        position = position_vector(position)
+        for index, comp in enumerate(self._components):
+            if comp.component == component:
+                self.__position_list[index] = position
+                self._components[index] = self.component_tuple(component, position)
                 break
         else:
             raise ValueError(f"Component {component} not found in components {self}")

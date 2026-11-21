@@ -4,9 +4,6 @@
 Individual Fin Model
 ====================
 
-:Author: Mateus Stano Junqueira
-:Date: March 2025
-
 Introduction
 ============
 
@@ -491,8 +488,3 @@ rocket:
 
   # Angle of sideslip
   test_flight.angle_of_sideslip.plot(test_flight.out_of_rail_time, 5)
-
-
-
-
-

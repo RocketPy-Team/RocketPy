@@ -5,18 +5,22 @@ import numpy as np
 
 from rocketpy.mathutils.function import Function
 
-from ..aero_surface import AeroSurface
+from .._barrowman_surface import _BarrowmanSurface
+from ..generic_surface import GenericSurface
 
 
-class _BaseFin(AeroSurface):
+class _BaseFin(_BarrowmanSurface):
     """
     Base class for fins, shared by both Fin and Fins classes.
-    Inherits from AeroSurface.
+    Inherits from :class:`_BarrowmanSurface`, translating the fin geometry into
+    generic-surface coefficients.
 
     Handles shared initialization logic and common properties.
     """
 
-    def __init__(
+    # GenericSurface.__init__ runs later, in _build_surface, once the fin shape
+    # class has set up its geometry
+    def __init__(  # pylint: disable=super-init-not-called
         self, name, rocket_radius, root_chord, span, airfoil=None, cant_angle=0
     ):
         """
@@ -47,20 +51,92 @@ class _BaseFin(AeroSurface):
         self.geometry = None
 
         self.reference_area = np.pi * rocket_radius**2
-
-        super().__init__(name, self.reference_area, self.rocket_diameter)
+        self.reference_length = self.rocket_diameter
 
     def _update_reference_quantities(self):
         """Update quantities that depend on rocket radius."""
         self.reference_area = np.pi * self._rocket_radius**2
         self.reference_length = self.rocket_diameter
 
-    def _update_geometry_chain(self):
-        """Update geometry-dependent quantities in dependency order."""
+    def _evaluate_geometry(self):
+        """Compute the fin's geometric and aerodynamic parameters.
+
+        Each step uses the results of the one before it, so the order matters.
+        """
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
+
+    def _build_surface(self):
+        """Compute the fin's parameters and set it up as an aerodynamic surface.
+
+        Called once, at the end of the constructor of each fin class.
+        """
+        self._evaluate_geometry()
+        GenericSurface.__init__(
+            self,
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=self.name,
+        )
+
+    def _update_geometry_chain(self):
+        """Recompute the fin after one of its dimensions changes.
+
+        Called by the geometry setters once the fin is built. It also tells the
+        rockets holding the fin that it changed.
+        """
+        self._evaluate_geometry()
+        self._geometry_changed()
+
+    def _cant_changed(self):
+        """Update the fin after its cant angle changes.
+
+        The coefficients read the cant angle each time they are evaluated, so
+        nothing is recomputed here: only the rockets holding the fin are told
+        that it changed. A controller may set the cant angle at every step of
+        the simulation, so this must stay cheap. ``Fin`` overrides it to also
+        turn its frame with the new cant angle.
+        """
+        self._version += 1
+
+    @property
+    def _roll_cant_angle_rad(self):
+        """Cant angle, in radians, with the sign used by the roll coefficients
+        ``cl_0`` and ``cl``.
+
+        ``Fins`` overrides it to flip the sign.
+
+        Returns
+        -------
+        float
+            Cant angle in radians.
+        """
+        return self.cant_angle_rad
+
+    @property
+    def roll_parameters(self):
+        """Roll forcing and roll damping coefficients of the fin, and its cant
+        angle.
+
+        The roll moment coefficient of a fin set is
+        ``cl = -clf_delta * cant_angle + cld_omega * cos(cant_angle) * roll_rate``,
+        where ``roll_rate`` is the reduced roll rate ``p * L / (2 * V)``. A
+        positive cant angle therefore gives a negative roll moment. A single fin
+        has no forcing term: its roll moment comes from the force acting at its
+        center of pressure.
+
+        Returns
+        -------
+        list
+            ``[clf_delta, cld_omega, cant_angle_rad]``: the roll forcing and
+            roll damping coefficients, both Functions of Mach for the fin at
+            zero cant angle, and the cant angle in radians.
+        """
+        return [self._clf_delta, self._cld_omega, self.cant_angle_rad]
 
     @property
     def rocket_radius(self):
@@ -218,7 +294,7 @@ class _BaseFin(AeroSurface):
             Cant angle in radians.
         """
         self._cant_angle_rad = value
-        self._update_geometry_chain()
+        self._cant_changed()
 
     @property
     def airfoil(self):
@@ -292,8 +368,8 @@ class _BaseFin(AeroSurface):
             2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
         )
 
-        # Lift coefficient derivative for a single fin
-        def lift_source(mach):
+        # Normal-force coefficient derivative for a single fin
+        def force_source(mach):
             return (
                 clalpha2D(mach)
                 * planform_correlation_parameter(mach)
@@ -306,9 +382,9 @@ class _BaseFin(AeroSurface):
             )
 
         self.clalpha_single_fin = Function(
-            lift_source,
+            force_source,
             "Mach",
-            "Lift coefficient derivative for a single fin",
+            "Normal-force coefficient derivative for a single fin",
         )
 
     @abstractmethod
@@ -342,3 +418,43 @@ class _BaseFin(AeroSurface):
     @abstractmethod
     def draw(self):
         """Draw or render the fin."""
+
+    def to_dict(self, include_outputs=False, **kwargs):
+        discretize = kwargs.get("discretize", False)
+        airfoil = None
+        if self.airfoil:
+            # The curve is saved rather than the file it came from, so the saved
+            # rocket loads anywhere. A table is kept as is: resampling it would
+            # change the slope the lift is computed from.
+            airfoil_cl = self.airfoil_cl
+            if discretize and callable(airfoil_cl.source):
+                limit = np.pi / 6 if self.airfoil[1] == "radians" else 30
+                airfoil_cl = airfoil_cl.set_discrete(
+                    -limit, limit, 50, mutate_self=False
+                )
+            airfoil = (airfoil_cl, self.airfoil[1])
+        data = {
+            "root_chord": self.root_chord,
+            "span": self.span,
+            "rocket_radius": self.rocket_radius,
+            "cant_angle": self.cant_angle,
+            "airfoil": airfoil,
+            "name": self.name,
+        }
+        if include_outputs:
+            clalpha = self.clalpha
+            if discretize:
+                clalpha = clalpha.set_discrete(0, 4, 50, mutate_self=False)
+            data.update(
+                {
+                    "cp": self.cp,
+                    "clalpha": clalpha,
+                    "roll_parameters": self.roll_parameters,
+                    "rocket_diameter": self.rocket_diameter,
+                    "diameter": self.rocket_diameter,
+                    "d": self.rocket_diameter,
+                    "reference_area": self.reference_area,
+                    "ref_area": self.reference_area,
+                }
+            )
+        return data

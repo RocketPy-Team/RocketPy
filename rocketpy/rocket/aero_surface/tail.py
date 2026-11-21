@@ -4,10 +4,10 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _TailPlots
 from rocketpy.prints.aero_surface_prints import _TailPrints
 
-from .aero_surface import AeroSurface
+from ._barrowman_surface import _BarrowmanSurface
 
 
-class Tail(AeroSurface):
+class Tail(_BarrowmanSurface):
     """Class that defines a tail. Currently only accepts conical tails.
 
     Note
@@ -40,11 +40,38 @@ class Tail(AeroSurface):
         z local coordinate of the center of pressure of the tail.
     Tail.cp : tuple
         Tuple containing the coordinates of the center of pressure of the tail.
-    Tail.cl : Function
-        Function that returns the lift coefficient of the tail. The function
-        is defined as a function of the angle of attack and the mach number.
+    Tail.cN : AeroCoefficient
+        Normal force coefficient, the force in the pitch plane.
+    Tail.cY : AeroCoefficient
+        Side force coefficient, the force in the yaw plane.
+    Tail.cA : AeroCoefficient
+        Axial force coefficient, the force along the rocket's axis.
+    Tail.cm : AeroCoefficient
+        Pitching moment coefficient.
+    Tail.cn : AeroCoefficient
+        Yawing moment coefficient.
+    Tail.cl : AeroCoefficient
+        Roll moment coefficient. Always zero for a tail.
+    Tail.cL : Function
+        Lift coefficient, the force perpendicular to the airflow.
+    Tail.cD : Function
+        Drag coefficient, the force along the airflow.
+    Tail.cQ : Function
+        Crosswind coefficient, the side force relative to the airflow.
+    Tail.cN_alpha : AeroCoefficient
+        Slope of ``cN`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Tail.cY_beta : AeroCoefficient
+        Slope of ``cY`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
+    Tail.cm_alpha : AeroCoefficient
+        Slope of ``cm`` with the angle of attack, as a function of Mach.
+        Has units of 1/rad.
+    Tail.cn_beta : AeroCoefficient
+        Slope of ``cn`` with the sideslip angle, as a function of Mach.
+        Has units of 1/rad.
     Tail.clalpha : float
-        Lift coefficient slope. Has the unit of 1/rad.
+        Normal-force coefficient slope. Has the unit of 1/rad.
     Tail.slant_length : float
         Slant length of the tail. The slant length is defined as the distance
         between the top and bottom of the tail. The slant length is measured
@@ -76,7 +103,9 @@ class Tail(AeroSurface):
         -------
         None
         """
-        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
+        self.name = name
+        self.reference_area = np.pi * rocket_radius**2
+        self.reference_length = 2 * rocket_radius
 
         self._top_radius = top_radius
         self._bottom_radius = bottom_radius
@@ -86,6 +115,16 @@ class Tail(AeroSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+
+        # Translate the Barrowman geometry (clalpha, cpz) into generic-surface
+        # coefficients.
+        super().__init__(
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=name,
+        )
 
         self.plots = _TailPlots(self)
         self.prints = _TailPrints(self)
@@ -100,6 +139,7 @@ class Tail(AeroSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self._geometry_changed()
 
     @property
     def bottom_radius(self):
@@ -111,6 +151,7 @@ class Tail(AeroSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self._geometry_changed()
 
     @property
     def length(self):
@@ -121,6 +162,7 @@ class Tail(AeroSurface):
         self._length = value
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
+        self._geometry_changed()
 
     @property
     def rocket_radius(self):
@@ -129,7 +171,10 @@ class Tail(AeroSurface):
     @rocket_radius.setter
     def rocket_radius(self, value):
         self._rocket_radius = value
+        self.reference_area = np.pi * value**2
+        self.reference_length = 2 * value
         self.evaluate_lift_coefficient()
+        self._geometry_changed()
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves tail's slant length and surface area.
@@ -172,12 +217,7 @@ class Tail(AeroSurface):
                 )
             ),
             "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: self.clalpha(mach) * alpha,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
+            f"Normal-force coefficient derivative for {self.name}",
         )
 
     def evaluate_center_of_pressure(self):
@@ -194,10 +234,7 @@ class Tail(AeroSurface):
         cpz = (self.length / 3) * (1 + (1 - r) / (1 - r**2))
 
         # Store values as class attributes
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = cpz
-        self.cp = (self.cpx, self.cpy, self.cpz)
+        self._set_center_of_pressure((0, 0, cpz))
 
     def info(self):
         self.prints.geometry()
@@ -207,7 +244,7 @@ class Tail(AeroSurface):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, **kwargs):
+    def to_dict(self, include_outputs=False, **kwargs):
         data = {
             "top_radius": self._top_radius,
             "bottom_radius": self._bottom_radius,
@@ -216,20 +253,15 @@ class Tail(AeroSurface):
             "name": self.name,
         }
 
-        if kwargs.get("include_outputs", False):
+        if include_outputs:
             clalpha = self.clalpha
-            cl = self.cl
             if kwargs.get("discretize", False):
-                clalpha = clalpha.set_discrete(0, 4, 50)
-                cl = cl.set_discrete(
-                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
-                )
+                clalpha = clalpha.set_discrete(0, 4, 50, mutate_self=False)
 
             data.update(
                 {
                     "cp": self.cp,
                     "clalpha": clalpha,
-                    "cl": cl,
                     "slant_length": self.slant_length,
                     "surface_area": self.surface_area,
                 }

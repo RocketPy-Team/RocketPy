@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
 from rocketpy import NoseCone
@@ -135,3 +136,29 @@ def test_tail_bottom_radius_setter(calisto_tail):
 def test_tail_top_radius_setter(calisto_tail):
     calisto_tail.top_radius = 0.1
     assert calisto_tail.top_radius == 0.1
+
+
+@pytest.mark.parametrize(
+    "surface_fixture, attribute, value",
+    [
+        ("calisto_nose_cone", "length", 0.8),
+        ("calisto_tail", "bottom_radius", 0.03),
+        ("calisto_trapezoidal_fins", "n", 3),
+    ],
+)
+def test_setter_rebuilds_the_coefficients(surface_fixture, attribute, value, request):
+    """A setter updates the slope and center of pressure a rocket reads."""
+    surface = request.getfixturevalue(surface_fixture)
+    before = (surface.cN_alpha.slice("mach")(0.3), surface.aerodynamic_center(0.3))
+    setattr(surface, attribute, value)
+    after = (surface.cN_alpha.slice("mach")(0.3), surface.aerodynamic_center(0.3))
+    assert after != pytest.approx(before)
+    assert surface._version == 1
+
+
+@pytest.mark.parametrize("surface_fixture", ["calisto_nose_cone", "calisto_tail"])
+def test_rocket_radius_setter_updates_the_reference_area(surface_fixture, request):
+    surface = request.getfixturevalue(surface_fixture)
+    surface.rocket_radius = 0.1
+    assert surface.reference_area == pytest.approx(np.pi * 0.1**2)
+    assert surface.reference_length == pytest.approx(0.2)
