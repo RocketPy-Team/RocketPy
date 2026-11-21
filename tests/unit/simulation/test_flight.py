@@ -1092,3 +1092,19 @@ def test_disturbance_response_matches_the_rocket_at_the_flight_condition(
     assert response.y_array == pytest.approx(expected.y_array, abs=0.05)
     with pytest.raises(ValueError, match="rail"):
         flight.disturbance_response(0.0)
+
+
+def test_disturbance_response_refuses_what_it_cannot_answer(flight_calisto_robust):
+    """A time after the end of the flight is not read as the last instant, and
+    a plane that is neither of the two is not read as pitch."""
+    flight = flight_calisto_robust
+
+    with pytest.raises(ValueError, match="after the end of the flight"):
+        flight.disturbance_response(flight.t_final + 1.0)
+    for plane in ("Yaw", "roll"):
+        with pytest.raises(ValueError, match="plane must be 'pitch' or 'yaw'"):
+            flight.disturbance_response(4.0, plane=plane)
+    for plane in ("pitch", "yaw"):
+        assert flight.disturbance_response(4.0, plane=plane).y_array[0] == (
+            pytest.approx(5.0)
+        )

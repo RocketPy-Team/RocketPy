@@ -1571,6 +1571,18 @@ def test_disturbance_response_grows_without_a_restoring_moment():
     assert "no restoring moment" in response.title
 
 
+@pytest.mark.parametrize("plane", ["Yaw", "roll", None])
+def test_disturbance_response_refuses_an_unknown_plane(plane):
+    """A plane that is neither of the two is not read as pitch."""
+    rocket = _oscillator_rocket()
+    with pytest.raises(ValueError, match="plane must be 'pitch' or 'yaw'"):
+        rocket.disturbance_response(speed=30, plane=plane)
+    for known in ("pitch", "yaw"):
+        assert rocket.disturbance_response(speed=30, plane=known).y_array[0] == (
+            pytest.approx(5.0)
+        )
+
+
 def test_disturbance_response_of_a_point_mass_rocket_is_refused():
     rocket = PointMassRocket(
         radius=0.05,

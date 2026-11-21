@@ -2636,7 +2636,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         time : float
             Instant of the flight, in seconds, at which the disturbance
             happens. Must be after the rocket leaves the rail, for example
-            ``flight.out_of_rail_time``.
+            ``flight.out_of_rail_time``, and no later than the end of the
+            flight.
         disturbance : float, optional
             Angle the rocket is tilted by, in degrees. Default is 5.
         plane : str, optional
@@ -2657,7 +2658,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         ------
         ValueError
             If ``time`` is before the rocket leaves the rail, where it cannot
-            swing, or for a point mass rocket.
+            swing, or after the end of the flight; if ``plane`` is neither
+            ``"pitch"`` nor ``"yaw"``; or for a point mass rocket.
 
         See Also
         --------
@@ -2677,6 +2679,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 f"At {time} s the rocket is still on the rail (it leaves at "
                 f"{self.out_of_rail_time:.3f} s) and cannot swing."
             )
+        if time > self.t_final:
+            raise ValueError(
+                f"time {time} s is after the end of the flight ({self.t_final:.3f} s)."
+            )
+        if plane not in ("pitch", "yaw"):
+            raise ValueError(f"plane must be 'pitch' or 'yaw', got {plane!r}.")
         if plane == "yaw":
             dynamics, inertia_about_cdm = self._yaw_dynamics, self.rocket.I_22
         else:

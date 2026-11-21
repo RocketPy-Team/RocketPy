@@ -1255,13 +1255,16 @@ class Rocket:
         Raises
         ------
         ValueError
-            For a point mass rocket, which has no attitude to disturb.
+            If ``plane`` is neither ``"pitch"`` nor ``"yaw"``, or for a point
+            mass rocket, which has no attitude to disturb.
 
         Examples
         --------
         >>> response = rocket.disturbance_response(speed=30, time=0.4)  # doctest: +SKIP
         >>> response.plot()  # doctest: +SKIP
         """
+        if plane not in ("pitch", "yaw"):
+            raise ValueError(f"plane must be 'pitch' or 'yaw', got {plane!r}.")
         inertia_about_cdm = self.I_22 if plane == "yaw" else self.I_11
         if not isinstance(inertia_about_cdm, Function):
             inertia, inertia_rate = 0.0, 0.0  # a point mass rocket
