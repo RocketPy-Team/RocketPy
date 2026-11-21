@@ -396,6 +396,8 @@ def test_the_equations_are_handed_the_conditions_when_the_rocket_has_effectors()
         return [0.0] * 13
 
     class Pusher(ForceEffector):
+        """An effector that pushes with no force."""
+
         def force_and_moment(self, controls, conditions):
             return [0, 0, 0], [0, 0, 0]
 

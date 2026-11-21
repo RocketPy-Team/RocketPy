@@ -151,8 +151,10 @@ class AirBrakes(GenericSurface):
         source = drag_coefficient_curve
         if isinstance(source, (int, float)):
             # A number: the same coefficient at every level and Mach number
-            def source(deployment_level, mach):  # pylint: disable=unused-argument
+            def constant(deployment_level, mach):  # pylint: disable=unused-argument
                 return drag_coefficient_curve
+
+            source = constant
 
         try:
             self.drag_coefficient = Function(

@@ -1651,9 +1651,9 @@ def history_function(points, name):
     -------
     Function
     """
-    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
-        Function,
-    )
+    # Imported here: the function module imports this one
+    # pylint: disable-next=import-outside-toplevel,cyclic-import
+    from rocketpy.mathutils.function import Function
 
     held = {}
     for t, value in points:

@@ -11,12 +11,11 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from rocketpy import AirBrakes, ForceEffector, Rocket, ThrustEffector
+from rocketpy import AirBrakes, Function, Rocket
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.control._helpers import initial_controls
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.simulation.helpers.flight_derivatives import (
-    _compute_drag_area,
     u_dot_generalized,
 )
 
@@ -235,7 +234,7 @@ def test_air_brakes_are_saved_once_inside_the_surfaces(calisto_robust):
     loaded = json.loads(
         json.dumps(calisto_robust, cls=RocketPyEncoder), cls=RocketPyDecoder
     )
-    (brakes,) = loaded.air_brakes
+    assert len(loaded.air_brakes) == 1
     assert loaded.control_names == ("air_brakes.deployment_level",)
 
 
@@ -363,8 +362,6 @@ def test_air_brakes_alone_are_saved_and_loaded():
 def _still_air_flight(rocket, speed, level, rows=5):
     """A flight stub flying ``rocket`` at ``speed`` m/s through still
     sea-level air, the air brakes held at ``level``."""
-    from rocketpy import Function
-
     times = np.linspace(0, 1, rows)
     constant = lambda value: Function(lambda t: value)  # noqa: E731
     return SimpleNamespace(

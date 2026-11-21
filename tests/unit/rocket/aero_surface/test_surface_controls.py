@@ -1,7 +1,6 @@
 """Unit tests for the controls of an aerodynamic surface: the extra inputs its
 coefficients read, and how they are saved."""
 
-import json
 import warnings
 
 import numpy as np
@@ -14,7 +13,6 @@ from rocketpy import (
     LinearGenericSurface,
     StochasticAirBrakes,
 )
-from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.control._helpers import initial_controls
 from rocketpy.mathutils.vector_matrix import Vector
 

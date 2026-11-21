@@ -772,7 +772,7 @@ class ControlFins(GenericSurface):
         self.prints.geometry()
         self.prints.coefficients()
 
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+    def to_dict(self, include_outputs=False, **kwargs):  # pylint: disable=unused-argument
         return {
             "fin": self.fin if self.fin is not None else list(self._given),
             "n": self.n,

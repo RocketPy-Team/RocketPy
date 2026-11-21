@@ -21,7 +21,7 @@ _LAZY_CONTEXT_KEYS = (
 _PREVIOUS_KEYS = frozenset({"previous_state", "previous_time"})
 
 
-class EventContext(dict):
+class EventContext(dict):  # pylint: disable=too-many-public-methods
     """The values an event's trigger and callback are given.
 
     One of these is built per solver step and shared by every event checked in

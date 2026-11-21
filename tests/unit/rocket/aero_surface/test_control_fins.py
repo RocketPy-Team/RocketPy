@@ -5,13 +5,15 @@ with a cant angle, so no simulation is run."""
 import json
 import math
 from copy import deepcopy
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from rocketpy import ControlFins, TrapezoidalFin
+from rocketpy import ControlFins, Function, TrapezoidalFin
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.simulation.events.views import ControlsView
 
 POSITION = 0.8  # where the fins are added, in calisto's coordinate system
 
@@ -375,10 +377,6 @@ def test_the_hinge_moment_is_the_normal_force_times_the_arm_to_the_hinge():
 def _still_air_flight(rocket, speed, deflections, rows=5):
     """A flight stub flying ``rocket`` nose first at ``speed`` m/s through
     still sea-level air with no rotation, the fins held at ``deflections``."""
-    from types import SimpleNamespace
-
-    from rocketpy import Function
-
     times = np.linspace(0, 1, rows)
     constant = lambda value: Function(lambda t: value)  # noqa: E731
     canards = next(s for s, _ in rocket.aerodynamic_surfaces if s.name == "Canards")
@@ -425,8 +423,6 @@ def test_the_hinge_moments_over_a_flight_match_the_ones_at_its_air(calisto, tmp_
 
 
 def test_a_controller_writes_the_deflections_at_once():
-    from rocketpy.simulation.events.views import ControlsView
-
     canards = ControlFins(_fin(), n=4, name="Canards")
     controls = {f"canards.{control}": 0.0 for control in canards.controls}
     view = ControlsView(controls, [canards])

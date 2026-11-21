@@ -67,6 +67,8 @@ def test_surfaces_and_effectors_are_controllable():
 
 def test_an_object_that_is_not_controllable_is_refused(calisto):
     class LookAlike:  # pylint: disable=too-few-public-methods
+        """Has what a controllable has, without being one."""
+
         name = "Look Alike"
         controls = ()
         control_defaults = {}
@@ -680,10 +682,6 @@ def test_an_event_keeps_what_its_callback_changed():
 
 
 def _view():
-    from rocketpy.simulation.events.views import (  # pylint: disable=import-outside-toplevel
-        ControlsView,
-    )
-
     controls = {"canards.fin_1": 0.0, "canards.fin_2": 0.0, "air_brakes.level": 0.5}
     return controls, ControlsView(controls)
 

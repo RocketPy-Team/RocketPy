@@ -273,6 +273,7 @@ def test_flight_sensor_data_is_deprecated_and_gives_the_sensor_rows(rocket, solu
     list of tuples, with a deprecation warning."""
     flight = _flight_of(rocket, solution)
     with pytest.warns(DeprecationWarning, match="sensor_data is deprecated"):
+        # pylint: disable-next=assignment-from-no-return
         data = Flight.sensor_data.fget(flight)
     assert data == _sensor_rows(flight)
 

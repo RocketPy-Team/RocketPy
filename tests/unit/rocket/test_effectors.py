@@ -7,7 +7,6 @@ import math
 import warnings
 from types import SimpleNamespace
 
-import numpy as np
 import pytest
 
 from rocketpy import Controller, GenericSurface
@@ -19,7 +18,7 @@ from rocketpy.control import (
     ThrustEffector,
 )
 from rocketpy.control._helpers import initial_controls
-from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.simulation.helpers.dynamics import (
     SIX_DOF_DYNAMICS,
     _with_controllables,
@@ -101,7 +100,7 @@ def test_add_effector_refuses_a_surface(calisto):
 
 def test_an_effector_without_its_method_cannot_be_built():
     class Forgetful(ThrustEffector):
-        pass
+        """A thrust effector that does not say what it does to the thrust."""
 
     with pytest.raises(TypeError, match="needs a thrust_and_nozzle"):
         Forgetful(name="Forgetful")
@@ -461,6 +460,8 @@ def test_a_nozzle_no_effector_moves_stays_at_the_rocket_exit(calisto, gimbal):
 
 def test_an_effector_reads_its_own_states(calisto):
     class Thruster(ForceEffector):
+        """A thruster whose force follows the gas it has left."""
+
         states = ("gas",)
 
         def force_and_moment(self, controls, conditions):
