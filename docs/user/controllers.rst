@@ -243,9 +243,10 @@ value of every control input and from each controller's starting memory.
 
 .. note::
 
-    In a Monte Carlo study, effectors and continuous controllers are carried
-    into every sampled rocket. A :class:`rocketpy.Controller` is carried only
-    for the air brakes, through :meth:`rocketpy.StochasticRocket.add_air_brakes`.
+    In a Monte Carlo study, every sampled rocket flies the same control loop
+    as the rocket it is sampled from: its effectors, its controllers and its
+    sensors are carried into each sample. The loop itself is not dispersed
+    (gains, sampling rates and sensor settings are the same in every sample).
 
 Example: roll control with a reaction wheel
 -------------------------------------------

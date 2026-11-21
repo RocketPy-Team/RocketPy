@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 import numpy as np
 
@@ -237,6 +238,20 @@ class Sensor(ABC):
             trigger_only_once=False,
             priority=1,
             time_overshootable=True,
+        )
+
+    def _detached_copy(self):
+        """Return a copy of the sensor with the same settings, attached to no
+        rocket and holding no measurements."""
+        # The copy starts with these empty, instead of copying the rockets the
+        # sensor is on and what it measured
+        return deepcopy(
+            self,
+            {
+                id(self._attached_rockets): {},
+                id(self.measured_data): [],
+                id(self._drift_log): [],
+            },
         )
 
     def _reset(self, simulated_rocket):
