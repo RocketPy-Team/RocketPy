@@ -117,8 +117,10 @@ class _EnvironmentPrints:
             init_date = self.environment.atmospheric_model_init_date
             end_date = self.environment.atmospheric_model_end_date
             interval = self.environment.atmospheric_model_interval
-            print(f"{model_type} Time Period: from {init_date} to {end_date} utc")
-            print(f"{model_type} Hour Interval: {interval} hrs")
+            # An ensemble created from profiles has no time period
+            if init_date is not None:
+                print(f"{model_type} Time Period: from {init_date} to {end_date} utc")
+                print(f"{model_type} Hour Interval: {interval} hrs")
             # Determine latitude and longitude range
             init_lat = self.environment.atmospheric_model_init_lat
             end_lat = self.environment.atmospheric_model_end_lat

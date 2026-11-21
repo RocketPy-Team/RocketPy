@@ -71,6 +71,10 @@ from rocketpy.tools import (
     geopotential_height_to_geometric_height,
 )
 
+# Written in the datasets of Environment.create_ensemble. It tells the loader
+# that the ensemble comes from profiles given by the user, which have no date.
+_USER_DEFINED_ENSEMBLE_SOURCE = "RocketPy Environment.create_ensemble"
+
 logger = logging.getLogger(__name__)
 
 
@@ -859,11 +863,11 @@ class Environment:
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if hasattr(self, "atmospheric_model_type") and self.atmospheric_model_type in [
-            "Forecast",
-            "Reanalysis",
-            "Ensemble",
-        ]:
+        if (
+            hasattr(self, "atmospheric_model_type")
+            and self.atmospheric_model_type in ["Forecast", "Reanalysis", "Ensemble"]
+            and not getattr(self, "_ensemble_from_profiles", False)
+        ):
             self.set_atmospheric_model(
                 type=self.atmospheric_model_type,
                 file=self.atmospheric_model_file,
@@ -898,11 +902,11 @@ class Environment:
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if hasattr(self, "atmospheric_model_type") and self.atmospheric_model_type in [
-            "Forecast",
-            "Reanalysis",
-            "Ensemble",
-        ]:
+        if (
+            hasattr(self, "atmospheric_model_type")
+            and self.atmospheric_model_type in ["Forecast", "Reanalysis", "Ensemble"]
+            and not getattr(self, "_ensemble_from_profiles", False)
+        ):
             self.set_atmospheric_model(
                 type=self.atmospheric_model_type,
                 file=self.atmospheric_model_file,
@@ -1410,6 +1414,7 @@ class Environment:
         """
         # Save atmospheric model type
         self.atmospheric_model_type = type
+        self._ensemble_from_profiles = False
         type = type.lower()
 
         match type:
@@ -3277,9 +3282,10 @@ class Environment:
         time = dataset.createVariable("time", "f8", ("time",))
         time.long_name = "profile valid time"
         time.standard_name = "time"
-        time.units = (
-            f"hours since {self.datetime_date.strftime('%Y-%m-%d %H:%M:%S')} UTC"
-        )
+        # The profiles have no date of their own and the loader does not check
+        # this one. The launch date is used when the Environment has one.
+        reference = self.datetime_date or datetime(1970, 1, 1)
+        time.units = f"hours since {reference.strftime('%Y-%m-%d %H:%M:%S')} UTC"
         time.calendar = "gregorian"
         time.axis = "T"
         time[:] = [0]
@@ -3398,43 +3404,43 @@ class Environment:
             variable.coordinates = "time ens lev lat lon"
             variable[:] = np.broadcast_to(values[None, :, :, None, None], data_shape)
 
-    def _write_ensemble_file(
-        self, file_path, pressure_levels, geopotential_heights, member_values
+    def _fill_ensemble_dataset(
+        self, dataset, pressure_levels, geopotential_heights, member_values
     ):
-        """Write prepared ensemble data to a GEFS-compatible NetCDF file."""
-        with netCDF4.Dataset(file_path, "w", format="NETCDF4") as dataset:
-            dataset.Conventions = "CF-1.8"
-            dataset.title = "RocketPy user-defined atmospheric ensemble"
-            dataset.source = "RocketPy Environment.create_ensemble"
-            dataset.history = (
-                f"Created {datetime.now(tz=pytz.UTC).isoformat()} by RocketPy"
-            )
-            dataset.comment = (
-                "Profiles are spatially constant across the 2 x 2 grid "
-                "surrounding the launch coordinates."
-            )
-            dataset.launch_latitude = self.latitude
-            dataset.launch_longitude = self.longitude
+        """Write prepared ensemble data to an open GEFS-compatible dataset."""
+        dataset.Conventions = "CF-1.8"
+        dataset.title = "RocketPy user-defined atmospheric ensemble"
+        dataset.source = _USER_DEFINED_ENSEMBLE_SOURCE
+        dataset.history = f"Created {datetime.now(tz=pytz.UTC).isoformat()} by RocketPy"
+        dataset.comment = (
+            "Profiles are spatially constant across the 2 x 2 grid "
+            "surrounding the launch coordinates."
+        )
+        dataset.launch_latitude = self.latitude
+        dataset.launch_longitude = self.longitude
 
-            data_shape = self._create_ensemble_coordinates(
-                dataset, len(geopotential_heights), pressure_levels
-            )
-            self._create_ensemble_data_variables(
-                dataset, data_shape, geopotential_heights, member_values
-            )
+        data_shape = self._create_ensemble_coordinates(
+            dataset, len(geopotential_heights), pressure_levels
+        )
+        self._create_ensemble_data_variables(
+            dataset, data_shape, geopotential_heights, member_values
+        )
 
     def create_ensemble(
         self,
         profiles,
-        file_name="custom_ensemble.nc",
+        file_name=None,
         pressure_levels=None,
         overwrite=False,
     ):
         """Create and activate an ensemble from user-defined profiles.
 
-        RocketPy writes the profiles with GEFS-compatible variable names.
-        Another Environment can load the returned file by passing
-        ``type="Ensemble"`` and ``dictionary="GEFS"`` to
+        The profiles are not tied to a date, so the Environment does not need
+        one and the ensemble stays the same when the launch date changes. By
+        default nothing is written to disk. Pass ``file_name`` to also save
+        the ensemble: RocketPy writes the profiles with GEFS-compatible
+        variable names, and any other Environment, whatever its date, can load
+        the file by passing ``type="Ensemble"`` and ``dictionary="GEFS"`` to
         :meth:`Environment.set_atmospheric_model`.
 
         Parameters
@@ -3447,19 +3453,24 @@ class Environment:
             Pa for pressure, K for temperature and m/s for either wind
             component. Array-backed :class:`rocketpy.Function` objects are also
             accepted. Pressure must decrease strictly with increasing height.
+            Below the lowest height of a profile its lowest value is used, so
+            start the profiles at or below the ground level of the launch site.
         file_name : str or os.PathLike, optional
-            Path of the NetCDF file to create. The ``.nc`` suffix is appended
-            when omitted. Default is ``"custom_ensemble.nc"``.
+            Path of a NetCDF file to save the ensemble in. The ``.nc`` suffix
+            is appended when omitted. Default is ``None``, which keeps the
+            ensemble in memory and writes no file.
         pressure_levels : array-like, optional
             Common pressure levels in Pa. By default, the union of sampled
             pressure levels inside the range shared by every member is used.
         overwrite : bool, optional
-            Whether an existing file may be replaced. Default is ``False``.
+            Whether an existing file may be replaced. Only used when
+            ``file_name`` is given. Default is ``False``.
 
         Returns
         -------
-        str
-            Absolute path of the created NetCDF file.
+        str or None
+            Absolute path of the created NetCDF file, or None when no file was
+            asked for.
 
         Raises
         ------
@@ -3470,14 +3481,13 @@ class Environment:
             missing, profiles are invalid, or the members have no usable common
             pressure range.
         FileExistsError
-            If the output exists and ``overwrite`` is ``False``.
+            If ``file_name`` exists and ``overwrite`` is ``False``.
 
         Notes
         -----
-        The first member is activated after the file is created. Use
+        The first member is activated. Use
         :meth:`Environment.select_ensemble_member` to activate another member.
         """
-        self.__validate_datetime()
         members = self._prepare_ensemble_profiles(profiles)
         pressure_levels = self._prepare_ensemble_pressure_levels(
             members, pressure_levels
@@ -3485,11 +3495,32 @@ class Environment:
         geopotential_heights, member_values = self._interpolate_ensemble_profiles(
             members, pressure_levels
         )
-        file_path = self._prepare_ensemble_file_path(file_name, overwrite)
-        self._write_ensemble_file(
-            file_path, pressure_levels, geopotential_heights, member_values
-        )
+        ensemble = (pressure_levels, geopotential_heights, member_values)
 
+        if file_name is None:
+            # A dataset that only exists in memory: nothing is written to disk
+            dataset = netCDF4.Dataset(
+                "rocketpy_ensemble_in_memory.nc",
+                "w",
+                format="NETCDF4",
+                diskless=True,
+                persist=False,
+            )
+            try:
+                self._fill_ensemble_dataset(dataset, *ensemble)
+                self.set_atmospheric_model(
+                    type="Ensemble", file=dataset, dictionary="GEFS"
+                )
+            finally:
+                if dataset.isopen():
+                    dataset.close()
+            # There is no file to load the ensemble from again
+            self.atmospheric_model_file = str()
+            return None
+
+        file_path = self._prepare_ensemble_file_path(file_name, overwrite)
+        with netCDF4.Dataset(file_path, "w", format="NETCDF4") as dataset:
+            self._fill_ensemble_dataset(dataset, *ensemble)
         self.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
         logger.info("Atmospheric ensemble saved at '%s'.", file_path)
         return file_path
@@ -3562,13 +3593,18 @@ class Environment:
             wind-u, or wind-v variables cannot be read from the dataset.
         """
         # Check if date, lat and lon are known
-        self.__validate_datetime()
-
         # Read weather file
         if isinstance(file, str):
             data = netCDF4.Dataset(file)
         else:
             data = file
+
+        # Profiles given by the user have no date, so the Environment does not
+        # need one and the time written in their dataset is not checked.
+        from_profiles = getattr(data, "source", None) == _USER_DEFINED_ENSEMBLE_SOURCE
+        self._ensemble_from_profiles = from_profiles
+        if not from_profiles:
+            self.__validate_datetime()
 
         dictionary = self.__resolve_dictionary_for_dataset(dictionary, data)
 
@@ -3599,7 +3635,10 @@ class Environment:
             target_lat = self.latitude
 
         # Find time, latitude and longitude indexes
-        time_index = find_time_index(self.datetime_date, time_array)
+        if from_profiles:
+            time_index = 0
+        else:
+            time_index = find_time_index(self.datetime_date, time_array)
         lon, lon_index = find_longitude_index(target_lon, lon_array)
         _, lat_index = find_latitude_index(target_lat, lat_array)
 
@@ -3771,9 +3810,18 @@ class Environment:
             )
 
         # Compute info data
-        self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
-        self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
-        self.atmospheric_model_interval = get_interval_date_from_time_array(time_array)
+        if from_profiles:
+            self.atmospheric_model_init_date = None
+            self.atmospheric_model_end_date = None
+            self.atmospheric_model_interval = 0
+        else:
+            self.atmospheric_model_init_date = get_initial_date_from_time_array(
+                time_array
+            )
+            self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
+            self.atmospheric_model_interval = get_interval_date_from_time_array(
+                time_array
+            )
         self.atmospheric_model_init_lat = float(lat_array[0])
         self.atmospheric_model_end_lat = float(lat_array[len(lat_array) - 1])
         self.atmospheric_model_init_lon = float(lon_array[0])
@@ -4325,6 +4373,7 @@ class Environment:
             "wind_speed_ensemble": getattr(self, "wind_speed_ensemble", None),
             "num_ensemble_members": getattr(self, "num_ensemble_members", None),
             "ensemble_member": getattr(self, "ensemble_member", None),
+            "ensemble_from_profiles": getattr(self, "_ensemble_from_profiles", False),
         }
 
         if kwargs.get("include_outputs", False):
@@ -4403,6 +4452,7 @@ class Environment:
             env.wind_speed_ensemble = data["wind_speed_ensemble"]
             env.num_ensemble_members = data["num_ensemble_members"]
             env.ensemble_member = data.get("ensemble_member", 0) or 0
+            env._ensemble_from_profiles = data.get("ensemble_from_profiles", False)
 
         env.__reset_barometric_height_function()
         env.calculate_density_profile()
