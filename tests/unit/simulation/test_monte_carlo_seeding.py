@@ -96,17 +96,16 @@ def test_study_seed_rejects_negative_values():
         _study_seed(-1)
 
 
-def test_a_generated_study_seed_lets_pandas_read_the_logs():
-    """Every row carries the seed, and pandas reads JSON integers as int64."""
+def test_pandas_reads_the_inputs_of_an_unseeded_run(models, tmp_path):
+    """Rows carry the study seed and each parachute's noise seed, and pandas
+    reads JSON integers as int64."""
     pandas = pytest.importorskip("pandas")
-    rows = "".join(
-        json.dumps({"index": index, "seed": _study_seed(None)}) + "\n"
-        for index in range(20)
-    )
+    analysis = _a_run(tmp_path, "study", models, count=2)
 
-    logs = pandas.read_json(io.StringIO(rows), lines=True)
+    logs = pandas.read_json(analysis.input_file, lines=True)
 
-    assert len(logs) == 20
+    assert len(logs) == 2
+    assert all("seed" in parachute for parachute in logs["parachutes"][0])
 
 
 @pytest.mark.slow

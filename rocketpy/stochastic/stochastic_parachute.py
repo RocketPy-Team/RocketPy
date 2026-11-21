@@ -209,9 +209,11 @@ class StochasticParachute(StochasticModel):
         # share one noise stream.
         noise_seed = None
         if self._seed is not None:
+            # Cut to 63 bits: the seed is recorded in the inputs, and pandas
+            # reads JSON integers as int64.
             noise_seed = _sampler_seed(
                 self._seed, ("pressure_noise", generated_dict["name"])
-            )
+            ) & (2**63 - 1)
             generated_dict["seed"] = noise_seed
             # Recorded after the seed is in, or the inputs describe a parachute
             # with noise nobody can reproduce.
