@@ -3181,7 +3181,7 @@ rocketpy.ControllableGenericSurface
         self.thrust_eccentricity_y = y
         return self
 
-    def draw(self, vis_args=None, plane="xz", *, filename=None):
+    def draw(self, vis_args=None, plane=None, *, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -3206,13 +3206,19 @@ rocketpy.ControllableGenericSurface
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional
-            Plane in which the rocket will be drawn. Default is 'xz'. Other
-            options is 'yz'. Used only for sensors representation.
+            Plane of the rocket's own axes in which it is drawn: ``"xz"``,
+            also accepted as ``"yaw"``, or ``"yz"``, also accepted as
+            ``"pitch"``. By default (``None``) the rocket is drawn in the
+            ``"xz"`` plane, and a rocket that does not look the same in both
+            planes (canards on a single axis, a single fin) is drawn in both,
+            one figure each.
         filename : str | None, optional
             The path the plot should be saved to. By default None, in which case
             the plot will be shown instead of saved. Supported file endings are:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
-            and webp (these are the formats supported by matplotlib).
+            and webp (these are the formats supported by matplotlib). When
+            both planes are drawn, each is saved to its own file, with ``_xz``
+            and ``_yz`` added before the file ending.
         """
         self.plots.draw(vis_args, plane, filename=filename)
 
