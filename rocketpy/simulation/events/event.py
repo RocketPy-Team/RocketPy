@@ -6,6 +6,7 @@ from copy import deepcopy
 from numbers import Real
 
 from ..._logging import logger
+from ...tools import copied_value
 from .commands import Commands
 from .event_context import EventContext, refresh_event_kwargs
 from .exact_time_solvers import SOLVERS
@@ -20,17 +21,6 @@ PRESETS = {
     ),
     "burnout": lambda context: context["time"] >= context["rocket"].motor.burn_out_time,
 }
-
-
-def _copied(value):
-    """Return a number as it is and anything else as a copy, or as it is when
-    it cannot be copied."""
-    if isinstance(value, Real):
-        return value
-    try:
-        return deepcopy(value)
-    except Exception:  # pylint: disable=broad-exception-caught
-        return value
 
 
 class Event:
@@ -609,7 +599,7 @@ class Event:
         that read it, and a copy is kept with its time, so a later change to
         the object does not change what was written."""
         self._outputs[name] = value
-        self._output_history.setdefault(name, []).append((time, _copied(value)))
+        self._output_history.setdefault(name, []).append((time, copied_value(value)))
 
     @property
     def records(self):
@@ -634,7 +624,7 @@ class Event:
         anything else as a copy, so a later change to the object does not
         change what was recorded."""
         for name, value in values.items():
-            self._records.setdefault(name, []).append((time, _copied(value)))
+            self._records.setdefault(name, []).append((time, copied_value(value)))
 
     # Starting a new flight, and going back in time
 
@@ -729,7 +719,7 @@ class Event:
                 points.pop()
                 dropped = True
             if dropped:
-                self._outputs[name] = _copied(
+                self._outputs[name] = copied_value(
                     points[-1][1] if points else self._output_defaults[name]
                 )
         for times in (self.triggered_times, self.enabled_times, self.disabled_times):

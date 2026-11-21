@@ -16,6 +16,8 @@ import re
 import time
 import warnings
 from bisect import bisect_left
+from copy import deepcopy
+from numbers import Real
 
 import dill
 import matplotlib.pyplot as plt
@@ -1663,6 +1665,18 @@ def history_function(points, name):
         interpolation="previous",
         extrapolation="constant",
     )
+
+
+def copied_value(value):
+    """Return a number as it is and anything else as a copy, so a later change
+    to the object does not change the value kept. An object that cannot be
+    copied is returned as it is."""
+    if isinstance(value, Real):
+        return value
+    try:
+        return deepcopy(value)
+    except Exception:  # pylint: disable=broad-exception-caught
+        return value
 
 
 if __name__ == "__main__":  # pragma: no cover
