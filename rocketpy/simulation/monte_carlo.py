@@ -970,7 +970,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         tolerance : float, optional
             The desired width of the confidence interval in seconds, meters, or other units. Default is 0.5.
         max_simulations : int, optional
-            The maximum number of simulations to run to avoid infinite loops. Default is 1000.
+            The maximum number of simulations to run to avoid infinite loops. Must
+            be at least 2, since a confidence interval cannot be estimated from a
+            single observation. Default is 1000.
         batch_size : int, optional
             The number of simulations to run in each batch. Default is 50.
         parallel : bool, optional
@@ -984,11 +986,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         Returns
         -------
         confidence_interval_history : list of float
-            History of confidence interval widths, one value per batch of simulations.
-            A batch that leaves fewer than two results contributes no width, since a
-            confidence interval cannot be estimated from a single observation.
-            The last element corresponds to the width when the simulation stopped for
-            either meeting the tolerance or reaching the maximum number of simulations.
+            History of confidence interval widths, one value per batch that leaves
+            two or more results. A confidence interval cannot be estimated from a
+            single observation, so a fresh study with ``batch_size=1`` has one
+            entry fewer than batches run. The last element corresponds to the width
+            when the simulation stopped for either meeting the tolerance or
+            reaching the maximum number of simulations.
         """
 
         # Validate inputs up-front. Without this, a non-positive batch_size makes
@@ -997,10 +1000,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             raise ValueError(
                 f"'batch_size' must be a positive integer, got {batch_size!r}."
             )
-        if not isinstance(max_simulations, (int, np.integer)) or max_simulations <= 0:
+        if not isinstance(max_simulations, (int, np.integer)) or max_simulations < 2:
             raise ValueError(
-                f"'max_simulations' must be a positive integer, got "
-                f"{max_simulations!r}."
+                "'max_simulations' must be an integer of at least 2 to estimate "
+                f"a confidence interval, got {max_simulations!r}."
             )
         if not isinstance(tolerance, (int, float)) or tolerance <= 0:
             raise ValueError(
