@@ -214,11 +214,9 @@ class StochasticParachute(StochasticModel):
             noise_seed = _sampler_seed(
                 self._seed, ("pressure_noise", generated_dict["name"])
             ) & (2**63 - 1)
-            generated_dict["seed"] = noise_seed
-            # Recorded after the seed is in, or the inputs describe a parachute
-            # with noise nobody can reproduce.
-            self._record_draw(generated_dict)
-            del generated_dict["seed"]
+            # Recorded with the seed, or the inputs describe a parachute with
+            # noise nobody can reproduce. Rebuild it with Parachute.from_dict.
+            self._record_draw({**generated_dict, "seed": noise_seed})
         parachute = Parachute(**generated_dict)
         if noise_seed is not None:
             parachute._set_noise_seed(noise_seed)

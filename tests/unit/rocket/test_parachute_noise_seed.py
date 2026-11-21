@@ -89,7 +89,7 @@ def test_from_dict_defaults_seed_to_none_when_absent():
 
 
 def test_seed_is_not_a_constructor_argument():
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="seed"):
         Parachute(  # pylint: disable=unexpected-keyword-arg
             name="main",
             cd_s=10.0,
@@ -156,7 +156,7 @@ _PINNED = {
 @pytest.mark.parametrize("name", ["main", "drogue"])
 def test_stochastic_parachute_noise_sequence_is_pinned(name):
     stochastic = StochasticParachute(
-        Parachute(  # pylint: disable=unexpected-keyword-arg
+        Parachute(
             name=name,
             cd_s=10.0,
             trigger="apogee",

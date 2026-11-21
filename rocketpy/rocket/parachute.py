@@ -307,11 +307,11 @@ class Parachute:
         noise : tuple, list
             List in the format (mean, standard deviation, time-correlation).
         """
-        self.__draw_initial_noise()
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
         self.noise_bias = noise[0]
         self.noise_deviation = noise[1]
+        self.__draw_initial_noise()
         self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
@@ -327,15 +327,13 @@ class Parachute:
 
     def __draw_initial_noise(self):
         """Starts the noise signal with one sample from the current RNG."""
-        self.noise_signal = [[-1e-6, self._rng.normal(self.noise[0], self.noise[1])]]
+        self.noise_signal = [
+            [-1e-6, self._rng.normal(self.noise_bias, self.noise_deviation)]
+        ]
 
     def _set_noise_seed(self, seed):
-        """Reseeds the pressure noise and redraws its first sample.
-
-        Not public API: ``StochasticParachute`` and ``from_dict`` use it so a
-        run can reproduce its noise. The first sample is redrawn because the
-        constructor took it from an unseeded generator.
-        """
+        """Reseeds the noise and redraws the unseeded first sample, before any
+        Flight. Used by ``StochasticParachute`` and ``from_dict``."""
         self._seed = seed
         self._rng = np.random.default_rng(seed)
         self.__draw_initial_noise()
