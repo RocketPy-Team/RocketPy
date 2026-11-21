@@ -105,8 +105,9 @@ class Rocket:
         regarding the coordinate system.
         Expressed in meters as a function of time.
     Rocket.com_to_cdm_function : Function
-        Function of time expressing the z-coordinate of the center of mass
-        relative to the center of dry mass.
+        Function of time expressing the position of the center of dry mass
+        relative to the center of mass, in meters, along the rocket's axis
+        and positive towards the nose.
     Rocket.reduced_mass : Function
         Function of time expressing the reduced mass of the rocket,
         defined as the product of the propellant mass and the mass
@@ -1624,21 +1625,29 @@ class Rocket:
         return self.nozzle_gyration_tensor
 
     def evaluate_com_to_cdm_function(self):
-        """Evaluates the z-coordinate of the center of mass (COM) relative to
-        the center of dry mass (CDM).
+        """Evaluates the position of the center of dry mass (CDM) relative to
+        the center of mass (COM), along the rocket's axis.
+
+        The value is the distance from the center of mass to the center of dry
+        mass, in meters. It is positive when the center of dry mass is closer
+        to the nose than the center of mass, whatever the rocket's
+        ``coordinate_system_orientation``.
 
         Notes
         -----
-        1. The `com_to_cdm_function` plus `center_of_mass` should be equal
-        to `center_of_dry_mass_position` at every time step.
+        1. For a rocket with ``coordinate_system_orientation="tail_to_nose"``,
+        `center_of_mass` plus the `com_to_cdm_function` is equal to
+        `center_of_dry_mass_position` at every time step. With
+        ``"nose_to_tail"``, `center_of_mass` minus it is.
         2. The `com_to_cdm_function` is a function of time and will usually
         already be discretized.
 
         Returns
         -------
         self.com_to_cdm_function : Function
-            Function of time expressing the z-coordinate of the center of mass
-            relative to the center of dry mass.
+            Function of time expressing the position of the center of dry mass
+            relative to the center of mass, in meters, positive towards the
+            nose.
         """
         self.com_to_cdm_function = (
             -1
