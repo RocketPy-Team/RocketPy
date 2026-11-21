@@ -241,6 +241,13 @@ Reading the results
 A flight never changes the rocket: the next flight starts from the default
 value of every control input and from each controller's starting memory.
 
+Under a parachute the air brakes, the control fins and the effectors do
+nothing: the descent does not depend on any control input. A controller still
+runs there and what it writes is kept, but ``flight.controls`` then has the
+control input only at the times of the solver's steps, which are far apart
+during a descent. To keep a value at every sample use ``context.record``, and
+to stop a controller that is no longer needed give it ``disable_on="apogee"``.
+
 .. note::
 
     In a Monte Carlo study, every sampled rocket flies the same control loop

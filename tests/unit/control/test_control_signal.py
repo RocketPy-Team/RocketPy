@@ -18,6 +18,10 @@ from rocketpy.simulation.events.event_execution import (
     save_for_rollback,
 )
 from rocketpy.simulation.events.views import ControlsView
+from rocketpy.simulation.helpers.dynamics import (
+    PARACHUTE_DYNAMICS,
+    SIX_DOF_DYNAMICS,
+)
 from rocketpy.simulation.helpers.flight_derivatives import (
     u_dot_generalized,
 )
@@ -485,6 +489,33 @@ def test_an_event_that_writes_a_nan_is_named_in_the_error():
         call_event(flight, event, context, None, 0, 0)
 
     assert flight._controls == {"canards.deflection": 0.1}
+
+
+@pytest.mark.parametrize(
+    "dynamics, cuts", [(SIX_DOF_DYNAMICS, True), (PARACHUTE_DYNAMICS, False)]
+)
+def test_a_control_write_changes_the_trajectory_only_where_controls_are_read(
+    dynamics, cuts
+):
+    """Under a parachute the air brakes, the control fins and the effectors do
+    nothing: a write is kept, and the solver step is not cut for it."""
+    flight = _flight_in_a_step({"canards.deflection": 0.0})
+    event = _writer("canards.deflection", 0.1)
+    state = [0.0] * 13
+    context = EventContext(
+        time=flight.t,
+        controls=flight._controls,
+        canonical_state=state,
+        raw_state=state,
+        phase_names=(),
+    )
+    phase = SimpleNamespace(dynamics=SimpleNamespace(dynamics=dynamics))
+
+    assert call_event(flight, event, context, phase, 0, 0)
+
+    assert flight._controls == {"canards.deflection": 0.1}
+    assert event.commands.control_changes == {"canards.deflection": 0.1}
+    assert event.commands.changes_trajectory is cuts
 
 
 def test_a_rollback_undoes_writes_made_after_the_time_it_goes_back_to():

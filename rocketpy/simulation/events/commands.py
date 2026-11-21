@@ -20,6 +20,9 @@ class Commands:
         self._terminate = False
         self.surface_switches = []
         self.control_changes = {}
+        # Whether the equations of motion being flown read the control inputs.
+        # Set by the flight with ``control_changes``
+        self._controls_read = True
 
     def disable(self):
         """Stop running this event from now on.
@@ -189,9 +192,10 @@ class Commands:
         Returns ``True`` when the queued commands start a new flight phase,
         switch the equations of motion, terminate the flight or switch an
         aerodynamic surface on or off, or when the event's callback changed a
-        control through ``context.controls``. In all these cases the
-        trajectory past the trigger is no longer valid, so during time
-        overshoot the simulation must be rolled back to the exact trigger
+        control through ``context.controls`` in a flight phase whose equations
+        read the control inputs (a parachute descent reads none). In all these
+        cases the trajectory past the trigger is no longer valid, so during
+        time overshoot the simulation must be rolled back to the exact trigger
         crossing before the commands are applied. Pure scheduling changes
         (enabling/disabling or adding events) do not require a rollback.
         """
@@ -200,5 +204,5 @@ class Commands:
             or self.new_dynamics is not None
             or self._terminate
             or bool(self.surface_switches)
-            or bool(self.control_changes)
+            or (self._controls_read and bool(self.control_changes))
         )

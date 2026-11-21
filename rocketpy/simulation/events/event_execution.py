@@ -58,6 +58,10 @@ def call_event(
     changes = check_writes(controls, before, limits, event.name)
     event.commands.control_changes.update(changes)
     if changes:
+        # In a phase whose equations read no control input, as under a
+        # parachute, the write is kept but the trajectory goes on as it was
+        dynamics = getattr(getattr(phase, "dynamics", None), "dynamics", None)
+        event.commands._controls_read = getattr(dynamics, "reads_controls", True)
         # The derivatives were worked out with the controls as they were
         for key in ("state_dot", "canonical_state_dot", "raw_state_dot"):
             context.pop(key, None)

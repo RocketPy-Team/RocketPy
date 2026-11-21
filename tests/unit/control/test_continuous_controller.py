@@ -14,6 +14,7 @@ from rocketpy.control.controllable import ForceEffector, ThrustEffector
 from rocketpy.simulation.events.views import ControlsView
 from rocketpy.simulation.helpers.dynamics import (
     CANONICAL_STATE_NAMES,
+    PARACHUTE_DYNAMICS,
     SIX_DOF_DYNAMICS,
     _PhaseDynamics,
     _with_controllables,
@@ -85,6 +86,21 @@ def test_a_law_writes_the_controls_the_physics_reads():
     ) == [-0.1, -0.1]
     # The flight's own control inputs are left as they were
     assert controls == {"canards.deflection": 0.0}
+
+
+def test_a_parachute_descent_reads_the_controls_only_through_an_added_state():
+    """Its equations read no control input, so a write to one does not stop
+    the solver, unless the rocket has a state that follows the controls."""
+    assert SIX_DOF_DYNAMICS.reads_controls
+    assert not PARACHUTE_DYNAMICS.reads_controls
+    bare = _PhaseDynamics("bare", _reads, CANONICAL_STATE_NAMES, reads_controls=False)
+    # A law without states adds nothing that is integrated
+    law_only = _with_controllables(
+        bare, _rocket(_canards(), ContinuousController(_roll_law))
+    )
+    assert not law_only.reads_controls
+    # A part with a state of its own, like a servo's angle, follows them
+    assert _with_controllables(bare, _rocket(_servo())).reads_controls
 
 
 def test_what_a_law_wrote_is_recorded_even_by_a_phase_with_no_post_values():

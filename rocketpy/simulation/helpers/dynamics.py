@@ -66,6 +66,7 @@ class _PhaseDynamics:
         to_canonical=None,
         to_canonical_dot=None,
         initial_state=None,
+        reads_controls=True,
     ):
         """Describe one kind of flight phase.
 
@@ -149,8 +150,15 @@ class _PhaseDynamics:
             must return exactly one value per state in ``states``.
             Defaults to picking this phase's states out of the canonical state,
             which works whenever every state it integrates is a canonical one.
+        reads_controls : bool, optional
+            Whether ``derivative`` reads the control inputs. Give ``False`` for
+            a phase where the rocket's controllable parts do nothing, as under
+            a parachute: a control input written during the phase is still
+            stored, but the solver is not stopped at the moment it is written,
+            which makes the phase faster to fly. Default is ``True``.
         """
         self.name = name
+        self.reads_controls = bool(reads_controls)
         self.derivative = derivative
         self.states = tuple(states)
         # ``context.state`` has these two names itself
@@ -772,6 +780,9 @@ def _with_controllables(dynamics, rocket):  # pylint: disable=too-many-statement
         dynamics.to_canonical,
         dynamics.to_canonical_dot,
         initial_state,
+        # A state added here follows the control inputs even when the phase's
+        # own equations read none of them
+        reads_controls=dynamics.reads_controls or bool(acting or integrated),
     )
     extended._base = dynamics
     extended._takes_start = not is_canonical
@@ -807,6 +818,9 @@ PARACHUTE_DYNAMICS = _PhaseDynamics(
     u_dot_parachute,
     CANONICAL_STATE_NAMES,
     PARACHUTE_POST_PROCESS_VARS,
+    # The air brakes, the control fins and the effectors do nothing under a
+    # parachute, so a controller that keeps writing to them costs no solver stop
+    reads_controls=False,
 )
 
 # Every kind of phase RocketPy ships, by name, so a saved flight gets back the
