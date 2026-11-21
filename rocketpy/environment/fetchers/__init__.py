@@ -28,7 +28,6 @@ from rocketpy.environment.fetchers.open_meteo_fetcher import (
     OPEN_METEO_HISTORICAL_URL,
     OPEN_METEO_PRESSURE_LEVELS,
     OPEN_METEO_TIMEOUT_SECONDS,
-    build_hourly_variables,
     fetch_open_meteo_ensemble,
     fetch_open_meteo_forecast,
 )
@@ -62,7 +61,6 @@ __all__ = [
     "OPEN_METEO_PRESSURE_LEVELS",
     "OPEN_METEO_TIMEOUT_SECONDS",
     "MeteomaticsFetcher",
-    "build_hourly_variables",
     "fetch_aigfs_file_return_dataset",
     "fetch_atmospheric_data_from_meteomatics",
     "fetch_atmospheric_data_from_windy",
