@@ -6,6 +6,18 @@ import pytest
 # Configure matplotlib to use non-interactive backend for tests
 matplotlib.use("Agg")
 
+
+@pytest.fixture(autouse=True)
+def isolate_atmosphere_cache(monkeypatch, tmp_path):
+    """Keep the atmosphere disk cache out of the developer's home directory.
+
+    Without this, ``set_atmospheric_model`` would write to
+    ``~/.rocketpy_cache`` during the test run and later tests could silently
+    read profiles cached by an earlier one.
+    """
+    monkeypatch.setenv("ROCKETPY_CACHE", str(tmp_path / "rocketpy_cache"))
+
+
 # Pytest configuration
 pytest_plugins = [
     "tests.fixtures.environment.environment_fixtures",

@@ -3523,7 +3523,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 validate=False,
             )
 
-    def compose(self, func, extrapolate=False):
+    def compose(self, func, extrapolate=False, tol=1e-9):
         """
         Returns a Function object which is the result of inputting a function
         into a function (i.e. f(g(x))). The domain will become the domain of
@@ -3538,7 +3538,13 @@ class Function:  # pylint: disable=too-many-public-methods
         extrapolate : bool, optional
             Whether or not to extrapolate the function if the input function's
             range is outside of the original function's domain. The default is
-            False.
+            False. If False, values outside the domain by at most ``tol`` times
+            the domain size are clipped to it; larger overshoots raise
+            ValueError.
+
+        tol : float, optional
+            Overshoot accepted outside the domain when ``extrapolate`` is
+            False, relative to the domain size. The default is 1e-9.
 
         Returns
         -------
@@ -3553,17 +3559,25 @@ class Function:  # pylint: disable=too-many-public-methods
             self._source_type is SourceType.ARRAY
             and func._source_type is SourceType.ARRAY
         ):
+            inner_values = func.y_array
             # Perform bounds check for composition
-            if not extrapolate:  # pragma: no cover
-                if func.min < self.x_initial or func.max > self.x_final:
+            if not extrapolate:
+                # Roundoff-sized overshoots (e.g. -1e-17 for 0) are clipped
+                # to the domain edge instead of rejected.
+                tolerance = tol * (self.x_final - self.x_initial)
+                if (
+                    func.min < self.x_initial - tolerance
+                    or func.max > self.x_final + tolerance
+                ):
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
                         f"the domain of the Function {self.x_initial, self.x_final}."
                     )
+                inner_values = np.clip(inner_values, self.x_initial, self.x_final)
 
             return Function._from_sorted_arrays(
                 func.x_array,
-                self(func.y_array),
+                self(inner_values),
                 inputs=func.__inputs__,
                 outputs=self.__outputs__,
                 interpolation=self.__interpolation__,

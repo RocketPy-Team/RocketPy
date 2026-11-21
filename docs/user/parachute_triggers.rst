@@ -69,6 +69,48 @@ Pass a number to deploy at a fixed height above ground level while descending:
         lag=0.5,
     )
 
+Fixed-time trigger
+------------------
+
+Pass a ``("time", t_deploy)`` tuple to deploy at a fixed flight time, measured
+in seconds from the start of the flight. This models a pyrotechnic delay charge
+that is lit at ignition:
+
+.. code-block:: python
+
+    rocket.add_parachute(
+        name="Drogue",
+        cd_s=1.0,
+        trigger=("time", 12.0),  # seconds after flight start
+        sampling_rate=100,
+        lag=0.5,
+    )
+
+Unlike the ``"apogee"`` and numeric-altitude forms, this one is not restricted
+to the descent: it fires as soon as flight time reaches ``t_deploy``, even while
+the rocket is still ascending. That is deliberate, since a delay charge burns on
+its own schedule regardless of where the rocket is.
+
+For a delay charge referenced to *burnout* rather than to ignition, compose it
+with the motor's burn out time:
+
+.. code-block:: python
+
+    rocket.add_parachute(
+        name="Drogue",
+        cd_s=1.0,
+        trigger=("time", motor.burn_out_time + 8.0),  # 8 s delay after burnout
+        sampling_rate=100,
+        lag=0.5,
+    )
+
+.. note::
+
+    Deploying while the rocket is still fast will produce very large parachute
+    forces, which is realistic: an over-short delay shreds canopies in reality
+    too. Check the loads in the results rather than assuming the deployment was
+    survivable.
+
 Custom trigger: motor burnout
 -----------------------------
 
@@ -274,6 +316,7 @@ a lower altitude:
 See Also
 --------
 
+- :doc:`Software-in-the-Loop Parachute Ejection <sil_parachute_ejection>`
 - :doc:`Parachute Class Reference </reference/classes/Parachute>`
 - :doc:`Flight Simulation </user/flight>`
 - :doc:`Sensors </notebooks/sensors>`

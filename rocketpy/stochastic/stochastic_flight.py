@@ -1,5 +1,10 @@
 """Defines the StochasticFlight class."""
 
+import warnings
+from numbers import Real
+
+import numpy as np
+
 from rocketpy.simulation import Flight
 
 from .stochastic_model import StochasticModel
@@ -28,7 +33,7 @@ class StochasticFlight(StochasticModel):
         be randomized.
     terminate_on_apogee : bool
         Whether or not the flight should terminate on apogee. This attribute
-        can not be randomized.
+        can not be randomized. If omitted, the base flight's value is kept.
     time_overshoot : bool
         If False, the simulation will run at the time step defined by the controller
         sampling rate. Be aware that this will make the simulation run much slower.
@@ -64,13 +69,16 @@ class StochasticFlight(StochasticModel):
             The inclination of the launch rail.
         heading : int, float, tuple, list, optional
             The heading of the launch rail.
-        initial_solution : tuple, list, optional
+        initial_solution : tuple, list, Flight, optional
             The initial solution of the flight. This is a tuple of 14 elements
             that represent the initial conditions of the flight. This attribute
-            can not be randomized.
+            can not be randomized. A Flight supplies its final state, copied
+            when this stochastic model is constructed. If omitted, an explicit
+            initial state from the base flight is preserved; rail launches
+            retain their randomized launch orientation.
         terminate_on_apogee : bool, optional
             Whether or not the flight should terminate on apogee. This attribute
-            can not be randomized.
+            can not be randomized. If omitted, the base flight's value is kept.
         time_overshoot : bool
             If False, the simulation will run at the time step defined by the controller
             sampling rate. Be aware that this will make the simulation run much slower.
@@ -78,10 +86,10 @@ class StochasticFlight(StochasticModel):
             The maximum time of the flight simulation. If the flight simulation
             reaches this time, it will terminate. This attribute can not be randomized.
         """
-        if terminate_on_apogee is not None:
-            assert isinstance(terminate_on_apogee, bool), (
-                "`terminate_on_apogee` must be a boolean"
-            )
+        if terminate_on_apogee is not None and not isinstance(
+            terminate_on_apogee, bool
+        ):
+            raise AssertionError("`terminate_on_apogee` must be a boolean")
         if time_overshoot is not None:
             if not isinstance(time_overshoot, bool):
                 raise TypeError("`time_overshoot` must be a boolean")
@@ -95,8 +103,17 @@ class StochasticFlight(StochasticModel):
             heading=heading,
         )
 
+        if initial_solution is None and getattr(
+            flight, "_initial_solution_given", False
+        ):
+            initial_solution = list(flight.solution[0])
+        elif isinstance(initial_solution, Flight):
+            initial_solution = list(initial_solution.solution[-1])
+        self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
-        self.terminate_on_apogee = terminate_on_apogee
+        self.terminate_on_apogee = self._resolve_terminate_on_apogee(
+            flight, terminate_on_apogee
+        )
         if max_time is None:
             self.max_time = flight.max_time
         else:
@@ -106,52 +123,86 @@ class StochasticFlight(StochasticModel):
         else:
             self.time_overshoot = time_overshoot
 
+    @staticmethod
+    def _resolve_terminate_on_apogee(flight, terminate_on_apogee):
+        """Keep the base flight's value when omitted, warning if it is True."""
+        if terminate_on_apogee is not None:
+            return terminate_on_apogee
+        if flight.terminate_on_apogee:
+            warnings.warn(
+                "StochasticFlight keeps the base flight's terminate_on_apogee=True, "
+                "so every sampled flight stops at apogee and x_impact, y_impact "
+                "and impact_velocity stay at 0; pass terminate_on_apogee=False "
+                "to simulate the full flight.",
+                UserWarning,
+                stacklevel=3,
+            )
+        return flight.terminate_on_apogee
+
     def _validate_initial_solution(self, initial_solution):
         if initial_solution is not None:
             if isinstance(initial_solution, (tuple, list)):
-                assert len(initial_solution) == 14, (
-                    "`initial_solution` must be a 14 element tuple, the "
-                    "elements are:\n t_initial, x_init, y_init, z_init, "
-                    "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
-                    "e3_init, w1Init, w2Init, w3Init"
-                )
-                assert all(isinstance(i, (int, float)) for i in initial_solution), (
-                    "`initial_solution` must be a tuple of numbers"
-                )
+                if not len(initial_solution) == 14:
+                    raise AssertionError(
+                        "`initial_solution` must be a 14 element tuple, the "
+                        "elements are:\n t_initial, x_init, y_init, z_init, "
+                        "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
+                        "e3_init, w1Init, w2Init, w3Init"
+                    )
+                if not all(
+                    isinstance(i, Real) and not isinstance(i, (bool, np.bool_))
+                    for i in initial_solution
+                ):
+                    raise AssertionError(
+                        "`initial_solution` must be a tuple of numbers"
+                    )
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")
 
-    # TODO: these methods call dict_generator a lot of times unnecessarily
+    def _sample_flight_inputs(self):
+        """Sample rail_length, inclination, and heading in a single draw.
+
+        Returns
+        -------
+        dict
+            Mapping with keys ``rail_length``, ``inclination``, and ``heading``.
+            Also updates ``last_rnd_dict``.
+        """
+        return next(self.dict_generator())
+
     def _randomize_rail_length(self):
         """Randomizes the rail length of the flight."""
-        generated_dict = next(self.dict_generator())
-        return generated_dict["rail_length"]
+        return self._sample_flight_inputs()["rail_length"]
 
     def _randomize_inclination(self):
         """Randomizes the inclination of the flight."""
-        generated_dict = next(self.dict_generator())
-        return generated_dict["inclination"]
+        return self._sample_flight_inputs()["inclination"]
 
     def _randomize_heading(self):
         """Randomizes the heading of the flight."""
-        generated_dict = next(self.dict_generator())
-        return generated_dict["heading"]
+        return self._sample_flight_inputs()["heading"]
 
-    def create_object(self):
+    def create_object(self, rocket=None, environment=None):
         """Creates and returns a Flight object from the randomly generated input
         arguments.
+
+        Parameters
+        ----------
+        rocket : Rocket, optional
+            Rocket to fly. Default is the base flight's rocket.
+        environment : Environment, optional
+            Environment to fly in. Default is the base flight's environment.
 
         Returns
         -------
         flight : Flight
             Flight object with the randomly generated input arguments.
         """
-        generated_dict = next(self.dict_generator())
-        # TODO: maybe we should use generated_dict["rail_length"] instead
+        generated_dict = self._sample_flight_inputs()
         return Flight(
-            rocket=self.obj.rocket,
-            environment=self.obj.env,
-            rail_length=self._randomize_rail_length(),
+            rocket=self.obj.rocket if rocket is None else rocket,
+            environment=self.obj.env if environment is None else environment,
+            rail_length=generated_dict["rail_length"],
             inclination=generated_dict["inclination"],
             heading=generated_dict["heading"],
             initial_solution=self.initial_solution,

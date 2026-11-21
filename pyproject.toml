@@ -77,7 +77,16 @@ animation = [
     "imageio-ffmpeg>=0.5"
 ]
 
-all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]", "rocketpy[animation]"]
+maps = [
+    "folium>=0.14",
+]
+
+all = [
+    "rocketpy[env-analysis]",
+    "rocketpy[monte-carlo]",
+    "rocketpy[animation]",
+    "rocketpy[maps]",
+]
 
 
 [tool.coverage.report]

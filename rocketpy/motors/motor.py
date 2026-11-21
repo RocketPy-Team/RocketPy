@@ -1386,7 +1386,6 @@ class GenericMotor(Motor):
     therefore for more accurate results, use the ``SolidMotor``, ``HybridMotor``
     or ``LiquidMotor`` classes."""
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         thrust_source,

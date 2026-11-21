@@ -130,6 +130,63 @@ def calculate_wind_speed(u, v, w=0.0):
     return np.sqrt(u**2 + v**2 + w**2)
 
 
+def convert_wind_speed_direction_to_components(wind_speed, wind_direction):
+    """Converts meteorological wind speed and direction to u and v components.
+
+    Meteorological wind direction is the direction the wind blows *from*,
+    measured clockwise from true north, which is the convention used by most
+    weather APIs. The returned components follow the RocketPy convention: u
+    points East and v points North, both describing where the wind blows *to*.
+
+    Parameters
+    ----------
+    wind_speed : float, numpy.ndarray
+        The wind speed in m/s.
+    wind_direction : float, numpy.ndarray
+        The direction the wind is coming from, in degrees clockwise from true
+        north (0 to 360).
+
+    Returns
+    -------
+    tuple of (float, float) or (numpy.ndarray, numpy.ndarray)
+        The u (East) and v (North) components of the wind, in m/s.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from rocketpy.environment.tools import (
+    ...     convert_wind_speed_direction_to_components,
+    ... )
+
+    A wind coming from the north blows towards the south, so v is negative:
+
+    >>> u, v = convert_wind_speed_direction_to_components(10, 0)
+    >>> float(np.round(u, 6) + 0.0), float(np.round(v, 6))
+    (0.0, -10.0)
+
+    A wind coming from the west blows towards the east, so u is positive:
+
+    >>> u, v = convert_wind_speed_direction_to_components(10, 270)
+    >>> float(np.round(u, 6)), float(np.round(v, 6) + 0.0)
+    (10.0, 0.0)
+
+    The conversion round-trips with :func:`calculate_wind_heading` and
+    :func:`convert_wind_heading_to_direction`:
+
+    >>> u, v = convert_wind_speed_direction_to_components(7.5, 135)
+    >>> float(np.round(calculate_wind_speed(u, v), 6))
+    7.5
+    >>> float(np.round(convert_wind_heading_to_direction(
+    ...     calculate_wind_heading(u, v)), 6))
+    135.0
+    """
+    direction_rad = np.radians(wind_direction)
+    return (
+        -wind_speed * np.sin(direction_rad),
+        -wind_speed * np.cos(direction_rad),
+    )
+
+
 def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
     """Convert geodesic coordinates to Lambert conformal projected coordinates.
 
@@ -673,8 +730,12 @@ def get_interval_date_from_time_array(time_array, units=None):
     Returns
     -------
     int
-        The interval in hours between two times in the time array.
+        The interval in hours between times in the array, or 0 when the array
+        contains a single time.
     """
+    if len(time_array) < 2:
+        return 0
+
     units = units or time_array.units
     return netCDF4.num2date(
         (time_array[-1] - time_array[0]) / (len(time_array) - 1),

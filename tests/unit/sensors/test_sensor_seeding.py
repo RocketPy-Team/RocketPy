@@ -15,8 +15,9 @@ import json
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
-from rocketpy._encoders import RocketPyEncoder
+from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
@@ -132,6 +133,47 @@ def test_seed_survives_serialization_round_trip():
         assert type(sensor).from_dict(data).to_dict()["seed"] == seed
 
 
+@pytest.mark.parametrize(
+    "seed",
+    [11, np.int64(11), [1, 2], np.random.SeedSequence(11)],
+    ids=["int", "numpy_int", "int_sequence", "seed_sequence"],
+)
+def test_round_trip_reproduces_the_noise_stream(seed):
+    """The point of writing a seed down is that the sensor read back draws the
+    same noise.
+
+    Comparing only the stored value would still pass for a seed that survives
+    JSON without naming the stream the original sensor used, which is exactly
+    what a live generator would do, so this compares the draws themselves.
+    """
+    encoded = json.dumps(_accelerometer(seed).to_dict(), cls=RocketPyEncoder)
+    restored = Accelerometer.from_dict(json.loads(encoded, cls=RocketPyDecoder))
+
+    assert _noise_sequence(restored) == _noise_sequence(_accelerometer(seed))
+
+
+def test_unserializable_seed_is_refused_before_it_can_be_stored():
+    """Keep the failure at the constructor instead of at save time.
+
+    ``default_rng`` accepts a ``Generator``, so the sensor builds successfully
+    and only raises once ``to_dict()`` reaches ``json.dumps()``, by which point
+    the call responsible for it is long gone. #1124 gave ``SeedSequence`` a
+    serializable form; a live generator has none.
+    """
+    with pytest.raises(TypeError, match="seed"):
+        Accelerometer(
+            sampling_rate=10, noise_density=1.0, seed=np.random.default_rng(7)
+        )
+
+
+def test_numpy_int_seed_survives_serialization_round_trip():
+    """``RocketPyEncoder`` writes numpy scalars out through ``.item()``, so a
+    numpy int is a valid seed and has to keep round tripping."""
+    sensor = Barometer(sampling_rate=10, noise_density=1.0, seed=np.int64(77))
+    data = json.loads(json.dumps(sensor.to_dict(), cls=RocketPyEncoder))
+    assert Barometer.from_dict(data).to_dict()["seed"] == 77
+
+
 def test_from_dict_defaults_seed_to_none_when_absent():
     """Dicts serialized before this change (no seed key) still load, seed None."""
     data = GnssReceiver(
@@ -139,3 +181,17 @@ def test_from_dict_defaults_seed_to_none_when_absent():
     ).to_dict()
     del data["seed"]
     assert GnssReceiver.from_dict(data).to_dict()["seed"] is None
+
+
+def test_seedsequence_sensor_seed_is_json_serializable():
+    """SeedSequence seeds must serialize through RocketPyEncoder (#1087)."""
+    seed = np.random.SeedSequence(0).spawn(1)[0]
+    sensor = Accelerometer(sampling_rate=100, seed=seed)
+
+    encoded = json.dumps(sensor.to_dict(), cls=RocketPyEncoder)
+    decoded = json.loads(encoded, cls=RocketPyDecoder)
+
+    assert isinstance(decoded["seed"], np.random.SeedSequence)
+    assert decoded["seed"].state == seed.state
+    restored = Accelerometer.from_dict(decoded)
+    assert restored.to_dict()["seed"].state == seed.state

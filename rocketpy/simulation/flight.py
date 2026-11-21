@@ -7,6 +7,7 @@ from functools import cached_property
 
 import numpy as np
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
+from scipy.optimize import brentq
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
@@ -354,28 +355,32 @@ class Flight:
         as array.
     Flight.rail_button1_normal_force : Function
         Upper rail button normal force in N as a function
-        of time.
+        of time. Zero once the upper button has left the rail.
     Flight.max_rail_button1_normal_force : float
         Maximum upper rail button normal force experienced
         during rail flight phase in N.
     Flight.rail_button1_shear_force : Function
         Upper rail button shear force in N as a function
-        of time.
+        of time. Zero once the upper button has left the rail.
     Flight.max_rail_button1_shear_force : float
         Maximum upper rail button shear force experienced
         during rail flight phase in N.
     Flight.rail_button2_normal_force : Function
         Lower rail button normal force in N as a function
-        of time.
+        of time. While both buttons are on the rail it counts the
+        aerodynamic loads only. During the tip-off phase, when the lower
+        button holds the rocket alone, it is the full force between the
+        button and the rail, which also carries the weight of the rocket.
     Flight.max_rail_button2_normal_force : float
         Maximum lower rail button normal force experienced
-        during rail flight phase in N.
+        on the rail, tip-off phase included, in N.
     Flight.rail_button2_shear_force : Function
         Lower rail button shear force in N as a function
-        of time.
+        of time. See ``Flight.rail_button2_normal_force`` for what it
+        counts in each phase.
     Flight.max_rail_button2_shear_force : float
         Maximum lower rail button shear force experienced
-        during rail flight phase in N.
+        on the rail, tip-off phase included, in N.
     Flight.rotational_energy : Function
         Rocket's rotational kinetic energy as a function of time.
         Units in J.
@@ -472,6 +477,21 @@ class Flight:
         array.
     Flight.simulation_mode : str
         Simulation mode for the flight. Can be "6 DOF" or "3 DOF".
+    Flight.tip_off_end_time : float
+        Time at which the lower rail button leaves the rail, ending the tip-off
+        phase, in seconds. Equal to ``out_of_rail_time`` when the tip-off phase
+        does not run: a rocket with fewer than two rail buttons, a flight with
+        ``simulation_mode="3 DOF"`` or with
+        ``equations_of_motion="solid_propulsion"``, or a flight started from an
+        ``initial_solution``.
+    Flight.tip_off_end_velocity : float
+        Rocket velocity magnitude when the lower rail button leaves the rail,
+        in m/s.
+    Flight.tip_off_end_state : list
+        State vector at the moment the lower rail button leaves the rail.
+    Flight.tip_off_duration : float
+        Time the rocket spends pivoting about the lower rail button, in
+        seconds. Zero when the tip-off phase does not run.
     Flight.rail_button1_bending_moment : Function
         Internal bending moment at upper rail button attachment point in N·m
         as a function of time. Calculated using beam theory during rail phase.
@@ -620,6 +640,8 @@ class Flight:
         self.rtol = rtol
         self.atol = atol or 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3]
         self.initial_solution = initial_solution
+        # Kept apart: the attribute is filled in with the rail launch state.
+        self._initial_solution_given = initial_solution is not None
         self.time_overshoot = time_overshoot
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
@@ -708,71 +730,6 @@ class Flight:
 
                 self.__process_sensors_and_controllers_at_current_node(node, phase)
 
-                for parachute in node.parachutes:
-                    # Calculate and save pressure signal
-                    (
-                        noisy_pressure,
-                        height_above_ground_level,
-                    ) = self.__calculate_and_save_pressure_signals(
-                        parachute, node.t, self.y_sol[2]
-                    )
-                    if self._evaluate_parachute_trigger(
-                        parachute,
-                        noisy_pressure,
-                        height_above_ground_level,
-                        self.y_sol,
-                        self.sensors,
-                        phase.derivative,
-                        self.t,
-                    ):
-                        # Remove parachute from flight parachutes
-                        self.parachutes.remove(parachute)
-                        # Create phase for time after detection and before inflation
-                        # Must only be created if parachute has any lag
-                        i = 1
-                        if parachute.lag != 0:
-                            self.flight_phases.add_phase(
-                                node.t,
-                                phase.derivative,
-                                clear=True,
-                                index=phase_index + i,
-                            )
-                            i += 1
-                        # Create flight phase for time after inflation
-                        callbacks = [
-                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
-                                self, "parachute_cd_s", parachute_cd_s
-                            ),
-                            lambda self, parachute_radius=parachute.radius: setattr(
-                                self, "parachute_radius", parachute_radius
-                            ),
-                            lambda self, parachute_height=parachute.height: setattr(
-                                self, "parachute_height", parachute_height
-                            ),
-                            lambda self, parachute_porosity=parachute.porosity: setattr(
-                                self, "parachute_porosity", parachute_porosity
-                            ),
-                            lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
-                                setattr(
-                                    self,
-                                    "parachute_added_mass_coefficient",
-                                    added_mass_coefficient,
-                                )
-                            ),
-                        ]
-                        self.flight_phases.add_phase(
-                            node.t + parachute.lag,
-                            self.u_dot_parachute,
-                            callbacks,
-                            clear=False,
-                            index=phase_index + i,
-                        )
-                        # Prepare to leave loops and start new flight phase
-                        phase.time_nodes.flush_after(node_index)
-                        phase.time_nodes.add_node(self.t, [], [], [])
-                        phase.solver.status = "finished"
-                        # Save parachute event
-                        self.parachute_events.append([self.t, parachute])
                 if self.__check_and_handle_parachute_triggers(
                     node, phase, phase_index, node_index
                 ):
@@ -847,6 +804,18 @@ class Flight:
 
         # Add last time node
         phase.time_nodes.add_node(phase.time_bound, [], [], [])
+
+        # A thrust curve that starts at t > 0 leaves the rocket stationary at
+        # ignition-minus, so the solver (max_step defaults to inf) can take one
+        # huge step clean over the burn and the rocket never lifts off (#411).
+        # Force solver stops at ignition and burn-out so the burn is always
+        # sampled. Guarded to burn_start > 0, so ordinary motors are untouched.
+        motor = self.rocket.motor
+        burn_start = getattr(motor, "burn_start_time", 0) or 0
+        if burn_start > 0:
+            for t_burn in (motor.burn_start_time, motor.burn_out_time):
+                if phase.t < t_burn < phase.time_bound:
+                    phase.time_nodes.add_node(t_burn, [], [], [])
 
         # Organize time nodes
         phase.time_nodes.sort()
@@ -963,6 +932,9 @@ class Flight:
             else:
                 continue  # Parachute already triggered, skip to next
 
+            if self.__defer_trigger_on_rail(parachute, node.t):
+                continue
+
             # Create phase for time after detection and before inflation
             # Must only be created if parachute has any lag
             i = 1
@@ -1014,6 +986,30 @@ class Flight:
 
         return False
 
+    def __defer_trigger_on_rail(self, parachute, t):
+        """Cancel a parachute trigger that fires before the rocket leaves the
+        rail and remember it, returning whether it was cancelled.
+
+        Deploying there would swap the rail dynamics for free flight, so the
+        rocket would sink into the ground or lose the parachute at rail exit.
+        The error is raised at rail exit, once that time is known.
+        """
+        if len(self.out_of_rail_state) > 1:
+            return False
+        self._triggered_on_rail.append((parachute, t))
+        return True
+
+    def __raise_if_triggered_on_rail(self):
+        """Raise if a parachute trigger fired before the rail exit."""
+        if not self._triggered_on_rail:
+            return
+        parachute, t = self._triggered_on_rail[0]
+        raise ValueError(
+            f"Parachute '{parachute.name}' is set to deploy at {round(t, 3):g} s, "
+            f"before the rocket leaves the rail at "
+            f"{round(self.out_of_rail_time, 3):g} s."
+        )
+
     def __check_simulation_events(self, phase, phase_index, node_index):
         """Check for simulation events like out of rail, apogee, and impact.
 
@@ -1031,14 +1027,27 @@ class Flight:
         bool
             True if an event occurred and the simulation should break.
         """
-        # Check for first out of rail event
-        if len(self.out_of_rail_state) == 1 and (
+        # Squared distance travelled from the launch point, used by both rail
+        # button exit checks below.
+        squared_distance_travelled = (
             self.y_sol[0] ** 2
             + self.y_sol[1] ** 2
             + (self.y_sol[2] - self.env.elevation) ** 2
-            >= self.effective_1rl**2
+        )
+        # Check for first out of rail event (upper rail button leaving the
+        # rail, at effective_1rl).
+        if (
+            len(self.out_of_rail_state) == 1
+            and squared_distance_travelled >= self.effective_1rl**2
         ):
             return self.__handle_out_of_rail_event(phase, phase_index, node_index)
+        # Check for the lower rail button leaving the rail (at effective_2rl),
+        # which ends the tip-off phase and begins generalized 6-DOF flight.
+        elif (
+            phase.derivative == self.udot_rail2  # pylint: disable=comparison-with-callable
+            and squared_distance_travelled >= self.effective_2rl**2
+        ):
+            return self.__handle_tip_off_end_event(phase, phase_index, node_index)
 
         # Check for apogee event
         # TODO: negative vz doesn't really mean apogee. Improve this.
@@ -1051,8 +1060,44 @@ class Flight:
 
         return False
 
+    def __root_find_rail_exit_time(self, phase, effective_rl):
+        """Find the time, within the last solver step, at which the distance
+        travelled from the launch point equals ``effective_rl``.
+
+        The search runs on the solver's own interpolation of the step, so the
+        result is as accurate as the solution itself, however long the step is.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase, whose solver has just taken a step.
+        effective_rl : float
+            Distance at which a rail button reaches the end of the rail, in
+            meters: ``effective_1rl`` for the upper button and
+            ``effective_2rl`` for the lower one.
+
+        Returns
+        -------
+        float
+            Simulation time of the crossing, in seconds.
+        """
+        interpolator = phase.solver.dense_output()
+        elevation = self.env.elevation
+
+        def distance_left(t):
+            x, y, z = interpolator(t)[:3]
+            return effective_rl**2 - (x**2 + y**2 + (z - elevation) ** 2)
+
+        return brentq(distance_left, phase.solver.t_old, phase.solver.t)
+
     def __handle_out_of_rail_event(self, phase, phase_index, node_index):
-        """Handle the out of rail event.
+        """Handle the out of rail event (upper rail button leaving the rail, at
+        ``effective_1rl``).
+
+        Records the out-of-rail state and inserts the next flight phase: the
+        3-DOF tip-off phase ``udot_rail2`` when the rocket has two rail buttons
+        and the equations of motion support it, otherwise the free-flight
+        dynamics.
 
         Parameters
         ----------
@@ -1068,54 +1113,70 @@ class Flight:
         bool
             True to indicate the simulation should break.
         """
-        # Check exactly when it went out using root finding
-        # Disconsider elevation
-        self.solution[-2][3] -= self.env.elevation
-        self.solution[-1][3] -= self.env.elevation
-        # Get points
-        y0 = sum(self.solution[-2][i] ** 2 for i in [1, 2, 3]) - self.effective_1rl**2
-        yp0 = 2 * sum(
-            self.solution[-2][i] * self.solution[-2][i + 3] for i in [1, 2, 3]
-        )
-        t1 = self.solution[-1][0] - self.solution[-2][0]
-        y1 = sum(self.solution[-1][i] ** 2 for i in [1, 2, 3]) - self.effective_1rl**2
-        yp1 = 2 * sum(
-            self.solution[-1][i] * self.solution[-1][i + 3] for i in [1, 2, 3]
-        )
-        # Put elevation back
-        self.solution[-2][3] += self.env.elevation
-        self.solution[-1][3] += self.env.elevation
-        # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
-        a, b, c, d = calculate_cubic_hermite_coefficients(
-            0,
-            float(phase.solver.step_size),
-            y0,
-            yp0,
-            y1,
-            yp1,
-        )
-        a += 1e-5  # TODO: why??
-        # Find roots
-        t_roots = find_roots_cubic_function(a, b, c, d)
-        # Find correct root
-        valid_t_root = [
-            t_root.real
-            for t_root in t_roots
-            if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001
-        ]
-        if len(valid_t_root) > 1:  # pragma: no cover
-            raise ValueError("Multiple roots found when solving for rail exit time.")
-        if len(valid_t_root) == 0:  # pragma: no cover
-            raise ValueError("No valid roots found when solving for rail exit time.")
         # Determine final state when upper button is going out of rail
-        self.t = valid_t_root[0] + self.solution[-2][0]
+        self.t = self.__root_find_rail_exit_time(phase, self.effective_1rl)
         interpolator = phase.solver.dense_output()
         self.y_sol = interpolator(self.t)
         self.solution[-1] = [self.t, *self.y_sol]
         self.out_of_rail_time = self.t
         self.out_of_rail_time_index = len(self.solution) - 1
         self.out_of_rail_state = self.y_sol
-        # Create new flight phase
+        self.__raise_if_triggered_on_rail()
+        # Tip-off runs only with two buttons on the rail and the standard
+        # 6 DOF equations. Otherwise the rocket goes straight to free flight.
+        if (
+            self.effective_2rl > self.effective_1rl > 0
+            and self.simulation_mode == "6 DOF"
+            and self.equations_of_motion == "standard"
+        ):
+            next_derivative = self.udot_rail2
+        else:
+            next_derivative = self.u_dot_generalized
+            # No tip-off phase: the rocket is free when the upper button leaves
+            self.tip_off_end_time = self.out_of_rail_time
+            self.tip_off_end_time_index = self.out_of_rail_time_index
+            self.tip_off_end_state = self.out_of_rail_state
+        self.flight_phases.add_phase(
+            self.t,
+            next_derivative,
+            index=phase_index + 1,
+        )
+        # Prepare to leave loops and start new flight phase
+        phase.time_nodes.flush_after(node_index)
+        phase.time_nodes.add_node(self.t, [], [], [])
+        phase.solver.status = "finished"
+        return True
+
+    def __handle_tip_off_end_event(self, phase, phase_index, node_index):
+        """Handle the end of the 3-DOF tip-off phase (lower rail button leaving
+        the rail, at ``effective_2rl``).
+
+        Records the between-rails state at the exact ``effective_2rl`` crossing
+        and inserts the generalized 6-DOF free-flight phase.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True to indicate the simulation should break.
+        """
+        # Determine final state when lower button is going out of rail
+        self.t = self.__root_find_rail_exit_time(phase, self.effective_2rl)
+        interpolator = phase.solver.dense_output()
+        self.y_sol = interpolator(self.t)
+        self.solution[-1] = [self.t, *self.y_sol]
+        self.tip_off_end_time = self.t
+        self.tip_off_end_time_index = len(self.solution) - 1
+        self.tip_off_end_state = self.y_sol
+        # Create the generalized 6-DOF free-flight phase
         self.flight_phases.add_phase(
             self.t,
             self.u_dot_generalized,
@@ -1213,6 +1274,8 @@ class Flight:
         ]
         if len(valid_t_root) > 1:  # pragma: no cover
             raise ValueError("Multiple roots found when solving for impact time.")
+        if len(valid_t_root) == 0:
+            raise ValueError("No valid roots found when solving for impact time.")
         # Determine impact state at t_root
         self.t = self.t_final = valid_t_root[0] + self.solution[-2][0]
         interpolator = phase.solver.dense_output()
@@ -1388,6 +1451,9 @@ class Flight:
             # Remove parachute from flight parachutes
             self.parachutes.remove(parachute)
 
+            if self.__defer_trigger_on_rail(parachute, overshootable_node.t):
+                continue
+
             # Create phase for time after detection and before inflation
             # Must only be created if parachute has any lag
             i = 1
@@ -1526,6 +1592,10 @@ class Flight:
         if expects_udot:
             u_dot = derivative_func(t, y)
 
+        # Expose flight time for built-in ("time", t_deploy) triggers without
+        # changing the public (p, h, y, sensors, u_dot) triggerfunc signature.
+        parachute._eval_time = t
+
         # Call the wrapper with both sensors and u_dot
         # The wrapper will decide which args to pass to the user's function
         return triggerfunc(pressure, height, y, sensors, u_dot)
@@ -1535,6 +1605,9 @@ class Flight:
         self.out_of_rail_time = 0
         self.out_of_rail_time_index = 0
         self.out_of_rail_state = np.array([0])
+        self.tip_off_end_state = np.array([0])
+        self.tip_off_end_time = 0
+        self.tip_off_end_time_index = 0
         self.apogee_state = np.array([0])
         self.apogee = 0
         self.apogee_time = 0
@@ -1543,10 +1616,22 @@ class Flight:
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
+        self._triggered_on_rail = []
         self.__post_processed_variables = []
+        self._tip_off_button_forces = []
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
+        # The rail is a fixed inertial line set by the launch inclination and
+        # heading, so its unit vector is known regardless of how the flight
+        # state is initialized. udot_rail2 constrains the lower button to it.
+        self.attitude_unit = Vector(
+            [
+                np.cos(np.radians(self.inclination)) * np.sin(np.radians(self.heading)),
+                np.cos(np.radians(self.inclination)) * np.cos(np.radians(self.heading)),
+                np.sin(np.radians(self.inclination)),
+            ]
+        )
         if self.initial_solution is None:
             # Initialize time and state variables
             self.t_initial = 0
@@ -1576,6 +1661,7 @@ class Flight:
             e0_init, e1_init, e2_init, e3_init = euler313_to_quaternions(
                 self.phi_init, self.theta_init, self.psi_init
             )
+
             # Store initial conditions
             self.initial_solution = [
                 self.t_initial,
@@ -1595,23 +1681,23 @@ class Flight:
             ]
             # Set initial derivative for rail phase
             self.initial_derivative = self.udot_rail1
-        elif isinstance(self.initial_solution, Flight):
-            # Initialize time and state variables based on last solution of
-            # previous flight
-            self.initial_solution = self.initial_solution.solution[-1]
-            # Set unused monitors
-            self.out_of_rail_state = self.initial_solution[1:]
-            self.out_of_rail_time = self.initial_solution[0]
-            self.out_of_rail_time_index = 0
-            # Set initial derivative for 6-DOF flight phase
-            self.initial_derivative = self.u_dot_generalized
         else:
-            # Initial solution given, ignore rail phase
+            if isinstance(self.initial_solution, Flight):
+                # Initialize time and state variables based on last solution of
+                # previous flight
+                self.initial_solution = self.initial_solution.solution[-1]
+            # Initial solution given, ignore rail phases
             # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
+            # Both rail phases are skipped, so the upper button exit and the
+            # end of tip-off (lower button exit) record the given starting state
             self.out_of_rail_state = self.initial_solution[1:]
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
+            self.tip_off_end_state = self.initial_solution[1:]
+            self.tip_off_end_time = self.initial_solution[0]
+            self.tip_off_end_time_index = 0
             self.t_initial = self.initial_solution[0]
+            # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.u_dot_generalized
         if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
@@ -1878,9 +1964,18 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def udot_rail2(self, t, u, post_processing=False):  # pragma: no cover
-        """[Still not implemented] Calculates derivative of u state vector with
-        respect to time when rocket is flying in 3 DOF motion in the rail.
+    def udot_rail2(self, t, u, post_processing=False):
+        """Calculates the derivative of the u state vector with respect to time
+        while only the lower rail button is on the rail (tip-off).
+
+        The rocket slides along the rail and is free to pitch and yaw about the
+        lower button, while roll is prevented. The accelerations of the free
+        rocket, from :meth:`u_dot_generalized`, are corrected by a force at the
+        button, perpendicular to the rail, and a moment about the rocket axis.
+        These are found from three conditions: the acceleration of the button
+        has no component perpendicular to the rail (two conditions) and the
+        roll angular acceleration is zero. The derivation is in the technical
+        documentation, :ref:`Tip-off <tipoff>`.
 
         Parameters
         ----------
@@ -1899,8 +1994,85 @@ class Flight:
             State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
             e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
         """
-        # Hey! We will finish this function later, now we just can use u_dot
-        return self.u_dot_generalized(t, u, post_processing=post_processing)
+        u_dot = list(self.u_dot_generalized(t, u, post_processing=post_processing))
+        a_free = Vector(u_dot[3:6])  # center of dry mass, inertial frame
+        alpha_free = Vector(u_dot[10:13])  # body frame
+        w = Vector(u[10:13])
+        K = Matrix.transformation(u[6:10])
+        Kt = K.transpose
+
+        # Positions along the rocket axis, from the center of dry mass
+        rocket = self.rocket
+        mass = rocket.total_mass.get_value_opt(t)
+        z_cm = -rocket.com_to_cdm_function.get_value_opt(t)
+        z_button = (
+            rocket.rail_buttons[0].position.z - rocket.center_of_dry_mass_position
+        ) * rocket._csys
+        r_cm = Vector([0, 0, z_cm])
+        r_button = Vector([0, 0, z_button])
+        cm_to_button = Vector([0, 0, z_button - z_cm])
+        # Inertia about the center of mass (parallel axis theorem)
+        shift = mass * z_cm**2
+        inertia_cm_inverse = (
+            rocket.get_inertia_tensor_at_time(t)
+            - Matrix([[shift, 0, 0], [0, shift, 0], [0, 0, 0]])
+        ).inverse
+
+        # Two unit vectors perpendicular to the rail, in the body frame, built
+        # from a body axis that is not parallel to the rail
+        rail = Kt @ self.attitude_unit
+        e1 = rail ^ Vector([1, 0, 0] if abs(rail.x) < 0.9 else [0, 1, 0])
+        e1 = e1 / abs(e1)
+        e2 = rail ^ e1
+        roll_axis = Vector([0, 0, 1])
+
+        # Acceleration of the button if the rocket were free, in the body frame
+        a_button_free = (Kt @ a_free) + (alpha_free ^ r_button) + (w ^ (w ^ r_button))
+
+        # Angular acceleration and button acceleration caused by a unit force
+        # along e1, a unit force along e2 and a unit roll moment
+        alphas = (
+            inertia_cm_inverse @ (cm_to_button ^ e1),
+            inertia_cm_inverse @ (cm_to_button ^ e2),
+            inertia_cm_inverse @ roll_axis,
+        )
+        a_buttons = (
+            e1 / mass + (alphas[0] ^ cm_to_button),
+            e2 / mass + (alphas[1] ^ cm_to_button),
+            alphas[2] ^ cm_to_button,
+        )
+
+        # Force along e1 and e2 and roll moment that meet the three conditions
+        response = Matrix(
+            [
+                [a_button @ e1 for a_button in a_buttons],
+                [a_button @ e2 for a_button in a_buttons],
+                [alpha @ roll_axis for alpha in alphas],
+            ]
+        )
+        force_1, force_2, roll_moment = response.inverse @ Vector(
+            [
+                -(a_button_free @ e1),
+                -(a_button_free @ e2),
+                -(alpha_free @ roll_axis),
+            ]
+        )
+
+        button_force = e1 * force_1 + e2 * force_2  # on the rocket, body frame
+        delta_alpha = (
+            alphas[0] * force_1 + alphas[1] * force_2 + alphas[2] * roll_moment
+        )
+        alpha = alpha_free + delta_alpha
+        a_cdm = a_free + K @ (button_force / mass - (delta_alpha ^ r_cm))
+
+        u_dot[3:6] = [a_cdm.x, a_cdm.y, a_cdm.z]
+        u_dot[10:13] = [alpha.x, alpha.y, 0.0]  # roll is exactly zero
+        if post_processing:
+            # u_dot_generalized stored the accelerations of the free rocket
+            self.__post_processed_variables[-1][1:7] = [*u_dot[3:6], *u_dot[10:13]]
+            # Force of the lower button on the rail, opposite to the one above
+            self._tip_off_button_forces.append([t, -button_force.x, -button_force.y])
+        return u_dot
 
     def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
@@ -1928,7 +2100,6 @@ class Flight:
         # Retrieve integration data
         _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
-        omega1, omega2, omega3 = 0, 0, 0
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Thrust correction parameters
         pressure = self.env.pressure.get_value_opt(z)
@@ -2138,7 +2309,7 @@ class Flight:
                     (
                         motor_I_11_derivative_at_t
                         + mass_flow_rate_at_t
-                        * (rocket_dry_mass - 1)
+                        * rocket_dry_mass**2
                         * (b / total_mass_at_t) ** 2
                     )
                     - mass_flow_rate_at_t
@@ -2163,7 +2334,7 @@ class Flight:
                     (
                         motor_I_11_derivative_at_t
                         + mass_flow_rate_at_t
-                        * (rocket_dry_mass - 1)
+                        * rocket_dry_mass**2
                         * (b / total_mass_at_t) ** 2
                     )
                     - mass_flow_rate_at_t
@@ -2184,21 +2355,22 @@ class Flight:
         e1dot = 0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3)
         e2dot = 0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3)
         e3dot = 0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2)
-        # Linear acceleration
+        # Linear acceleration. The propellant sits on the rocket axis (body
+        # axis 3), a distance b behind the center of dry mass.
         L = [
             (
                 R1
-                - b * propellant_mass_at_t * (omega2**2 + omega3**2)
+                + b * propellant_mass_at_t * (alpha2 + omega1 * omega3)
                 - 2 * c * mass_flow_rate_at_t * omega2
             )
             / total_mass_at_t,
             (
                 R2
-                + b * propellant_mass_at_t * (alpha3 + omega1 * omega2)
+                + b * propellant_mass_at_t * (-alpha1 + omega2 * omega3)
                 + 2 * c * mass_flow_rate_at_t * omega1
             )
             / total_mass_at_t,
-            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
+            (R3 - b * propellant_mass_at_t * (omega1**2 + omega2**2) + net_thrust)
             / total_mass_at_t,
         ]
         ax, ay, az = K @ Vector(L)
@@ -2506,13 +2678,13 @@ class Flight:
         total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
         total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = self.rocket.com_to_cdm_function
-        r_CM_t = r_CM_z.get_value_opt(t)
-        r_CM = Vector([0, 0, r_CM_t])
-        r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
-        r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
-        ## Nozzle position vector
-        r_NOZ = Vector([0, 0, self.rocket.nozzle_to_cdm])
+        ## com_to_cdm_function runs CM to CDM, so it is negated here
+        com_to_cdm = self.rocket.com_to_cdm_function
+        r_CM = Vector([0, 0, -com_to_cdm.get_value_opt(t)])
+        r_CM_dot = Vector([0, 0, -com_to_cdm.differentiate_complex_step(t)])
+        r_CM_ddot = Vector([0, 0, -com_to_cdm.differentiate(t, order=2)])
+        ## Nozzle position vector, likewise negated
+        r_NOZ = Vector([0, 0, -self.rocket.nozzle_to_cdm])
         ## Nozzle gyration tensor
         S_nozzle = self.rocket.nozzle_gyration_tensor
         ## Inertia tensor
@@ -2692,7 +2864,7 @@ class Flight:
 
         # Velocity vector derivative + Coriolis acceleration
         w_earth = Vector(self.env.earth_rotation_vector)
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
+        v_dot = K @ (T20 / total_mass + (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
         # Position vector derivative
         r_dot = [vx, vy, vz]
@@ -2995,19 +3167,19 @@ class Flight:
     @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
         """Aerodynamic moment acting along the x-axis of the rocket's body
-        frame as a function of time. Expressed in Newtons (N)."""
+        frame as a function of time. Expressed in Newton-metres (N·m)."""
         return self.__evaluate_post_process[:, [0, 10]]
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
         """Aerodynamic moment acting along the y-axis of the rocket's body
-        frame as a function of time. Expressed in Newtons (N)."""
+        frame as a function of time. Expressed in Newton-metres (N·m)."""
         return self.__evaluate_post_process[:, [0, 11]]
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
         """Aerodynamic moment acting along the z-axis of the rocket's body
-        frame as a function of time. Expressed in Newtons (N)."""
+        frame as a function of time. Expressed in Newton-metres (N·m)."""
         return self.__evaluate_post_process[:, [0, 12]]
 
     @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
@@ -3141,6 +3313,24 @@ class Flight:
     def out_of_rail_velocity(self):
         """Velocity at which the rocket leaves the launch rail."""
         return self.speed.get_value_opt(self.out_of_rail_time)
+
+    @property
+    def tip_off_end_velocity(self):
+        """Velocity at which the lower rail button leaves the launch rail,
+        ending the tip-off phase, in m/s. Equal to :attr:`out_of_rail_velocity`
+        when the tip-off phase does not run.
+        """
+        return self.speed.get_value_opt(self.tip_off_end_time)
+
+    @property
+    def tip_off_duration(self):
+        """Duration of the tip-off window, i.e. the time the rocket spends
+        pivoting about the lower rail button between the upper button leaving
+        the rail and the lower button leaving it, in seconds. Zero when the
+        tip-off phase does not run, or when the lower button never leaves the
+        rail because the flight ends or a parachute opens first.
+        """
+        return max(self.tip_off_end_time - self.out_of_rail_time, 0.0)
 
     @cached_property
     def max_speed_time(self):
@@ -3524,8 +3714,9 @@ class Flight:
     # Potential Energy
     @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
     def potential_energy(self):
-        """Potential energy as a Function of time in relation to sea
-        level."""
+        """Gravitational potential energy as a Function of time, given by
+        ``mu * m * (1 / R - 1 / (R + z))``. It is zero at sea level and
+        positive above it, increasing with altitude."""
         # Constants
         # TODO: this constant should come from Environment.
         standard_gravitational_parameter = 3.986004418e14
@@ -3535,7 +3726,7 @@ class Flight:
         return (
             standard_gravitational_parameter
             * total_mass
-            * (1 / (self.z + self.env.earth_radius) - 1 / self.env.earth_radius)
+            * (1 / self.env.earth_radius - 1 / (self.z + self.env.earth_radius))
         )
 
     # Total Mechanical Energy
@@ -3960,7 +4151,9 @@ class Flight:
     def __calculate_rail_button_forces(self):  # TODO: complex method.
         """Calculate the forces applied to the rail buttons while rocket is
         still on the launch rail. It will return 0 if no rail buttons are
-        defined.
+        defined. While both buttons are on the rail only the aerodynamic loads
+        are shared between them. During the tip-off phase the lower button
+        takes the force found in ``udot_rail2`` and the upper button none.
 
         Returns
         -------
@@ -4014,8 +4207,11 @@ class Flight:
         F22 = (self.R2 * D1 - self.M1) / (D1 + D2)
         F22.set_outputs("Lower button force direction 2 (m)")
 
+        # Points up to the upper button exit. Selected by time, since flights
+        # with controllers do not store one point per solution step.
+        on_rail = F11.get_source()
         model = Function(
-            F11.get_source()[: self.out_of_rail_time_index + 1, :],
+            on_rail[on_rail[:, 0] <= self.out_of_rail_time],
             interpolation=F11.__interpolation__,
         )
 
@@ -4024,6 +4220,29 @@ class Flight:
         F12.set_discrete_based_on_model(model)
         F21.set_discrete_based_on_model(model)
         F22.set_discrete_based_on_model(model)
+
+        # During tip-off only the lower button is on the rail: it carries the
+        # force found in udot_rail2 and the upper button carries none
+        tip_off = np.array(self._tip_off_button_forces)
+        if len(tip_off) > 0:
+            no_force = np.zeros(len(tip_off))
+            F11, F12, F21, F22 = (
+                Function(
+                    np.vstack(
+                        (force.get_source(), np.column_stack((tip_off[:, 0], values)))
+                    ),
+                    force.__inputs__,
+                    force.__outputs__,
+                    interpolation="linear",
+                    extrapolation="zero",
+                )
+                for force, values in (
+                    (F11, no_force),
+                    (F12, no_force),
+                    (F21, tip_off[:, 1]),
+                    (F22, tip_off[:, 2]),
+                )
+            )
 
         rail_button1_normal_force = F11 * np.cos(angular_position_rad) + F12 * np.sin(
             angular_position_rad
@@ -4091,6 +4310,7 @@ class Flight:
             [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
         """
         self.__post_processed_variables = []
+        self._tip_off_button_forces = []
         for phase_index, phase in self.time_iterator(self.flight_phases):
             init_time = phase.t
             final_time = self.flight_phases[phase_index + 1].t
@@ -4182,6 +4402,7 @@ class Flight:
             "solution": self.solution,
             "out_of_rail_time": self.out_of_rail_time,
             "out_of_rail_time_index": self.out_of_rail_time_index,
+            "tip_off_end_time": self.tip_off_end_time,
             "apogee_time": self.apogee_time,
             "apogee": self.apogee,
             "parachute_events": self.parachute_events,
@@ -4204,6 +4425,7 @@ class Flight:
             "M2": self.M2,
             "M3": self.M3,
             "net_thrust": self.net_thrust,
+            "tip_off_button_forces": self._tip_off_button_forces,
         }
 
         if kwargs.get("include_outputs", False):
@@ -4212,6 +4434,7 @@ class Flight:
                     "time": self.time,
                     "out_of_rail_velocity": self.out_of_rail_velocity,
                     "out_of_rail_state": self.out_of_rail_state,
+                    "tip_off_end_state": self.tip_off_end_state,
                     "apogee_x": self.apogee_x,
                     "apogee_y": self.apogee_y,
                     "apogee_state": self.apogee_state,

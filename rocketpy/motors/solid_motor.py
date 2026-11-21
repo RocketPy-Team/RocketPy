@@ -196,6 +196,10 @@ class SolidMotor(Motor):
     SolidMotor.only_radial_burn : bool
         If True, grain regression is restricted to radial burn only (inner radius growth).
         Grain length remains constant throughout the burn. Default is False.
+    SolidMotor.grains_bonded : bool
+        If True (default), grain axial positions stay fixed. If False, the
+        propellant center of mass moves toward the nozzle as the grain height
+        regresses.
     """
 
     # pylint: disable=too-many-arguments
@@ -221,6 +225,7 @@ class SolidMotor(Motor):
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reference_pressure=None,
         only_radial_burn=False,
+        grains_bonded=True,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -323,6 +328,20 @@ class SolidMotor(Motor):
             radial burn. If False, allows the grain to also burn
             axially. May be useful for axially inhibited grains or hybrid motors.
             Default is False.
+        grains_bonded : bool, optional
+            If True (default), the grains stay at fixed axial positions around
+            ``grains_center_of_mass_position``. If False, the grains are loose
+            and rest against the nozzle-side face of the initial grain stack, so
+            the propellant center of mass moves toward the nozzle as the grains
+            get shorter. The shift is ``(grain_number / 2) *
+            (grain_initial_height - grain_height(t))``, subtracted from
+            ``grains_center_of_mass_position`` when ``coordinate_system_orientation``
+            is ``"nozzle_to_combustion_chamber"`` and added when it is
+            ``"combustion_chamber_to_nozzle"``. ``grain_separation`` is
+            treated as a solid spacer, not an air gap, so the spacing between
+            grains stays constant. With ``only_radial_burn=True`` the grain
+            height is constant and there is no shift. This is a simple model
+            that ignores grain motion, friction and rattling.
 
         Returns
         -------
@@ -356,6 +375,7 @@ class SolidMotor(Motor):
         self.grain_outer_radius = grain_outer_radius
         self.grain_initial_inner_radius = grain_initial_inner_radius
         self.grain_initial_height = grain_initial_height
+        self.grains_bonded = grains_bonded
 
         # Grains initial geometrical parameters
         self.grain_initial_volume = (
@@ -478,10 +498,45 @@ class SolidMotor(Motor):
         -------
         Function
             Position of the propellant center of mass as a function of time.
+
+        Notes
+        -----
+        When ``grains_bonded`` is True, the CM stays at
+        ``grains_center_of_mass_position``.
+
+        When ``grains_bonded`` is False, the grains rest against the
+        nozzle-side face of the initial grain stack. As the grain height
+        regresses, the stack gets shorter and the CM moves toward the nozzle by
+        ``(grain_number / 2) * (grain_initial_height - grain_height(t))``,
+        signed by ``coordinate_system_orientation``.
         """
-        time_source = self.grain_inner_radius.x_array
-        center_of_mass = np.full_like(time_source, self.grains_center_of_mass_position)
-        return np.column_stack((time_source, center_of_mass))
+        if self.grains_bonded:
+            time_source = self.grain_inner_radius.x_array
+            center_of_mass = np.full_like(
+                time_source, self.grains_center_of_mass_position
+            )
+            return np.column_stack((time_source, center_of_mass))
+
+        # First-order packing: fixed aft face, stack shortens with grain height.
+        return self.grains_center_of_mass_position - self._csys * (
+            self.grain_number / 2.0
+        ) * (self.grain_initial_height - self.grain_height)
+
+    def _grain_pitch_squared_sum(self):
+        """Return ``pitch**2 * sum(index_offsets**2)`` for parallel-axis inertia.
+
+        Bonded grains use fixed initial pitch; unbonded grains use the
+        instantaneous packed pitch ``grain_height + grain_separation``.
+        """
+        grain_number = self.grain_number
+        initial_value = (grain_number - 1) / 2.0
+        index_offsets = np.linspace(-initial_value, initial_value, grain_number)
+        sum_sq_index = float(np.sum(index_offsets**2))
+        if self.grains_bonded:
+            pitch = self.grain_initial_height + self.grain_separation
+            return (pitch**2) * sum_sq_index
+        pitch = self.grain_height + self.grain_separation
+        return (pitch**2) * sum_sq_index
 
     # pylint: disable=too-many-statements
     def evaluate_geometry(self):
@@ -728,14 +783,12 @@ class SolidMotor(Motor):
             + (1 / 12) * self.grain_height**2
         )
 
-        # Calculate each grain's distance d to propellant center of mass
-        # Assuming each grain's COM are evenly spaced
-        initial_value = (grain_number - 1) / 2
-        d = np.linspace(-initial_value, initial_value, grain_number)
-        d = d * (self.grain_initial_height + self.grain_separation)
-
-        # Calculate inertia for all grains
-        I_11 = grain_number * grain_inertia11 + grain_mass * np.sum(d**2)
+        # Parallel-axis term from grain COM offsets about the propellant COM.
+        # Bonded: fixed initial pitch. Unbonded: packed pitch tracks grain_height.
+        I_11 = (
+            grain_number * grain_inertia11
+            + grain_mass * self._grain_pitch_squared_sum()
+        )
 
         return I_11
 
@@ -831,6 +884,7 @@ class SolidMotor(Motor):
                 "grain_separation": self.grain_separation,
                 "grains_center_of_mass_position": self.grains_center_of_mass_position,
                 "only_radial_burn": self.only_radial_burn,
+                "grains_bonded": self.grains_bonded,
             }
         )
 
@@ -881,4 +935,5 @@ class SolidMotor(Motor):
             coordinate_system_orientation=data["coordinate_system_orientation"],
             reference_pressure=data.get("reference_pressure"),
             only_radial_burn=data.get("only_radial_burn", False),
+            grains_bonded=data.get("grains_bonded", True),
         )

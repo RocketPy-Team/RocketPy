@@ -16,6 +16,13 @@ Other generic forecasts can also be imported.
     If you want to simulate your rocket launch using past data, you should use \
     :ref:`reanalysis` or :ref:`soundings`.
 
+.. tip::
+
+    The models on this page are fetched over OPeNDAP, which requires the
+    ``netCDF4`` library and can be slow. For a lighter alternative that serves
+    the same kind of pressure-level forecast as plain JSON, see
+    :ref:`open_meteo`.
+
 
 .. _global-forecast-system:
 
@@ -212,9 +219,17 @@ The following models are accepted:
 Let's see how to use Windy's data in RocketPy. First, we will set the location
 to EuRoC's launch area in Portugal.
 
+.. note::
 
-.. jupyter-execute::
+    These examples require access to Windy's forecast service. If the service is
+    unavailable, try another forecast source such as :ref:`open_meteo`.
 
+.. code-block:: python
+
+    from datetime import datetime, timedelta
+    from rocketpy import Environment
+
+    tomorrow = datetime.now() + timedelta(days=1)
     env_windy = Environment(
         date=tomorrow,
         latitude=39.3897,
@@ -231,7 +246,7 @@ you need reliable synoptic-scale forecasts several days ahead.
 
 We can use the ``ECMWF`` model from Windy.com. 
 
-.. jupyter-execute::
+.. code-block:: python
 
     env_windy.set_atmospheric_model(type="Windy", file="ECMWF")
     env_windy_ecmwf = env_windy
@@ -255,7 +270,7 @@ models when assessing forecast uncertainty.
 The ``GFS`` model is also available on Windy.com. This is the same model as
 described in the :ref:`global-forecast-system` section.
 
-.. jupyter-execute::
+.. code-block:: python
     
     env_windy.set_atmospheric_model(type="Windy", file="GFS")
     env_windy_gfs = env_windy
@@ -271,7 +286,7 @@ wind and temperature trends against GFS or ECMWF.
 
 The ICON model is a global weather forecasting model already available on Windy.com.
 
-.. jupyter-execute::
+.. code-block:: python
 
     env_windy.set_atmospheric_model(type="Windy", file="ICON")
     env_windy_icon = env_windy

@@ -1,6 +1,7 @@
 import json
 import os
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import matplotlib as plt
 import numpy as np
@@ -84,6 +85,65 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 # Tests
 
 
+def _make_impact_event_state():
+    flight = object.__new__(Flight)
+    flight.env = SimpleNamespace(elevation=0)
+    flight.solution = [
+        [10.0, 0, 0, 1, 0, 0, -1],
+        [11.0, 0, 0, -1, 0, 0, -1],
+    ]
+    flight.flight_phases = SimpleNamespace(
+        flush_after=MagicMock(), add_phase=MagicMock()
+    )
+
+    solver = SimpleNamespace(
+        step_size=1.0,
+        dense_output=lambda: lambda _: np.array([2, 3, 0, 4, 5, -6]),
+        status="running",
+    )
+    time_nodes = SimpleNamespace(flush_after=MagicMock(), add_node=MagicMock())
+    phase = SimpleNamespace(solver=solver, time_nodes=time_nodes)
+    return flight, phase
+
+
+@pytest.mark.parametrize(
+    "roots, match",
+    [
+        ([-1 + 0j, 2 + 0j], "No valid roots found"),
+        ([0.25 + 0j, 0.75 + 0j], "Multiple roots found"),
+    ],
+)
+def test_handle_impact_event_reports_invalid_root_counts(roots, match):
+    flight, phase = _make_impact_event_state()
+
+    with patch(
+        "rocketpy.simulation.flight.find_roots_cubic_function", return_value=roots
+    ):
+        with pytest.raises(ValueError, match=match):
+            flight._Flight__handle_impact_event(phase, phase_index=1, node_index=2)
+
+
+def test_handle_impact_event_uses_single_valid_root():
+    flight, phase = _make_impact_event_state()
+
+    with patch(
+        "rocketpy.simulation.flight.find_roots_cubic_function",
+        return_value=[0.5 + 0j],
+    ):
+        handled = flight._Flight__handle_impact_event(
+            phase, phase_index=1, node_index=2
+        )
+
+    assert handled is True
+    assert flight.t == flight.t_final == pytest.approx(10.5)
+    assert flight.impact_velocity == -6
+    assert phase.solver.status == "finished"
+    flight.flight_phases.flush_after.assert_called_once_with(1)
+    flight.flight_phases.add_phase.assert_called_once_with(10.5)
+    phase.time_nodes.flush_after.assert_called_once_with(2)
+    phase.time_nodes.add_node.assert_called_once_with(10.5, [], [], [])
+
+
 def test_get_solution_at_time(flight_calisto):
     """Test the get_solution_at_time method of the Flight class. This test
     simply calls the method at the initial and final time and checks if the
@@ -137,6 +197,42 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     obs_vars = flight_calisto_air_brakes.get_controller_observed_variables()
     assert isinstance(obs_vars, list)
     assert len(obs_vars) == 0
+
+
+def test_initial_solution_from_flight_sets_initial_time(
+    calisto_with_sensors, example_plain_env
+):
+    """A Flight continued from another Flight object must record ``t_initial``.
+    It is needed to post-process the initial state, so a rocket carrying sensors
+    or controllers used to raise ``AttributeError`` on this path.
+
+    Arrange: fly a rocket that carries sensors.
+    Act: start a second flight from the first Flight object.
+    Assert: ``t_initial`` is the time the previous flight ended at.
+    """
+    # Arrange
+    first = Flight(
+        rocket=calisto_with_sensors,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Act
+    second = Flight(
+        rocket=calisto_with_sensors,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        initial_solution=first,
+        max_time=first.t_final + 1,
+    )
+
+    # Assert
+    assert second.t_initial == first.solution[-1][0]
 
 
 def test_initial_stability_margin(flight_calisto_custom_wind):
@@ -215,7 +311,7 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     [
         ("t_initial", (0.25886, -0.649623, 0)),
         ("out_of_rail_time", (0.792028, -1.987634, 0)),
-        ("apogee_time", (-0.509420, -0.732933, -2.089120e-14)),
+        ("apogee_time", (-0.669152, -0.694259, -2.115675e-14)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -254,7 +350,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.654150, 0.659142, -0.067103)),
         ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
-        ("apogee_time", (2.321838, -1.613641, -0.962108)),
+        ("apogee_time", (2.154305, -2.076229, -0.848628)),
         ("t_final", (-0.019802, 0.012030, 159.051604)),
     ],
 )
@@ -295,7 +391,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-14.826350, 15.670022, -0.000264),
+            (-11.328713, 17.626676, -0.000173),
         ),
         ("t_final", (5, 2, -5.660155)),
     ],
@@ -334,7 +430,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 7.8067, 89.2315)),
-        ("apogee_time", (0.07649, -0.053530, -9.620037)),
+        ("apogee_time", (0.073233, -0.062635, -9.614299)),
         ("t_final", (0, 0, 0.0019548)),
     ],
 )
@@ -385,8 +481,8 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     atol = 5e-3
     assert pytest.approx(1.795539, abs=atol) == test.max_rail_button1_normal_force
     assert pytest.approx(0.715483, abs=atol) == test.max_rail_button1_shear_force
-    assert pytest.approx(3.257089, abs=atol) == test.max_rail_button2_normal_force
-    assert pytest.approx(1.297878, abs=atol) == test.max_rail_button2_shear_force
+    assert pytest.approx(5.135214, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(15.020664, abs=atol) == test.max_rail_button2_shear_force
 
 
 def test_max_values(flight_calisto_robust):
@@ -414,6 +510,53 @@ def test_max_values(flight_calisto_robust):
     assert pytest.approx(105.1599, rel=rtol) == test.max_acceleration
     assert pytest.approx(0.85999, rel=rtol) == test.max_mach_number
     assert pytest.approx(285.94948, rel=rtol) == test.max_speed
+
+
+def test_potential_energy_increases_with_altitude(flight_calisto):
+    """Test that the potential energy grows as the rocket climbs. Between
+    burn out and apogee the mass is constant, so the change in potential
+    energy must match m * g * dz.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test = flight_calisto
+    burn_out_time = test.rocket.motor.burn_out_time
+    apogee_time = test.apogee_time
+    mass = test.rocket.total_mass(apogee_time)
+    delta_z = test.z(apogee_time) - test.z(burn_out_time)
+    initial_potential_energy = test.potential_energy(burn_out_time)
+    final_potential_energy = test.potential_energy(apogee_time)
+    delta_potential_energy = final_potential_energy - initial_potential_energy
+    expected_delta = mass * test.env.standard_g * delta_z
+
+    assert delta_z > 0
+    assert pytest.approx(expected_delta, rel=1e-2) == delta_potential_energy
+
+
+def test_potential_energy_reference_and_total_energy(flight_calisto):
+    """Test that the potential energy is zero at sea level and positive
+    above it, and that the total energy is the kinetic plus the potential
+    energy.
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info
+        regarding this pytest fixture.
+    """
+    test = flight_calisto
+    apogee_time = test.apogee_time
+
+    assert test.z(test.t_initial) == pytest.approx(0)
+    assert test.potential_energy(test.t_initial) == pytest.approx(0, abs=1e-6)
+    assert test.potential_energy(apogee_time) > 0
+    assert test.total_energy(apogee_time) == pytest.approx(
+        test.kinetic_energy(apogee_time) + test.potential_energy(apogee_time)
+    )
 
 
 @pytest.mark.parametrize(
@@ -694,3 +837,180 @@ def test_max_acceleration_power_off_time_with_controllers(
     assert test.max_acceleration_power_off > 0, (
         "max_acceleration_power_off should be greater than zero"
     )
+
+
+# ---------------------------------------------------------------------------
+# The equations of motion themselves, evaluated on a fixed state
+# ---------------------------------------------------------------------------
+
+
+def _coasting_state(flight, seconds_after_burnout=3.0):
+    """Return ``(t, state)`` a few seconds into the coast of a flown flight."""
+    t = flight.rocket.motor.burn_out_time + seconds_after_burnout
+    return t, list(flight.get_solution_at_time(t)[1:])
+
+
+def _burning_state(flight, seconds_after_ignition=1.5):
+    """Return ``(t, state)`` during the motor burn of a flown flight."""
+    t = flight.rocket.motor.burn_start_time + seconds_after_ignition
+    return t, list(flight.get_solution_at_time(t)[1:])
+
+
+def _with_rates(state, w1=0.0, w2=0.0, w3=0.0):
+    return [*state[:10], w1, w2, w3]
+
+
+@pytest.mark.parametrize("derivative", [Flight.u_dot, Flight.u_dot_generalized])
+def test_an_angular_rate_is_aerodynamically_damped(flight_calisto_robust, derivative):
+    """A rate about any body axis must produce an angular acceleration against it.
+
+    The solid propulsion equations once zeroed the rates before the
+    aerodynamics, so no rate was ever damped: a canted fin spun the rocket up
+    without bound. This checks each axis on a coasting state, for both sets of
+    equations.
+    """
+    flight = flight_calisto_robust
+    t, state = _coasting_state(flight)
+    at_rest = derivative(flight, t, state)
+    for axis, rate in ((0, 2.0), (1, 2.0), (2, 20.0)):
+        slot = 10 + axis
+        positive = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": rate}))
+        negative = derivative(flight, t, _with_rates(state, **{f"w{axis + 1}": -rate}))
+        assert positive[slot] < at_rest[slot] < negative[slot], f"axis {axis + 1}"
+        # damping is close to linear in the rate at these magnitudes
+        assert positive[slot] - at_rest[slot] == pytest.approx(
+            -(negative[slot] - at_rest[slot]), rel=0.2
+        )
+
+
+def test_solid_propulsion_and_generalized_equations_agree_when_rotating(
+    flight_calisto_robust,
+):
+    """With a pitch rate applied, both models give the same damping moment.
+
+    They differ in how variable mass is handled, not in the aerodynamics, so
+    the angular acceleration a rate produces must agree closely.
+    """
+    flight = flight_calisto_robust
+    t, state = _coasting_state(flight)
+    pitching = _with_rates(state, w1=2.0)
+    solid = Flight.u_dot(flight, t, pitching)
+    generalized = Flight.u_dot_generalized(flight, t, pitching)
+    assert solid[10] == pytest.approx(generalized[10], rel=0.1)
+    assert solid[3:6] == pytest.approx(generalized[3:6], rel=0.05)
+
+
+def test_solid_propulsion_roll_gives_no_lateral_acceleration_in_the_burn(
+    flight_calisto_robust,
+):
+    """The propellant sits on the rocket axis, so a roll does not move it.
+
+    The solid propulsion equations once wrote the propellant offset along a
+    lateral body axis. A roll rate then pushed the rocket sideways while the
+    motor burned (about 30 m/s² at 20 rad/s on this rocket).
+    """
+    flight = flight_calisto_robust
+    t, state = _burning_state(flight)
+    still = Flight.u_dot(flight, t, _with_rates(state))
+    rolling = Flight.u_dot(flight, t, _with_rates(state, w3=20.0))
+    assert flight.rocket.motor.propellant_mass(t) > 1
+    assert rolling[3:6] == pytest.approx(still[3:6], abs=1e-6)
+
+
+def test_solid_propulsion_and_generalized_equations_agree_in_the_burn(
+    flight_calisto_robust,
+):
+    """While the motor burns and the rocket rotates, both models must agree.
+
+    The linear acceleration checks the propellant offset terms. The change in
+    pitch acceleration caused by a pitch rate checks the damping, which
+    includes the rate of change of the inertia. The models still differ in how
+    the mass flow is handled, hence the tolerances.
+    """
+    flight = flight_calisto_robust
+    t, state = _burning_state(flight)
+    still = _with_rates(state)
+    rotating = _with_rates(state, w1=1.5, w2=-1.0, w3=15.0)
+    pitching = _with_rates(state, w1=2.0)
+
+    solid = Flight.u_dot(flight, t, rotating)
+    generalized = Flight.u_dot_generalized(flight, t, rotating)
+    assert solid[3:6] == pytest.approx(generalized[3:6], abs=0.3)
+
+    damping = [
+        derivative(flight, t, pitching)[10] - derivative(flight, t, still)[10]
+        for derivative in (Flight.u_dot, Flight.u_dot_generalized)
+    ]
+    assert damping[0] < 0
+    assert damping[0] == pytest.approx(damping[1], rel=0.03)
+
+
+# Parachute triggers while the rocket is still on the rail
+
+
+def _calisto_with_early_chute(calisto_motorless, cesaroni_m1670, trigger):
+    """Calisto on a 5.2 m rail (exit at about 0.363 s) with one early chute."""
+    rocket = calisto_motorless
+    rocket.add_motor(cesaroni_m1670, position=-1.373)
+    rocket.add_nose(length=0.55829, kind="vonKarman", position=1.160)
+    rocket.add_trapezoidal_fins(
+        4, root_chord=0.120, tip_chord=0.040, span=0.100, position=-1.168
+    )
+    rocket.set_rail_buttons(0.0818, -0.6182, 45)
+    rocket.add_parachute("early", cd_s=1.0, trigger=trigger, sampling_rate=100, lag=0)
+    return rocket
+
+
+def _fly(rocket, env, **kwargs):
+    return Flight(
+        rocket=rocket,
+        environment=env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        max_time=600,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("time_overshoot", [True, False])
+@pytest.mark.parametrize("t_deploy", [0.05, 0.2, 0.3])
+def test_time_trigger_before_rail_exit_is_refused(
+    calisto_motorless, cesaroni_m1670, example_plain_env, t_deploy, time_overshoot
+):
+    """Deploying on the rail used to end in 'No valid roots found' or, for
+    later times, in a flight that silently lost the parachute."""
+    rocket = _calisto_with_early_chute(
+        calisto_motorless, cesaroni_m1670, ("time", t_deploy)
+    )
+    with pytest.raises(
+        ValueError,
+        match=(
+            rf"Parachute 'early' is set to deploy at {t_deploy:g} s, "
+            r"before the rocket leaves the rail at 0\.363 s"
+        ),
+    ):
+        _fly(rocket, example_plain_env, time_overshoot=time_overshoot)
+
+
+def test_callable_trigger_on_the_rail_is_refused(
+    calisto_motorless, cesaroni_m1670, example_plain_env
+):
+    """A callable that fires on the rail is as impossible as a time trigger."""
+    rocket = _calisto_with_early_chute(
+        calisto_motorless, cesaroni_m1670, lambda p, h, y: y[2] > 0.5
+    )
+    with pytest.raises(ValueError, match="before the rocket leaves the rail"):
+        _fly(rocket, example_plain_env)
+
+
+@pytest.mark.parametrize("time_overshoot", [True, False])
+def test_time_trigger_after_rail_exit_still_deploys(
+    calisto_motorless, cesaroni_m1670, example_plain_env, time_overshoot
+):
+    rocket = _calisto_with_early_chute(calisto_motorless, cesaroni_m1670, ("time", 1.0))
+    flight = _fly(rocket, example_plain_env, time_overshoot=time_overshoot)
+    assert [(round(t, 6), p.name) for t, p in flight.parachute_events] == [
+        (1.0, "early")
+    ]

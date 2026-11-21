@@ -75,15 +75,11 @@ gases, the drag coefficient is lower than when the motor is off.
 These curves are used to calculate the drag coefficient of the rocket at any
 given time.
 
-The drag curves can be defined in two ways:
-
-1. Passing in the path to the drag curve CSV file as a string;
-2. Passing in a function that returns the drag coefficient given the Mach
-   number.
-
-Curves defined in CSV files must have the first column as the Mach number
-and the second column as the drag coefficient.
-Here is an example of a drag curve file:
+Drag coefficients can be supplied as a constant, a Mach-only curve, or a
+multivariable model. A Mach-only model can be a callable, a
+:class:`rocketpy.Function`, a sequence of ``[mach, coefficient]`` pairs, or the
+path to a two-column CSV file. The first CSV column is the Mach number and the
+second is the drag coefficient. For example:
 
 .. code-block::
 
@@ -98,6 +94,53 @@ Here is an example of a drag curve file:
     0.8, 0.40110651
     0.9, 0.45696342
     1.0, 0.62744566
+
+For a model that depends on the flight state, pass a callable with these seven
+positional arguments, in order:
+
+``alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate``
+
+``alpha`` and ``beta`` are the angle of attack and sideslip angle in radians.
+The angular rates are expressed in radians per second in the rocket body frame.
+For example, a model based on angle of attack and Mach number can ignore the
+other inputs:
+
+.. code-block:: python
+
+    def drag_coefficient(
+        alpha, _beta, mach, _reynolds, _pitch_rate, _yaw_rate, _roll_rate
+    ):
+        return 0.38 + 0.08 * mach**2 + 0.6 * alpha**2
+
+    rocket = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag=drag_coefficient,
+        power_on_drag=drag_coefficient,
+        center_of_mass_without_motor=0,
+    )
+
+Header-based CSV files can model any subset of the seven variables. The final
+column contains the drag coefficient, and the preceding headers must use the
+variable names shown above. Providing every combination of input coordinates
+forms a regular grid and enables regular-grid interpolation. This example
+defines drag as a function of angle of attack and Mach number:
+
+.. code-block:: text
+
+    alpha,mach,cd
+    0.0,0.5,0.30
+    0.0,1.0,0.45
+    0.1,0.5,0.32
+    0.1,1.0,0.48
+
+For backward compatibility, ``rocket.power_off_drag`` and
+``rocket.power_on_drag`` expose the Mach-only slice of each model, with the
+other six inputs set to zero. Use ``rocket.power_off_drag_7d`` and
+``rocket.power_on_drag_7d`` to evaluate the full model directly. During a
+:class:`rocketpy.Flight`, RocketPy evaluates the full model using the current
+flight state.
 
 .. tip::
     Getting a drag curve can be a challenging task. To get really accurate
@@ -498,4 +541,3 @@ and ease of rotation:
 3. **Ease of Rotation**: The I\ :sub:`33` value is significantly lower than the other two. This suggests that the rocket is easier to rotate around its center axis than around the axes perpendicular to the rocket. This is an important factor when considering the rocket's stability and control.
 
 However, these conclusions are based on the assumption that the inertia tensor is calculated with respect to the rocket's center of mass and aligned with the principal axes of the rocket. If the inertia tensor is calculated with respect to a different point or not aligned with the principal axes, the conclusions may not hold.
-
