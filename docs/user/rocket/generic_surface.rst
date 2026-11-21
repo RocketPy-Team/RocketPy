@@ -509,7 +509,8 @@ those present must be named after the variables:
 
 The **last** column holds the coefficient value; it **must** have a header, but
 the header name can be anything. Spaces after the commas and quotes around the
-names are fine.
+names are fine. In a file with a single variable column, that column may be
+named loosely, such as ``Mach Number`` or ``Alpha (deg)``.
 
 .. important::
    Not all independent-variable columns need to be present, but the columns that

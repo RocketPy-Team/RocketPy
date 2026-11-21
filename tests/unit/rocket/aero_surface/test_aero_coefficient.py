@@ -2,6 +2,7 @@
 
 import functools
 
+import numpy as np
 import pytest
 
 from rocketpy import Function
@@ -170,6 +171,50 @@ def test_from_input_csv_loads_at_minimal_dimension(tmp_path):
     assert coeff(0, 0, 2, 0, 0, 0, 0) == pytest.approx(6)
 
 
+@pytest.mark.parametrize(
+    "header, variable, where",
+    [
+        ("Mach Number,Cd", "mach", {"mach": 1.0}),
+        ("MACH,Cd", "mach", {"mach": 1.0}),
+        ("Alpha,Cd", "alpha", {"alpha": 1.0}),
+        ("Alpha (deg),Cd", "alpha", {"alpha": np.radians(1.0)}),
+    ],
+)
+def test_load_csv_reads_a_loosely_named_single_variable(
+    tmp_path, header, variable, where
+):
+    """The one variable of a two-column file is read from its header as the
+    input of a Function is, degrees included."""
+    csv_file = tmp_path / "drag.csv"
+    csv_file.write_text(f"{header}\n0.0,0.4\n1.0,0.5\n2.0,0.7\n")
+
+    coeff = AeroCoefficient(str(csv_file), name="cD", single_var="mach")
+
+    point = {"alpha": 0.0, "beta": 0.0, "mach": 0.0, **where}
+    assert coeff.depends_on == (variable,)
+    assert coeff(point["alpha"], point["beta"], point["mach"], 0, 0, 0, 0) == (
+        pytest.approx(0.5)
+    )
+
+
+def test_load_csv_rejects_a_header_that_names_no_variable(tmp_path):
+    """A header is taken at its word: one that names no variable is an error,
+    even where a file with no header would be read as ``single_var``."""
+    csv_file = tmp_path / "coeffs.csv"
+    csv_file.write_text("x,y\n0.0,0.4\n1.0,0.5\n")
+
+    with pytest.raises(ValueError, match="Invalid independent variable"):
+        AeroCoefficient(str(csv_file), name="cD", single_var="mach")
+
+
+def test_load_csv_rejects_two_columns_the_wrong_way_round(tmp_path):
+    csv_file = tmp_path / "coeffs.csv"
+    csv_file.write_text("Cd,Mach Number\n0.4,0.0\n0.5,1.0\n")
+
+    with pytest.raises(ValueError, match="Last column"):
+        AeroCoefficient(str(csv_file), name="cD", single_var="mach")
+
+
 def test_load_csv_rejects_unknown_column(tmp_path):
     csv_file = tmp_path / "coeffs.csv"
     csv_file.write_text("bogus,cD\n0.0,0.0\n1.0,3.0\n")
@@ -213,15 +258,7 @@ def test_to_dict_from_dict_preserves_axes():
 
 
 def test_infer_single_var_unmatched_label_gives_none():
-    f = Function(lambda gamma: gamma, "gamma", "cD")
-    assert AeroCoefficient._infer_single_var(f, IV) is None
-
-
-def test_infer_single_var_missing_inputs_gives_none():
-    class NoInputs:
-        """An object with no inputs to read a variable name from."""
-
-    assert AeroCoefficient._infer_single_var(NoInputs(), IV) is None
+    assert AeroCoefficient._infer_single_var("gamma", IV) is None
 
 
 @pytest.mark.parametrize(
@@ -237,8 +274,7 @@ def test_infer_single_var_missing_inputs_gives_none():
     ],
 )
 def test_infer_single_var_matches_whole_words_only(label, expected):
-    f = Function([[0, 0.4], [1, 0.6]], label, "cD")
-    assert AeroCoefficient._infer_single_var(f, IV) == expected
+    assert AeroCoefficient._infer_single_var(label, IV) == expected
 
 
 def _model_with_a_constant(alpha, mach, slope=2.0):

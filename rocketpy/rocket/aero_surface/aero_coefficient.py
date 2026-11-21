@@ -158,8 +158,10 @@ class AeroCoefficient:
               the ``(source, variables)`` pair below, unless it has one input
               (see ``single_var``) or all seven, in the order above.
             - **str**: path to a ``.csv`` file with one column per variable,
-              named in the header, and the value in the last column. A
-              headerless two-column file is ``single_var`` against the value.
+              named in the header, and the value in the last column. In a
+              two-column file the one variable may be named loosely, such as
+              ``Mach Number``. A headerless two-column file is ``single_var``
+              against the value.
             - **Function**: used as is; its input labels name the variables. If
               ``extrapolation`` is given, it is applied to a copy.
             - **AeroCoefficient**: reused as is.
@@ -526,7 +528,7 @@ class AeroCoefficient:
             if dom_dim == 1:
                 # No default: guessing could read a Mach curve against alpha
                 variable = (
-                    self._infer_single_var(source, independent_vars) or single_var
+                    self._infer_single_var(inputs[0], independent_vars) or single_var
                 )
                 if variable is None:
                     raise ValueError(_UNNAMED_INPUT_MESSAGE.format(name=name))
@@ -564,10 +566,12 @@ class AeroCoefficient:
     ):
         """Read a coefficient from a CSV file. The last column is the value of
         the coefficient; the header names the variable of each of the other
-        columns, among ``independent_vars``. A two-column file with no header
-        is a table over ``single_var``, which must then be given. Returns
-        ``(function, depends_on)``, with ``depends_on`` the columns in the order
-        of the file."""
+        columns, among ``independent_vars``. In a two-column file the one
+        variable may be named loosely, as the input of a Function is (see
+        :meth:`_infer_single_var`). A two-column file with no header is a table
+        over ``single_var``, which must then be given. Returns
+        ``(function, depends_on)``, with ``depends_on`` the columns in the
+        order of the file."""
         try:
             with open(file_path, mode="r") as file:
                 header = [
@@ -595,6 +599,17 @@ class AeroCoefficient:
             variables = [single_var]
         else:
             variables = header[:-1]
+            match = AeroCoefficient._infer_single_var
+            if len(header) == 2 and variables[0] not in independent_vars:
+                # One variable, which may be named loosely ("Mach Number"),
+                # unless it is the columns that are swapped
+                if match(header[-1], independent_vars):
+                    raise ValueError(
+                        f"Last column in {name} CSV must be the coefficient"
+                        " value, not an independent variable."
+                    )
+                named = match(variables[0], independent_vars)
+                variables = [named] if named else variables
             invalid_columns = [col for col in variables if col not in independent_vars]
             if invalid_columns:
                 raise ValueError(
@@ -620,8 +635,9 @@ class AeroCoefficient:
         return function, variables
 
     @staticmethod
-    def _infer_single_var(function, independent_vars):
-        """The variable a one-input Function is labelled after, or ``None``.
+    def _infer_single_var(label, independent_vars):
+        """The variable a label names, or ``None``. The label is the input of
+        a one-input Function or the header of a one-variable CSV file.
 
         The label matches a variable when it contains the variable's name as a
         whole word, ignoring case and reading spaces as underscores: ``"mach"``,
@@ -629,10 +645,7 @@ class AeroCoefficient:
         An angle whose label also says ``deg`` or ``°`` (``"Alpha (deg)"``) is
         read in degrees.
         """
-        try:
-            label = str(function.__inputs__[0]).lower()
-        except (AttributeError, IndexError, TypeError):
-            return None
+        label = str(label).lower()
         # Longest name first, so "alpha_total" is not read as "alpha"
         for var in sorted(independent_vars, key=len, reverse=True):
             pattern = rf"(?<![a-z0-9_]){re.escape(var)}(?![a-z0-9_])"
