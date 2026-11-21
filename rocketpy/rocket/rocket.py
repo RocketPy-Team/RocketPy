@@ -2095,8 +2095,12 @@ class Rocket:
             gives the body-frame set: normal ``cN_*``, side ``cY_*`` and axial
             ``cA_*``. ``"wind"`` gives the wind-frame set: lift ``cL_*``, side
             ``cQ_*`` and drag ``cD_*``. The moment derivatives (``cm_*``,
-            ``cn_*``, ``cl_*``) are the same in both. The table model gives
-            the body frame only.
+            ``cn_*``, ``cl_*``) are the same in both. The two sets describe
+            the same rocket at small angles: a surface built from the
+            wind-frame set is linear in the wind frame, and one built from
+            the body-frame set in the body frame, so they differ beyond small
+            angles. A rocket of nose cones, fins and tails is linear in the
+            body frame. The table model gives the body frame only.
         model : str, optional
             ``"linear"`` (default) for the derivatives, ``"table"`` for the
             tables over the angles. See above.
@@ -2214,7 +2218,10 @@ class Rocket:
             (default) gives the body-frame set: normal ``cN``, side ``cY`` and
             axial ``cA`` (drag). ``"wind"`` gives the wind-frame set: lift
             ``cL``, side ``cQ`` and drag ``cD``. The moment coefficients are the
-            same in both. The table model gives the body frame only.
+            same in both. With ``"wind"`` the linear surface is linear in the
+            wind frame, so it matches the rocket at small angles only; with
+            ``"body"`` it matches a rocket of nose cones, fins and tails at
+            any angle. The table model gives the body frame only.
         name : str, optional
             Base name of the returned surfaces.
             Default ``"Full Body Aerodynamics"``.

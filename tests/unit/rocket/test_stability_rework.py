@@ -309,7 +309,7 @@ def test_to_surface_force_convention(calisto_robust):
     wind_off, _ = calisto_robust.to_surface(force_convention="wind")
     assert body_off.force_convention == "body"
     assert wind_off.force_convention == "wind"
-    # Same underlying model either way (both store body-frame derivatives).
+    # The same slopes at zero angle either way
     assert wind_off.cN_alpha.get_value_opt(*args) == pytest.approx(
         body_off.cN_alpha.get_value_opt(*args)
     )
@@ -912,7 +912,9 @@ def test_lumped_coefficients_keep_the_cross_terms_of_an_asymmetric_rocket(
     """A single canted fin off the body axes couples the two planes and has a
     force and a moment at zero angle. The lumped rocket reproduces the
     original's force and moment to first order in the angles and rates, in
-    either frame."""
+    either frame. Given in the wind frame it is linear in that frame, so it
+    leaves the original, which is linear in the body frame, at second order
+    in the angles."""
     rocket = Rocket(
         radius=0.0635,
         mass=14.426,
@@ -929,17 +931,20 @@ def test_lumped_coefficients_keep_the_cross_terms_of_an_asymmetric_rocket(
     for name in ("cN_beta", "cm_beta", "cn_alpha", "cN_0", "cm_0", "cl_0", "cl_alpha"):
         assert name in coefficients
     twin = _lumped_twin(rocket, force_convention)
+    # The second-order difference of the wind-frame twin is kept below the
+    # tolerance by a smaller angle
+    angle, tolerance = (0.01, 1e-6) if force_convention == "body" else (0.001, 1e-3)
     for alpha, beta, omega in (
         (0.0, 0.0, (0, 0, 0)),
-        (0.01, 0.0, (0, 0, 0)),
-        (0.0, 0.01, (0, 0, 0)),
-        (0.01, 0.01, (0.1, 0.1, 0.1)),
+        (angle, 0.0, (0, 0, 0)),
+        (0.0, angle, (0, 0, 0)),
+        (angle, angle, (0.1, 0.1, 0.1)),
     ):
         original = summed_force_and_moment(rocket, alpha, beta, 0.3, omega, speed=100)
         lumped = summed_force_and_moment(twin, alpha, beta, 0.3, omega, speed=100)
         # the twin's cA_0 holds the rocket's own drag curve on top of the fin
         lumped[2] += 0.5 * 100**2 * rocket.area * 0.5
-        np.testing.assert_allclose(lumped, original, rtol=2e-3, atol=1e-6)
+        np.testing.assert_allclose(lumped, original, rtol=2e-3, atol=tolerance)
 
 
 def test_to_coefficients_accepts_a_single_mach():

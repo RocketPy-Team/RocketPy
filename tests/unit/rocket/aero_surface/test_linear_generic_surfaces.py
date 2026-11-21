@@ -160,11 +160,11 @@ def test_invalid_wind_coefficient_name_raises():
         LinearGenericSurface(1, 1, {"cL_gamma": 1.0}, force_convention="wind")
 
 
-def test_wind_derivatives_convert_to_body_first_order():
-    """Wind-frame derivatives are converted to the body-frame set by linearizing
-    the wind/body rotation about zero: the four cross terms plus straight
-    renames. A nonzero base drag ``cD_0`` couples into the normal- and
-    axial-force slopes."""
+def test_wind_derivatives_give_the_body_slopes_at_zero_angle():
+    """The body-frame derivatives of a surface given in the wind frame are its
+    slopes at zero angle, which the stability analysis reads: the four cross
+    terms plus straight renames. A nonzero base drag ``cD_0`` couples into
+    the normal- and axial-force slopes."""
     surface = LinearGenericSurface(
         reference_area=0.01,
         reference_length=0.1,
@@ -188,57 +188,147 @@ def test_wind_derivatives_convert_to_body_first_order():
     assert surface.cA_beta.get_value_opt(*_ARGS) == pytest.approx(0.05)  # cD_beta+cQ_0
     assert surface.cm_alpha.get_value_opt(*_ARGS) == pytest.approx(-2.0)  # passthrough
 
-
-def test_wind_input_matches_body_input():
-    """A wind-frame surface equals the body-frame surface built from the
-    hand-converted derivatives, at an arbitrary angle."""
-    wind = LinearGenericSurface(
-        1,
-        1,
-        coefficients={"cL_0": 0.1, "cL_alpha": 5.0, "cD_0": 0.3, "cQ_beta": -4.0},
-        force_convention="wind",
-    )
-    body = LinearGenericSurface(
-        1,
-        1,
-        coefficients={
-            "cN_0": 0.1,
-            "cN_alpha": 5.3,
-            "cA_0": 0.3,
-            "cA_alpha": -0.1,  # cD_alpha - cL_0
-            "cY_beta": -4.3,
-        },
-    )
-    args = (0.02, 0.01, 0.5, 1e6, 0.0, 0.0, 0.0)
-    for coeff in ("cN", "cY", "cA"):
-        assert getattr(wind, coeff).get_value_opt(*args) == pytest.approx(
-            getattr(body, coeff).get_value_opt(*args)
+    # and they are the slopes of the forces the surface produces
+    step = 1e-6
+    for name, angle, expected in (("cN", 0, 5.3), ("cY", 1, -4.3), ("cA", 0, 0.1)):
+        at = [0.0, 0.0, 0.5, 1e6, 0.0, 0.0, 0.0]
+        below, above = list(at), list(at)
+        below[angle], above[angle] = -step, step
+        slope = (getattr(surface, name)(*above) - getattr(surface, name)(*below)) / (
+            2 * step
         )
+        assert slope == pytest.approx(expected, abs=1e-6)
 
 
-def test_wind_linear_matches_generic_surface_to_first_order():
-    """The body-frame forces of a wind-input linear surface agree with the
-    exact rotation used by GenericSurface to first order in the flow angles."""
-    coeffs = {"cL_0": 0.1, "cL_alpha": 5.0, "cD_0": 0.3, "cQ_beta": -4.0}
-    linear = LinearGenericSurface(0.01, 0.1, coeffs, force_convention="wind")
+_WIND_DERIVATIVES = {
+    "cL_0": 0.1,
+    "cL_alpha": 5.0,
+    "cL_q": 0.4,
+    "cD_0": 0.3,
+    "cD_alpha": 0.2,
+    "cQ_beta": -4.0,
+}
+
+
+def _as_given(alpha, beta, pitch_rate):
+    """Lift, drag and side force of ``_WIND_DERIVATIVES``."""
+    return (
+        0.1 + 5.0 * alpha + 0.4 * pitch_rate,
+        0.3 + 0.2 * alpha,
+        -4.0 * beta,
+    )
+
+
+@pytest.mark.parametrize("alpha", [0.0, 0.02, 0.1, math.radians(15), math.radians(30)])
+@pytest.mark.parametrize("beta", [0.0, 0.01, 0.2])
+def test_a_surface_given_in_the_wind_frame_produces_the_forces_given(alpha, beta):
+    """A surface given in the wind frame is linear in that frame: its lift,
+    drag and side force are the ones given at any angle, and its normal, side
+    and axial force are those turned into the body frame, as for a
+    ``GenericSurface`` given the same lift, drag and side force."""
+    linear = LinearGenericSurface(0.01, 0.1, _WIND_DERIVATIVES)
     generic = GenericSurface(
         0.01,
         0.1,
         coefficients={
-            "cL": lambda a, b, m, re, p, q, r: 0.1 + 5.0 * a,
-            "cD": lambda a, b, m, re, p, q, r: 0.3,
-            "cQ": lambda a, b, m, re, p, q, r: -4.0 * b,
+            "cL": lambda alpha, pitch_rate: 0.1 + 5.0 * alpha + 0.4 * pitch_rate,
+            "cD": lambda alpha: 0.3 + 0.2 * alpha,
+            "cQ": lambda beta: -4.0 * beta,
         },
-        force_convention="wind",
     )
-    eps = 1e-3
-    for alpha, beta in [(eps, 0.0), (0.0, eps), (eps, eps)]:
-        args = (alpha, beta, 0.5, 1e6, 0.0, 0.0, 0.0)
-        for coeff in ("cN", "cY", "cA"):
-            # Difference is second order in the angle (~1e-6 at eps=1e-3).
-            assert getattr(linear, coeff).get_value_opt(*args) == pytest.approx(
-                getattr(generic, coeff).get_value_opt(*args), abs=1e-5
-            )
+    args = (alpha, beta, 0.5, 1e6, 0.03, 0.0, 0.0)
+
+    lift, drag, side = _as_given(alpha, beta, 0.03)
+    assert linear.cL(*args) == pytest.approx(lift, abs=1e-12)
+    assert linear.cD(*args) == pytest.approx(drag, abs=1e-12)
+    assert linear.cQ(*args) == pytest.approx(side, abs=1e-12)
+    for name in ("cN", "cY", "cA"):
+        assert getattr(linear, name).get_value_opt(*args) == pytest.approx(
+            getattr(generic, name).get_value_opt(*args), abs=1e-12
+        )
+
+
+def test_a_surface_given_in_the_wind_frame_keeps_its_derivatives():
+    """The derivatives are read back as given, with the forcing and damping
+    parts of lift, drag and side force. A surface given in the body frame has
+    those of the normal, side and axial force instead."""
+    wind = LinearGenericSurface(0.01, 0.1, _WIND_DERIVATIVES)
+    args = (0.1, 0.05, 0.5, 1e6, 0.03, 0.0, 0.0)
+
+    for name, value in _WIND_DERIVATIVES.items():
+        assert getattr(wind, name).get_value_opt(*args) == pytest.approx(value)
+    assert wind.cL_beta.is_zero and wind.cQ_r.is_zero
+    assert wind.cLf(*args) == pytest.approx(0.1 + 5.0 * 0.1)
+    assert wind.cLd(*args) == pytest.approx(0.4 * 0.03)
+    assert wind.cDf(*args) == pytest.approx(0.3 + 0.2 * 0.1)
+    assert wind.cQf(*args) == pytest.approx(-4.0 * 0.05)
+    assert wind.cL(*args) == pytest.approx(wind.cLf(*args) + wind.cLd(*args))
+    assert not hasattr(wind, "cNf") and not hasattr(wind, "cAd")
+
+    body = LinearGenericSurface(0.01, 0.1, {"cN_alpha": 5.3, "cA_0": 0.3})
+    assert not hasattr(body, "cL_alpha") and not hasattr(body, "cLf")
+    assert body.cN(*args) == pytest.approx(body.cNf(*args) + body.cNd(*args))
+    assert body.cN(*args) == pytest.approx(5.3 * 0.1)
+
+
+def test_wind_and_body_input_agree_near_zero_angle_only():
+    """A surface given in the wind frame and the body-frame surface with the
+    same slopes at zero angle are two different linear models. Their forces
+    agree to first order in the angles and drift apart beyond that."""
+    wind = LinearGenericSurface(1, 1, {"cL_alpha": 2.0, "cD_0": 0.3})
+    body = LinearGenericSurface(1, 1, {"cN_alpha": 2.3, "cA_0": 0.3})
+
+    small = (1e-4, 0.0, 0.5, 1e6, 0.0, 0.0, 0.0)
+    large = (math.radians(15), 0.0, 0.5, 1e6, 0.0, 0.0, 0.0)
+    for name in ("cN", "cA"):
+        assert getattr(wind, name)(*small) == pytest.approx(
+            getattr(body, name)(*small), abs=1e-7
+        )
+    # at 15 degrees the body-frame surface has half as much drag again
+    assert wind.cD(*large) == pytest.approx(0.3)
+    assert body.cD(*large) == pytest.approx(0.4456, abs=1e-4)
+
+
+def test_an_axisymmetric_surface_given_in_the_wind_frame_fills_its_side_force():
+    """With ``axisymmetric=True`` the side force derivatives come from the
+    lift ones, so the surface pushes back the same in every plane."""
+    surface = LinearGenericSurface(
+        1, 1, {"cL_alpha": 2.0, "cL_q": 0.4, "cD_0": 0.3}, axisymmetric=True
+    )
+    args = (0.0, 0.0, 0.5, 1e6, 0.0, 0.0, 0.0)
+
+    assert surface.cQ_beta.get_value_opt(*args) == pytest.approx(-2.0)
+    assert surface.cQ_r.get_value_opt(*args) == pytest.approx(0.4)
+    assert surface.cY_beta.get_value_opt(*args) == pytest.approx(-2.3)
+    # the same push for the same angle in either plane
+    pitch = surface.cN(0.1, 0.0, 0.5, 1e6, 0.0, 0.0, 0.0)
+    yaw = surface.cY(0.0, 0.1, 0.5, 1e6, 0.0, 0.0, 0.0)
+    assert yaw == pytest.approx(-pitch, rel=1e-12)
+
+
+def test_a_surface_given_in_the_wind_frame_is_saved_as_given():
+    surface = LinearGenericSurface(0.01, 0.1, _WIND_DERIVATIVES)
+    loaded = LinearGenericSurface.from_dict(surface.to_dict())
+    args = (0.2, 0.05, 0.5, 1e6, 0.03, 0.0, 0.0)
+
+    assert loaded.force_convention == "wind"
+    for name in ("cL", "cD", "cQ", "cN", "cY", "cA", "cL_alpha", "cD_0"):
+        assert getattr(loaded, name)(*args) == pytest.approx(
+            getattr(surface, name)(*args)
+        )
+
+
+def test_the_moment_follows_the_force_of_a_surface_given_in_the_wind_frame():
+    """With a center of pressure that varies with Mach, the moment of the
+    normal force about it uses the force the surface produces, not its slope
+    at zero angle."""
+    arm = Function(lambda mach: 0.2 + 0.1 * mach, "Mach", "z (m)")
+    surface = LinearGenericSurface(
+        1, 2, {"cL_alpha": 2.0, "cD_0": 0.3}, center_of_pressure=(0, 0, arm)
+    )
+    args = (math.radians(15), 0.0, 0.5, 1e6, 0.0, 0.0, 0.0)
+
+    assert surface.cm(*args) == pytest.approx(surface.cN(*args) * 0.25 / 2)
 
 
 def test_public_coefficient_includes_the_damping_terms():

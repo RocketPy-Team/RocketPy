@@ -888,6 +888,11 @@ term :math:`C_{N0}`. Any term you omit is zero.
    ``force_convention`` selects the frame just as it does for
    :class:`rocketpy.GenericSurface`.
 
+   A surface given in the wind frame is linear in that frame: its lift, drag
+   and side force vary linearly with the angles and the rates. Its two parts
+   are then ``surface.cLf`` and ``surface.cLd`` (likewise for ``cD`` and
+   ``cQ``) in place of ``cNf`` and ``cNd``.
+
 .. seealso::
    For more information on class initialization, see
    :class:`rocketpy.LinearGenericSurface.__init__`

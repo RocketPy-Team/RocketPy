@@ -1,6 +1,9 @@
 from rocketpy.plots.aero_surface_plots import _LinearGenericSurfacePlots
 from rocketpy.prints.aero_surface_prints import _LinearGenericSurfacePrints
-from rocketpy.rocket.aero_surface._helpers import _as_function
+from rocketpy.rocket.aero_surface._helpers import (
+    _as_function,
+    _wind_to_body_coefficients,
+)
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
@@ -16,20 +19,34 @@ class LinearGenericSurface(GenericSurface):
     ----------
     LinearGenericSurface.cN_0 : AeroCoefficient
         The 36 coefficient derivatives, ``cN_0``, ``cN_alpha``, ..., ``cl_r``,
-        named ``<coefficient>_<variable>`` as given in ``coefficients``.
+        named ``<coefficient>_<variable>`` as given in ``coefficients``. For
+        a surface given in the wind frame, the force derivatives ``cN_*``,
+        ``cY_*`` and ``cA_*`` are its slopes at zero angle of attack and
+        sideslip, which the stability analysis uses.
+    LinearGenericSurface.cL_0 : AeroCoefficient
+        Only for a surface given in the wind frame: the 18 force derivatives
+        as given, ``cL_0``, ``cL_alpha``, ..., ``cD_r``.
     LinearGenericSurface.cNf : Function
         Forcing part of ``cN``, and likewise ``cYf``, ``cAf``, ``cmf``, ``cnf``
         and ``clf``: for example ``cmf = cm_0 + cm_alpha * alpha + cm_beta * beta``.
+        A surface given in the wind frame has ``cLf``, ``cQf`` and ``cDf`` in
+        place of ``cNf``, ``cYf`` and ``cAf``.
     LinearGenericSurface.cNd : Function
         Damping part of ``cN``, and likewise ``cYd``, ``cAd``, ``cmd``, ``cnd``
         and ``cld``: for example
         ``cmd = cm_p * roll_rate + cm_q * pitch_rate + cm_r * yaw_rate``.
+        A surface given in the wind frame has ``cLd``, ``cQd`` and ``cDd`` in
+        place of ``cNd``, ``cYd`` and ``cAd``.
     LinearGenericSurface.cN : Function
-        Normal force coefficient, the sum of its forcing and damping parts.
+        Normal force coefficient. For a surface given in the body frame, the
+        sum of its forcing and damping parts. For a surface given in the wind
+        frame, ``cN``, ``cY`` and ``cA`` are its lift, side force and drag
+        turned into the body frame at the angle of attack and sideslip of
+        each instant.
     LinearGenericSurface.cY : Function
-        Side force coefficient, the sum of its forcing and damping parts.
+        Side force coefficient, see ``cN``.
     LinearGenericSurface.cA : Function
-        Axial force coefficient, the sum of its forcing and damping parts.
+        Axial force coefficient, see ``cN``.
     LinearGenericSurface.cm : Function
         Pitching moment coefficient, the sum of its forcing and damping parts.
     LinearGenericSurface.cn : Function
@@ -37,11 +54,15 @@ class LinearGenericSurface(GenericSurface):
     LinearGenericSurface.cl : Function
         Roll moment coefficient, the sum of its forcing and damping parts.
     LinearGenericSurface.cL : Function
-        Lift coefficient, the force perpendicular to the airflow.
+        Lift coefficient, the force perpendicular to the airflow. For a
+        surface given in the wind frame, the sum of its forcing and damping
+        parts, ``cLf + cLd``.
     LinearGenericSurface.cD : Function
-        Drag coefficient, the force along the airflow.
+        Drag coefficient, the force along the airflow. For a surface given in
+        the wind frame, ``cDf + cDd``.
     LinearGenericSurface.cQ : Function
-        Crosswind coefficient, the side force relative to the airflow.
+        Crosswind coefficient, the side force relative to the airflow. For a
+        surface given in the wind frame, ``cQf + cQd``.
     LinearGenericSurface.aerodynamic_center : Function
         Pitch-plane aerodynamic center of the surface along the rocket's axis,
         in meters from the surface's position (positive toward the nose), as a
@@ -231,14 +252,12 @@ class LinearGenericSurface(GenericSurface):
 
             The moment derivatives (``cm_*``, ``cn_*``, ``cl_*``) are the same
             in both. ``None`` (the default) works out the frame from the names,
-            and uses ``"body"`` when there are no force derivatives. A
-            wind-frame input is converted once to the body-frame derivatives the
-            surface stores, by linearizing the angle-of-attack and sideslip
-            rotation about zero: the straight renames ``cN_0 = cL_0``,
-            ``cN_beta = cL_beta``, the rate derivatives, and the cross terms
-            ``cN_alpha = cL_alpha + cD_0``, ``cY_beta = cQ_beta - cD_0``,
-            ``cA_alpha = cD_alpha - cL_0`` and ``cA_beta = cD_beta + cQ_0``. At
-            zero angle this reduces to ``cN = cL``, ``cY = cQ``, ``cA = cD``.
+            and uses ``"body"`` when there are no force derivatives.
+
+            The forces vary linearly in the frame you give them in: with
+            ``"wind"`` the lift, side force and drag, for example
+            ``cL = cL_0 + cL_alpha * alpha + ...``; with ``"body"`` the
+            normal, side and axial force. Use the frame your data is in.
         active_during : str, optional
             The motor phase this surface produces aerodynamic force in:
 
@@ -378,7 +397,8 @@ class LinearGenericSurface(GenericSurface):
         return super()._as_coefficient(source, name, single_var or "mach")
 
     def _wind_input_to_body(self, coefficients):
-        """Convert wind-frame derivatives into body-frame ones.
+        """Work out the body-frame slopes at zero angle of wind-frame
+        derivatives, and keep the wind-frame derivatives themselves.
 
         The wind-frame ``cL_*``, ``cQ_*`` and ``cD_*`` become ``cN_*``, ``cY_*``
         and ``cA_*``. Linearizing the rotation between the two frames about
@@ -388,10 +408,21 @@ class LinearGenericSurface(GenericSurface):
             cN_alpha = cL_alpha + cD_0      cA_alpha = cD_alpha - cL_0
             cY_beta  = cQ_beta  - cD_0      cA_beta  = cD_beta  + cQ_0
 
-        At zero angle this reduces to ``cN = cL``, ``cY = cQ``, ``cA = cD``. The
-        moment derivatives are the same in both frames and pass through.
+        These are what the stability analysis reads. The forces themselves
+        are built from the wind-frame derivatives, kept here (see
+        :meth:`_build_forces_from_wind_frame`). The moment derivatives are the
+        same in both frames and pass through.
         """
         self._check_coefficients(coefficients, self._wind_default_coefficient_names())
+        coefficients = self._complete_wind_coefficients(coefficients)
+        self._wind_derivatives = {
+            name: self._as_coefficient(coefficients.get(name, 0), name)
+            for name in (
+                f"{wind_prefix}_{suffix}"
+                for wind_prefix in self._BODY_TO_WIND_PREFIX.values()
+                for suffix in (*self._FORCING_TERMS, *self._DAMPING_TERMS)
+            )
+        }
 
         def combined(first_name, second_name, sign, name):
             # first + sign * second, over only the variables the two use. When
@@ -444,6 +475,26 @@ class LinearGenericSurface(GenericSurface):
         "r": "q",
         "p": "p",
     }
+
+    def _complete_wind_coefficients(self, coefficients):
+        """Fill in the side force derivatives of an axisymmetric surface given
+        in the wind frame from its lift derivatives, as
+        :meth:`_complete_body_coefficients` does for the body frame:
+        ``cQ_beta = -cL_alpha``, ``cQ_alpha = cL_beta``, ``cQ_r = cL_q`` and
+        ``cQ_q = -cL_r``. What cannot be given with ``axisymmetric=True`` is
+        refused there."""
+        if not self._axisymmetric:
+            return coefficients
+        coefficients = dict(coefficients)
+        for suffix, source in self._YAW_FROM_PITCH.items():
+            name = f"cL_{source}"
+            if source in ("0", "p") or name not in coefficients:
+                continue
+            derivative = self._as_coefficient(coefficients[name], name)
+            if not derivative.is_zero:
+                sign = -1.0 if suffix in ("beta", "q") else 1.0
+                coefficients[f"cQ_{suffix}"] = sign * derivative
+        return coefficients
 
     def _complete_body_coefficients(self, coefficients):
         """Fill in the yaw-plane derivatives of an axisymmetric surface from
@@ -520,9 +571,15 @@ class LinearGenericSurface(GenericSurface):
 
         The whole coefficient is the sum of the two parts. A damping derivative
         that opposes the motion is a negative number, so nothing is subtracted.
+
+        The forces of a surface given in the wind frame are built in that
+        frame instead, see :meth:`_build_forces_from_wind_frame`.
         """
         every_term = {**self._FORCING_TERMS, **self._DAMPING_TERMS}
+        given_in_wind_frame = self.force_convention == "wind"
         for coefficient in self._COEFFICIENTS:
+            if given_in_wind_frame and coefficient in self._BODY_TO_WIND_PREFIX:
+                continue
             for suffix, terms in (
                 ("f", self._FORCING_TERMS),
                 ("d", self._DAMPING_TERMS),
@@ -533,6 +590,80 @@ class LinearGenericSurface(GenericSurface):
                     coefficient + suffix,
                     self._linear_coefficient(coefficient, terms),
                 )
+        if given_in_wind_frame:
+            self._build_forces_from_wind_frame()
+
+    def _build_forces_from_wind_frame(self):
+        """Build the forces of a surface given in the wind frame.
+
+        The surface is linear in the frame it was given in: lift, drag and
+        side force are each the sum of a forcing and a damping part (``cLf``,
+        ``cLd`` and so on), built from the derivatives as given, which are
+        kept as attributes (``cL_alpha``, ``cD_0``, ...). The normal, side and
+        axial force the simulation uses are those three turned into the body
+        frame at the angle of attack and sideslip of each instant, so the
+        surface produces the forces given at any angle, not only near zero.
+        """
+        every_term = {**self._FORCING_TERMS, **self._DAMPING_TERMS}
+        for name, derivative in self._wind_derivatives.items():
+            setattr(self, name, derivative)
+        wind = {}
+        for coefficient in ("cL", "cD", "cQ"):
+            for suffix, terms in (
+                ("f", self._FORCING_TERMS),
+                ("d", self._DAMPING_TERMS),
+            ):
+                setattr(
+                    self,
+                    coefficient + suffix,
+                    self._linear_coefficient(coefficient, terms),
+                )
+            wind[coefficient] = self._linear_coefficient(coefficient, every_term)
+        self._linear_wind_coefficients = (wind["cL"], wind["cD"], wind["cQ"])
+        # Lift, drag, side force: the order _wind_to_body_coefficients takes
+        body = _wind_to_body_coefficients(
+            *(self._as_coefficient(wind[name], name) for name in ("cL", "cD", "cQ")),
+            self.independent_vars,
+        )
+        for name, coefficient in zip(self._BODY_FORCE_NAMES, body):
+            setattr(self, name, coefficient)
+        if self._xcp is not None:
+            self._carry_exact_forces_to_center_of_pressure(every_term)
+
+    def _carry_exact_forces_to_center_of_pressure(self, every_term):
+        """With a center of pressure that varies with Mach, the moment of each
+        force about it was added to the moment derivatives using the force's
+        slopes at zero angle (see :meth:`_carry_moments_to_center_of_pressure`).
+        Add what the force of a surface given in the wind frame has beyond
+        those slopes, so the moment is that of the force actually applied."""
+        length = self.reference_length
+        read_z = self._xcp.evaluator(self.independent_vars)
+        for moment_name, force_name in (("cm", "cN"), ("cn", "cY")):
+            linear_moment = getattr(self, moment_name).get_value_opt
+            force = getattr(self, force_name).get_value_opt
+            at_zero_angle = self._linear_coefficient(
+                force_name, every_term
+            ).get_value_opt
+
+            def total(*args, moment=linear_moment, force=force, linear=at_zero_angle):
+                return (
+                    moment(*args)
+                    + (force(*args) - linear(*args)) * read_z(*args) / length
+                )
+
+            setattr(
+                self,
+                moment_name,
+                _as_function(total, self.independent_vars, moment_name),
+            )
+
+    @property
+    def _wind_coefficients(self):
+        """``(cL, cD, cQ)``: as given for a surface given in the wind frame,
+        and worked out from the body-frame forces otherwise."""
+        if self.force_convention == "wind":
+            return self._linear_wind_coefficients
+        return super()._wind_coefficients
 
     def _linear_coefficient(self, coefficient, terms):
         """Sum the given terms of one coefficient into a :class:`Function`.
