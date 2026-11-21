@@ -2486,6 +2486,12 @@ rocketpy.ControllableGenericSurface
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            It is the angle each fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         sweep_length : int, float, optional
             Fins sweep length in meters. By sweep length, understand the axial
             distance between the fin root leading edge and the fin tip leading
@@ -2581,8 +2587,14 @@ rocketpy.ControllableGenericSurface
             --------
             :ref:`positions`
         cant_angle : int, float, optional
-            Fins cant angle with respect to the rocket centerline. Must be given
-            in degrees.
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+            It is the angle each fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         radius : int, float, optional
             Reference fuselage radius where the fins are located. This is used
             to calculate lift coefficient and to draw the rocket. If None,
@@ -2655,6 +2667,12 @@ rocketpy.ControllableGenericSurface
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            It is the angle each fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         radius : int, float, optional
             Reference fuselage radius where the fins are located. This is used
             to calculate lift coefficient and to draw the rocket. If None,
