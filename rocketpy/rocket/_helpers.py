@@ -30,7 +30,19 @@ def stability_surfaces(rocket, phase=None):
 
     A surface is left out when its ``active_during`` names the other phase,
     or when it starts the flight switched off (``active=False``).
+
+    While a flight reads one stretch of its trajectory (see
+    ``Rocket._reading_surfaces``) the surfaces are the ones active in that
+    stretch, whatever ``phase`` says.
     """
+    # pylint: disable-next=protected-access
+    selection = rocket._stability_selection
+    if selection is not None:
+        return [
+            pair
+            for pair, chosen in zip(rocket.aerodynamic_surfaces, selection)
+            if chosen
+        ]
     phase = rocket.stability_phase if phase is None else phase
     if phase not in ("power_on", "power_off"):
         raise ValueError(

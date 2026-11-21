@@ -1571,6 +1571,31 @@ def test_disturbance_response_grows_without_a_restoring_moment():
     assert "no restoring moment" in response.title
 
 
+def test_reading_some_surfaces_is_undone_even_after_an_error():
+    """While some surfaces are being read the rocket describes them alone, and
+    afterwards it describes itself again, also when the reading failed."""
+    rocket = _oscillator_rocket()
+    everything = rocket.static_margin(0)
+    count = len(rocket.aerodynamic_surfaces)
+    is_fins = [
+        "fin" in type(surface).__name__.lower()
+        for surface, _ in rocket.aerodynamic_surfaces
+    ]
+    assert any(is_fins) and not all(is_fins)
+
+    with pytest.raises(RuntimeError):
+        with rocket._reading_surfaces([not fins for fins in is_fins]):
+            # without its fins the rocket is unstable
+            assert len(stability_surfaces(rocket)) == count - sum(is_fins)
+            assert rocket.static_margin(0) < 0 < everything
+            raise RuntimeError("the reading failed")
+
+    assert len(stability_surfaces(rocket)) == count
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # nothing is said twice
+        assert rocket.static_margin(0) == pytest.approx(everything)
+
+
 @pytest.mark.parametrize("plane", ["Yaw", "roll", None])
 def test_disturbance_response_refuses_an_unknown_plane(plane):
     """A plane that is neither of the two is not read as pitch."""

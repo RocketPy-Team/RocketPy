@@ -2,6 +2,7 @@
 import inspect
 import math
 import warnings
+from contextlib import contextmanager
 from collections.abc import Iterable
 
 import numpy as np
@@ -401,6 +402,13 @@ class Rocket:
         self._lever_arms_stamp = None
         self._aerodynamic_center_stamp = None
         self._margins_stamp = None
+        # Which surfaces the stability analysis counts while a flight reads one
+        # stretch of its trajectory: one True or False per aerodynamic
+        # surface, in order (see _reading_surfaces). None the rest of the time.
+        self._stability_selection = None
+        # The configurations evaluate_center_of_pressure already gave its
+        # notices for
+        self._noticed_configurations = []
         # Set once a full-body model replaces the modeled aerodynamics
         # (add_full_body_aerodynamics(overwrite=True)); warns on later surface adds.
         self._aerodynamics_overwritten = False
@@ -775,11 +783,34 @@ class Rocket:
             self._csys,
             self.radius,
             self.stability_phase,
+            self._stability_selection,
             tuple(
                 (surface, surface._version, position)
                 for surface, position in self.aerodynamic_surfaces
             ),
         )
+
+    @contextmanager
+    def _reading_surfaces(self, selection):
+        """Have the aerodynamic center, the margins and everything else the
+        stability analysis reads describe the rocket with only some of its
+        surfaces, while the ``with`` block runs.
+
+        A flight uses this to read the rocket as it was during one stretch of
+        its trajectory: with the surfaces its events had switched on by then,
+        in the motor phase of that stretch.
+
+        Parameters
+        ----------
+        selection : sequence of bool or None
+            Whether each aerodynamic surface counts, in the order of
+            ``aerodynamic_surfaces``. ``None`` leaves the rocket as it is.
+        """
+        self._stability_selection = None if selection is None else tuple(selection)
+        try:
+            yield
+        finally:
+            self._stability_selection = None
 
     def _refresh_aerodynamics(self):
         """Bring up to date what the simulation reads from the surfaces: each
@@ -1099,11 +1130,21 @@ class Rocket:
         self._total_side_coeff_der.set_source(lambda mach: 0)
         self._aerodynamic_center_yaw.set_source(lambda mach: 0)
 
+        # The two notices below are given once per configuration. A flight
+        # reading one stretch of its trajectory chose the surfaces itself, and
+        # gets none.
+        configuration = self._surfaces_stamp()
+        notify = (
+            self._stability_selection is None
+            and configuration not in self._noticed_configurations
+        )
+        if notify:
+            self._noticed_configurations.append(configuration)
+
         # Surfaces active only in the other motor phase, or switched off, are
-        # left out. This method runs once per configuration, so the notice is
-        # shown once.
+        # left out.
         surfaces = stability_surfaces(self)
-        if len(surfaces) != len(self.aerodynamic_surfaces):
+        if notify and len(surfaces) != len(self.aerodynamic_surfaces):
             warnings.warn(
                 "The aerodynamic center, the margins and the lumped coefficients "
                 f"describe the rocket during '{self.stability_phase}': surfaces "
@@ -1158,14 +1199,13 @@ class Rocket:
                 self._aerodynamic_center_yaw += moment_slope
             self._aerodynamic_center_yaw /= self._total_side_coeff_der
 
-        # Non-axisymmetry advisory. This method runs once per configuration of
-        # the surfaces, so the warning is shown once per configuration.
+        # Non-axisymmetry advisory.
         # Nose, tail and fin sets contribute identically to both planes; with
         # any other surface the rocket's own derivatives decide.
         self._is_axisymmetric = all(
             surface.is_axisymmetric for surface, _ in surfaces
         ) or is_axisymmetric(self)
-        if not self._is_axisymmetric:
+        if notify and not self._is_axisymmetric:
             # Largest difference of the two aerodynamic centers over Mach 0 to 3
             max_diff = max(
                 abs(

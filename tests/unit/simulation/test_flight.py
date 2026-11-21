@@ -1,5 +1,7 @@
 import json
 import os
+import warnings
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -8,9 +10,20 @@ import numpy as np
 import pytest
 from scipy import optimize
 
-from rocketpy import Components, Flight, Function, LinearGenericSurface, Rocket
+from rocketpy import (
+    Components,
+    Event,
+    Flight,
+    Function,
+    LinearGenericSurface,
+    Rocket,
+)
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.rocket._helpers import aerodynamic_damping
+from rocketpy.rocket._helpers import (
+    aerodynamic_damping,
+    corrective_and_damping_moments,
+    lateral_inertia_and_rate,
+)
 from rocketpy.simulation.helpers.flight_derivatives import u_dot, u_dot_generalized
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -1108,3 +1121,108 @@ def test_disturbance_response_refuses_what_it_cannot_answer(flight_calisto_robus
         assert flight.disturbance_response(4.0, plane=plane).y_array[0] == (
             pytest.approx(5.0)
         )
+
+
+def _flight_to_apogee(rocket, environment, events=()):
+    return Flight(
+        rocket=rocket,
+        environment=environment,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        custom_events=list(events),
+    )
+
+
+def _tail_surface(rocket, **kwargs):
+    """A lifting surface at the tail of ``rocket``, which adds to its margin."""
+    return LinearGenericSurface(
+        rocket.area,
+        2 * rocket.radius,
+        {"cN_alpha": 2.0, "cY_beta": -2.0},
+        name="Extra fins",
+        **kwargs,
+    )
+
+
+def test_stability_counts_a_surface_from_the_moment_an_event_switches_it_on(
+    calisto_robust, example_plain_env
+):
+    """The margin, natural frequency and damping of each instant are those of
+    the rocket with the surfaces active at that instant, as it was flown, and
+    reading them leaves the rocket's own values as they were."""
+    rocket = calisto_robust
+    with_it_on = deepcopy(rocket)
+    with_it_on.add_surfaces(_tail_surface(rocket), -1.0)
+    extra = _tail_surface(rocket, active=False)
+    with pytest.warns(UserWarning, match="are left out"):
+        rocket.add_surfaces(extra, -1.0)
+        static_margin_before = rocket.static_margin(0)
+
+    switch = Event(
+        lambda context: context.event.commands.activate_surface(extra),
+        trigger=8.0,
+        sampling_rate=100,
+        trigger_only_once=True,
+    )
+    flight = _flight_to_apogee(rocket, example_plain_env, [switch])
+
+    def expected(configuration, index):
+        """Margin and natural frequency of ``configuration`` at the state the
+        flight was in at one of its instants."""
+        t = flight.time[index]
+        mach = flight.mach_number.get_value_opt(t)
+        corrective, _ = corrective_and_damping_moments(
+            configuration,
+            0.0,
+            0.0,
+            mach,
+            t,
+            flight.free_stream_speed.get_value_opt(t),
+            flight.density.get_value_opt(t),
+            flight.dynamic_pressure.get_value_opt(t),
+            0.0,
+        )
+        inertia, _ = lateral_inertia_and_rate(configuration, configuration.I_11, t)
+        return configuration.stability_margin(mach, t), (corrective / inertia) ** 0.5
+
+    before = int(np.searchsorted(flight.time, 6.0))
+    after = int(np.searchsorted(flight.time, 10.0))
+    for index, configuration in ((before, rocket), (after, with_it_on)):
+        margin, frequency = expected(configuration, index)
+        t = flight.time[index]
+        assert flight.stability_margin(t) == pytest.approx(margin, rel=1e-9)
+        assert flight.stability_margin_yaw(t) == pytest.approx(margin, rel=1e-9)
+        assert flight.pitch_natural_frequency(t) == pytest.approx(frequency, rel=1e-9)
+    # the extra surface adds to the margin, so the two differ
+    assert expected(with_it_on, after)[0] > expected(rocket, after)[0] + 0.3
+
+    # the rocket itself still describes how it starts the flight, and says
+    # nothing again about a configuration it already described
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert rocket.static_margin(0) == pytest.approx(static_margin_before)
+
+
+def test_stability_counts_a_surface_only_in_its_motor_phase(
+    calisto_robust, example_plain_env
+):
+    """A surface active while the motor burns counts in the margin up to
+    burnout and not after it, whatever the rocket's ``stability_phase``."""
+    rocket = calisto_robust
+    rocket.add_surfaces(_tail_surface(rocket, active_during="power_on"), -1.0)
+    flight = _flight_to_apogee(rocket, example_plain_env)
+    burn_out = rocket.motor.burn_out_time
+
+    for time, phase in ((burn_out - 1.0, "power_on"), (burn_out + 1.0, "power_off")):
+        t = flight.time[int(np.searchsorted(flight.time, time))]
+        reported = flight.stability_margin(t)
+        rocket.stability_phase = phase
+        assert reported == pytest.approx(
+            rocket.stability_margin(flight.mach_number.get_value_opt(t), t), rel=1e-9
+        )
+    rocket.stability_phase = "power_on"
+    during_burn = rocket.stability_margin(0.3, 1.0)
+    rocket.stability_phase = "power_off"
+    assert during_burn > rocket.stability_margin(0.3, 1.0) + 0.3
