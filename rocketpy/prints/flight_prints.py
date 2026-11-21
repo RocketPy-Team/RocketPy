@@ -659,24 +659,34 @@ class _FlightPrints:
         where the roll rate crosses the natural frequency: the
         ``dynamic_stability_data`` plot overlays the two so those crossings can
         be read off directly. Frequencies are given in Hz.
+
+        ``N/A`` is printed where the rocket has no oscillation to describe:
+        for a point mass rocket, and where the rocket has no restoring moment
+        (a negative stability margin).
         """
         two_pi = 6.283185307179586
         flight = self.flight
 
+        # The flight reports both as 0 where the rocket has no oscillation: a
+        # real frequency is above 0 and a real damping ratio is never exactly 0
+        def frequency(function, time):
+            value = function.get_value_opt(time) / two_pi
+            return f"{value:.2f} Hz" if value > 0 else "N/A"
+
+        def ratio(function, time):
+            value = function.get_value_opt(time)
+            return f"{value:.3f}" if value != 0 else "N/A"
+
         def report(label, time):
-            natural_frequency = (
-                flight.pitch_natural_frequency.get_value_opt(time) / two_pi
-            )
-            damping_ratio = flight.pitch_damping_ratio.get_value_opt(time)
             print(
                 f"{label} (t = {time:.2f} s): Pitch natural frequency = "
-                f"{natural_frequency:.2f} Hz, damping ratio = {damping_ratio:.3f}"
+                f"{frequency(flight.pitch_natural_frequency, time)}, "
+                f"damping ratio = {ratio(flight.pitch_damping_ratio, time)}"
             )
-            yaw_frequency = flight.yaw_natural_frequency.get_value_opt(time) / two_pi
-            yaw_damping = flight.yaw_damping_ratio.get_value_opt(time)
             print(
-                f"    Yaw natural frequency = {yaw_frequency:.2f} Hz, "
-                f"damping ratio = {yaw_damping:.3f}"
+                "    Yaw natural frequency = "
+                f"{frequency(flight.yaw_natural_frequency, time)}, "
+                f"damping ratio = {ratio(flight.yaw_damping_ratio, time)}"
             )
 
         burn_out_time = flight.rocket.motor.burn_out_time

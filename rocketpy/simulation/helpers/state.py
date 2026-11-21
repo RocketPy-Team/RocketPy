@@ -92,8 +92,41 @@ class _StateView:
     def __iter__(self):
         return iter(self.values)
 
-    def __array__(self, dtype=None, copy=None):  # pylint: disable=unused-argument
-        return self.values if dtype is None else self.values.astype(dtype)
+    def __array__(self, dtype=None, copy=None):
+        # ``values`` may be the array the solver is integrating, so
+        # ``np.array(state)`` must hand back a copy, which numpy asks for with
+        # ``copy=True``. ``np.asarray(state)`` asks for none unless one is needed.
+        if copy:
+            return np.array(self.values, dtype=dtype)
+        if dtype is None or np.dtype(dtype) == self.values.dtype:
+            return self.values
+        if copy is False:
+            raise ValueError(
+                f"The values cannot be given as {np.dtype(dtype)} without a copy."
+            )
+        return self.values.astype(dtype)
+
+    def __eq__(self, other):
+        """Whether ``other`` holds the same values: another state with the
+        same standard values and the same values of the phase's own, or a
+        sequence equal to the thirteen standard values."""
+        if isinstance(other, _StateView):
+            return (
+                type(other) is type(self)
+                and np.array_equal(self.values, other.values)
+                and self.names == other.names
+                and all(
+                    getattr(self, name) == getattr(other, name)
+                    for name in self.names[len(self._standard_names) :]
+                )
+            )
+        try:
+            return np.array_equal(self.values, np.asarray(other, dtype=float))
+        except (TypeError, ValueError):
+            return NotImplemented
+
+    # Equal states are not the same object, and the values can change
+    __hash__ = None
 
     def __repr__(self):
         pairs = ", ".join(f"{name}={getattr(self, name):.6g}" for name in self.names)

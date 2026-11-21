@@ -465,7 +465,6 @@ def test_at_returns_state_by_name_and_warns():
 def test_to_dict_from_dict_roundtrip():
     solution = build_mixed_solution()
     data = solution.to_dict()
-    assert data["format"] == "rocketpy/solution"
     assert len(data["phases"]) == 2
     # the rows are stored once for the whole flight, and each phase says where
     # its own rows begin
@@ -490,7 +489,6 @@ def test_from_dict_unknown_dynamics_name_tolerated():
     """A phase whose name is not recognized still reads back its states."""
     restored = Solution.from_dict(
         {
-            "format": "rocketpy/solution",
             "phases": [
                 {
                     "name": "custom",

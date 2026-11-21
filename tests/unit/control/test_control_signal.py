@@ -728,14 +728,14 @@ def _context_at(time, vz, height=100.0):
     )
 
 
-def test_the_apogee_trigger_fires_once_at_the_first_check_past_apogee():
+def test_the_apogee_trigger_holds_from_the_first_check_past_apogee():
     """Whatever the time between checks: it does not need the check to fall
-    in the solver step where the apogee was crossed. On the pad, at rest, it
-    does not fire."""
+    in the solver step where the apogee was crossed. Like the other named
+    triggers it holds from then on. On the pad, at rest, it does not fire."""
     event = Event(lambda context: None, trigger="apogee", sampling_rate=1)
     checks = ((0, 0.0, 0.0), (1, 50.0, 30.0), (2, 5.0, 90.0), (3, -4.0, 91.0))
     fired = [event(_context_at(*check)) for check in (*checks, (4, -9.0, 85.0))]
-    assert fired == [False, False, False, True, False]
+    assert fired == [False, False, False, True, True]
 
 
 def test_the_apogee_gates_hold_from_the_apogee_on():

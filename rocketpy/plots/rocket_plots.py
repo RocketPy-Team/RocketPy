@@ -250,7 +250,7 @@ class _RocketPlots:
             lower=0, upper=self.rocket.motor.burn_out_time
         )
 
-    def draw(self, vis_args=None, plane="xz", *, filename=None):
+    def draw(self, vis_args=None, plane=None, *, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -275,15 +275,23 @@ class _RocketPlots:
             A full list of color names can be found at: \
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional
-            Plane in which the rocket will be drawn. Default is 'xz'. Other
-            options is 'yz'. Used only for sensors representation.
+            Plane of the rocket's own axes in which it is drawn: ``"xz"``,
+            also accepted as ``"yaw"``, or ``"yz"``, also accepted as
+            ``"pitch"``. By default (``None``) the rocket is drawn in the
+            ``"xz"`` plane, and a rocket that does not look the same in both
+            planes (canards on a single axis, a single fin) is drawn in both,
+            one figure each.
         filename : str | None, optional
             The path the plot should be saved to. By default None, in which case
             the plot will be shown instead of saved. Supported file endings are:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
-            and webp (these are the formats supported by matplotlib).
+            and webp (these are the formats supported by matplotlib). When
+            both planes are drawn, each is saved to its own file, with ``_xz``
+            and ``_yz`` added before the file ending.
         """
 
+        # The angle of attack is measured in the yz plane, the sideslip in xz
+        plane = {"pitch": "yz", "yaw": "xz"}.get(plane, plane)
         self.__validate_aerodynamic_surfaces(plane)
 
         if vis_args is None:
@@ -299,9 +307,15 @@ class _RocketPlots:
             }
 
         # A non-axisymmetric rocket looks different in the xz and yz planes
-        # (e.g. canards or fins present in one plane only), so draw both for
-        # comparison; an axisymmetric rocket looks the same in either plane.
-        planes = [plane] if self.rocket.is_axisymmetric else ["xz", "yz"]
+        # (e.g. canards or fins present in one plane only), so both are drawn
+        # for comparison unless one was asked for; an axisymmetric rocket
+        # looks the same in either plane.
+        if plane is not None:
+            planes = [plane]
+        elif self.rocket.is_axisymmetric:
+            planes = ["xz"]
+        else:
+            planes = ["xz", "yz"]
 
         # Each plane is drawn in its own figure so the projections can be read
         # and saved independently. When saving multiple planes, the plane name
@@ -354,8 +368,11 @@ class _RocketPlots:
             raise ValueError(
                 "The rocket must have at least one aerodynamic surface to be drawn."
             )
-        if plane not in ("xz", "yz"):
-            raise ValueError("The plane must be 'xz' or 'yz'. The default is 'xz'.")
+        if plane not in (None, "xz", "yz"):
+            raise ValueError(
+                "The plane must be 'xz' (or 'yaw') or 'yz' (or 'pitch'), "
+                f"got {plane!r}."
+            )
 
     def _draw_aerodynamic_surfaces(self, ax, vis_args, plane, surfaces):
         """Draws the aerodynamic surfaces and saves the position of the points

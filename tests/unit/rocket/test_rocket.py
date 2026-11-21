@@ -1095,6 +1095,40 @@ def test_drag_can_be_assigned_after_construction():
     assert rocket.power_off_drag(0.5) == pytest.approx(1.4)
 
 
+@pytest.mark.parametrize("which", ["power_off_drag", "power_on_drag"])
+def test_drag_can_be_scaled_and_assigned_back(which):
+    """A drag curve worked out from the rocket's own is not read through the
+    rocket again, which made the new curve call itself."""
+    rocket = _bare_rocket(**{which: [(0, 0.4), (1, 0.5), (2, 0.7)]})
+
+    def used_in_the_simulation(mach):
+        return getattr(rocket, f"{which}_7d")(0, 0, mach, 0, 0, 0, 0)
+
+    setattr(rocket, which, getattr(rocket, which) * 1.1)
+    assert getattr(rocket, which)(0.5) == pytest.approx(0.495)
+    assert used_in_the_simulation(0.5) == pytest.approx(0.495)
+
+    scaled = getattr(rocket, which)
+    scaled *= 2
+    setattr(rocket, which, scaled)
+    assert getattr(rocket, which)(0.5) == pytest.approx(0.99)
+    assert used_in_the_simulation(0.5) == pytest.approx(0.99)
+
+
+def test_the_drag_against_mach_follows_the_coefficient():
+    """However the coefficient is replaced, the curve against Mach number is
+    the one the simulation uses."""
+    rocket = _bare_rocket(power_off_drag=[(0, 0.4), (1, 0.5), (2, 0.7)])
+    before = rocket.power_off_drag
+
+    rocket.power_off_drag_7d *= 1.2  # as the Monte Carlo drag factor does
+
+    assert rocket.power_off_drag(0.5) == pytest.approx(0.54)
+    assert rocket.power_off_drag_by_mach(0.5) == pytest.approx(0.54)
+    # a curve taken earlier stays the one it was
+    assert before(0.5) == pytest.approx(0.45)
+
+
 def test_length_can_be_given(calisto_robust):
     rocket = _bare_rocket(length=3.0)
     assert rocket.length == 3.0

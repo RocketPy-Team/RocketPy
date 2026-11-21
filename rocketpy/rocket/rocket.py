@@ -1,5 +1,6 @@
 # pylint: disable=too-many-lines
 import warnings
+from contextlib import contextmanager
 from collections.abc import Iterable
 
 import numpy as np
@@ -111,8 +112,9 @@ class Rocket:
         regarding the coordinate system.
         Expressed in meters as a function of time.
     Rocket.com_to_cdm_function : Function
-        Function of time expressing the z-coordinate of the center of mass
-        relative to the center of dry mass.
+        Function of time expressing the position of the center of dry mass
+        relative to the center of mass, in meters, along the rocket's axis
+        and positive towards the nose.
     Rocket.reduced_mass : Function
         Function of time expressing the reduced mass of the rocket,
         defined as the product of the propellant mass and the mass
@@ -425,6 +427,13 @@ class Rocket:
         self._lever_arms_stamp = None
         self._aerodynamic_center_stamp = None
         self._margins_stamp = None
+        # Which surfaces the stability analysis counts while a flight reads one
+        # stretch of its trajectory: one True or False per aerodynamic
+        # surface, in order (see _reading_surfaces). None the rest of the time.
+        self._stability_selection = None
+        # The configurations evaluate_center_of_pressure already gave its
+        # notices for
+        self._noticed_configurations = []
         # Set once a full-body model replaces the modeled aerodynamics
         # (add_full_body_aerodynamics(overwrite=True)); warns on later surface adds.
         self._aerodynamics_overwritten = False
@@ -507,9 +516,9 @@ class Rocket:
     def _set_drag(self, which, source):
         """Set one of the rocket's drag curves from a user input.
 
-        Builds the two attributes of that curve: ``<which>_drag_7d``, the
-        coefficient used in the simulation, and ``<which>_drag_by_mach``, its
-        view against Mach number alone (also read as ``<which>_drag``).
+        Builds ``<which>_drag_7d``, the coefficient used in the simulation, and
+        with it ``<which>_drag_by_mach``, its view against Mach number alone
+        (also read as ``<which>_drag``).
 
         Parameters
         ----------
@@ -530,16 +539,46 @@ class Rocket:
                 single_var="mach",
             ),
         )
-        # Reads the coefficient on each call, so it follows a later change of it
-        # (for example the Monte Carlo drag factor).
-        by_mach = Function(
-            lambda mach: getattr(self, f"{which}_drag_7d")(0, 0, mach, 0, 0, 0, 0),
+
+    @staticmethod
+    def _drag_by_mach(coefficient, label):
+        """Return ``coefficient`` against Mach number alone, read at zero
+        angle of attack and zero rates.
+
+        The view keeps the coefficient it was built from. A drag curve worked
+        out from the view, such as ``rocket.power_off_drag * 1.1``, can then
+        be assigned back without the new curve reading itself.
+        """
+        return Function(
+            lambda mach: coefficient(0, 0, mach, 0, 0, 0, 0),
             inputs="Mach Number",
             outputs=f"Drag Coefficient with {label}",
             interpolation="linear",
             extrapolation="constant",
         )
-        setattr(self, f"{which}_drag_by_mach", by_mach)
+
+    # Properties, so that the view against Mach number is built again whenever
+    # the coefficient is replaced, by any route (the drag setters, the Monte
+    # Carlo drag factor, a direct assignment).
+    @property
+    def power_off_drag_7d(self):
+        """Drag coefficient with the motor off, over the seven variables."""
+        return self._power_off_drag_7d
+
+    @power_off_drag_7d.setter
+    def power_off_drag_7d(self, coefficient):
+        self._power_off_drag_7d = coefficient
+        self.power_off_drag_by_mach = self._drag_by_mach(coefficient, "Power Off")
+
+    @property
+    def power_on_drag_7d(self):
+        """Drag coefficient with the motor on, over the seven variables."""
+        return self._power_on_drag_7d
+
+    @power_on_drag_7d.setter
+    def power_on_drag_7d(self, coefficient):
+        self._power_on_drag_7d = coefficient
+        self.power_on_drag_by_mach = self._drag_by_mach(coefficient, "Power On")
 
     @property
     def power_off_drag(self):
@@ -892,11 +931,34 @@ class Rocket:
             self._csys,
             self.radius,
             self.stability_phase,
+            self._stability_selection,
             tuple(
                 (surface, surface._version, position)
                 for surface, position in self.aerodynamic_surfaces
             ),
         )
+
+    @contextmanager
+    def _reading_surfaces(self, selection):
+        """Have the aerodynamic center, the margins and everything else the
+        stability analysis reads describe the rocket with only some of its
+        surfaces, while the ``with`` block runs.
+
+        A flight uses this to read the rocket as it was during one stretch of
+        its trajectory: with the surfaces its events had switched on by then,
+        in the motor phase of that stretch.
+
+        Parameters
+        ----------
+        selection : sequence of bool or None
+            Whether each aerodynamic surface counts, in the order of
+            ``aerodynamic_surfaces``. ``None`` leaves the rocket as it is.
+        """
+        self._stability_selection = None if selection is None else tuple(selection)
+        try:
+            yield
+        finally:
+            self._stability_selection = None
 
     def _refresh_aerodynamics(self):
         """Bring up to date what the simulation reads from the surfaces: each
@@ -1221,11 +1283,21 @@ class Rocket:
         self._total_side_coeff_der.set_source(lambda mach: 0)
         self._aerodynamic_center_yaw.set_source(lambda mach: 0)
 
+        # The two notices below are given once per configuration. A flight
+        # reading one stretch of its trajectory chose the surfaces itself, and
+        # gets none.
+        configuration = self._surfaces_stamp()
+        notify = (
+            self._stability_selection is None
+            and configuration not in self._noticed_configurations
+        )
+        if notify:
+            self._noticed_configurations.append(configuration)
+
         # Surfaces active only in the other motor phase, or switched off, are
-        # left out. This method runs once per configuration, so the notice is
-        # shown once.
+        # left out.
         surfaces = stability_surfaces(self)
-        if len(surfaces) != len(self.aerodynamic_surfaces):
+        if notify and len(surfaces) != len(self.aerodynamic_surfaces):
             warnings.warn(
                 "The aerodynamic center, the margins and the lumped coefficients "
                 f"describe the rocket during '{self.stability_phase}': surfaces "
@@ -1280,14 +1352,13 @@ class Rocket:
                 self._aerodynamic_center_yaw += moment_slope
             self._aerodynamic_center_yaw /= self._total_side_coeff_der
 
-        # Non-axisymmetry advisory. This method runs once per configuration of
-        # the surfaces, so the warning is shown once per configuration.
+        # Non-axisymmetry advisory.
         # Nose, tail and fin sets contribute identically to both planes; with
         # any other surface the rocket's own derivatives decide.
         self._is_axisymmetric = all(
             surface.is_axisymmetric for surface, _ in surfaces
         ) or is_axisymmetric(self)
-        if not self._is_axisymmetric:
+        if notify and not self._is_axisymmetric:
             # Largest difference of the two aerodynamic centers over Mach 0 to 3
             max_diff = max(
                 abs(
@@ -1378,13 +1449,16 @@ class Rocket:
         Raises
         ------
         ValueError
-            For a point mass rocket, which has no attitude to disturb.
+            If ``plane`` is neither ``"pitch"`` nor ``"yaw"``, or for a point
+            mass rocket, which has no attitude to disturb.
 
         Examples
         --------
         >>> response = rocket.disturbance_response(speed=30, time=0.4)  # doctest: +SKIP
         >>> response.plot()  # doctest: +SKIP
         """
+        if plane not in ("pitch", "yaw"):
+            raise ValueError(f"plane must be 'pitch' or 'yaw', got {plane!r}.")
         inertia_about_cdm = self.I_22 if plane == "yaw" else self.I_11
         if not isinstance(inertia_about_cdm, Function):
             inertia, inertia_rate = 0.0, 0.0  # a point mass rocket
@@ -1816,21 +1890,29 @@ class Rocket:
         return self.nozzle_gyration_tensor
 
     def evaluate_com_to_cdm_function(self):
-        """Evaluates the z-coordinate of the center of mass (COM) relative to
-        the center of dry mass (CDM).
+        """Evaluates the position of the center of dry mass (CDM) relative to
+        the center of mass (COM), along the rocket's axis.
+
+        The value is the distance from the center of mass to the center of dry
+        mass, in meters. It is positive when the center of dry mass is closer
+        to the nose than the center of mass, whatever the rocket's
+        ``coordinate_system_orientation``.
 
         Notes
         -----
-        1. The `com_to_cdm_function` plus `center_of_mass` should be equal
-        to `center_of_dry_mass_position` at every time step.
+        1. For a rocket with ``coordinate_system_orientation="tail_to_nose"``,
+        `center_of_mass` plus the `com_to_cdm_function` is equal to
+        `center_of_dry_mass_position` at every time step. With
+        ``"nose_to_tail"``, `center_of_mass` minus it is.
         2. The `com_to_cdm_function` is a function of time and will usually
         already be discretized.
 
         Returns
         -------
         self.com_to_cdm_function : Function
-            Function of time expressing the z-coordinate of the center of mass
-            relative to the center of dry mass.
+            Function of time expressing the position of the center of dry mass
+            relative to the center of mass, in meters, positive towards the
+            nose.
         """
         self.com_to_cdm_function = (
             -1
@@ -2270,8 +2352,12 @@ class Rocket:
             gives the body-frame set: normal ``cN_*``, side ``cY_*`` and axial
             ``cA_*``. ``"wind"`` gives the wind-frame set: lift ``cL_*``, side
             ``cQ_*`` and drag ``cD_*``. The moment derivatives (``cm_*``,
-            ``cn_*``, ``cl_*``) are the same in both. The table model gives
-            the body frame only.
+            ``cn_*``, ``cl_*``) are the same in both. The two sets describe
+            the same rocket at small angles: a surface built from the
+            wind-frame set is linear in the wind frame, and one built from
+            the body-frame set in the body frame, so they differ beyond small
+            angles. A rocket of nose cones, fins and tails is linear in the
+            body frame. The table model gives the body frame only.
         model : str, optional
             ``"linear"`` (default) for the derivatives, ``"table"`` for the
             tables over the angles. See above.
@@ -2389,7 +2475,10 @@ class Rocket:
             (default) gives the body-frame set: normal ``cN``, side ``cY`` and
             axial ``cA`` (drag). ``"wind"`` gives the wind-frame set: lift
             ``cL``, side ``cQ`` and drag ``cD``. The moment coefficients are the
-            same in both. The table model gives the body frame only.
+            same in both. With ``"wind"`` the linear surface is linear in the
+            wind frame, so it matches the rocket at small angles only; with
+            ``"body"`` it matches a rocket of nose cones, fins and tails at
+            any angle. The table model gives the body frame only.
         name : str, optional
             Base name of the returned surfaces.
             Default ``"Full Body Aerodynamics"``.
@@ -2675,6 +2764,12 @@ class Rocket:
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            It is the angle each fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         sweep_length : int, float, optional
             Fins sweep length in meters. By sweep length, understand the axial
             distance between the fin root leading edge and the fin tip leading
@@ -2770,8 +2865,14 @@ class Rocket:
             --------
             :ref:`positions`
         cant_angle : int, float, optional
-            Fins cant angle with respect to the rocket centerline. Must be given
-            in degrees.
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+            It is the angle each fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         radius : int, float, optional
             Reference fuselage radius where the fins are located. This is used
             to calculate lift coefficient and to draw the rocket. If None,
@@ -2844,6 +2945,12 @@ class Rocket:
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
+            It is the angle each fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         radius : int, float, optional
             Reference fuselage radius where the fins are located. This is used
             to calculate lift coefficient and to draw the rocket. If None,
@@ -2948,10 +3055,17 @@ class Rocket:
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
         noise : tuple, list, optional
-            List in the format (mean, standard deviation, time-correlation).
-            The values are used to add noise to the pressure signal which is
-            passed to the trigger function. Default value is (0, 0, 0). Units
-            are in pascal.
+            Deprecated, will be removed in v1.16. A list in the format
+            (mean, standard deviation, time-correlation), in Pa. The values
+            are used to add noise to the pressure passed to a trigger written
+            as ``trigger(p, h, y)``, and to the height, worked out from that
+            pressure, that such a trigger and a trigger given as a height
+            use. A trigger written as ``trigger(context)`` reads the pressure
+            and height without noise. A warning is raised if any of the three
+            values is not zero. To trigger a parachute from a measurement with
+            noise, add a Sensor such as a :class:`rocketpy.Barometer` to the
+            rocket and read it inside the trigger function. Default value is
+            (0, 0, 0).
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
             hemispheroid parachute. If not provided, it is estimated from
@@ -2976,10 +3090,8 @@ class Rocket:
         Returns
         -------
         parachute : Parachute
-            Parachute containing trigger, sampling_rate, lag, cd_s, noise,
-            radius, drag_coefficient, height, porosity and name. Furthermore,
-            it stores clean_pressure_signal, noise_signal and
-            noisyPressureSignal which are filled in during Flight simulation.
+            Parachute containing trigger, sampling_rate, lag, cd_s, radius,
+            drag_coefficient, height, porosity and name.
         """
         parachute = Parachute(
             name,
@@ -3523,7 +3635,7 @@ class Rocket:
         self.evaluate_nozzle_gyration_tensor()
         return self
 
-    def draw(self, vis_args=None, plane="xz", *, filename=None):
+    def draw(self, vis_args=None, plane=None, *, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -3548,13 +3660,19 @@ class Rocket:
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional
-            Plane in which the rocket will be drawn. Default is 'xz'. Other
-            options is 'yz'. Used only for sensors representation.
+            Plane of the rocket's own axes in which it is drawn: ``"xz"``,
+            also accepted as ``"yaw"``, or ``"yz"``, also accepted as
+            ``"pitch"``. By default (``None``) the rocket is drawn in the
+            ``"xz"`` plane, and a rocket that does not look the same in both
+            planes (canards on a single axis, a single fin) is drawn in both,
+            one figure each.
         filename : str | None, optional
             The path the plot should be saved to. By default None, in which case
             the plot will be shown instead of saved. Supported file endings are:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
-            and webp (these are the formats supported by matplotlib).
+            and webp (these are the formats supported by matplotlib). When
+            both planes are drawn, each is saved to its own file, with ``_xz``
+            and ``_yz`` added before the file ending.
         """
         self.plots.draw(vis_args, plane, filename=filename)
 

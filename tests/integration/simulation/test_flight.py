@@ -1256,3 +1256,36 @@ def test_air_brakes_context_controller(calisto_robust, example_plain_env):
     mach = flight.records["AirBrakes Controller"].mach_number
     assert mach[0][0] == pytest.approx(3.9, abs=0.1)
     assert max(flight.solution.controls.air_brakes.deployment_level[:, 1]) > 0
+
+
+def test_the_deprecated_stability_plot_saves_one_file_per_plot(
+    flight_calisto_robust, tmp_path
+):
+    """The old plot is now three, and each one is saved to a file of its own
+    instead of over the one before."""
+    with pytest.warns(DeprecationWarning, match="stability_and_control_data"):
+        flight_calisto_robust.plots.stability_and_control_data(
+            filename=str(tmp_path / "stability.png")
+        )
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "stability_dynamics.png",
+        "stability_frequency.png",
+        "stability_margin.png",
+    ]
+
+
+def test_dynamic_stability_prints_no_number_where_there_is_no_oscillation(
+    flight_calisto_robust, flight_3dof_no_weathercock, capsys
+):
+    """A point mass rocket has no attitude to oscillate, so its natural
+    frequency and damping ratio are not printed as zeros."""
+    flight_calisto_robust.prints.dynamic_stability()
+    with_attitude = capsys.readouterr().out
+    flight_3dof_no_weathercock.prints.dynamic_stability()
+    point_mass = capsys.readouterr().out
+
+    assert "N/A" not in with_attitude
+    assert with_attitude.count(" Hz, damping ratio = ") == 4
+    assert point_mass.count("natural frequency = N/A, damping ratio = N/A") == 4
+    assert "0.00 Hz, damping" not in point_mass

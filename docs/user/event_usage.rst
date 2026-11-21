@@ -366,6 +366,11 @@ practical examples and demonstrate proper activation.
   passive hook, useful for logging or for driving something on a fixed
   schedule.
 
+  It may also be the string ``"apogee"`` (the rocket is coming down and above
+  the ground) or ``"burnout"`` (the motor has burned out), or a simulation time
+  in seconds. These stay ``True`` from that moment on, so the event fires at
+  every check after it. Set ``trigger_only_once=True`` to fire once.
+
   .. note::
     The trigger function receives the same ``context`` as the callback, and
     it has all the same functionalities, except that its return value is

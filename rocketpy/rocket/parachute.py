@@ -7,7 +7,7 @@ from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..mathutils.function import Function, funcify_method
 from ..prints.parachute_prints import _ParachutePrints
-from ..simulation.events.event import Event
+from ..simulation.events.event import PRESETS, Event
 from ..simulation.helpers.dynamics import PARACHUTE_DYNAMICS
 
 
@@ -68,32 +68,29 @@ class Parachute:
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
     Parachute.noise : tuple, list
-        List in the format (mean, standard deviation, time-correlation).
-        The values are used to add noise to the pressure signal which is passed
-        to the trigger function. Default value is (0, 0, 0). Units are in Pa.
+        Deprecated, will be removed in v1.16. The
+        ``(mean, standard deviation, time-correlation)`` values, in Pa, of
+        the noise added to the pressure the trigger is given. Use a Sensor
+        with built-in noise instead.
     Parachute.noise_bias : float
-        Mean value of the noise added to the pressure signal, which is
-        passed to the trigger function. Unit is in Pa.
+        Deprecated. First value of ``noise``, in Pa.
     Parachute.noise_deviation : float
-        Standard deviation of the noise added to the pressure signal,
-        which is passed to the trigger function. Unit is in Pa.
+        Deprecated. Second value of ``noise``, in Pa.
     Parachute.noise_corr : tuple, list
-        Tuple with the correlation between noise and time.
-    Parachute.noise_signal : list of tuple
-        List of (t, noise signal) corresponding to signal passed to
-        trigger function. Completed after running a simulation.
-    Parachute.noisy_pressure_signal : list of tuple
-        List of (t, noisy pressure signal) that is passed to the
-        trigger function. Completed after running a simulation.
-    Parachute.clean_pressure_signal : list of tuple
-        List of (t, clean pressure signal) corresponding to signal passed to
-        trigger function. Completed after running a simulation.
+        Deprecated. Correlation pair computed from the third value of
+        ``noise``.
+    Parachute.noise_signal : list
+        Deprecated. Always empty, since the noise is no longer recorded.
+    Parachute.noisy_pressure_signal : list
+        Deprecated. Always empty, since no pressure signal is recorded.
+    Parachute.clean_pressure_signal : list
+        Deprecated. Always empty, since no pressure signal is recorded.
     Parachute.noise_signal_function : Function
-        Function of noiseSignal.
+        Deprecated. Function of ``noise_signal``.
     Parachute.noisy_pressure_signal_function : Function
-        Function of noisy_pressure_signal.
+        Deprecated. Function of ``noisy_pressure_signal``.
     Parachute.clean_pressure_signal_function : Function
-        Function of clean_pressure_signal.
+        Deprecated. Function of ``clean_pressure_signal``.
     Parachute.drag_coefficient : float
         Drag coefficient of the inflated canopy shape, used only when
         ``radius`` is not provided to estimate the parachute radius from
@@ -172,10 +169,17 @@ class Parachute:
             consider the rocket as flying without a parachute. Default value
             is 0. Must be given in seconds.
         noise : tuple, list, optional
-            List in the format (mean, standard deviation, time-correlation).
-            The values are used to add noise to the pressure signal which is
-            passed to the trigger function. Default value is ``(0, 0, 0)``.
-            Units are in Pa.
+            Deprecated, will be removed in v1.16. A list in the format
+            (mean, standard deviation, time-correlation), in Pa. The values
+            are used to add noise to the pressure passed to a trigger written
+            as ``trigger(p, h, y)``, and to the height, worked out from that
+            pressure, that such a trigger and a trigger given as a height
+            use. A trigger written as ``trigger(context)`` reads the pressure
+            and height without noise. A warning is raised if any of the three
+            values is not zero. To trigger a parachute from a measurement with
+            noise, add a Sensor such as a :class:`rocketpy.Barometer` to the
+            rocket and read it inside the trigger function. Default value is
+            ``(0, 0, 0)``.
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
             hemispheroid parachute. If not provided, it is estimated from
@@ -247,25 +251,40 @@ class Parachute:
         """
         if noise[0] != 0 or noise[1] != 0 or noise[2] != 0:
             warnings.warn(
-                "The `noise` parameter on Parachute is deprecated and has no "
-                "effect; it will be removed in v1.16. Use a Sensor (e.g. a "
-                "Barometer) with built-in noise instead, and read the noisy "
-                "measurement via `context.sensors` in your trigger "
-                "function.",
-                DeprecationWarning,
+                "The `noise` parameter on Parachute is deprecated and will be "
+                "removed in v1.16. Use a Sensor (e.g. a Barometer) with "
+                "built-in noise instead, and read the noisy measurement via "
+                "`context.sensors` in your trigger function.",
+                # FutureWarning, not DeprecationWarning: Python hides the
+                # latter unless it points at the user's own script, which it
+                # does not when the parachute comes from Rocket.add_parachute.
+                FutureWarning,
                 stacklevel=3,
             )
-        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
+        # The three signals are no longer recorded. They are kept, empty, so
+        # that code reading them keeps working until v1.16.
+        self.noise_signal = []
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
         self.noise_bias = noise[0]
         self.noise_deviation = noise[1]
         self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
+        self._has_noise = any(noise)
+        # A generator of the parachute's own, so numpy's global one is not moved
+        self._rng = np.random.default_rng()
+        self._last_noise = self._rng.normal(noise[0], noise[1])
+
+    def _noisy_pressure_and_height(self, context):
+        """Return the pressure, in Pa, with the deprecated ``noise`` added, and
+        the height above ground level, in m, worked out from that pressure."""
         alpha, beta = self.noise_corr
-        self.noise_function = lambda: (
-            alpha * self.noise_signal[-1][1]
-            + beta * np.random.normal(noise[0], noise[1])
+        self._last_noise = alpha * self._last_noise + beta * self._rng.normal(
+            self.noise_bias, self.noise_deviation
         )
+        pressure = context.pressure + self._last_noise
+        environment = context["environment"]
+        height = environment.barometric_height.get_value_opt(pressure)
+        return pressure, height - environment.elevation
 
     def __evaluate_trigger_function(self, trigger):
         """Sets triggerfunc and _trigger_is_positional based on trigger type."""
@@ -325,25 +344,20 @@ class Parachute:
         elif isinstance(trigger, (int, float)):
 
             def triggerfunc(context):
-                return (
-                    context["canonical_state"][5] < 0
-                    and context["height_agl"] < trigger
-                )
+                if context["canonical_state"][5] >= 0:
+                    return False
+                if self._has_noise:
+                    return self._noisy_pressure_and_height(context)[1] < trigger
+                return context["height_agl"] < trigger
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
 
         # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
-
-            def triggerfunc(context):
-                # Deploy when the rocket stops climbing
-                previous = context["event"]._previous_state
-                if previous is None:
-                    return False  # nothing to compare against yet
-                return previous[5] > 0 >= context["canonical_state"][5]
-
-            self.triggerfunc = triggerfunc
+            # The same condition an Event with trigger="apogee" uses. It holds
+            # from the apogee on; the parachute's event fires only once
+            self.triggerfunc = PRESETS["apogee"]
             self._trigger_is_positional = False
 
         # Case 4: Invalid trigger input
@@ -367,9 +381,13 @@ class Parachute:
         if self._trigger_is_positional:
 
             def trigger_event_wrapper(context):
+                if self._has_noise:
+                    pressure, height = self._noisy_pressure_and_height(context)
+                else:
+                    pressure, height = context.pressure, context["height_agl"]
                 return self.triggerfunc(
-                    context.pressure,
-                    context["height_agl"],
+                    pressure,
+                    height,
                     context["canonical_state"],
                     [sensor for sensor, _ in context["sensors"].values()],
                 )
@@ -400,9 +418,8 @@ class Parachute:
         attributes to their initial state. This is used when running multiple
         simulations with the same parachute object.
         """
-        self.noise_signal = [
-            [-1e-6, np.random.normal(self.noise_bias, self.noise_deviation)]
-        ]
+        self._last_noise = self._rng.normal(self.noise_bias, self.noise_deviation)
+        self.noise_signal = []
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
         try:
@@ -484,21 +501,12 @@ class Parachute:
             "trigger": trigger,
             "sampling_rate": self.sampling_rate,
             "lag": self.lag,
+            "noise": self.noise,
             "radius": self.radius,
             "drag_coefficient": self.drag_coefficient,
             "height": self.height,
             "porosity": self.porosity,
         }
-
-        if kwargs.get("include_outputs", False):
-            data["noise_signal"] = self.noise_signal
-            data["noise_function"] = (
-                to_hex_encode(self.noise_function)
-                if allow_pickle
-                else self.noise_function.__name__
-            )
-            data["noisy_pressure_signal"] = self.noisy_pressure_signal
-            data["clean_pressure_signal"] = self.clean_pressure_signal
 
         return data
 
@@ -517,6 +525,7 @@ class Parachute:
             trigger=trigger,
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
+            noise=data.get("noise", (0, 0, 0)),
             radius=data.get("radius", None),
             drag_coefficient=data.get("drag_coefficient", 1.4),
             height=data.get("height", None),

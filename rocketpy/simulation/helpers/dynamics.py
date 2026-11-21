@@ -105,7 +105,9 @@ class _PhaseDynamics:
             and by events as ``context.state.my_state``. It is not part of the
             canonical state, so sensors do not see it. It starts from the
             value of the state of the same name in the previous phase; give
-            an ``initial_state`` rule to seed it otherwise.
+            an ``initial_state`` rule to seed it otherwise. A state cannot be
+            called ``names`` or ``values``, which ``context.state`` uses
+            itself.
         post_process_vars : sequence of str, optional
             Ordered names of the variables this phase reports besides its
             states, such as ``("ax", "ay", "az")``. The order must match what
@@ -150,6 +152,15 @@ class _PhaseDynamics:
         self.name = name
         self.derivative = derivative
         self.states = tuple(states)
+        # ``context.state`` has these two names itself
+        taken = [state for state in self.states if state in ("names", "values")]
+        if taken:
+            raise ValueError(
+                f"The flight phase '{name}' cannot have a state called "
+                f"{' or '.join(repr(state) for state in taken)}: "
+                "`context.state.names` and `context.state.values` already "
+                "mean the names and the values of the state. Give it another name."
+            )
         self.state_index = {name: i for i, name in enumerate(self.states)}
         self.width = len(self.states)
         self.is_canonical = self.states == CANONICAL_STATE_NAMES

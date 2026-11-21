@@ -1,7 +1,11 @@
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pytest
+
+from rocketpy import GenericSurface
 
 
 @patch("matplotlib.pyplot.show")
@@ -169,3 +173,48 @@ def test_calisto_free_form_fins_equivalence(
         trapezoidal_value = getattr(calisto_trapezoidal_fins, attribute)
 
     assert abs(free_form_value - trapezoidal_value) < tolerance
+
+
+def _draw_and_list(rocket, tmp_path, **kwargs):
+    """Draw ``rocket`` to ``rocket.png`` in a new folder and return the names
+    of the files written."""
+    folder = Path(tempfile.mkdtemp(dir=tmp_path))
+    rocket.draw(filename=str(folder / "rocket.png"), **kwargs)
+    return sorted(path.name for path in folder.iterdir())
+
+
+def test_draw_follows_the_plane_asked_for(calisto_robust, tmp_path):
+    """Both planes are drawn only for a rocket that differs between them, and
+    only when no plane is asked for. A plane can be named by its axes or by
+    the motion it holds."""
+    rocket = calisto_robust
+    assert rocket.is_axisymmetric
+    assert _draw_and_list(rocket, tmp_path) == ["rocket.png"]
+    assert _draw_and_list(rocket, tmp_path, plane="yz") == ["rocket.png"]
+
+    canards = GenericSurface(
+        rocket.area, 2 * rocket.radius, {"cN": lambda alpha: 3.0 * alpha, "cY": 0}
+    )
+    rocket.add_surfaces(canards, 0.8)
+    assert not rocket.is_axisymmetric
+    assert _draw_and_list(rocket, tmp_path) == ["rocket_xz.png", "rocket_yz.png"]
+    for plane in ("xz", "yz", "pitch", "yaw"):
+        assert _draw_and_list(rocket, tmp_path, plane=plane) == ["rocket.png"]
+
+    with pytest.raises(ValueError, match="The plane must be"):
+        rocket.draw(plane="xy")
+
+
+def test_draw_reads_pitch_as_yz_and_yaw_as_xz(calisto_robust):
+    """The angle of attack is measured in the yz plane and the sideslip in the
+    xz plane."""
+    drawn = []
+    plots = calisto_robust.plots
+    with patch.object(
+        plots, "_draw_on_plane", lambda ax, vis_args, plane: drawn.append(plane)
+    ):
+        with patch("matplotlib.pyplot.show"):
+            for plane in ("pitch", "yaw", "yz", "xz", None):
+                calisto_robust.draw(plane=plane)
+
+    assert drawn == ["yz", "xz", "yz", "xz", "xz"]

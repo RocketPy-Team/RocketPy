@@ -548,7 +548,8 @@ those present must be named after the variables:
 
 The **last** column holds the coefficient value; it **must** have a header, but
 the header name can be anything. Spaces after the commas and quotes around the
-names are fine.
+names are fine. In a file with a single variable column, that column may be
+named loosely, such as ``Mach Number`` or ``Alpha (deg)``.
 
 .. important::
    Not all independent-variable columns need to be present, but the columns that
@@ -935,6 +936,11 @@ term :math:`C_{N0}`. Any term you omit is zero.
    in the body frame versus ``cL_alpha``, ``cQ_beta``, ... in the wind frame.
    ``force_convention`` selects the frame just as it does for
    :class:`rocketpy.GenericSurface`.
+
+   A surface given in the wind frame is linear in that frame: its lift, drag
+   and side force vary linearly with the angles and the rates. Its two parts
+   are then ``surface.cLf`` and ``surface.cLd`` (likewise for ``cD`` and
+   ``cQ``) in place of ``cNf`` and ``cNd``.
 
 .. seealso::
    For more information on class initialization, see

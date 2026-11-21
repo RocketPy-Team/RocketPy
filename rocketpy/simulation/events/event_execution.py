@@ -503,7 +503,7 @@ def apply_exact_time_result(flight, event_results):
             solution._replace_last([time, *state])
         flight.t = time
         flight.y_sol = state
-    elif previous_time < time < solution.raw_row(-1)[0]:
+    elif previous_time is not None and previous_time < time < solution.raw_row(-1)[0]:
         solution._insert_before_last([time, *state])
         solution._set_controls(-2, dict(flight._controls))
 

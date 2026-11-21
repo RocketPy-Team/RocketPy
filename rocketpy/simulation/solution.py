@@ -1434,14 +1434,13 @@ class Solution:
         Returns
         -------
         dict
-            A format marker, the flight's rows, one entry per phase as
-            produced by :meth:`_PhaseSolution.to_dict`, for a flight with
-            controls the control values stored with each row, and for a
-            flight with sensors what they read. Pass it to :meth:`from_dict`
-            to rebuild the solution.
+            The flight's rows, one entry per phase as produced by
+            :meth:`_PhaseSolution.to_dict`, for a flight with controls the
+            control values stored with each row, and for a flight with
+            sensors what they read. Pass it to :meth:`from_dict` to rebuild
+            the solution.
         """
         data = {
-            "format": "rocketpy/solution",
             "phases": [phase.to_dict() for phase in self.phases],
             "rows": self._rows,
         }

@@ -1128,8 +1128,8 @@ class GenericSurface(Controllable):
             Atmospheric dynamic viscosity as a function of altitude. Used to
             compute the Reynolds number at the surface altitude.
         z : float
-            Altitude of the surface, used to evaluate ``density`` and
-            ``dynamic_viscosity``.
+            Altitude of the surface's center of pressure above sea level, in
+            m, used to evaluate ``density`` and ``dynamic_viscosity``.
         controls : sequence of float, optional
             The value of each of the surface's controls, in the order of
             :attr:`controls`, as the flight holds them. ``None`` (the default)

@@ -11,29 +11,15 @@ from .event_context import EventContext, refresh_event_kwargs
 from .exact_time_solvers import SOLVERS
 
 
-def _past_apogee(context):
-    """Whether the rocket is coming down: at or past its apogee and above the
-    ground. It holds at every check after the apogee, however far apart the
-    checks are."""
-    return context["canonical_state"][5] <= 0 < context["height_agl"]
-
-
-def _reached_apogee(context):
-    """Whether this is the event's first check at or past the apogee."""
-    previous = context["event"]._previous_state  # pylint: disable=protected-access
-    return _past_apogee(context) and (previous is None or previous[5] > 0)
-
-
-# The conditions a trigger can name. "apogee" fires once, at the event's
-# first check past the apogee.
+# The conditions a trigger, ``enable_on`` and ``disable_on`` can name. Each
+# holds from that moment on.
 PRESETS = {
-    "apogee": _reached_apogee,
+    # Coming down and above the ground
+    "apogee": lambda context: (
+        context["canonical_state"][5] <= 0 < context["height_agl"]
+    ),
     "burnout": lambda context: context["time"] >= context["rocket"].motor.burn_out_time,
 }
-# The same for ``enable_on`` and ``disable_on``, which hold from then on: a
-# gate is not checked at every check of the event, so it must not depend on
-# catching the one check where the apogee was crossed
-_GATE_PRESETS = {**PRESETS, "apogee": _past_apogee}
 
 
 def _copied(value):
@@ -119,9 +105,13 @@ class Event:
 
             - a function ``trigger(context)`` that returns ``True`` when the
               event should fire, given the same ``context`` as ``callback``;
-            - ``"apogee"`` or ``"burnout"``;
+            - ``"apogee"`` (the rocket is coming down and above the ground)
+              or ``"burnout"`` (the motor has burned out);
             - a number, the simulation time in s from which it fires.
 
+            ``"apogee"``, ``"burnout"`` and a time stay ``True`` from that
+            moment on, so the event fires at every check after it. Set
+            ``trigger_only_once=True`` to fire once.
             Default ``None``: the event fires every time it is checked.
         sampling_rate : float, optional
             How many times per second the event is checked, in Hz: with
@@ -656,6 +646,7 @@ class Event:
         one before it. The context answers ``previous_state`` and
         ``previous_time`` from these.
         """
+        self._previous_view = None
         self._previous_state = None
         self._previous_time = None
         self._previous_raw_state = None
@@ -772,12 +763,12 @@ class Event:
         if condition is None:
             return None
         if isinstance(condition, str):
-            if condition not in _GATE_PRESETS:
+            if condition not in PRESETS:
                 raise ValueError(
                     f"Unknown disable_on or enable_on preset: {condition!r}. "
-                    f"Supported presets: {list(_GATE_PRESETS.keys())}"
+                    f"Supported presets: {list(PRESETS.keys())}"
                 )
-            return _GATE_PRESETS[condition]
+            return PRESETS[condition]
         if isinstance(condition, Real) and not isinstance(condition, bool):
             return lambda context: context["time"] >= float(condition)
         if callable(condition):

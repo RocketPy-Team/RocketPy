@@ -158,8 +158,12 @@ class Fin(_BaseFin):  # pylint: disable=abstract-method
         cant_angle : int, float, optional
             Fin cant angle with respect to the rocket centerline. Must
             be given in degrees.
-            A positive cant angle gives a negative roll moment about the
-            rocket's axis (see :ref:`individual_fins`).
+            It is the angle the fin is turned by about its span axis, the
+            line from its root to its tip, pointing out of the rocket,
+            following the right-hand rule. A positive cant angle gives a
+            negative roll moment about the rocket's axis: looking at the
+            rocket from in front of its nose, it rolls clockwise (see
+            :ref:`individual_fins`).
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The

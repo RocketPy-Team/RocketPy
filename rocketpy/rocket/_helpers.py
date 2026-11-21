@@ -30,7 +30,19 @@ def stability_surfaces(rocket, phase=None):
 
     A surface is left out when its ``active_during`` names the other phase,
     or when it starts the flight switched off (``active=False``).
+
+    While a flight reads one stretch of its trajectory (see
+    ``Rocket._reading_surfaces``) the surfaces are the ones active in that
+    stretch, whatever ``phase`` says.
     """
+    # pylint: disable-next=protected-access
+    selection = rocket._stability_selection
+    if selection is not None:
+        return [
+            pair
+            for pair, chosen in zip(rocket.aerodynamic_surfaces, selection)
+            if chosen
+        ]
     phase = rocket.stability_phase if phase is None else phase
     if phase not in ("power_on", "power_off"):
         raise ValueError(
@@ -1414,10 +1426,11 @@ def body_derivatives_to_wind(body):
     frame-shared. Four cross terms fold the zero-angle forces in at incidence,
     ``cL_alpha = cN_alpha - cA_0``, ``cQ_beta = cY_beta + cA_0``,
     ``cD_alpha = cA_alpha + cN_0`` and ``cD_beta = cA_beta - cY_0`` -- the
-    linear inverse of the wind-to-body rotation :class:`LinearGenericSurface`
-    applies to a wind-frame input, so feeding the result back with
-    ``force_convention="wind"`` recovers the same body-frame surface. Operates on
-    the tabulated derivative values (arrays over the Mach grid).
+    linear inverse of the slopes at zero angle :class:`LinearGenericSurface`
+    works out for a wind-frame input, so feeding the result back with
+    ``force_convention="wind"`` gives a surface with the same slopes at zero
+    angle. Operates on the tabulated derivative values (arrays over the Mach
+    grid).
     """
     rename = {"cN": "cL", "cY": "cQ", "cA": "cD"}
     wind = {}

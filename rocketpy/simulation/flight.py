@@ -30,7 +30,11 @@ from ..tools import (
     snake_case_key,
     unique_names,
 )
-from .events.event_builders import build_core_events
+from .events.event_builders import (
+    build_core_events,
+    impact_trigger,
+    out_of_rail_trigger,
+)
 from .events.event_context import build_event_kwargs, refresh_event_kwargs
 from .events.event_execution import (
     call_events,
@@ -706,7 +710,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             # themselves can leave verbose=False and configure the "rocketpy"
             # logger directly.
             enable_logging("INFO" if verbose is True else verbose)
-        self.custom_events = [] if custom_events is None else custom_events
+        # A list of the flight's own: events added during the flight are appended
+        # to it, and the list the user passed must not change
+        if custom_events is None:
+            custom_events = []
+        elif not isinstance(custom_events, (list, tuple)):
+            custom_events = [custom_events]
+        self.custom_events = list(custom_events)
 
         # Flight initialization
         self.rocket._refresh_aerodynamics()
@@ -739,12 +749,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Initialize events and event triggers. The order of the list is the
         order that the events will be called. Core events should be first, then
         sensors, then parachutes, then controllers, then user defined events."""
-        user_events = (
-            self.custom_events
-            if isinstance(self.custom_events, list)
-            else [self.custom_events]
-        )
-        self.__init_eventful_objects(user_events)
+        self.__init_eventful_objects(self.custom_events)
 
         self.events = [*build_core_events(self)]
 
@@ -761,7 +766,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.events.extend(self.controllers)
 
         # User-defined events are appended last
-        self.events.extend(user_events)
+        self.events.extend(self.custom_events)
 
         self._overshootable_events = []
         self._non_overshootable_events = []
@@ -1310,6 +1315,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 interpolated_time=interpolated_time,
                 interpolated_state=interpolated_state,
             )
+            if out_of_rail_trigger(self, event_kwargs) or impact_trigger(event_kwargs):
+                continue  # past the rail exit or the impact, where the step is cut
 
             # Check events for current node
             rolled_back = False
@@ -2702,23 +2709,68 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         beta = np.where(on_rail, 0.0, beta)
         return alpha, beta
 
+    def _stability_stretches(self):
+        """Split the flight into stretches, a stretch being the instants at
+        which the same surfaces were active.
+
+        Which surfaces are active changes when an event switches one on or
+        off, and at motor burnout for a surface active during one motor phase
+        only.
+
+        Returns
+        -------
+        list of tuple
+            For each stretch, whether each of the rocket's aerodynamic
+            surfaces was active in it, in order, and the indices of
+            ``self.time`` it covers. A flight whose surfaces never change is
+            one stretch, given with ``None`` in place of the surfaces.
+        """
+        surfaces = [surface for surface, _ in self.rocket.aerodynamic_surfaces]
+        if not self._surface_switches and all(
+            surface.active_during == "always" for surface in surfaces
+        ):
+            return [(None, range(len(self.time)))]
+        stretches = {}
+        for index, t in enumerate(self.time):
+            active = tuple(surface.is_active(t, self) for surface in surfaces)
+            stretches.setdefault(active, []).append(index)
+        return list(stretches.items())
+
+    def _read_stability(self, read):
+        """Call ``read(index, alpha, beta)`` for every instant of the flight,
+        with the rocket describing the surfaces that were active at that
+        instant, the ones the simulation used.
+
+        ``index`` is the position of the instant in ``self.time``, and
+        ``alpha`` and ``beta`` the angles of its stability state (see
+        :meth:`_stability_state`), in radians.
+        """
+        for active, indices in self._stability_stretches():
+            # pylint: disable-next=protected-access
+            with self.rocket._reading_surfaces(active):
+                alpha, beta = self._stability_state()
+                for index in indices:
+                    read(index, alpha[index], beta[index])
+
     def _margin_along_flight(self, plane):
         """Stability margin of ``plane`` at every instant, at the flight's
-        stability state, Mach number and time."""
+        stability state, Mach number and time, with the surfaces active at
+        that instant."""
         # Imported here: the rocket package cannot be imported while this
         # module loads (circular import through the controllers)
         # pylint: disable-next=import-outside-toplevel
         from ..rocket._helpers import stability_margin_and_slope
 
-        alpha, beta = self._stability_state()
-        return np.array(
-            [
-                stability_margin_and_slope(
-                    self.rocket, a, b, self.mach_number.get_value_opt(t), t, plane
-                )[0]
-                for a, b, t in zip(alpha, beta, self.time)
-            ]
-        )
+        margin = np.empty(len(self.time))
+
+        def read(index, alpha, beta):
+            t = self.time[index]
+            margin[index] = stability_margin_and_slope(
+                self.rocket, alpha, beta, self.mach_number.get_value_opt(t), t, plane
+            )[0]
+
+        self._read_stability(read)
+        return margin
 
     @funcify_method("Time (s)", "Stability Margin (c)", "linear", "zero")
     def stability_margin(self):
@@ -2726,6 +2778,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         distance from the center of mass to the neutral point, divided by the
         rocket's diameter, at the angle of attack, Mach number and time of each
         instant.
+
+        The margin of each instant counts the surfaces that were active then,
+        as the simulation did: a surface an event switched on or off counts
+        from the moment of the switch, and a surface active during one motor
+        phase only counts during that phase. The natural frequencies, the
+        damping ratios and :meth:`disturbance_response` follow the same rule.
 
         Returns
         -------
@@ -2781,21 +2839,24 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
         corrective = np.empty(len(self.time))
         damping = np.empty(len(self.time))
-        alphas, betas = self._stability_state()
-        for i, t in enumerate(self.time):
+
+        def read(index, alpha, beta):
             # From the rocket at this instant's state, Mach and time
-            corrective[i], damping[i] = corrective_and_damping_moments(
+            t = self.time[index]
+            corrective[index], damping[index] = corrective_and_damping_moments(
                 self.rocket,
-                alphas[i],
-                betas[i],
+                alpha,
+                beta,
                 self.mach_number.get_value_opt(t),
                 t,
                 self.free_stream_speed.get_value_opt(t),
                 self.density.get_value_opt(t),
                 self.dynamic_pressure.get_value_opt(t),
-                inertia_rate[i],
+                inertia_rate[index],
                 plane,
             )
+
+        self._read_stability(read)
 
         # The rocket cannot oscillate while the rail holds it, without inertia
         # (a point mass) or when C1 is not positive (no restoring moment). The
@@ -2894,7 +2955,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         time : float
             Instant of the flight, in seconds, at which the disturbance
             happens. Must be after the rocket leaves the rail, for example
-            ``flight.out_of_rail_time``.
+            ``flight.out_of_rail_time``, and no later than the end of the
+            flight.
         disturbance : float, optional
             Angle the rocket is tilted by, in degrees. Default is 5.
         plane : str, optional
@@ -2915,7 +2977,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         ------
         ValueError
             If ``time`` is before the rocket leaves the rail, where it cannot
-            swing, or for a point mass rocket.
+            swing, or after the end of the flight; if ``plane`` is neither
+            ``"pitch"`` nor ``"yaw"``; or for a point mass rocket.
 
         See Also
         --------
@@ -2935,6 +2998,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 f"At {time} s the rocket is still on the rail (it leaves at "
                 f"{self.out_of_rail_time:.3f} s) and cannot swing."
             )
+        if time > self.t_final:
+            raise ValueError(
+                f"time {time} s is after the end of the flight ({self.t_final:.3f} s)."
+            )
+        if plane not in ("pitch", "yaw"):
+            raise ValueError(f"plane must be 'pitch' or 'yaw', got {plane!r}.")
         if plane == "yaw":
             dynamics, inertia_about_cdm = self._yaw_dynamics, self.rocket.I_22
         else:
@@ -3273,6 +3342,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.plots.all()
 
     def to_dict(self, **kwargs):
+        # A surface is saved with the rocket, not by identity, so each switch
+        # names its surface by its place in the rocket's list of surfaces
+        surface_switches = [
+            [index, float(time), bool(active)]
+            for index, (surface, _) in enumerate(self.rocket.aerodynamic_surfaces)
+            for time, active in self._surface_switches.get(surface, ())
+        ]
         data = {
             "rocket": self.rocket,
             "env": self.env,
@@ -3319,6 +3395,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "net_thrust": self.net_thrust,
             "records": self.records,
             "event_outputs": self.event_outputs,
+            "surface_switches": surface_switches,
         }
 
         if kwargs.get("include_outputs", False):
