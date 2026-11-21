@@ -47,6 +47,12 @@ class Sensor(ABC):
         temperature drift.
     """
 
+    # Whether ``measure`` reads ``u_dot``, the derivative of the state with
+    # respect to time. Working it out takes an evaluation of the equations of
+    # motion at every reading, so a sensor that never reads it sets this to
+    # ``False`` and is given ``u_dot=None`` during a flight.
+    _reads_state_derivative = True
+
     def __init__(
         self,
         sampling_rate,
@@ -198,7 +204,11 @@ class Sensor(ABC):
         def sensor_callback(context):
             time = context["time"]
             state = context["canonical_state"]
-            state_dot = context["canonical_state_dot"]
+            # Asked for only when the sensor reads it: the context works it
+            # out with an evaluation of the equations of motion
+            state_dot = (
+                context["canonical_state_dot"] if self._reads_state_derivative else None
+            )
             rocket = context["rocket"]
             environment = context["environment"]
 

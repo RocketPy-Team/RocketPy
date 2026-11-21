@@ -50,6 +50,8 @@ class Barometer(ScalarSensor):
     units = "Pa"
     channels = [("pressure", "Pa")]
 
+    _reads_state_derivative = False
+
     def __init__(
         self,
         sampling_rate,
@@ -150,8 +152,9 @@ class Barometer(ScalarSensor):
 
             - u : np.array
                 State vector of the rocket.
-            - u_dot : np.array
-                Derivative of the state vector of the rocket.
+            - u_dot : np.array or None
+                Derivative of the state vector of the rocket. Not read by this
+                sensor, and ``None`` during a flight.
             - relative_position : np.array
                 Position of the sensor relative to the rocket center of mass.
             - environment : Environment

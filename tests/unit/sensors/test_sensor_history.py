@@ -10,7 +10,9 @@ import pytest
 
 from rocketpy import Flight
 from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
+from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
 from rocketpy.simulation.events.event_execution import rewind
 from rocketpy.simulation.events.views import SensorsView, sensor_positions
@@ -402,3 +404,53 @@ def test_a_rollback_that_drops_no_reading_leaves_the_random_walk(
     rewind(_flight_of(calisto, solution, t=0.3), 0.25)
 
     assert barometer._random_walk_drift == drift
+
+
+# ---------------------------------------------------------------------------
+# What a reading costs
+# ---------------------------------------------------------------------------
+
+
+class _CountingContext(_Context):
+    """Counts how many times the derivative of the state is asked for, which
+    in a flight is an evaluation of the equations of motion."""
+
+    asked = 0
+
+    def __getitem__(self, key):
+        if key == "canonical_state_dot":
+            self.asked += 1
+        return super().__getitem__(key)
+
+
+@pytest.mark.parametrize(
+    "sensor, reads_it",
+    [
+        (Barometer(sampling_rate=10), False),
+        (GnssReceiver(sampling_rate=10), False),
+        (Gyroscope(sampling_rate=10), False),
+        (Gyroscope(sampling_rate=10, acceleration_sensitivity=0.1), True),
+        (Accelerometer(sampling_rate=10), True),
+    ],
+)
+def test_a_reading_asks_for_the_state_derivative_only_when_the_sensor_reads_it(
+    calisto, example_plain_env, solution, sensor, reads_it
+):
+    calisto.add_sensor(sensor, position=0.2)
+    sensor._reset(calisto)
+    _positions_by_key(calisto)
+    event = calisto._sensor_events[0][1]
+    context = _CountingContext(
+        solution,
+        event=event,
+        time=0.1,
+        canonical_state=STATE,
+        canonical_state_dot=STATE_DOT,
+        rocket=calisto,
+        environment=example_plain_env,
+    )
+
+    event.callback(context)
+
+    assert context.asked == (1 if reads_it else 0)
+    assert sensor.measurement is not None
