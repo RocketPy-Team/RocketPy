@@ -9,7 +9,9 @@ import numpy as np
 import pytest
 
 from rocketpy import Flight
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.sensors.barometer import Barometer
+from rocketpy.sensors.gyroscope import Gyroscope
 from rocketpy.simulation.events.event_execution import rewind
 from rocketpy.simulation.events.views import SensorsView, sensor_positions
 from rocketpy.simulation.flight_data_exporter import _sensor_rows
@@ -347,3 +349,56 @@ def test_a_rollback_before_any_measurement_leaves_none(rocket, solution):
     assert all(sensor.measurement is None for sensor, _ in rocket._sensor_events)
     assert _sensor(rocket, 3).measured_data == []
     assert _view(rocket, solution).accelerometer.ax is None
+
+
+@pytest.mark.parametrize("sensor_class", [Barometer, Gyroscope])
+def test_a_rollback_takes_the_random_walk_back(
+    sensor_class, calisto, solution, example_plain_env
+):
+    """Each reading moves the drift of the sensor's noise by one random step.
+    Going back in time takes away the steps of the readings dropped, so the
+    drift does not grow with the number of rollbacks."""
+    sensor = sensor_class(sampling_rate=10, random_walk_density=1.0)
+    calisto.add_sensor(sensor, 0.5)
+    sensor._reset(calisto)
+    _positions_by_key(calisto)
+    ((_, event),) = calisto._sensor_events
+    event.reset()
+    drift = {}
+    for time in (0.1, 0.2, 0.3):
+        _read(solution, event, calisto, example_plain_env, time)
+        drift[time] = sensor._random_walk_drift
+    assert drift[0.1] != drift[0.2] != drift[0.3]
+
+    flight = _flight_of(calisto, solution, t=0.3)
+    rewind(flight, 0.15)
+    assert sensor._random_walk_drift == drift[0.1]
+
+    # The reading taken again adds one step to the drift it went back to
+    _read(solution, event, calisto, example_plain_env, 0.2)
+    assert sensor._random_walk_drift != drift[0.1]
+    assert [time for time, _ in sensor._drift_log] == [0.1, 0.2]
+
+    rewind(flight, 0.05)  # before every reading
+    assert sensor._random_walk_drift == (
+        Vector([0, 0, 0]) if sensor_class is Gyroscope else 0
+    )
+    assert sensor._drift_log == []
+
+
+def test_a_rollback_that_drops_no_reading_leaves_the_random_walk(
+    calisto, solution, example_plain_env
+):
+    barometer = Barometer(sampling_rate=10, random_walk_density=1.0)
+    calisto.add_sensor(barometer, 0.5)
+    barometer._reset(calisto)
+    _positions_by_key(calisto)
+    ((_, event),) = calisto._sensor_events
+    event.reset()
+    for time in (0.1, 0.2):
+        _read(solution, event, calisto, example_plain_env, time)
+    drift = barometer._random_walk_drift
+
+    rewind(_flight_of(calisto, solution, t=0.3), 0.25)
+
+    assert barometer._random_walk_drift == drift

@@ -136,6 +136,7 @@ class Sensor(ABC):
         self._counter = 0
         self._save_data = self._save_data_single
         self._random_walk_drift = 0
+        self._drift_log = []
         self.normal_vector = Vector([0, 0, 0])
 
         # handle measurement range
@@ -217,6 +218,7 @@ class Sensor(ABC):
                 earth_radius=environment.earth_radius,
                 initial_coordinates=(environment.latitude, environment.longitude),
             )
+            self._drift_log.append((time, self._random_walk_drift))
             reading = self.measurement
             if not isinstance(reading, tuple):
                 reading = (reading,)
@@ -240,9 +242,8 @@ class Sensor(ABC):
     def _reset(self, simulated_rocket):
         """Reset the sensor data for a new simulation: no measurement yet, and
         the noise drift back at zero."""
-        self._random_walk_drift = (
-            Vector([0, 0, 0]) if isinstance(self._random_walk_drift, Vector) else 0
-        )
+        self._random_walk_drift = self._no_drift()
+        self._drift_log = []
         self.measurement = None
         self.measured_data = []
         if self._attached_rockets[simulated_rocket] > 1:
@@ -252,6 +253,21 @@ class Sensor(ABC):
             self._save_data = self._save_data_multiple
         else:
             self._save_data = self._save_data_single
+
+    def _no_drift(self):
+        """The drift of the random walk before any reading."""
+        return Vector([0, 0, 0]) if isinstance(self._random_walk_drift, Vector) else 0
+
+    def _drop_drift_after(self, time):
+        """Take the random walk back to ``time``: its drift is again the one
+        after the last reading up to ``time``, without the steps of the
+        readings made after it, which the flight went back over."""
+        log = self._drift_log
+        if not log or log[-1][0] <= time:
+            return
+        while log and log[-1][0] > time:
+            log.pop()
+        self._random_walk_drift = log[-1][1] if log else self._no_drift()
 
     def _save_data_single(self, data):
         """Save the measured data to the sensor data list for a sensor that is

@@ -340,10 +340,10 @@ def rewind(flight, time, event_results=None):
 
 def rewind_sensors(flight, time):
     """Take the sensors back to ``time``: the solution and their
-    ``measured_data`` lose the readings made after it, and their
-    ``measurement`` is again the last one kept, so a controller reading a
-    sensor never sees a reading from the stretch of trajectory the flight
-    went back over.
+    ``measured_data`` lose the readings made after it, their ``measurement``
+    is again the last one kept, so a controller reading a sensor never sees a
+    reading from the stretch of trajectory the flight went back over, and the
+    random walk of their noise loses the steps of those readings.
 
     Parameters
     ----------
@@ -367,6 +367,7 @@ def rewind_sensors(flight, time):
         rows = data[index] if data and isinstance(data[0], list) else data
         while rows and rows[-1][0] > time:
             rows.pop()
+        sensor._drop_drift_after(time)  # pylint: disable=protected-access
         readings = [
             solution._latest_reading(event._position_name, label)  # pylint: disable=protected-access
             for label, _ in sensor.channels
