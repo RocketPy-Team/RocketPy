@@ -313,8 +313,8 @@ class FlightDataExporter:
         kml.save(file_name)
         print("File ", file_name, " saved with success!")
 
-    # Deprecated aliases -- kept for backward compatibility with the
-    # ``export_*`` method names used prior to v1.15.
+    # Deprecated aliases, kept for backward compatibility with the earlier
+    # ``export_*`` method names until their removal in v1.16.
     @deprecated(version="v1.16.0", alternative="pressures")
     def export_pressures(self, file_name, time_step):
         return self.pressures(file_name, time_step)
