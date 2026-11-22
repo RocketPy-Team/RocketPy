@@ -135,3 +135,19 @@ class PointMassRocket(Rocket):
         self.I_13 = 0.0
         self.I_23 = 0.0
         return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data["weathercock_coeff"] = self.weathercock_coeff
+        return data
+
+    @classmethod
+    def _new_from_dict(cls, data):
+        return cls(
+            radius=data["radius"],
+            mass=data["mass"],
+            center_of_mass_without_motor=data["center_of_mass_without_motor"],
+            power_off_drag=data["power_off_drag"],
+            power_on_drag=data["power_on_drag"],
+            weathercock_coeff=data.get("weathercock_coeff", 0.0),
+        )
