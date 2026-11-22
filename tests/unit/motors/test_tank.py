@@ -6,8 +6,14 @@ import numpy.testing as npt
 import pytest
 import scipy.integrate as spi
 
-from rocketpy import CylindricalTank, Fluid, Function, MassFlowRateBasedTank
-from rocketpy.motors.tank import _compose_clipped
+from rocketpy import (
+    CylindricalTank,
+    Fluid,
+    LevelBasedTank,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    UllageBasedTank,
+)
 
 BASE_PATH = Path("./data/rockets/berkeley/")
 
@@ -541,42 +547,84 @@ def test_mass_flow_rate_tank_exact_depletion():
     assert np.all(np.isfinite(gas_height))
 
 
-@pytest.mark.parametrize(
-    "outer_is_array, inner_is_array",
-    [(True, False), (False, True), (False, False)],
-    ids=["array-callable", "callable-array", "callable-callable"],
-)
-def test_compose_clipped_defers_when_a_source_is_not_an_array(
-    outer_is_array, inner_is_array
-):
-    """Clipping needs ``x_array``, which only array-sourced Functions have.
+def _tank_with_error(tank_type, error):
+    """Build a 1.2 m tall, 0.1 m radius tank whose input is off by ``error``.
 
-    ``Function.compose`` handles a callable source on its own and performs no
-    bounds check there, so there is no spurious error to absorb and nothing to
-    clip. Without this the helper would raise ``AttributeError`` instead of
-    composing, so it would not be a drop-in replacement for ``compose``.
+    The error is a mass of liquid drained beyond empty (kg), a gas volume
+    beyond the tank volume (m³), a liquid level above the tank top (m) or a
+    liquid mass beyond a full tank (kg), depending on the tank type.
     """
-    doubling = np.column_stack([np.linspace(0, 10, 11), np.linspace(0, 20, 11)])
-    outer = Function(doubling) if outer_is_array else Function(lambda v: v * 2.0)
+    geometry = CylindricalTank(radius_function=0.1, height=1.2, spherical_caps=False)
+    fluids = {
+        "liquid": Fluid(name="water", density=1000),
+        "gas": Fluid(name="air", density=1.225),
+    }
+    if tank_type == "mass_flow_rate":
+        return MassFlowRateBasedTank(
+            name="tank",
+            geometry=geometry,
+            flux_time=5.0,
+            initial_liquid_mass=32.0,
+            initial_gas_mass=0,
+            liquid_mass_flow_rate_in=0,
+            liquid_mass_flow_rate_out=(32.0 + error) / 5.0,
+            gas_mass_flow_rate_in=0,
+            gas_mass_flow_rate_out=0,
+            **fluids,
+        )
+    if tank_type == "ullage":
+        ullage = [[0.0, 0.0], [5.0, geometry.total_volume + error]]
+        return UllageBasedTank(
+            name="tank",
+            geometry=geometry,
+            flux_time=5.0,
+            ullage=np.array(ullage),
+            discretize=11,
+            **fluids,
+        )
+    if tank_type == "level":
+        level = [[0.0, geometry.top + error], [5.0, 0.0]]
+        return LevelBasedTank(
+            name="tank",
+            geometry=geometry,
+            flux_time=5.0,
+            liquid_height=np.array(level),
+            discretize=11,
+            **fluids,
+        )
+    full_mass = geometry.total_volume * 1000
+    return MassBasedTank(
+        name="tank",
+        geometry=geometry,
+        flux_time=5.0,
+        liquid_mass=np.array([[0.0, full_mass + error], [5.0, 0.0]]),
+        gas_mass=0,
+        discretize=11,
+        **fluids,
+    )
 
-    shift = np.column_stack([np.linspace(0, 5, 6), np.linspace(1, 6, 6)])
-    inner = Function(shift) if inner_is_array else Function(lambda t: t + 1.0)
 
-    composed = _compose_clipped(outer, inner)
+@pytest.mark.parametrize(
+    "tank_type, error",
+    [("mass_flow_rate", 5e-7), ("ullage", 5e-7), ("level", 5e-5), ("mass", 5e-4)],
+)
+def test_tank_accepts_the_error_its_own_checks_accept(tank_type, error):
+    """An input off by less than the tank checks accept (1e-6 m³ of volume,
+    1e-4 m of height) builds the tank. It used to pass those checks and then
+    stop at the domain check of ``Function.compose``."""
+    tank = _tank_with_error(tank_type, error)
 
-    # outer(inner(3)) == (3 + 1) * 2
-    assert float(composed(3.0)) == pytest.approx(8.0)
+    assert np.all(np.isfinite(tank.liquid_height.y_array))
+    assert np.all(np.isfinite(tank.liquid_volume.y_array))
+    assert np.all(np.isfinite(tank.gas_height.y_array))
 
 
-def test_compose_clipped_absorbs_only_boundary_noise():
-    """Values a roundoff below the domain are pulled in, not rejected."""
-    doubling = np.column_stack([np.linspace(0, 10, 11), np.linspace(0, 20, 11)])
-    outer = Function(doubling)
-
-    times = np.linspace(0.0, 5.0, 6)
-    just_under_zero = np.column_stack([times, np.full_like(times, -1e-16)])
-    inner = Function(just_under_zero)
-
-    composed = _compose_clipped(outer, inner)
-
-    assert float(composed(2.0)) == pytest.approx(0.0)
+@pytest.mark.parametrize(
+    "tank_type, error",
+    [("mass_flow_rate", 1e-2), ("ullage", 1e-4), ("level", 1e-3), ("mass", 1.0)],
+)
+def test_tank_names_itself_when_the_error_is_too_large(tank_type, error):
+    """A larger error is reported as an underfilled or overfilled tank, not as
+    a value outside the domain of a Function."""
+    with pytest.raises(ValueError, match="underfilled|overfilled"):
+        _tank_with_error(tank_type, error)

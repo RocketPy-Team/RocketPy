@@ -1,3 +1,4 @@
+import copy
 import warnings
 from itertools import product
 from unittest.mock import patch
@@ -89,6 +90,55 @@ def test_static_margin_rebuilds_after_adding_surface(calisto):
         assert mock_set_discrete.call_count == 1
 
     assert margin_after != pytest.approx(margin_before, abs=1e-6)
+
+
+def test_static_margin_assignment_warns_and_is_returned(calisto):
+    """Assigning static_margin warns at the caller's line and sticks."""
+    with pytest.warns(DeprecationWarning, match="static_margin") as record:
+        calisto.static_margin = 2.0
+
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert "will be removed in a future version" in str(record[0].message)
+    assert calisto.static_margin == 2.0
+
+
+def test_static_margin_assignment_is_recomputed_after_geometry_change(calisto):
+    """A later surface change discards an assigned value, as evaluate does."""
+    with pytest.warns(DeprecationWarning):
+        calisto.static_margin = 2.0
+
+    calisto.add_nose(length=0.55829, kind="ogive", position=1.160)
+
+    margin = calisto.static_margin
+    assert isinstance(margin, Function)
+    assert margin(0) != pytest.approx(2.0, abs=1e-6)
+
+
+def test_evaluate_static_margin_overwrites_assigned_value(calisto):
+    """Explicit evaluate_static_margin replaces an assigned float."""
+    expected = calisto.static_margin(0)
+    with pytest.warns(DeprecationWarning):
+        calisto.static_margin = 2.0
+
+    calisto.evaluate_static_margin()
+
+    assert calisto.static_margin(0) == pytest.approx(expected, abs=1e-8)
+
+
+def test_static_margin_internal_use_does_not_warn(calisto_motorless):
+    """Building and updating a rocket never triggers the assignment warning."""
+    rocket = calisto_motorless
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        rocket.add_trapezoidal_fins(
+            4, span=0.100, root_chord=0.120, tip_chord=0.040, position=-1.04956
+        )
+        _ = rocket.static_margin(0)
+        rocket.evaluate_static_margin()
+        rocket.static_margin.get_value_opt(0)
+        rocket.to_dict()
 
 
 @pytest.mark.parametrize(
@@ -558,15 +608,12 @@ def test_evaluate_nozzle_gyration_tensor_parallel_axis_term(calisto):
 
 
 def test_evaluate_com_to_cdm_function(calisto):
-    """Compare values without requiring a particular source representation."""
-    times = np.linspace(0, calisto.motor.burn_out_time, 101)
-    expected = [
-        calisto._csys
-        * (calisto.center_of_dry_mass_position - calisto.center_of_mass(t))
-        for t in times
-    ]
-    actual = [calisto.com_to_cdm_function(t) for t in times]
-    np.testing.assert_allclose(actual, expected, rtol=0, atol=1e-3)
+    atol = 1e-3  # Equivalent to 1mm
+    assert np.allclose(
+        (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
+        calisto.com_to_cdm_function.source,
+        atol=atol,
+    )
 
 
 def test_get_inertia_tensor_at_time(calisto):
@@ -997,9 +1044,7 @@ def test_add_trapezoidal_fins_two_fins_warns_but_succeeds(calisto):
         fins = calisto.add_trapezoidal_fins(
             2, span=0.1, root_chord=0.12, tip_chord=0.04, position=-1.0
         )
-    assert fins in [
-        surface for surface, _position, _ref_factor in calisto.aerodynamic_surfaces
-    ]
+    assert fins in [surface for surface, _ in calisto.aerodynamic_surfaces]
 
 
 def test_unstable_rocket_warning_raised(calisto):
@@ -1130,3 +1175,35 @@ def test_evaluate_reduced_mass_with_motor(calisto):
     for t in [0.0, 1.0, 2.0, 3.0]:
         expected = prop_mass(t) * dry_mass / (prop_mass(t) + dry_mass)
         assert reduced_mass(t) == pytest.approx(expected)
+
+
+def test_static_margin_follows_surface_radius_changed_after_adding(
+    calisto_motorless,
+):
+    """A surface's reference-area factor must reflect its current
+    rocket_radius, not the one it had when it was added."""
+
+    def add_aero(rocket, nose_radius):
+        nose = NoseCone(
+            length=0.55829,
+            kind="vonkarman",
+            base_radius=nose_radius,
+            rocket_radius=nose_radius,
+        )
+        rocket.add_surfaces(nose, 1.278)
+        rocket.add_trapezoidal_fins(
+            4, root_chord=0.120, tip_chord=0.060, span=0.110, position=-1.04956
+        )
+        return nose
+
+    fresh = copy.deepcopy(calisto_motorless)
+    add_aero(fresh, 0.0635)
+
+    changed = calisto_motorless
+    nose = add_aero(changed, 0.03)
+    nose.base_radius = 0.0635
+    nose.rocket_radius = 0.0635
+    changed.evaluate_center_of_pressure()
+    changed.evaluate_static_margin()
+
+    assert changed.static_margin(0) == pytest.approx(fresh.static_margin(0))

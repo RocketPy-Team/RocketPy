@@ -166,26 +166,24 @@ class _FlightPrints:
     def tip_off_conditions(self):
         """Prints out the tip-off window, i.e. the interval during which the
         rocket pivots about the lower rail button after the upper one has left
-        the rail. Only printed when the flight was run with
-        ``use_udot_rail2=True``; otherwise the phase never runs and there is
-        nothing to report.
+        the rail. Nothing is printed when the tip-off phase did not run.
 
         Returns
         -------
         None
         """
-        if not self.flight.use_udot_rail2:
+        if self.flight.tip_off_duration <= 0:
             return
         print("\nTip-Off State\n")
         print(f"Tip-Off Duration: {self.flight.tip_off_duration:.3f} s")
-        print(f"Lower Button Departure Time: {self.flight.between_rails_time:.3f} s")
+        print(f"Lower Button Departure Time: {self.flight.tip_off_end_time:.3f} s")
         print(
             "Lower Button Departure Velocity: "
-            f"{self.flight.between_rails_velocity:.3f} m/s"
+            f"{self.flight.tip_off_end_velocity:.3f} m/s"
         )
         print(
             "Tip-Off Angle of Attack: "
-            f"{self.flight.angle_of_attack(self.flight.between_rails_time):.3f}°"
+            f"{self.flight.angle_of_attack(self.flight.tip_off_end_time):.3f}°"
         )
 
     def burn_out_conditions(self):

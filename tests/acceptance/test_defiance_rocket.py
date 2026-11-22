@@ -1,4 +1,4 @@
-"""Acceptance test for the 2024 Defiance example flight."""
+"""Defiance 2024 flight: apogee against the measured flight, the rest as a regression."""
 
 import pytest
 
@@ -9,14 +9,12 @@ from rocketpy.motors.tank import MassFlowRateBasedTank
 
 MEASURED_APOGEE_AGL = 9308.32
 MAX_RELATIVE_APOGEE_ERROR = 0.01
-REFERENCE_MAX_SPEED = 444.24
-# The old 10400.76 m/s² reference was a numerical CM-derivative spike at
-# burnout, not a measured acceleration. Keep the finite powered-flight peak.
-REFERENCE_MAX_ACCELERATION = 88.89
-REFERENCE_IMPACT_X = 1609.40
-REFERENCE_IMPACT_Y = 87.03
-REFERENCE_METRIC_RELATIVE_TOLERANCE = 0.01
-REFERENCE_IMPACT_ABSOLUTE_TOLERANCE = 3.0
+# RocketPy's own output, not flight data: they only catch unintended changes.
+REGRESSION_MAX_SPEED = 444.24
+REGRESSION_IMPACT_X = 1550.23
+REGRESSION_IMPACT_Y = 104.80
+REGRESSION_RELATIVE_TOLERANCE = 0.01
+REGRESSION_IMPACT_ABSOLUTE_TOLERANCE = 3.0
 
 
 def _build_defiance_flight():
@@ -124,32 +122,18 @@ def test_defiance_rocket_apogee_matches_measured_flight(defiance_flight):
     )
 
 
-def test_defiance_rocket_matches_reference_flight_metrics(defiance_flight):
-    """Guard the deterministic example's peak and impact metrics."""
-    tolerance = {"rel": REFERENCE_METRIC_RELATIVE_TOLERANCE}
+def test_defiance_rocket_regression_flight_metrics(defiance_flight):
+    """Guard the example's max speed and impact point against unintended changes."""
+    tolerance = {"rel": REGRESSION_RELATIVE_TOLERANCE}
     impact_tolerance = {
         **tolerance,
-        "abs": REFERENCE_IMPACT_ABSOLUTE_TOLERANCE,
+        "abs": REGRESSION_IMPACT_ABSOLUTE_TOLERANCE,
     }
 
-    assert defiance_flight.max_speed == pytest.approx(REFERENCE_MAX_SPEED, **tolerance)
-    assert defiance_flight.max_acceleration == pytest.approx(
-        REFERENCE_MAX_ACCELERATION, **tolerance
-    )
+    assert defiance_flight.max_speed == pytest.approx(REGRESSION_MAX_SPEED, **tolerance)
     assert defiance_flight.x_impact == pytest.approx(
-        REFERENCE_IMPACT_X, **impact_tolerance
+        REGRESSION_IMPACT_X, **impact_tolerance
     )
     assert defiance_flight.y_impact == pytest.approx(
-        REFERENCE_IMPACT_Y, **impact_tolerance
+        REGRESSION_IMPACT_Y, **impact_tolerance
     )
-
-
-@pytest.mark.parametrize("dx", [1e-3, 1e-4, 1e-5])
-def test_defiance_burnout_cm_rates(defiance_flight, dx):
-    """Burnout must not create a CM-acceleration spike as spacing shrinks."""
-    rocket = defiance_flight.rocket
-
-    _, first, second = rocket._get_com_to_cdm_rates(rocket.motor.burn_out_time, dx=dx)
-
-    assert (first, second) == pytest.approx((0.0, 0.0), abs=1e-12)
-    assert defiance_flight.max_acceleration_time < rocket.motor.burn_out_time

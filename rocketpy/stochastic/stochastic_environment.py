@@ -1,5 +1,7 @@
 """Defines the StochasticEnvironment class."""
 
+from rocketpy.exceptions import StochasticTypeError, StochasticValueError
+
 from .stochastic_model import StochasticModel
 
 
@@ -119,7 +121,7 @@ class StochasticEnvironment(StochasticModel):
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the environment does not have ensemble members and the
             ensemble_member input argument is not None.
         """
@@ -127,7 +129,7 @@ class StochasticEnvironment(StochasticModel):
 
         if environment.atmospheric_model_type not in valid_atmospheric_types:
             if ensemble_member is not None:
-                raise AssertionError(
+                raise StochasticValueError(
                     f"Environment with {environment.atmospheric_model_type} "
                     "does not have ensemble members"
                 )
@@ -135,14 +137,13 @@ class StochasticEnvironment(StochasticModel):
 
         if ensemble_member is not None:
             if not isinstance(ensemble_member, list):
-                raise AssertionError("`ensemble_member` must be a list")
-            if not (
-                all(
-                    isinstance(member, int) and member >= 0
-                    for member in ensemble_member
+                raise StochasticTypeError("`ensemble_member` must be a list")
+            if not all(isinstance(member, int) for member in ensemble_member):
+                raise StochasticTypeError(
+                    "`ensemble_member` must be a list of positive integers"
                 )
-            ):
-                raise AssertionError(
+            if not all(member >= 0 for member in ensemble_member):
+                raise StochasticValueError(
                     "`ensemble_member` must be a list of positive integers"
                 )
             if not (
@@ -151,7 +152,7 @@ class StochasticEnvironment(StochasticModel):
                 <= max(ensemble_member)
                 < environment.num_ensemble_members
             ):
-                raise AssertionError(
+                raise StochasticValueError(
                     "`ensemble_member` must be in the range from 0 to "
                     + f"{environment.num_ensemble_members - 1}"
                 )

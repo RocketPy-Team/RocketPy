@@ -48,6 +48,7 @@ def test_missing_timezonefinder_defaults_to_utc(
     assert analysis.end_date.tzinfo is not None
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_distribution_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Tests the distribution plots method of the EnvironmentAnalysis class. It
@@ -78,6 +79,7 @@ def test_distribution_plots(mock_show, env_analysis):  # pylint: disable=unused-
     )
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_average_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Tests the average plots method of the EnvironmentAnalysis class. It
@@ -94,6 +96,7 @@ def test_average_plots(mock_show, env_analysis):  # pylint: disable=unused-argum
     -------
     None
     """
+    pytest.importorskip("windrose")
     # Check "average" plots
     assert env_analysis.plots.average_surface_temperature_evolution() is None
     assert env_analysis.plots.average_surface10m_wind_speed_evolution(False) is None
@@ -103,6 +106,7 @@ def test_average_plots(mock_show, env_analysis):  # pylint: disable=unused-argum
     assert env_analysis.plots.average_wind_rose_specific_hour(12) is None
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_profile_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the profile plots method of the EnvironmentAnalysis class. It
@@ -144,6 +148,7 @@ def test_profile_plots(mock_show, env_analysis):  # pylint: disable=unused-argum
     )
 
 
+@pytest.mark.slow
 def test_values(env_analysis):
     """Check the numeric properties of the EnvironmentAnalysis class. It computes
     a few values and compares them to the expected values. Not all the values are
@@ -167,6 +172,7 @@ def test_values(env_analysis):
     assert pytest.approx(env_analysis.std_pressure_at_30000ft, 1e-6) == 38.48947
 
 
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the animation plots method of the EnvironmentAnalysis class. It
@@ -181,6 +187,9 @@ def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-arg
     env_analysis : EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
     """
+    pytest.importorskip("windrose")
+    pytest.importorskip("ipywidgets")
+    pytest.importorskip("IPython")
     # import dependencies
     widgets = import_optional_dependency("ipywidgets")
     HTML = import_optional_dependency("IPython.display").HTML
@@ -197,6 +206,7 @@ def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-arg
     os.remove("wind_rose.gif")  # remove the files created by the method
 
 
+@pytest.mark.slow
 def test_pressure_level_wind_profile_uses_velocity_components(env_analysis):
     """Regression for PR #1041: the redundant per-level ``wind_heading`` and
     ``wind_direction`` functions were removed from the pressure-level data.

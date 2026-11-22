@@ -421,6 +421,14 @@ class HybridMotor(Motor):
         """
         return self.solid.propellant_mass + self.liquid.propellant_mass
 
+    def get_mass_property_time_knots(self):
+        """Include the solid-grain and liquid-tank mass-property boundaries."""
+        return (
+            super().get_mass_property_time_knots()
+            + self.solid.get_mass_property_time_knots()
+            + self.liquid.get_mass_property_time_knots()
+        )
+
     @cached_property
     def propellant_initial_mass(self):
         """Returns the initial propellant mass of the motor. See the docs of the

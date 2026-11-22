@@ -581,6 +581,26 @@ class Motor(ABC):
             Position of the propellant center of mass as a function of time.
         """
 
+    def get_mass_property_time_knots(self):
+        """Return known mass/center interpolation boundaries, in seconds.
+
+        Callable inputs may have breakpoints not present in an interpolation
+        grid. Custom motors should override this method and include those
+        times. Composite motors should also include their component knots.
+        After changing inputs, rebuild the rocket's mass properties with
+        ``Rocket.add_motor`` before starting another flight.
+
+        Returns
+        -------
+        list of float
+            Burn endpoints and sampled mass/propellant-center time knots.
+        """
+        knots = list(self.burn_time)
+        for function in (self.propellant_mass, self.center_of_propellant_mass):
+            if function.is_array_source():
+                knots.extend(function.x_array)
+        return knots
+
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
         """Inertia tensor 11 component, which corresponds to the inertia

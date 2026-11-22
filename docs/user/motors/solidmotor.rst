@@ -79,3 +79,50 @@ We can now access all the information about our motor:
 .. jupyter-execute::
 
   example_solid.all_info()
+
+Unbonded Grains
+---------------
+
+By default, the grains are assumed to be bonded to the motor casing, so the
+center of mass of the propellant stays at ``grains_center_of_mass_position``.
+If your grains are loose, set ``grains_bonded=False``. The grains are then
+assumed to rest against the nozzle-side face of the initial grain stack, and the
+center of mass of the propellant moves toward the nozzle as the grains get
+shorter during the burn.
+
+``grain_separation`` is treated as a solid spacer, not an air gap, so the
+spacing between grains does not change. If ``only_radial_burn=True``, the grain
+height does not change and the center of mass does not move.
+
+.. jupyter-execute::
+
+  unbonded_solid = SolidMotor(
+    thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
+    dry_mass=1.815,
+    dry_inertia=(0.125, 0.125, 0.002),
+    nozzle_radius=33 / 1000,
+    grain_number=5,
+    grain_density=1815,
+    grain_outer_radius=33 / 1000,
+    grain_initial_inner_radius=15 / 1000,
+    grain_initial_height=120 / 1000,
+    grain_separation=5 / 1000,
+    grains_center_of_mass_position=0.397,
+    center_of_dry_mass_position=0.317,
+    nozzle_position=0,
+    burn_time=3.9,
+    throat_radius=11 / 1000,
+    coordinate_system_orientation="nozzle_to_combustion_chamber",
+    grains_bonded=False,
+  )
+
+  for t in (0, 2, 3.9):
+    print(
+      f"t = {t} s: bonded {example_solid.center_of_propellant_mass(t):.3f} m, "
+      f"unbonded {unbonded_solid.center_of_propellant_mass(t):.3f} m"
+    )
+
+The effect is usually small. We measured it separately on the Calisto rocket
+of the :doc:`First Simulation </user/first_simulation>` example, not with the
+code above: the static margin is lower by at most about 0.03 calibers during
+the burn.

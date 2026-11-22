@@ -76,6 +76,10 @@ jobs:
       - name: Run Unit Tests
         run: pytest tests/unit --cov=rocketpy
 
+      # The changelog workflow only runs after a merge, so its script is tested here.
+      - name: Test the changelog script
+        run: pytest .github/scripts/test_update_changelog.py
+
       - name: Run Documentation Tests
         run: |
           pip install numpy --upgrade

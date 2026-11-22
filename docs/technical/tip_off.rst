@@ -7,27 +7,24 @@ Tip-off: the 3-DOF Single Rail Button Phase
 Introduction
 ------------
 
-Between the moment the *upper* rail button leaves the launch rail and the moment
-the *lower* button follows it, the rocket is still guided --- but only at one
-point. It slides along the rail while free to pitch and yaw about that remaining
-button. This short interval is what the literature calls **tip-off**, and it sets
-the attitude and angular rate with which the rocket begins free flight.
+Between the moment the upper rail button leaves the launch rail and the moment
+the lower button follows it, the rocket is guided at one point only. It slides
+along the rail while free to pitch and yaw about the remaining button. This
+short interval is called **tip-off**, and it sets the attitude and angular rate
+with which the rocket begins free flight.
 
 This document derives the equations of motion used by
 :meth:`rocketpy.Flight.udot_rail2`, the flight phase that models this interval.
-It is enabled with ``Flight(..., use_udot_rail2=True)``; when disabled (the
-default) the simulation transitions straight from the 1-DOF rail phase to the
-generalized 6-DOF equations, exactly as it did before this phase existed.
+The phase runs whenever the rocket has two rail buttons.
 
-Because the phase works by patching the *generalized* 6-DOF solution with a
-constraint wrench built from the full inertia tensor, it requires
-``simulation_mode="6 DOF"`` and ``equations_of_motion="standard"``. The reduced
-formulations do not carry the state the patch describes --- the 3 DOF equations
-model no attitude at all, and ``solid_propulsion`` uses a different,
-axisymmetric set --- so asking for the tip-off phase together with either of
-them raises a ``ValueError`` instead of silently producing non-physical
-kinematics. Note that a point-mass motor forces ``simulation_mode`` to
-``"3 DOF"``, and therefore cannot be combined with this phase either.
+The phase adds a constraint wrench (a force and a moment), built from the full
+inertia tensor, to the generalized 6-DOF solution. It therefore needs
+``simulation_mode="6 DOF"`` and ``equations_of_motion="standard"``. The other
+formulations do not have the state this correction needs: the 3 DOF equations
+model no attitude, and ``solid_propulsion`` uses a different, axisymmetric set.
+Flights that use either of them skip the phase and go straight from the 1-DOF
+rail phase to free flight, and so does a flight with a point-mass motor, which
+forces ``simulation_mode`` to ``"3 DOF"``.
 
 The three flight phases around rail departure are, in order of the distance
 ``d`` travelled from the launch point:
@@ -44,7 +41,7 @@ The three flight phases around rail departure are, in order of the distance
    \end{aligned}
 
 where :math:`\ell_1` and :math:`\ell_2` are the ``effective_1rl`` and
-``effective_2rl`` attributes of :class:`rocketpy.Flight` --- the distances at
+``effective_2rl`` attributes of :class:`rocketpy.Flight`, the distances at
 which the upper and the lower button reach the end of the rail. Their difference
 is the button-to-button distance, so the phase has zero length for a rocket with
 a single rail button and is skipped in that case.
@@ -60,10 +57,10 @@ right-hand sides,
    \mathbf{u} = [\,x,\ y,\ z,\ v_x,\ v_y,\ v_z,\ e_0,\ e_1,\ e_2,\ e_3,\
    \omega_1,\ \omega_2,\ \omega_3\,]
 
-with :math:`\mathbf{r} = [x, y, z]` the inertial position of the **center of dry
-mass** (CDM, the tracked point), :math:`\mathbf{v}` its inertial velocity,
+with :math:`\mathbf{r} = [x, y, z]` the inertial position of the center of dry
+mass (CDM, the tracked point), :math:`\mathbf{v}` its inertial velocity,
 :math:`\mathbf{e}` the attitude quaternion and :math:`\boldsymbol{\omega}` the
-angular velocity in the **body** frame. The matrix
+angular velocity in the body frame. The matrix
 :math:`\mathbf{K} = \texttt{Matrix.transformation}(\mathbf{e})` rotates body
 components into inertial ones, and :math:`\hat{\mathbf{z}}_b = [0, 0, 1]` is the
 body roll (symmetry) axis.
@@ -78,11 +75,10 @@ instantaneous center of mass gives
    \mathbf{I}_{CM} = \mathbf{I} - m\left(|\mathbf{r}_{CM}|^2 \mathbb{1}
    - \mathbf{r}_{CM}\mathbf{r}_{CM}^{\mathsf T}\right).
 
-**Rail geometry.** The rail is a line fixed in the inertial frame, set by the
-launch inclination and heading. Its unit vector is the ``attitude_unit``
-attribute of :class:`rocketpy.Flight`; the constrained body point is the lower
-rail button, at the fixed body position :math:`\mathbf{r}_{B}` relative to the
-CDM.
+The rail is a line fixed in the inertial frame, set by the launch inclination
+and heading. Its unit vector is the ``attitude_unit`` attribute of
+:class:`rocketpy.Flight`. The constrained body point is the lower rail button,
+at the fixed body position :math:`\mathbf{r}_{B}` relative to the CDM.
 
 The constraint
 --------------
@@ -90,34 +86,34 @@ The constraint
 A free rigid body has six degrees of freedom. The single engaged button removes
 three of them:
 
-#. **The button stays on the rail line.** Its position may only vary along the
-   rail, so the component of its acceleration perpendicular to the rail
-   vanishes. That is **two** scalar constraints.
-#. **Roll is suppressed** by the button in its rail slot:
-   :math:`\dot{\boldsymbol{\omega}} \cdot \hat{\mathbf{z}}_b = 0`. That is
-   **one** more.
+#. The button stays on the rail line. Its position may only vary along the
+   rail, so the component of its acceleration perpendicular to the rail is
+   zero. That is two scalar constraints.
+#. The button in its rail slot prevents roll:
+   :math:`\dot{\boldsymbol{\omega}} \cdot \hat{\mathbf{z}}_b = 0`. That is one
+   more.
 
 Three constraints leave :math:`6 - 3 = 3` degrees of freedom: translation along
-the rail, pitch and yaw --- the 3 DOF this phase is named for.
+the rail, pitch and yaw.
 
 The forces that enforce them are the unknowns of the problem:
 
-* a **normal reaction** at the button, perpendicular to the rail because a
+* a normal reaction at the button, perpendicular to the rail because a
   frictionless slot can neither pull nor push along it. Writing an orthonormal
   body triad :math:`\{\hat{\mathbf{e}}_1, \hat{\mathbf{e}}_2, \hat{\mathbf{n}}_b\}`
   around the body-frame rail direction
   :math:`\hat{\mathbf{n}}_b = \mathbf{K}^{\mathsf T}\hat{\mathbf{n}}`, it has two
   components: :math:`\mathbf{N}_b = \lambda_1 \hat{\mathbf{e}}_1 + \lambda_2
   \hat{\mathbf{e}}_2`;
-* a **roll reaction moment** :math:`\mu \hat{\mathbf{z}}_b` about the body axis.
+* a roll reaction moment :math:`\mu \hat{\mathbf{z}}_b` about the body axis.
 
-Three unknowns, three constraints: a :math:`3\times3` linear system, solved once
-per evaluation of the right-hand side.
+That is three unknowns for three constraints, a :math:`3\times3` linear system
+solved once per evaluation of the right-hand side.
 
 The initial conditions are consistent with the constraint. The phase is entered
 from ``udot_rail1``, where the rocket has no angular velocity and its velocity is
-along the rail, so the button's perpendicular *velocity* is already zero.
-Enforcing zero perpendicular *acceleration* therefore keeps it on the rail.
+along the rail, so the button's velocity perpendicular to the rail is already
+zero. Enforcing zero perpendicular acceleration therefore keeps it on the rail.
 
 Augmented dynamics
 ------------------
@@ -132,10 +128,10 @@ both in the body frame, and solve
    \left(\mathbf{T}_{21} + \mathbf{T}_{20} \times \mathbf{r}_{CM}\right),
    \qquad
    \mathbf{a}_{\text{free}} = \frac{\mathbf{T}_{20}}{m}
-   - \mathbf{r}_{CM} \times \dot{\boldsymbol{\omega}}_{\text{free}}.
+   + \mathbf{r}_{CM} \times \dot{\boldsymbol{\omega}}_{\text{free}}.
 
-Both totals are *sums of external contributions*, which is what makes the
-constraint clean to add: the reaction wrench simply enters the sums,
+Both totals are sums of external contributions, so the reaction wrench is added
+to them directly,
 
 .. math::
 
@@ -157,7 +153,7 @@ vector,
    \left(\mathbf{d} \times \mathbf{N}_b + \mu \hat{\mathbf{z}}_b\right),
    \qquad
    \Delta\mathbf{a} = \frac{\mathbf{N}_b}{m}
-   - \mathbf{r}_{CM} \times \Delta\dot{\boldsymbol{\omega}}.
+   + \mathbf{r}_{CM} \times \Delta\dot{\boldsymbol{\omega}}.
 
 The button is body-fixed, so its acceleration in body components is
 
@@ -214,26 +210,30 @@ returned derivative:
    + \mathbf{K}\,\Delta\mathbf{a}.
 
 The position and quaternion derivatives are the ordinary kinematic ones. In
-particular :math:`\dot{\mathbf{r}} = \mathbf{v}`: the velocity is **not**
-projected onto the rail. The constraint acts at the acceleration level on the
-*button*, and the CDM legitimately acquires a small perpendicular velocity as the
-rocket pitches about that button.
+particular :math:`\dot{\mathbf{r}} = \mathbf{v}`: the velocity is not projected
+onto the rail. The constraint acts on the acceleration of the button, and the
+CDM acquires a small perpendicular velocity as the rocket pitches about that
+button.
 
 Modelling assumptions and edge cases
 ------------------------------------
 
-* **Roll axis.** The constraint suppresses roll about the *body* axis. The rocket
-  travels only the button-to-button distance during this phase, so the tip-off
-  angle is small and the body axis stays close to the rail direction; the
-  difference between body roll and rail-axis roll is of that order. This is
-  consistent with ``udot_rail1``, which freezes rotation entirely.
-* **Radial button offset.** The button is modelled on the rocket axis. The roll
-  constraint is enforced explicitly by :math:`\mu`, so what is lost is only the
-  (small) roll coupling through the button's radial standoff.
-* **Zero-length phase.** A rocket with a single rail button has
+* Roll axis: the constraint prevents roll about the body axis, not about the
+  rail. The rocket travels only the button-to-button distance during this phase,
+  so the tip-off angle is small and the body axis stays close to the rail
+  direction. The difference between body roll and rail-axis roll is of that
+  order. ``udot_rail1`` allows no rotation at all, so the two phases agree here.
+* Radial button offset: the button is modelled on the rocket axis. The roll
+  constraint is enforced by :math:`\mu`, so the only thing lost is the small
+  roll coupling through the button's radial standoff.
+* Rail friction: the rail is frictionless, as it is in ``udot_rail1``.
+* Contact with the rail: only the button touches the rail. Nothing stops the
+  rocket body or the fins from turning into it, so the model is meant for the
+  small rotations of a normal launch. A rocket that leaves the rail very slowly
+  (a thrust barely above its weight on a strongly inclined rail) can turn by
+  tens of degrees inside the window, which no real rail would allow.
+* Zero-length phase: a rocket with a single rail button has
   :math:`\ell_1 = \ell_2`, and the phase is skipped.
-* **Singular system.** Should the geometry make :math:`\mathbf{J}` singular, the
-  step falls back to the unconstrained dynamics and warns.
 
 Expected behaviour
 ------------------
@@ -241,15 +241,15 @@ Expected behaviour
 The phase reproduces the two effects tip-off is modelled for. With no wind, the
 center of mass sits ahead of the button that the rocket now pivots about, so
 gravity pitches the nose down by a fraction of a degree. With a crosswind, the
-aerodynamic moment turns the rocket into the wind before it is fully free ---
-the weathercock effect --- and the rocket therefore leaves the rail with a small
-angular rate rather than none.
+aerodynamic moment turns the rocket into the wind before it is fully free (the
+weathercock effect), so the rocket leaves the rail with a small angular rate
+instead of none.
 
 Reading the results
 -------------------
 
-The window itself is recorded on the :class:`rocketpy.Flight` object, so a
-dispersion study does not have to recover it from the raw solution:
+The window is recorded on the :class:`rocketpy.Flight` object, so a dispersion
+study does not have to recover it from the raw solution:
 
 .. list-table::
    :header-rows: 1
@@ -258,24 +258,70 @@ dispersion study does not have to recover it from the raw solution:
    * - Attribute
      - Meaning
    * - ``out_of_rail_time``
-     - Time the *upper* button leaves the rail, starting the window.
-   * - ``between_rails_time``
-     - Time the *lower* button leaves the rail, ending the window.
-   * - ``between_rails_velocity``
-     - Speed at that moment, the true rail-departure velocity.
-   * - ``between_rails_state``
+     - Time the upper button leaves the rail, starting the window.
+   * - ``tip_off_end_time``
+     - Time the lower button leaves the rail, ending the window. Equal to
+       ``out_of_rail_time`` when the phase does not run.
+   * - ``tip_off_end_velocity``
+     - Speed at that moment, when the rocket is fully off the rail.
+   * - ``tip_off_end_state``
      - Full state vector handed to the free-flight phase.
    * - ``tip_off_duration``
-     - Length of the window, zero when the phase is disabled.
+     - Length of the window, zero when the phase does not run.
+   * - ``rail_button2_normal_force``, ``rail_button2_shear_force``
+     - Force between the lower button and the rail. Inside the window this is
+       the force :math:`\mathbf{N}_b` solved above, with the opposite sign
+       (the force of the rocket on the rail), and the upper button force is
+       zero.
+
+While both buttons are on the rail, the rail button forces count the
+aerodynamic loads only. Inside the window the lower button force also carries
+the weight of the rocket, so it rises when the window starts. The maximum lower
+button forces (``max_rail_button2_normal_force`` and
+``max_rail_button2_shear_force``) include the window.
 
 ``Flight.info()`` prints these under a *Tip-Off State* heading whenever the
 phase ran, and the attitude plots shade the window so the change in attitude
-during tip-off can be read off directly.
+during tip-off can be read from them.
+
+Verification
+------------
+
+The phase is tested against an independent model of the same problem: a rigid
+body of constant mass, under thrust and gravity only, whose lower button slides
+along the rail. That model is written in two coordinates, the position
+:math:`s` of the button along the rail and the angle :math:`\varphi` of the
+rocket axis from the rail. With :math:`l` the distance from the button to the
+center of mass, :math:`I` the inertia about the center of mass, :math:`T` the
+thrust and :math:`\theta` the rail inclination,
+
+.. math::
+
+   \begin{aligned}
+   \left(I + m l^2 \cos^2\varphi\right) \ddot{\varphi} &= l \cos\varphi
+   \left(m l \dot{\varphi}^2 \sin\varphi + T \sin\varphi
+   - m g \cos\theta\right), \\
+   \ddot{s} &= \frac{T \cos\varphi}{m} - g \sin\theta
+   + l \ddot{\varphi} \sin\varphi + l \dot{\varphi}^2 \cos\varphi.
+   \end{aligned}
+
+For a rocket with no aerodynamic surfaces, no drag and almost no propellant,
+the pitch angle and the pitch rate at the end of the window agree with this
+model to about :math:`10^{-7}`, at rail inclinations of 85° and 60°. The
+leading term, :math:`\ddot{\varphi} \approx -m g l \cos\theta / (I + m l^2)`,
+is also the one in equation (2) of [Peng]_, which treats the same phase in one
+plane and adds rail friction. The force on the lower button is checked against
+the same model, in which the rail pushes the rocket with
+:math:`m g \cos\theta - T \sin\varphi + m l \left(\ddot{\varphi} \cos\varphi
+- \dot{\varphi}^2 \sin\varphi\right)`.
+
+The response to wind is not covered by such a closed model. It rests on the
+aerodynamic forces and moments of the generalized equations of motion, which
+this phase uses unchanged.
 
 References
 ----------
 
-The tip-off phase and its effect on the initial conditions of free flight are
-treated in the launcher dynamics literature: [Chou]_ studies a vehicle moving
-along an inclined guideway with dynamic interactions, and [Hosken]_ analyses
-tip-off effects in rail launchers.
+[Chou]_ studies a vehicle moving along an inclined guideway with dynamic
+interactions, [Hosken]_ analyses tip-off effects in rail launchers, and
+[Peng]_ gives a planar model of the single-button phase of a sounding rocket.

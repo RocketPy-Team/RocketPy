@@ -27,7 +27,6 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
-    TubeFins,
 )
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
 from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
@@ -493,11 +492,6 @@ class Rocket:
         return self.aerodynamic_surfaces.get_by_type(Fins)
 
     @property
-    def tube_fins(self):
-        """A list containing all tube-fin sets currently added to the rocket."""
-        return self.aerodynamic_surfaces.get_by_type(TubeFins)
-
-    @property
     def tails(self):
         """A list with all the tails currently added to the rocket"""
         return self.aerodynamic_surfaces.get_by_type(Tail)
@@ -667,10 +661,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
-            for aero_surface, position, ref_factor in self.aerodynamic_surfaces:
+            for aero_surface, position in self.aerodynamic_surfaces:
                 if isinstance(aero_surface, GenericSurface):
                     continue
-                # ref_factor corrects lift for different reference areas
+                ref_factor = self._reference_area_factor(aero_surface)
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
                 self.cp_position += (
                     ref_factor
@@ -681,6 +675,11 @@ class Rocket:
             if self.total_lift_coeff_der.get_value(0) != 0:
                 self.cp_position /= self.total_lift_coeff_der
         return self.cp_position
+
+    def _reference_area_factor(self, surface):
+        """Scales a surface's lift coefficient from its own reference area to
+        the rocket's. Computed on demand so it follows later radius changes."""
+        return (surface.rocket_radius / self.radius) ** 2
 
     def evaluate_surfaces_cp_to_cdm(self):
         """Calculates the relative position of each aerodynamic surface center
@@ -693,7 +692,7 @@ class Rocket:
             Dictionary mapping the relative position of each aerodynamic
             surface center of pressure to the rocket's center of mass.
         """
-        for surface, position, _ref_factor in self.aerodynamic_surfaces:
+        for surface, position in self.aerodynamic_surfaces:
             self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
@@ -764,6 +763,19 @@ class Rocket:
             self.evaluate_static_margin()
         return self._static_margin
 
+    @static_margin.setter
+    @deprecated(
+        reason=(
+            "Assigning `static_margin` is deprecated and will be removed in a "
+            "future version, because the static margin is computed from the "
+            "rocket's geometry"
+        )
+    )
+    def static_margin(self, value):
+        # Kept until the next geometry/mass/surface change marks it dirty.
+        self._static_margin = value
+        self._static_margin_dirty = False
+
     def evaluate_static_margin(self):
         """Calculates the static margin of the rocket as a function of time.
 
@@ -774,6 +786,11 @@ class Rocket:
             Static margin is defined as the distance between the center of
             pressure and the center of mass, divided by the rocket's diameter.
         """
+        # An assigned non-Function value (e.g. a float) cannot be updated in place.
+        if not isinstance(self._static_margin, Function):
+            self._static_margin = Function(
+                lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
+            )
         # Calculate static margin; fold _csys into the source so we do not
         # rebind a property when multiplying.
         self._static_margin.set_source(
@@ -818,7 +835,7 @@ class Rocket:
         """
         has_generic_surface = any(
             isinstance(aero_surface, GenericSurface)
-            for aero_surface, _position, _ref_factor in self.aerodynamic_surfaces
+            for aero_surface, _position in self.aerodynamic_surfaces
         )
         if has_generic_surface:
             return False
@@ -1026,8 +1043,9 @@ class Rocket:
     def evaluate_com_to_cdm_function(self):
         """Calculate the signed COM-to-CDM offset used by the flight equations.
 
-        Keep the mass-fraction formula as a callable. Sampling the quotient
-        and then linearly interpolating it would remove its curvature.
+        Preserve the public Function's sampled source when its inputs are
+        sampled. The flight equations evaluate the mass-fraction formula
+        directly when calculating the offset and its derivatives.
 
         Returns
         -------
@@ -1036,57 +1054,109 @@ class Rocket:
             sign factor.
         """
 
-        def source(t):
-            propellant_mass = self.motor.propellant_mass(t)
-            if np.isscalar(propellant_mass) and propellant_mass == 0:
-                return 0.0
-            return (
-                -self._csys
-                * (
-                    self.center_of_propellant_position(t)
-                    - self.center_of_dry_mass_position
-                )
-                * propellant_mass
-                / self.total_mass(t)
+        mass = self.motor.propellant_mass
+        if isinstance(mass.source, numbers.Number) and mass.source == 0:
+            self.com_to_cdm_function = Function(0)
+        else:
+            self.com_to_cdm_function = self._com_to_cdm_offset(
+                mass, self.center_of_propellant_position, self.total_mass
             )
-
-        self.com_to_cdm_function = Function(
-            source,
-            inputs="Time (s)",
-            outputs="Z Coordinate COM to CDM (m)",
-        )
+        self.com_to_cdm_function.set_inputs("Time (s)")
+        self.com_to_cdm_function.set_outputs("Z Coordinate COM to CDM (m)")
         self.com_to_cdm_function.set_title("Z Coordinate COM to CDM")
-
-        # A hybrid or cluster combines other motors. Include their data points
-        # so derivative samples cannot cross an underlying interpolation knot.
-        motors = [self.motor]
-        functions = [self.center_of_propellant_position]
-        boundaries = list(self.motor.burn_time)
-        visited = set()
-        for motor in motors:
-            if id(motor) in visited:
-                continue
-            visited.add(id(motor))
-            functions.extend((motor.propellant_mass, motor.center_of_propellant_mass))
-            for name in ("solid", "liquid", "motor"):
-                component = getattr(motor, name, None)
-                if component is not None:
-                    motors.append(component)
-            for positioned_tank in getattr(motor, "positioned_tanks", ()):
-                tank = positioned_tank["tank"]
-                boundaries.extend(tank.flux_time)
-                functions.extend((tank.fluid_mass, tank.center_of_mass))
-
-        for function in functions:
-            grid = getattr(function, "x_array", None)
-            if grid is not None:
-                boundaries.extend(grid)
-
-        boundaries = np.asarray(boundaries, dtype=float)
-        self._com_to_cdm_rate_boundaries = np.unique(
-            boundaries[np.isfinite(boundaries)]
-        )
+        self._set_com_to_cdm_rate_boundaries()
         return self.com_to_cdm_function
+
+    def _com_to_cdm_offset(self, mass, position, total_mass):
+        """Evaluate the signed offset for numeric or Function inputs."""
+        if np.isscalar(mass) and mass == 0:
+            return 0.0
+        return (
+            -1
+            * ((position - self.center_of_dry_mass_position) * self._csys)
+            * mass
+            / total_mass
+        )
+
+    def _set_com_to_cdm_rate_boundaries(self):
+        """Group time knots within 1 ns or 16 floating-point spacings.
+
+        Keep both ends of each group: points inside it use the branch after
+        the last knot. Do not shift a point just before an isolated knot to
+        the other side of that knot.
+        """
+        boundaries = list(self.motor.get_mass_property_time_knots())
+        position = self.center_of_propellant_position
+        if position.is_array_source():
+            boundaries.extend(position.x_array)
+        boundaries = np.asarray(boundaries, dtype=float)
+        boundaries = np.unique(boundaries[np.isfinite(boundaries)])
+        groups = []
+        for boundary in boundaries:
+            tolerance = max(1e-9, 16 * math.ulp(float(boundary)))
+            if groups and boundary - groups[-1][1] <= tolerance:
+                groups[-1][1] = boundary
+            else:
+                groups.append([boundary, boundary])
+        self._com_to_cdm_rate_boundaries = np.asarray(groups).reshape(-1, 2)
+
+    def _com_to_cdm_samples(self, t, dx):
+        """Choose distinct derivative samples inside one smooth branch."""
+        boundaries = self._com_to_cdm_rate_boundaries
+        index = np.searchsorted(boundaries[:, 0], t, side="right")
+        left = boundaries[index - 1, 1] if index else -math.inf
+        right = boundaries[index, 0] if index < len(boundaries) else math.inf
+        anchor = math.nextafter(left, right) if t <= left else t
+        h = min(max(dx, 4 * math.ulp(anchor)), (right - left) / 4)
+        if left < anchor - h and anchor + h < right:
+            return anchor, h, (anchor - h, anchor + h), 0
+        if anchor + 2 * h < right:
+            return anchor, h, (anchor + h, anchor + 2 * h), 1
+        return anchor, h, (anchor - h, anchor - 2 * h), -1
+
+    @staticmethod
+    def _com_to_cdm_input_rates(function, t, samples):
+        """Use interpolation derivatives or branch-local callable samples."""
+        anchor, h, sample_times, direction = samples
+        if function.is_array_source():
+            return (
+                function(t),
+                function.differentiate(anchor, order=1),
+                function.differentiate(anchor, order=2),
+            )
+        if isinstance(function.source, numbers.Number):
+            return function(t), 0.0, 0.0
+        derivative = function.differentiate_complex_step
+        first = derivative(anchor)
+        first_sample, second_sample = (derivative(time) for time in sample_times)
+        if direction:
+            second = (
+                direction * (-3 * first + 4 * first_sample - second_sample) / (2 * h)
+            )
+        else:
+            second = (second_sample - first_sample) / (2 * h)
+        return function(t), first, second
+
+    def _com_to_cdm_combined_rates(self, mass_rates, position_rates):
+        """Apply the quotient and product rules to the mass-fraction offset."""
+        mass, mass_rate, mass_second = mass_rates
+        position, position_rate, position_second = position_rates
+        total_mass = self.dry_mass + mass
+        distance = -self._csys * (position - self.center_of_dry_mass_position)
+        distance_rate = -self._csys * position_rate
+        distance_second = -self._csys * position_second
+        fraction = mass / total_mass
+        fraction_rate = self.dry_mass * mass_rate / total_mass**2
+        fraction_second = self.dry_mass * (
+            mass_second / total_mass**2 - 2 * mass_rate**2 / total_mass**3
+        )
+        return (
+            self._com_to_cdm_offset(mass, position, total_mass),
+            distance_rate * fraction + distance * fraction_rate,
+            distance_second * fraction
+            + 2 * distance_rate * fraction_rate
+            + distance * fraction_second,
+        )
 
     def _get_com_to_cdm_rates(self, t, dx=1e-4):
         """Calculate the CM offset and its first two time derivatives.
@@ -1097,15 +1167,19 @@ class Rocket:
 
         Callable mass and position inputs must accept complex perturbations
         and be smooth between known boundaries. Their internal discontinuities
-        cannot be discovered automatically. After changing these inputs, call
-        ``evaluate_com_to_cdm_function`` to rebuild the boundary list.
+        are reported by ``motor.get_mass_property_time_knots()``. Custom motors
+        must include callable breakpoints in that method. After changing
+        inputs, reevaluate the rocket's mass properties (for example by
+        calling ``add_motor`` again) to refresh its Functions and boundaries.
 
         Parameters
         ----------
         t : float
             Time in seconds.
         dx : float, optional
-            Maximum time spacing for derivative samples, in seconds.
+            Requested time spacing for derivative samples, in seconds.
+            Reduced to fit the interval, or raised to a few floating-point
+            spacings when needed to obtain distinct samples.
 
         Returns
         -------
@@ -1115,93 +1189,22 @@ class Rocket:
         if not math.isfinite(t) or not math.isfinite(dx) or dx <= 0:
             raise ValueError("Time must be finite and dx must be positive and finite.")
 
-        boundaries = self._com_to_cdm_rate_boundaries
-        index = np.searchsorted(boundaries, t, side="right")
-        left = boundaries[index - 1] if index else -math.inf
-        right = boundaries[index] if index < len(boundaries) else math.inf
-        h = min(dx, (right - left) / 4)
-        # Move the smallest possible step past a knot so the interpolator
-        # evaluates the segment after it, not the segment before it.
-        anchor = math.nextafter(t, right) if t == left else t
-
-        # Use centered samples when possible. Near an edge, take both samples
-        # inward instead of shrinking the spacing until roundoff dominates.
-        if left < t - h and t + h < right:
-            sample_times = (t - h, t + h)
-            direction = 0
-        elif t + 2 * h < right:
-            sample_times = (t + h, t + 2 * h)
-            direction = 1
-        else:
-            sample_times = (t - h, t - 2 * h)
-            direction = -1
-
-        def input_rates(function):
-            # Interpolated inputs already know their polynomial derivatives.
-            # Use those directly; only callable inputs need extra samples.
-            if getattr(function, "x_array", None) is not None:
-                return (
-                    function(t),
-                    function.differentiate(anchor, order=1),
-                    function.differentiate(anchor, order=2),
-                )
-            if isinstance(function.source, numbers.Number):
-                return function(t), 0.0, 0.0
-            if (
-                not left < anchor < right
-                or not all(left < sample < right for sample in sample_times)
-                or len({anchor, *sample_times}) != 3
-            ):
-                raise ValueError(
-                    "CM branch is too narrow for distinct derivative samples."
-                )
-            # Differentiate the first rate within this interval. A second
-            # difference of values across an ignition kink would create 1/dx.
-            derivative = function.differentiate_complex_step
-            first = derivative(anchor)
-            first_sample, second_sample = (
-                derivative(sample) for sample in sample_times
-            )
-            if direction:
-                second = (
-                    direction
-                    * (-3 * first + 4 * first_sample - second_sample)
-                    / (2 * h)
-                )
-            else:
-                second = (second_sample - first_sample) / (2 * h)
-            return function(t), first, second
-
-        mass, mass_rate, mass_second = input_rates(self.motor.propellant_mass)
-        total_mass = self.dry_mass + mass
-        if total_mass <= 0:
+        samples = self._com_to_cdm_samples(t, dx)
+        mass_rates = self._com_to_cdm_input_rates(
+            self.motor.propellant_mass, t, samples
+        )
+        mass, mass_rate, mass_second = mass_rates
+        if self.dry_mass + mass <= 0:
             raise ValueError("Total rocket mass must be positive.")
         # With no propellant and no mass change, its center position is
         # irrelevant and may be undefined (for example, in an empty tank).
         if mass == 0 and mass_rate == 0 and mass_second == 0:
             return 0.0, 0.0, 0.0
 
-        position, position_rate, position_second = input_rates(
-            self.center_of_propellant_position
+        position_rates = self._com_to_cdm_input_rates(
+            self.center_of_propellant_position, t, samples
         )
-        distance = -self._csys * (position - self.center_of_dry_mass_position)
-        distance_rate = -self._csys * position_rate
-        distance_second = -self._csys * position_second
-
-        # The offset is distance * mass_fraction. Apply the quotient rule to
-        # that fraction, then the product rule to the complete offset.
-        fraction = mass / total_mass
-        fraction_rate = self.dry_mass * mass_rate / total_mass**2
-        fraction_second = self.dry_mass * (
-            mass_second / total_mass**2 - 2 * mass_rate**2 / total_mass**3
-        )
-        return (
-            distance * fraction,
-            distance_rate * fraction + distance * fraction_rate,
-            distance_second * fraction
-            + 2 * distance_rate * fraction_rate
-            + distance * fraction_second,
-        )
+        return self._com_to_cdm_combined_rates(mass_rates, position_rates)
 
     def get_inertia_tensor_at_time(self, t):
         """Returns a Matrix representing the inertia tensor of the rocket with
@@ -1342,12 +1345,7 @@ class Rocket:
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
         else:
-            # ref_factor corrects lift for different reference areas
-            if getattr(surface, "rocket_radius", None) is not None:
-                ref_factor = (surface.rocket_radius / self.radius) ** 2
-            else:
-                ref_factor = 1.0
-            self.aerodynamic_surfaces.add(surface, position, ref_factor=ref_factor)
+            self.aerodynamic_surfaces.add(surface, position)
         self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
@@ -1818,67 +1816,6 @@ class Rocket:
         self.add_surfaces(fin_set, position)
         return fin_set
 
-    def add_tube_fins(
-        self,
-        n,
-        length,
-        inner_radius,
-        outer_radius,
-        position,
-        radius=None,
-        name="Tube Fins",
-    ):
-        """Create and add a symmetric set of tube fins to the rocket.
-
-        This first-order model uses the Ribner ring-airfoil normal-force slope
-        and a fixed quarter-chord center of pressure. It is intended for Mach
-        numbers up to 0.5 and angles of attack up to 20 degrees.
-
-        Parameters
-        ----------
-        n : int
-            Number of tubes. Must be at least 3.
-        length : int, float
-            Tube length along the rocket axis, in meters.
-        inner_radius : int, float
-            Inner radius of each tube, in meters.
-        outer_radius : int, float
-            Outer radius of each tube, in meters. The current model requires
-            neighboring tubes to touch, so this must equal
-            ``radius * sin(pi / n) / (1 - sin(pi / n))``.
-        position : int, float
-            Axial position of the tube leading edges in the user-defined rocket
-            coordinate system.
-        radius : int, float, optional
-            Rocket-body radius where the tubes are mounted. If ``None``, the
-            rocket radius is used.
-        name : str, optional
-            Name of the tube-fin set. Default is ``"Tube Fins"``.
-
-        Returns
-        -------
-        TubeFins
-            Tube-fin set created and added to the rocket.
-
-        Notes
-        -----
-        Only uncanted, mutually tangent tubes are supported. Component drag,
-        roll, side-force, yaw, separated tubes, and overlapping tubes are not
-        included in this model. Tube-fin drag must be represented in the
-        rocket's power-on and power-off drag curves.
-        """
-        radius = self.radius if radius is None else radius
-        tube_fins = TubeFins(
-            n=n,
-            length=length,
-            inner_radius=inner_radius,
-            outer_radius=outer_radius,
-            rocket_radius=radius,
-            name=name,
-        )
-        self.add_surfaces(tube_fins, position)
-        return tube_fins
-
     def add_parachute(
         self,
         name,
@@ -1932,8 +1869,9 @@ class Rocket:
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
             - A tuple ``("time", t_deploy)`` that triggers when flight time \
-                ``t >= t_deploy`` (seconds from flight start). For a delay \
-                charge referenced to motor burnout, use \
+                ``t >= t_deploy`` (seconds from flight start). It must be \
+                positive and after the rail exit, or ``Flight`` raises. For a \
+                delay charge referenced to motor burnout, use \
                 ``("time", motor.burn_out_time + delay)``.
 
             .. note::
@@ -2496,8 +2434,11 @@ class Rocket:
         return rocket_dict
 
     @classmethod
-    def from_dict(cls, data):
-        rocket = cls(
+    def _new_from_dict(cls, data):
+        """Build the rocket itself from a saved dictionary, before its motor,
+        surfaces and other parts are added. A subclass whose constructor takes
+        other arguments overrides this."""
+        return cls(
             radius=data["radius"],
             mass=data["mass"],
             inertia=(
@@ -2514,20 +2455,20 @@ class Rocket:
             coordinate_system_orientation=data["coordinate_system_orientation"],
         )
 
+    @classmethod
+    def from_dict(cls, data):
+        rocket = cls._new_from_dict(data)
+
         if (motor := data["motor"]) is not None:
             rocket.add_motor(
                 motor=motor,
                 position=data["motor_position"],
             )
 
-        # The trailing star reads entries of either length: files written
-        # before ref_factor was stored carry two fields and newer ones three.
-        # The factor is not read back in any case, since add_surfaces derives
-        # it from the surface's own radius.
-        for surface, position, *_ in data["aerodynamic_surfaces"]:
+        for surface, position in data["aerodynamic_surfaces"]:
             rocket.add_surfaces(surfaces=surface, positions=position)
 
-        for button, position, *_ in data["rail_buttons"]:
+        for button, position in data["rail_buttons"]:
             rocket.set_rail_buttons(
                 upper_button_position=position[2] + button.buttons_distance,
                 lower_button_position=position[2],
@@ -2538,7 +2479,7 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for sensor, position, *_ in data["sensors"]:
+        for sensor, position in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
         for air_brake in data["air_brakes"]:

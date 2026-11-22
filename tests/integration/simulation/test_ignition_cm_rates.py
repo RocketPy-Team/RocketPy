@@ -4,11 +4,9 @@ import pytest
 from rocketpy import Flight, HybridMotor
 
 
-@pytest.mark.parametrize("step", [1e-6, 2e-6, 4e-6])
-def test_ignition_rhs_uses_branch_local_cm_rates(
-    calisto_hybrid_modded, example_plain_env, monkeypatch, step
-):
-    """Use production CM rates in the real flight RHS at ignition."""
+@pytest.fixture
+def ignition_rate_case(calisto_hybrid_modded, example_plain_env):
+    """Provide a real flight and rates derived from linear mass and moment."""
     rocket = calisto_hybrid_modded
     ignition = rocket.motor.burn_start_time
     end = float(rocket.motor.solid.propellant_mass.x_array[1])
@@ -41,11 +39,22 @@ def test_ignition_rhs_uses_branch_local_cm_rates(
         verbose=False,
     )
 
+    return rocket, flight, ignition, state, (expected_rate, expected_second)
+
+
+@pytest.mark.parametrize("step", [1e-6, 2e-6, 4e-6])
+def test_ignition_rhs_uses_branch_local_cm_rates(ignition_rate_case, monkeypatch, step):
+    """Use production CM rates in the real flight RHS at ignition."""
+    rocket, flight, ignition, state, reference = ignition_rate_case
     reference_calls = []
 
     def reference_rates(t):
         reference_calls.append(t)
-        return offset(t), expected_rate, expected_second
+        return rocket._com_to_cdm_offset(
+            rocket.motor.propellant_mass(t),
+            rocket.center_of_propellant_position(t),
+            rocket.total_mass(t),
+        ), *reference
 
     # Reference: substitute independently calculated analytical rates.
     with monkeypatch.context() as patch:
@@ -79,6 +88,23 @@ def test_ignition_rhs_uses_branch_local_cm_rates(
     assert production_calls == [ignition]
     assert np.all(np.isfinite(actual))
     np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=1e-8)
+
+
+def test_tip_off_reuses_com_to_cdm_offset(ignition_rate_case, monkeypatch):
+    """Tip-off reuses each free-RHS offset, with one rates call per evaluation."""
+    rocket, flight, ignition, state, _ = ignition_rate_case
+    rocket.set_rail_buttons(upper_button_position=0.2, lower_button_position=-0.5)
+    production_rates = rocket._get_com_to_cdm_rates
+    calls = []
+
+    def checked_rates(time):
+        calls.append(time)
+        return production_rates(time)
+
+    monkeypatch.setattr(rocket, "_get_com_to_cdm_rates", checked_rates)
+    for time in (ignition, ignition + 1e-4):
+        assert np.isfinite(flight.udot_rail2(time, state)).all()
+    assert calls == [ignition, ignition + 1e-4]
 
 
 @pytest.mark.parametrize("max_time_step", [1e-3, 5e-4])

@@ -6,6 +6,7 @@ StochasticRailButtons classes.
 
 import numpy as np
 
+from rocketpy.exceptions import StochasticTypeError, StochasticValueError
 from rocketpy.rocket.aero_surface import (
     AirBrakes,
     EllipticalFins,
@@ -103,7 +104,7 @@ class StochasticNoseCone(StochasticModel):
                 isinstance(kind, list)
                 and all(isinstance(member, str) for member in kind)
             ):
-                raise AssertionError("`kind` must be a list of strings")
+                raise StochasticTypeError("`kind` must be a list of strings")
 
     def create_object(self):
         """Creates and returns a NoseCone object from the randomly generated
@@ -449,7 +450,7 @@ class StochasticFreeFormFins(StochasticModel):
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError
             If the input is not in a valid format.
         """
         if shape_points is None or isinstance(
@@ -475,7 +476,7 @@ class StochasticFreeFormFins(StochasticModel):
                 return [self._validate_outline(shape_points)]
             return [self._validate_outline(outline) for outline in shape_points]
 
-        raise AssertionError(
+        raise StochasticTypeError(
             "`shape_points` must be a tuple, list, numpy array, int, or float "
             "or a custom sampler"
         )
@@ -501,11 +502,11 @@ class StochasticFreeFormFins(StochasticModel):
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the input is not in a valid format.
         """
         if len(shape_points) not in (2, 3):
-            raise AssertionError("'shape_points': tuple must have length 2 or 3")
+            raise StochasticValueError("'shape_points': tuple must have length 2 or 3")
 
         if isinstance(shape_points[0], (int, float)):
             # (standard deviation, distribution name), the nominal outline being
@@ -513,7 +514,7 @@ class StochasticFreeFormFins(StochasticModel):
             # make the first one the nominal value, which for this argument is
             # an outline rather than a number.
             if not isinstance(shape_points[1], str):
-                raise AssertionError(
+                raise StochasticTypeError(
                     "'shape_points': when the first item of a tuple is a "
                     "standard deviation, the second must be a string naming a "
                     "valid numpy.random distribution function."
@@ -526,13 +527,13 @@ class StochasticFreeFormFins(StochasticModel):
         # accepts a string there and would read the outline as the deviation.
         outline = self._validate_outline(shape_points[0])
         if not isinstance(shape_points[1], (int, float)):
-            raise AssertionError(
+            raise StochasticTypeError(
                 "'shape_points': second item of tuple must be an int or float "
                 "standard deviation."
             )
         if len(shape_points) == 3:
             if not isinstance(shape_points[2], str):
-                raise AssertionError(
+                raise StochasticTypeError(
                     "'shape_points': Third item of tuple must be a string containing "
                     "the name of a valid numpy.random distribution function."
                 )
@@ -552,12 +553,12 @@ class StochasticFreeFormFins(StochasticModel):
 
         Raises
         ------
-        AssertionError
+        StochasticValueError
             If the distribution cannot be applied to an outline.
         """
         if distribution_name not in cls._outline_distributions:
             accepted = ", ".join(repr(name) for name in cls._outline_distributions)
-            raise AssertionError(
+            raise StochasticValueError(
                 f"'shape_points': the '{distribution_name}' distribution cannot "
                 f"be applied to an outline. Use one of {accepted}, which take "
                 "the nominal coordinate as the centre of the deviation."
@@ -590,17 +591,17 @@ class StochasticFreeFormFins(StochasticModel):
 
         Raises
         ------
-        AssertionError
+        StochasticValueError
             If the outline is not a sequence of at least three (x, y) numbers.
         """
         if not StochasticFreeFormFins._is_outline(outline):
-            raise AssertionError(
+            raise StochasticValueError(
                 "`shape_points` outlines must be sequences of (x, y) numbers, "
                 "i.e. have shape (n, 2)."
             )
         array = np.asarray(outline, dtype=float)
         if array.shape[0] < 3:
-            raise AssertionError(
+            raise StochasticValueError(
                 "`shape_points` outlines must have at least 3 points to "
                 "enclose an area."
             )

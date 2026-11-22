@@ -5,6 +5,7 @@ Stochastic classes.
 
 import numpy as np
 
+from rocketpy.exceptions import StochasticTypeError, StochasticValueError
 from rocketpy.mathutils.function import Function
 from rocketpy.stochastic.custom_sampler import CustomSampler
 
@@ -151,7 +152,7 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the input arguments do not conform to the specified formats.
         """
 
@@ -240,6 +241,9 @@ class StochasticModel:
         seed : int, optional
             Seed for the random number generator.
         """
+        # What the caller chose. A parent that derives this seed for a child, or
+        # a Monte Carlo study, clears it again: a derived seed is not a choice.
+        self._configured_seed = seed
         self.__random_number_generator = np.random.default_rng(seed)
         # A stream of its own, derived from the same seed, for picking between
         # the candidate values of a list input. Kept apart from the one above so
@@ -272,7 +276,7 @@ class StochasticModel:
                                 input_name, input_value
                             )
                         else:
-                            raise AssertionError(
+                            raise StochasticTypeError(
                                 f"'{input_name}' must be a tuple, list, int, or float"
                                 "or a custom sampler"
                             )
@@ -353,17 +357,17 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the input is not in a valid format.
         """
         if len(input_value) not in [
             2,
             3,
         ]:
-            raise AssertionError(f"'{input_name}': tuple must have length 2 or 3")
+            raise StochasticValueError(f"'{input_name}': tuple must have length 2 or 3")
         if not isinstance(input_value[0], (int, float)):
             if input_name not in self.array_valued_inputs:
-                raise AssertionError(
+                raise StochasticTypeError(
                     f"'{input_name}': First item of tuple must be an int or float"
                 )
             # An array-valued input carries its whole nominal value here, so the
@@ -399,11 +403,11 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError
             If the input is not in a valid format.
         """
         if not isinstance(input_value[1], (int, float, str)):
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"'{input_name}': second item of tuple must be an int, float, or string."
             )
 
@@ -450,16 +454,16 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError
             If the input is not in a valid format.
         """
         if not isinstance(input_value[1], (int, float)):
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"'{input_name}': Second item of a tuple with length 3 must be an "
                 "int or float."
             )
         if not isinstance(input_value[2], str):
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"'{input_name}': Third item of tuple must be a string containing the "
                 "name of a valid numpy.random distribution function."
             )
@@ -483,11 +487,6 @@ class StochasticModel:
         -------
         list
             Validated list.
-
-        Raises
-        ------
-        AssertionError
-            If the input is not in a valid format.
         """
         if not input_value:
             return [self._nominal(input_name, getattr)]
@@ -539,7 +538,7 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError
             If the input is not in a valid format.
         """
         attribute_name = input_name.replace("_factor", "")
@@ -552,7 +551,7 @@ class StochasticModel:
         elif isinstance(input_value, CustomSampler):
             return self._validate_custom_sampler(input_name, input_value)
         else:
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"`{input_name}`: must be either a tuple or listor a custom sampler"
             )
 
@@ -574,18 +573,18 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the input is not in a valid format.
         """
         if len(factor_tuple) not in [
             2,
             3,
         ]:
-            raise AssertionError(
+            raise StochasticValueError(
                 f"'{input_name}`: Factors tuple must have length 2 or 3"
             )
         if not all(isinstance(item, (int, float)) for item in factor_tuple[:2]):
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"'{input_name}`: First and second items of Factors tuple must be "
                 "either an int or float"
             )
@@ -598,7 +597,7 @@ class StochasticModel:
             )
         elif len(factor_tuple) == 3:
             if not isinstance(factor_tuple[2], str):
-                raise AssertionError(
+                raise StochasticTypeError(
                     f"'{input_name}`: Third item of tuple must be a string containing "
                     "the name of a valid numpy.random distribution function"
                 )
@@ -625,11 +624,11 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError
             If the input is not in a valid format.
         """
         if not all(isinstance(item, (int, float)) for item in factor_list):
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"'{input_name}`: Items in list must be either ints or floats"
             )
         return factor_list
@@ -647,7 +646,7 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the input is not in a valid format.
         """
         if input_value is not None:
@@ -657,14 +656,14 @@ class StochasticModel:
             )
 
             if not isinstance(input_value, list):
-                raise AssertionError(error_msg)
+                raise StochasticTypeError(error_msg)
 
             for member in input_value:
                 if isinstance(member, list):
                     if len(np.shape(member)) != 2 or np.shape(member)[1] != 2:
-                        raise AssertionError(error_msg)
+                        raise StochasticValueError(error_msg)
                 elif not isinstance(member, (str, Function)):
-                    raise AssertionError(error_msg)
+                    raise StochasticTypeError(error_msg)
 
     def _validate_positive_int_list(self, input_name, input_value):
         """
@@ -679,19 +678,20 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
-            If the input is not in a valid format.
+        StochasticTypeError
+            If the input is not a list of integers.
+        StochasticValueError
+            If any member is negative.
         """
         if input_value is not None:
+            error_msg = f"`{input_name}` must be a list of positive integers"
             if not (
                 isinstance(input_value, list)
-                and all(
-                    isinstance(member, int) and member >= 0 for member in input_value
-                )
+                and all(isinstance(member, int) for member in input_value)
             ):
-                raise AssertionError(
-                    f"`{input_name}` must be a list of positive integers"
-                )
+                raise StochasticTypeError(error_msg)
+            if not all(member >= 0 for member in input_value):
+                raise StochasticValueError(error_msg)
 
     def _reset_custom_samplers(self, seed):
         """Seed each sampler, and each shared generator once.
@@ -713,11 +713,15 @@ class StochasticModel:
             # The group holds the shared state, so reset it directly; a member
             # may reset differently, or keep state of its own.
             resetter = group if hasattr(group, "reset_seed") else sampler
+            sampler_seed = _sampler_seed(seed, names)
             try:
-                resetter.reset_seed(_sampler_seed(seed, names))
+                try:
+                    resetter.reset_seed(sampler_seed)
+                except ValueError:
+                    # RandomState refuses more than 32 bits; Generator takes
+                    # all 128, so two studies' streams do not collide.
+                    resetter.reset_seed(sampler_seed & 0xFFFFFFFF)
             except Exception as error:
-                # Broad: the seed is 128 bits, which legacy RandomState refuses
-                # with a ValueError that does not name the sampler.
                 raise RuntimeError(
                     f"An error occurred in the 'reset_seed' method of the "
                     f"CustomSampler for {', '.join(names)}"
@@ -738,13 +742,12 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError
             If the input is not in a valid format.
         """
-        # Raised, not asserted: `python -O` strips asserts. AssertionError is
-        # kept so callers that catch it still do. Same as #1103.
+        # Raised, not asserted: `python -O` strips asserts.
         if not isinstance(sampler, CustomSampler):
-            raise AssertionError(
+            raise StochasticTypeError(
                 f"`{input_name}` must be a CustomSampler, not {type(sampler).__name__}"
             )
         return sampler
@@ -760,7 +763,7 @@ class StochasticModel:
 
         Raises
         ------
-        AssertionError
+        StochasticTypeError, StochasticValueError
             If the input is not in a valid format.
         """
         # TODO: The _validate_airfoil should be defined in a child class.
@@ -769,19 +772,21 @@ class StochasticModel:
                 isinstance(airfoil, list)
                 and all(isinstance(member, tuple) for member in airfoil)
             ):
-                raise AssertionError("`airfoil` must be a list of tuples")
+                raise StochasticTypeError("`airfoil` must be a list of tuples")
             for member in airfoil:
                 if not len(member) == 2:
-                    raise AssertionError("`airfoil` tuples must have length 2")
+                    raise StochasticValueError("`airfoil` tuples must have length 2")
                 if not isinstance(member[1], str):
-                    raise AssertionError(
+                    raise StochasticTypeError(
                         "`airfoil` tuples must have a string as the second item"
                     )
                 if isinstance(member[0], list):
                     if len(np.shape(member[0])) != 2 and np.shape(member[0])[1] != 2:
-                        raise AssertionError("`airfoil` tuples must have shape (n,2)")
+                        raise StochasticValueError(
+                            "`airfoil` tuples must have shape (n,2)"
+                        )
                 elif not isinstance(member[0], str) and not callable(member[0]):
-                    raise AssertionError(
+                    raise StochasticTypeError(
                         "`airfoil` tuples must have a string or Function as "
                         "the first item"
                     )
