@@ -3746,7 +3746,8 @@ class Flight:
         float or np.ndarray
             ``∫_0^z g(h) dh`` in J/kg, using ``Environment.gravity``.
             Non-sampled gravity is discretized once over the altitude
-            range without mutating ``Environment.gravity``. The
+            range without mutating ``Environment.gravity``, so its
+            potential carries that sampling error. The
             antiderivative of the interpolant is evaluated so that the
             potential stays consistent with the dynamics, including
             constant extrapolation of ``g`` outside its sampled domain.

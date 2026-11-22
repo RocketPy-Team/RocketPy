@@ -645,7 +645,7 @@ def test_potential_energy_matches_constant_gravity_mg_dz():
 
 def test_total_energy_conserved_drag_free_default_gravity():
     """On a drag-free coast with default Somigliana gravity, total energy
-    must not drift with the ~0.18% / ~700 J mismatch of the old inverse-
+    must not drift with the ~0.18% / ~367 J mismatch of the old inverse-
     square ``mu`` formula (issue #1216).
 
     The remaining residual is integrator truncation. The relative
@@ -715,6 +715,33 @@ def test_potential_energy_with_callable_gravity_assigned_on_environment():
     assert delta_potential > 0
     assert delta_potential == pytest.approx(expected_delta, rel=1e-4)
     assert not flight.env.gravity.is_array_source()
+
+
+def test_potential_energy_extrapolates_gravity_above_sampled_domain():
+    """A short gravity table must keep using constant extrapolation of
+    ``g`` above its last sample, matching the potential implied by
+    ``F_z = -m g(z)``.
+    """
+    flight = _drag_free_ballistic_flight(gravity=9.81)
+    flight.env.gravity = Function(
+        [(0, 9.81), (1000, 9.80)],
+        interpolation="linear",
+        extrapolation="constant",
+    )
+    mass = flight.rocket.total_mass(flight.apogee_time)
+    z_initial = flight.z(flight.t_initial)
+    z_apogee = flight.z(flight.apogee_time)
+    expected_delta = mass * (
+        9.81 * (1000 - z_initial)
+        - (1000**2 - z_initial**2) / 2e5
+        + 9.80 * (z_apogee - 1000)
+    )
+    delta_potential = flight.potential_energy(
+        flight.apogee_time
+    ) - flight.potential_energy(flight.t_initial)
+
+    assert z_apogee > 1000
+    assert delta_potential == pytest.approx(expected_delta, rel=1e-6)
 
 
 def test_gravitational_potential_per_mass_nan_altitude():
