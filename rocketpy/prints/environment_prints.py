@@ -117,17 +117,18 @@ class _EnvironmentPrints:
             init_date = self.environment.atmospheric_model_init_date
             end_date = self.environment.atmospheric_model_end_date
             interval = self.environment.atmospheric_model_interval
-            # An ensemble created from profiles has no time period
+            # An ensemble created from profiles has no time period and no
+            # model grid, so neither is printed
             if init_date is not None:
                 print(f"{model_type} Time Period: from {init_date} to {end_date} utc")
                 print(f"{model_type} Hour Interval: {interval} hrs")
-            # Determine latitude and longitude range
-            init_lat = self.environment.atmospheric_model_init_lat
-            end_lat = self.environment.atmospheric_model_end_lat
-            init_lon = self.environment.atmospheric_model_init_lon
-            end_lon = self.environment.atmospheric_model_end_lon
-            print(f"{model_type} Latitude Range: From {init_lat}° to {end_lat}°")
-            print(f"{model_type} Longitude Range: From {init_lon}° to {end_lon}°")
+                # Determine latitude and longitude range
+                init_lat = self.environment.atmospheric_model_init_lat
+                end_lat = self.environment.atmospheric_model_end_lat
+                init_lon = self.environment.atmospheric_model_init_lon
+                end_lon = self.environment.atmospheric_model_end_lon
+                print(f"{model_type} Latitude Range: From {init_lat}° to {end_lat}°")
+                print(f"{model_type} Longitude Range: From {init_lon}° to {end_lon}°")
         if normalized_type in ["ensemble", "open_meteo_ensemble"]:
             print(
                 f"Number of Ensemble Members: {self.environment.num_ensemble_members}"

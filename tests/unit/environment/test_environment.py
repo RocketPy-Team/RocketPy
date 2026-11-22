@@ -248,37 +248,54 @@ def test_ensemble_file_is_closed_when_the_launch_date_is_missing(tmp_path, monke
 
 
 def test_ensemble_from_profiles_stays_when_the_date_or_place_change():
+    """The ensemble and the selected member are kept when the launch date or
+    place is changed."""
+    # Arrange
     env = Environment(latitude=32.99, longitude=-106.97)
     env.create_ensemble(_user_defined_ensemble_profiles())
     env.select_ensemble_member(1)
 
+    # Act
     env.set_date((2030, 3, 4, 5))
     env.set_location(-21.96, -47.48)
 
+    # Assert
     assert env.num_ensemble_members == 2
     assert env.ensemble_member == 1
     assert env.wind_velocity_x(1100) == pytest.approx(5)
 
 
 def test_ensemble_from_profiles_stays_after_saving_and_loading():
+    """An ensemble created from profiles is kept when the Environment is saved
+    and loaded, and still needs no date."""
+    # Arrange
     env = Environment(latitude=32.99, longitude=-106.97)
     env.create_ensemble(_user_defined_ensemble_profiles())
 
+    # Act
     loaded = Environment.from_dict(env.to_dict())
     loaded.set_date((2030, 3, 4, 5))
 
+    # Assert
     assert loaded.num_ensemble_members == 2
     assert loaded.wind_velocity_x(1000) == pytest.approx(2)
 
 
 def test_ensemble_from_profiles_is_printed_without_a_time_period(capsys):
+    """The prints of an ensemble created from profiles leave out the time
+    period and the model grid, which it does not have."""
+    # Arrange
     env = Environment(latitude=32.99, longitude=-106.97)
     env.create_ensemble(_user_defined_ensemble_profiles())
 
+    # Act
     env.prints.all()
 
+    # Assert
     printed = capsys.readouterr().out
     assert "Time Period" not in printed
+    assert "Latitude Range" not in printed
+    assert "Longitude Range" not in printed
     assert "Number of Ensemble Members: 2" in printed
 
 
