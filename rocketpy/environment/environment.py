@@ -177,22 +177,25 @@ class Environment:
     Environment.atmospheric_model_file : string
         Address of the file used for the atmospheric model being used. Only
         defined for ``wyoming_sounding``, ``windy``, ``forecast``,
-        ``reanalysis``, ``ensemble``
+        ``reanalysis``, ``ensemble``. An empty string for an ensemble created
+        from profiles with :meth:`Environment.create_ensemble` and kept only
+        in memory.
     Environment.atmospheric_model_dict : dictionary
         Dictionary used to properly interpret ``netCDF`` and ``OPeNDAP`` files.
         Only defined for ``forecast``, ``reanalysis``, ``ensemble``.
     Environment.atmospheric_model_init_date : datetime
         Datetime object instance of first available date in ``netCDF``
         and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
-        ``Ensemble``.
+        ``Ensemble``. ``None`` for an ensemble created from profiles, which
+        has no date.
     Environment.atmospheric_model_end_date : datetime
         Datetime object instance of last available date in ``netCDF`` and
         ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
-        ``Ensemble``.
+        ``Ensemble``. ``None`` for an ensemble created from profiles.
     Environment.atmospheric_model_interval : int
         Hour step between weather condition used in ``netCDF`` and
         ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
-        ``Ensemble``.
+        ``Ensemble``. ``0`` for an ensemble created from profiles.
     Environment.atmospheric_model_init_lat : float
         Latitude of vertex just before the launch site in ``netCDF``
         and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
@@ -3454,8 +3457,10 @@ class Environment:
             Pa for pressure, K for temperature and m/s for either wind
             component. Array-backed :class:`rocketpy.Function` objects are also
             accepted. Pressure must decrease strictly with increasing height.
-            Below the lowest height of a profile its lowest value is used, so
-            start the profiles at or below the ground level of the launch site.
+            Every profile is cut to the pressure range shared by all of them,
+            and below that range the value at its bottom is used. Start all
+            profiles at the same pressure, at or below the ground level of the
+            launch site, so the values near the ground are the ones you gave.
         file_name : str or os.PathLike, optional
             Path of a NetCDF file to save the ensemble in. The ``.nc`` suffix
             is appended when omitted. Default is ``None``, which keeps the

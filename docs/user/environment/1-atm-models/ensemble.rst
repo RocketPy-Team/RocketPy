@@ -39,8 +39,9 @@ the ensemble stays the same if the launch date is changed later.
 
 .. note::
 
-    Below the lowest height of a profile, its lowest value is used. Start the
-    profiles at or below the ground level of the launch site, so the values
+    Every profile is cut to the pressure range shared by all of them, and below
+    that range the value at its bottom is used. Start all profiles at the same
+    pressure, at or below the ground level of the launch site, so the values
     near the ground are the ones you gave.
 
 .. code-block:: python
