@@ -152,19 +152,15 @@ def test_create_ensemble_writes_no_file_by_default(tmp_path, monkeypatch):
     """The ensemble is kept in memory, so running the same call again works
     and the working folder is left as it was."""
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "rocketpy_ensemble_in_memory.nc").write_text("not an ensemble")
+    (tmp_path / "user_file.nc").write_text("not an ensemble")
     env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
 
     first = env.create_ensemble(_user_defined_ensemble_profiles())
     second = env.create_ensemble(_user_defined_ensemble_profiles())
 
     assert first is None and second is None
-    assert [file.name for file in tmp_path.iterdir()] == [
-        "rocketpy_ensemble_in_memory.nc"
-    ]
-    assert (tmp_path / "rocketpy_ensemble_in_memory.nc").read_text() == (
-        "not an ensemble"
-    )
+    assert [file.name for file in tmp_path.iterdir()] == ["user_file.nc"]
+    assert (tmp_path / "user_file.nc").read_text() == "not an ensemble"
     assert env.atmospheric_model_type == "Ensemble"
     assert env.atmospheric_model_file == ""
     assert env.num_ensemble_members == 2

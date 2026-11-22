@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import uuid
 import warnings
 from collections.abc import Mapping
 from collections import namedtuple
@@ -3498,9 +3499,10 @@ class Environment:
         ensemble = (pressure_levels, geopotential_heights, member_values)
 
         if file_name is None:
-            # A dataset that only exists in memory: nothing is written to disk
+            # A dataset that only exists in memory: nothing is written to disk.
+            # The name is unique so two such datasets never share one.
             dataset = netCDF4.Dataset(
-                "rocketpy_ensemble_in_memory.nc",
+                f"rocketpy_ensemble_{uuid.uuid4().hex}.nc",
                 "w",
                 format="NETCDF4",
                 diskless=True,
