@@ -3594,7 +3594,6 @@ class Environment:
             or if required geopotential/geopotential-height, temperature,
             wind-u, or wind-v variables cannot be read from the dataset.
         """
-        # Check if date, lat and lon are known
         # Read weather file
         if isinstance(file, str):
             data = netCDF4.Dataset(file)
@@ -3606,7 +3605,12 @@ class Environment:
         from_profiles = getattr(data, "source", None) == _USER_DEFINED_ENSEMBLE_SOURCE
         self._ensemble_from_profiles = from_profiles
         if not from_profiles:
-            self.__validate_datetime()
+            try:
+                self.__validate_datetime()
+            except ValueError:
+                if isinstance(file, str):
+                    data.close()
+                raise
 
         dictionary = self.__resolve_dictionary_for_dataset(dictionary, data)
 

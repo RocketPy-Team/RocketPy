@@ -217,6 +217,36 @@ def test_ensemble_file_from_elsewhere_still_checks_the_launch_date(tmp_path):
         )
 
 
+def test_ensemble_file_is_closed_when_the_launch_date_is_missing(tmp_path, monkeypatch):
+    """A file that needs a launch date is closed again when none is set."""
+    # Arrange
+    source_env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    file_path = source_env.create_ensemble(
+        _user_defined_ensemble_profiles(), file_name=tmp_path / "forecast.nc"
+    )
+    with netCDF4.Dataset(file_path, "a") as dataset:
+        dataset.source = "A weather service"
+    opened = []
+    real_dataset = netCDF4.Dataset
+
+    def open_and_keep(*args, **kwargs):
+        dataset = real_dataset(*args, **kwargs)
+        opened.append(dataset)
+        return dataset
+
+    monkeypatch.setattr(netCDF4, "Dataset", open_and_keep)
+    no_date = Environment(latitude=32.99, longitude=-106.97)
+
+    # Act
+    with pytest.raises(ValueError, match="specify the launch date"):
+        no_date.set_atmospheric_model(
+            type="Ensemble", file=str(file_path), dictionary="GEFS"
+        )
+
+    # Assert
+    assert opened and not any(dataset.isopen() for dataset in opened)
+
+
 def test_ensemble_from_profiles_stays_when_the_date_or_place_change():
     env = Environment(latitude=32.99, longitude=-106.97)
     env.create_ensemble(_user_defined_ensemble_profiles())
