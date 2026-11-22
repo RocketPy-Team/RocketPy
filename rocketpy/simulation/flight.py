@@ -3714,20 +3714,65 @@ class Flight:
     # Potential Energy
     @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
     def potential_energy(self):
-        """Gravitational potential energy as a Function of time, given by
-        ``mu * m * (1 / R - 1 / (R + z))``. It is zero at sea level and
-        positive above it, increasing with altitude."""
-        # Constants
-        # TODO: this constant should come from Environment.
-        standard_gravitational_parameter = 3.986004418e14
-        # Redefine total_mass time grid to allow for efficient Function algebra
+        """Gravitational potential energy as a Function of time.
+
+        Computed as ``m * ∫_0^z g(h) dh``, where ``g`` is
+        ``Environment.gravity``, the same model used to integrate the
+        trajectory. The potential is zero at sea level and positive above
+        it, increasing with altitude.
+        """
         total_mass = deepcopy(self.rocket.total_mass)
         total_mass.set_discrete_based_on_model(self.z)
-        return (
-            standard_gravitational_parameter
-            * total_mass
-            * (1 / self.env.earth_radius - 1 / (self.z + self.env.earth_radius))
+        potential_per_mass = self._gravitational_potential_per_mass(self.z.y_array)
+        gravitational_potential = Function(
+            np.column_stack((self.z.x_array, potential_per_mass)),
+            "Time (s)",
+            "Gravitational Potential (J/kg)",
+            interpolation=self.z.__interpolation__,
+            extrapolation="constant",
         )
+        return total_mass * gravitational_potential
+
+    def _gravitational_potential_per_mass(self, altitude):
+        """Potential per unit mass relative to sea level.
+
+        Parameters
+        ----------
+        altitude : float or array_like
+            Geometric height above sea level in meters.
+
+        Returns
+        -------
+        float or np.ndarray
+            ``∫_0^z g(h) dh`` in J/kg, using ``Environment.gravity``.
+            Non-sampled gravity is discretized once over the altitude
+            range without mutating ``Environment.gravity``, so its
+            potential carries that sampling error. The
+            antiderivative of the interpolant is evaluated so that the
+            potential stays consistent with the dynamics, including
+            constant extrapolation of ``g`` outside its sampled domain.
+            NaN altitudes yield NaN potential.
+        """
+        gravity = self.env.gravity
+        altitudes = np.asarray(altitude, dtype=float)
+        if not (gravity.is_array_source() and gravity.__dom_dim__ == 1):
+            finite_altitudes = np.atleast_1d(altitudes)
+            finite_altitudes = finite_altitudes[np.isfinite(finite_altitudes)]
+            if finite_altitudes.size:
+                lower = min(0.0, float(np.min(finite_altitudes)))
+                upper = max(0.0, float(np.max(finite_altitudes)))
+            else:
+                lower, upper = 0.0, 1.0
+            if lower == upper:
+                upper = lower + 1.0
+            gravity = gravity.set_discrete(lower, upper, mutate_self=False)
+        potential_per_mass = gravity._evaluator.definite_integral(0.0, altitudes)
+        potential_per_mass = np.where(
+            np.isfinite(altitudes), potential_per_mass, np.nan
+        )
+        if np.ndim(altitude) == 0:
+            return float(np.reshape(potential_per_mass, -1)[0])
+        return potential_per_mass
 
     # Total Mechanical Energy
     @funcify_method("Time (s)", "Mechanical Energy (J)", "spline", "constant")
