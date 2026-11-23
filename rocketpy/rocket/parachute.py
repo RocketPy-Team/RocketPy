@@ -1,4 +1,5 @@
 from inspect import Parameter, signature
+from numbers import Real
 
 import numpy as np
 
@@ -6,6 +7,28 @@ from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..mathutils.function import Function
 from ..prints.parachute_prints import _ParachutePrints
+
+
+def _is_a_height_trigger(trigger):
+    """Whether ``trigger`` is a number this class will read as a height.
+
+    ``numbers.Real`` rather than ``(int, float)`` so that NumPy scalars are
+    accepted: ``numpy.float64`` happens to subclass ``float``, but
+    ``numpy.int64`` and ``numpy.float32`` subclass neither and were refused
+    even though every arithmetic use of them here works.
+
+    What that spelling leaves out is what should be left out. ``numpy.bool_``
+    and the complex types are not ``Real``, so they still fall through to the
+    error. ``bool`` is excluded by hand because it *is* an ``int``, and ``True``
+    would otherwise be taken as a height of one metre.
+
+    This is the single definition of the numeric boundary. The height form and
+    the delay of a ``("time", t_deploy)`` trigger both use it, and
+    ``StochasticParachute`` validates the same triggers before a ``Parachute``
+    is ever built and calls this rather than restating it, because the two
+    spellings drifted apart once already.
+    """
+    return isinstance(trigger, Real) and not isinstance(trigger, bool)
 
 
 class Parachute:
@@ -20,7 +43,7 @@ class Parachute:
     Parachute.cd_s : float
         Drag coefficient times reference area for parachute. It has units of
         area and must be given in squared meters.
-    Parachute.trigger : callable, float, str
+    Parachute.trigger : callable, float, str, tuple
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
@@ -55,6 +78,13 @@ class Parachute:
 
         - The string "apogee" which triggers the parachute at apogee, i.e.,
           when the rocket reaches its highest point and starts descending.
+
+        - A tuple ``("time", t_deploy)`` where ``t_deploy`` is the flight time
+          in seconds at or after which the parachute triggers (from ``t = 0``
+          at flight start). It must be positive and fall after the rocket leaves
+          the rail, or ``Flight`` raises. Useful for fixed delay charges that
+          start at ignition/launch. For a motor delay charge that starts at
+          burnout, pass ``("time", motor.burn_out_time + delay)``.
 
 
     Parachute.triggerfunc : function
@@ -148,7 +178,7 @@ class Parachute:
             organized matter.
         cd_s : float
             Drag coefficient times reference area of the parachute.
-        trigger : callable, float, str
+        trigger : callable, float, str, tuple
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -171,6 +201,11 @@ class Parachute:
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
+            - A tuple ``("time", t_deploy)`` that triggers when flight time \
+                ``t >= t_deploy`` (seconds from flight start). It must be \
+                positive and after the rail exit, or ``Flight`` raises. For a \
+                delay charge referenced to motor burnout, use \
+                ``("time", motor.burn_out_time + delay)``.
 
             .. note::
 
@@ -188,7 +223,9 @@ class Parachute:
             List in the format (mean, standard deviation, time-correlation).
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is ``(0, 0, 0)``.
-            Units are in Pa.
+            Units are in Pa. The noise is reproducible only through the seed a
+            ``MonteCarlo`` run records, or with ``from_dict`` on a dict that
+            carries one; ``numpy.random.seed`` does not affect it.
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
             hemispheroid parachute. If not provided, it is estimated from
@@ -229,6 +266,11 @@ class Parachute:
         self.drag_coefficient = drag_coefficient
         self.porosity = porosity
 
+        # Per-instance RNG: pressure noise must not draw from the process-global
+        # NumPy RNG, or Monte Carlo cannot reproduce deployment (see #1091).
+        self._seed = None
+        self._rng = np.random.default_rng()
+
         # Initialize derived attributes
         self.radius = self.__resolve_radius(radius, cd_s, drag_coefficient)
         self.height = self.__resolve_height(height, self.radius)
@@ -267,11 +309,11 @@ class Parachute:
         noise : tuple, list
             List in the format (mean, standard deviation, time-correlation).
         """
-        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
         self.noise_bias = noise[0]
         self.noise_deviation = noise[1]
+        self.__draw_initial_noise()
         self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
@@ -282,8 +324,21 @@ class Parachute:
         else:
             self.noise_function = lambda: (
                 alpha * self.noise_signal[-1][1]
-                + beta * np.random.normal(noise[0], noise[1])
+                + beta * self._rng.normal(noise[0], noise[1])
             )
+
+    def __draw_initial_noise(self):
+        """Starts the noise signal with one sample from the current RNG."""
+        self.noise_signal = [
+            [-1e-6, self._rng.normal(self.noise_bias, self.noise_deviation)]
+        ]
+
+    def _set_noise_seed(self, seed):
+        """Reseeds the noise and redraws the unseeded first sample, before any
+        Flight. Used by ``StochasticParachute`` and ``from_dict``."""
+        self._seed = seed
+        self._rng = np.random.default_rng(seed)
+        self.__draw_initial_noise()
 
     def __evaluate_trigger_function(self, trigger):  # pylint: disable=too-many-statements
         """This is used to set the triggerfunc attribute that will be used to
@@ -297,6 +352,10 @@ class Parachute:
         # pylint: disable=function-redefined
         self._trigger_falling_only = False
         self._trigger_needs_height = True
+        # Flight overwrites this with the current flight time before every
+        # trigger evaluation. Declared here so a ("time", t_deploy) trigger has
+        # something defined to read when it is called outside a Flight.
+        self._eval_time = None
 
         # Helper to wrap any callable to the internal (p, h, y, sensors, u_dot) API
         def _make_wrapper(fn):
@@ -351,7 +410,7 @@ class Parachute:
             return
 
         # Numeric altitude trigger
-        if isinstance(trigger, (int, float)):
+        if _is_a_height_trigger(trigger):
             self._trigger_falling_only = True
 
             def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
@@ -376,11 +435,53 @@ class Parachute:
             self.triggerfunc = triggerfunc
             return
 
+        # Fixed-time trigger: ("time", t_deploy) [seconds from flight start]
+        if (
+            isinstance(trigger, (tuple, list))
+            and len(trigger) == 2
+            and isinstance(trigger[0], str)
+            and trigger[0].lower() == "time"
+        ):
+            # Same numeric boundary as a height, so the two forms cannot
+            # disagree about what counts as a number. Notably this refuses a
+            # string delay rather than quietly coercing it: float("3.0") would
+            # otherwise make ("time", "3.0") work by accident.
+            if not _is_a_height_trigger(trigger[1]):
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be a positive number of seconds, "
+                    + f"got {trigger[1]!r}."
+                )
+            t_deploy = float(trigger[1])
+            if t_deploy <= 0:
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be positive, "
+                    + f"got {t_deploy}."
+                )
+
+            # Delay charges fire on ascent; height is unused.
+            self._trigger_falling_only = False
+            self._trigger_needs_height = False
+
+            def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
+                # Flight sets ``self._eval_time`` immediately before each call.
+                # It is None only when the trigger is called outside a Flight,
+                # which cannot deploy anything, so refuse rather than guess.
+                t = self._eval_time
+                if t is None:
+                    return False
+                return t >= t_deploy
+
+            triggerfunc._expects_udot = False
+            self.triggerfunc = triggerfunc
+            return
+
         # If we reach this point, the trigger is invalid
         raise ValueError(
             f"Unable to set the trigger function for parachute '{self.name}'. "
-            + "Trigger must be a callable, a float value or one of the strings "
-            + "('apogee'). "
+            + "Trigger must be a callable, a float value, the string 'apogee', "
+            + "or a tuple ('time', t_deploy). "
             + "See the Parachute class documentation for more information."
         )
 
@@ -431,6 +532,7 @@ class Parachute:
             "drag_coefficient": self.drag_coefficient,
             "height": self.height,
             "porosity": self.porosity,
+            "seed": self._seed,
         }
 
         if kwargs.get("include_outputs", False):
@@ -466,5 +568,8 @@ class Parachute:
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
         )
+        # Dicts written before the seed was recorded have none.
+        if data.get("seed") is not None:
+            parachute._set_noise_seed(data["seed"])
 
         return parachute

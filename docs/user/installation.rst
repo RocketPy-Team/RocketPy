@@ -103,6 +103,7 @@ The following packages are needed in order to run RocketPy:
 - requests
 - pytz
 - simplekml
+- platformdirs
 
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
@@ -121,6 +122,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install requests
     pip install pytz
     pip install simplekml
+    pip install platformdirs
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -169,6 +171,22 @@ Once installed, you can render animations from a :class:`rocketpy.Flight` object
 
     # Animate attitude changes only (rocket stays centred)
     flight.plots.animate_rotate(start=0, stop=flight.t_final, time_step=0.05)
+
+See :ref:`flightusage` for full details and parameter descriptions.
+
+**Interactive Maps** — render the flight ground track on a real-world
+interactive map using `Folium <https://python-visualization.github.io/folium/>`_:
+
+.. code-block:: shell
+
+    pip install rocketpy[maps]
+
+Once installed, you can build a map from a :class:`rocketpy.Flight` object:
+
+.. code-block:: python
+
+    # Open the result in a browser, or display it inline in Jupyter
+    flight.plots.trajectory_on_map(filename="trajectory.html")
 
 See :ref:`flightusage` for full details and parameter descriptions.
 

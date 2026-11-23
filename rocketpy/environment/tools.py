@@ -5,15 +5,28 @@ the library (introduced in version 1.5.0), some functions may be modified in the
 future to improve their performance and usability.
 """
 
+import contextlib
+import hashlib
+import json
 import logging
 import math
+import os
+import tempfile
+import time
 import warnings
 from datetime import datetime
+from pathlib import Path
 
 import netCDF4
 import numpy as np
+from platformdirs import user_cache_dir
 
+from rocketpy.mathutils.function import Function
 from rocketpy.tools import bilinear_interpolation
+
+# Forecasts saved on disk this many days ago are deleted when another one is
+# saved. Reanalysis data never changes, so it is kept.
+FORECAST_DAYS_KEPT = 7
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +141,63 @@ def calculate_wind_speed(u, v, w=0.0):
     np.float64(5.0)
     """
     return np.sqrt(u**2 + v**2 + w**2)
+
+
+def convert_wind_speed_direction_to_components(wind_speed, wind_direction):
+    """Converts meteorological wind speed and direction to u and v components.
+
+    Meteorological wind direction is the direction the wind blows *from*,
+    measured clockwise from true north, which is the convention used by most
+    weather APIs. The returned components follow the RocketPy convention: u
+    points East and v points North, both describing where the wind blows *to*.
+
+    Parameters
+    ----------
+    wind_speed : float, numpy.ndarray
+        The wind speed in m/s.
+    wind_direction : float, numpy.ndarray
+        The direction the wind is coming from, in degrees clockwise from true
+        north (0 to 360).
+
+    Returns
+    -------
+    tuple of (float, float) or (numpy.ndarray, numpy.ndarray)
+        The u (East) and v (North) components of the wind, in m/s.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from rocketpy.environment.tools import (
+    ...     convert_wind_speed_direction_to_components,
+    ... )
+
+    A wind coming from the north blows towards the south, so v is negative:
+
+    >>> u, v = convert_wind_speed_direction_to_components(10, 0)
+    >>> float(np.round(u, 6) + 0.0), float(np.round(v, 6))
+    (0.0, -10.0)
+
+    A wind coming from the west blows towards the east, so u is positive:
+
+    >>> u, v = convert_wind_speed_direction_to_components(10, 270)
+    >>> float(np.round(u, 6)), float(np.round(v, 6) + 0.0)
+    (10.0, 0.0)
+
+    The conversion round-trips with :func:`calculate_wind_heading` and
+    :func:`convert_wind_heading_to_direction`:
+
+    >>> u, v = convert_wind_speed_direction_to_components(7.5, 135)
+    >>> float(np.round(calculate_wind_speed(u, v), 6))
+    7.5
+    >>> float(np.round(convert_wind_heading_to_direction(
+    ...     calculate_wind_heading(u, v)), 6))
+    135.0
+    """
+    direction_rad = np.radians(wind_direction)
+    return (
+        -wind_speed * np.sin(direction_rad),
+        -wind_speed * np.cos(direction_rad),
+    )
 
 
 def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
@@ -640,6 +710,153 @@ def get_initial_date_from_time_array(time_array, units=None):
     return _to_datetime(netCDF4.num2date(time_array[0], units, calendar="gregorian"))
 
 
+def get_model_run(dataset, time_name, datetime_date):
+    """Identify the model run that supplies the forecast for a given time.
+
+    Forecast datasets that join several model runs, such as the "Best" time
+    series of the UCAR THREDDS server, carry ``reftime`` variables with the
+    reference time of the run each forecast time comes from. While a new run
+    is being published, some forecast times already come from it and others
+    still come from the previous one, so the run is read at the forecast time
+    closest to ``datetime_date``. The first and last forecast times are part
+    of the answer, so it also changes when the dataset covers other times.
+
+    Parameters
+    ----------
+    dataset : netCDF4.Dataset
+        Dataset opened from the forecast server.
+    time_name : str
+        Name of the time variable of the dataset.
+    datetime_date : datetime.datetime
+        Time the forecast is wanted for, in UTC.
+
+    Returns
+    -------
+    tuple or None
+        The address of the dataset, the reference time of the model run that
+        supplies ``datetime_date``, and the first and last forecast times of
+        the dataset. None if the model run cannot be identified: the dataset
+        does not carry reference times along its time variable, they cannot
+        be read, or ``datetime_date`` is outside the forecast times.
+    """
+    variables = getattr(dataset, "variables", None)
+    if variables is None or datetime_date is None or time_name not in variables:
+        return None
+    time_array = variables[time_name]
+    reference_times = next(
+        (
+            variable
+            for name, variable in variables.items()
+            if name.lower().startswith("reftime")
+            and variable.dimensions == time_array.dimensions
+        ),
+        None,
+    )
+    if reference_times is None:
+        return None
+    try:
+        times = time_array[:]
+        wanted = netCDF4.date2num(datetime_date, time_array.units, calendar="gregorian")
+        if np.ma.is_masked(times) or not np.min(times) <= wanted <= np.max(times):
+            return None
+        times = np.asarray(times, dtype=float)
+        # Same choice as find_time_index: the closest time, the earlier on a tie
+        reference_time = reference_times[int(np.argmin(np.abs(times - wanted)))]
+        if np.ma.is_masked(reference_time) or not np.isfinite(reference_time):
+            return None
+        model_run = netCDF4.num2date(reference_time, reference_times.units)
+    except (TypeError, ValueError, OverflowError, OSError, RuntimeError):
+        return None
+    return dataset.filepath(), str(model_run), float(times[0]), float(times[-1])
+
+
+def atmosphere_cache_path(kind, request):
+    """Return the file where ``Environment.set_atmospheric_model(cache=True)``
+    saves one request, in the cache folder of the system
+    (``~/.cache/rocketpy/atmosphere`` on Linux). ``kind`` is ``"forecast"``
+    or ``"reanalysis"``."""
+    name = hashlib.sha256(repr(request).encode("utf-8")).hexdigest()[:32]
+    return Path(user_cache_dir("rocketpy")) / "atmosphere" / f"{kind}_{name}.json"
+
+
+def save_atmosphere(path, data):
+    """Save ``data`` as JSON in ``path``, then delete the forecasts saved more
+    than ``FORECAST_DAYS_KEPT`` days ago. Warns if it cannot be saved.
+
+    The file is written under another name and then renamed, so another
+    process never reads half of it.
+    """
+    try:
+        text = json.dumps(_to_json(data))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w", dir=path.parent, suffix=".tmp", delete=False, encoding="utf-8"
+        ) as file:
+            file.write(text)
+        os.replace(file.name, path)
+    except (OSError, TypeError, ValueError):
+        warnings.warn(
+            f"Could not save the atmospheric model in '{path.parent}'. It will "
+            "be downloaded again next time."
+        )
+        return
+    oldest = time.time() - FORECAST_DAYS_KEPT * 24 * 3600
+    for saved in path.parent.glob("forecast_*.json"):
+        with contextlib.suppress(OSError):
+            if saved.stat().st_mtime < oldest:
+                saved.unlink()
+
+
+def load_atmosphere(path):
+    """Return the data saved in ``path``, or None if there is no such file or
+    it cannot be read."""
+    try:
+        with open(path, encoding="utf-8") as file:
+            return _from_json(json.load(file))
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _to_json(value):
+    """Turn what the atmosphere processing sets into numbers, text and lists,
+    so that loading the file never runs code. Arrays, masked arrays, dates and
+    Functions defined by points are tagged to be rebuilt by ``_from_json``."""
+    if isinstance(value, dict):
+        return {key: _to_json(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_json(item) for item in value]
+    if isinstance(value, Function):
+        if not isinstance(value.source, np.ndarray):
+            raise TypeError("Only Functions defined by points are saved.")
+        return {"__function__": _to_json(value.to_dict(allow_pickle=False))}
+    if isinstance(value, np.ma.MaskedArray):
+        return {"__masked__": value.data.tolist(), "mask": value.mask.tolist()}
+    if isinstance(value, np.ndarray):
+        return {"__array__": value.tolist()}
+    if isinstance(value, datetime):
+        return {"__datetime__": value.isoformat()}
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def _from_json(value):
+    """Rebuild what ``_to_json`` saved."""
+    if isinstance(value, list):
+        return [_from_json(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    if "__function__" in value:
+        return Function.from_dict(_from_json(value["__function__"]))
+    if "__masked__" in value:
+        return np.ma.MaskedArray(value["__masked__"], mask=value["mask"])
+    if "__array__" in value:
+        return np.array(value["__array__"])
+    if "__datetime__" in value:
+        return datetime.fromisoformat(value["__datetime__"])
+    return {key: _from_json(item) for key, item in value.items()}
+
+
 def get_final_date_from_time_array(time_array, units=None):
     """Returns a datetime object representing the last time in the time array.
 
@@ -673,8 +890,12 @@ def get_interval_date_from_time_array(time_array, units=None):
     Returns
     -------
     int
-        The interval in hours between two times in the time array.
+        The interval in hours between times in the array, or 0 when the array
+        contains a single time.
     """
+    if len(time_array) < 2:
+        return 0
+
     units = units or time_array.units
     return netCDF4.num2date(
         (time_array[-1] - time_array[0]) / (len(time_array) - 1),

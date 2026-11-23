@@ -20,6 +20,95 @@ forecast and obtain a range of possible outcomes.
 Ensemble Forecast
 -----------------
 
+Creating a Custom Ensemble
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use :meth:`rocketpy.Environment.create_ensemble` to combine two or more
+atmospheric profiles for one location. Each member is a mapping with
+``pressure``, ``temperature``, ``wind_u`` and ``wind_v`` profiles. Each profile
+is a two-column array: the first column is geometric height above sea level in
+meters, and the second column uses Pa for pressure, K for temperature and m/s
+for either wind component.
+
+The pressure profiles determine a common isobaric grid, and temperature and
+wind are interpolated onto that grid. Every pressure profile must overlap the
+others and decrease with height.
+
+The profiles are not tied to a date. The Environment does not need one, and
+the ensemble stays the same if the launch date is changed later.
+
+.. note::
+
+    Every profile is cut to the pressure range shared by all of them, and below
+    that range the value at its bottom is used. Start all profiles at the same
+    pressure, at or below the ground level of the launch site, so the values
+    near the ground are the ones you gave.
+
+.. code-block:: python
+
+    import numpy as np
+
+    from rocketpy import Environment
+
+    env = Environment(
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+    )
+
+    pressure = np.array([85000, 70000, 50000])  # Pa
+    height_0 = np.array([1400, 3000, 5500])  # m ASL
+    height_1 = np.array([1400, 3100, 5650])  # m ASL
+
+    profiles = [
+        {
+            "pressure": np.column_stack((height_0, pressure)),
+            "temperature": np.column_stack((height_0, [278, 268, 250])),
+            "wind_u": np.column_stack((height_0, [2, 5, 9])),
+            "wind_v": np.column_stack((height_0, [-1, 1, 4])),
+        },
+        {
+            "pressure": np.column_stack((height_1, pressure)),
+            "temperature": np.column_stack((height_1, [280, 269, 251])),
+            "wind_u": np.column_stack((height_1, [4, 7, 12])),
+            "wind_v": np.column_stack((height_1, [0, 2, 6])),
+        },
+    ]
+
+    env.create_ensemble(profiles)
+
+The method activates member 0. Select another member with the same method used
+for forecast ensembles:
+
+.. code-block:: python
+
+    env.select_ensemble_member(1)
+
+By default the ensemble is kept in memory and no file is written. To use it
+again later, give a file name. RocketPy then also saves the ensemble as a
+GEFS-compatible NetCDF file and returns its path:
+
+.. code-block:: python
+
+    ensemble_file = env.create_ensemble(profiles, "my_ensemble.nc")
+
+Another Environment, with any launch date or none, can load that file with the
+``GEFS`` mapping:
+
+.. code-block:: python
+
+    saved_env = Environment(
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+    )
+    saved_env.set_atmospheric_model(
+        type="Ensemble",
+        file=ensemble_file,
+        dictionary="GEFS",
+    )
+
+
 Global Ensemble Forecast System (GEFS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -33,6 +122,13 @@ Global Ensemble Forecast System (GEFS)
     If you have a GEFS-compatible NetCDF or OPeNDAP dataset from another
     provider (or a local copy), you can still load it explicitly by passing the
     dataset path/URL in ``file`` and a compatible mapping in ``dictionary``.
+
+.. tip::
+
+    While the ``GEFS`` shortcut is unavailable, Open-Meteo offers the same GEFS
+    ensemble (plus the ECMWF one) over a plain JSON API, and works with
+    :meth:`rocketpy.Environment.select_ensemble_member` in exactly the same way.
+    See :ref:`open_meteo`.
 
 
 The ``GEFS`` model is a global ensemble forecast system useful for uncertainty

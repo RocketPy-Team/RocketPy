@@ -730,6 +730,98 @@ are removed before the remaining arguments are forwarded to PyVista:
   before any rendering begins, raising a :class:`ValueError` with a descriptive
   message on invalid input.
 
+Interactive Trajectory Map
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``flight.plots.trajectory_on_map()`` renders the flight **ground track** on a
+real-world interactive map using `Folium
+<https://python-visualization.github.io/folium/>`_. Unlike the 3D trajectory
+plot, this one answers a range-safety question: *where on the actual terrain
+did the rocket fly over, and where did it come down?*
+
+The map ships with two selectable backgrounds — OpenStreetMap for roads and
+place names, and Esri World Imagery for satellite view, which is what usually
+matters when assessing a recovery field. Launch, apogee and landing sites are
+marked automatically.
+
+.. figure:: ../static/flight/trajectory_on_map.jpg
+   :align: center
+   :alt: Ground track of a simulated flight over satellite imagery
+
+   The ground track of a Calisto flight, with the launch site (green), the
+   apogee ground position (blue) and the landing site (red).
+
+**Installation**
+
+The ``folium`` dependency is not installed by default. Add the optional extra
+before calling the method:
+
+.. code-block:: bash
+
+    pip install rocketpy[maps]
+
+If ``folium`` is not available when the method is called, RocketPy raises an
+:class:`ImportError` with the above install command embedded in the message.
+
+**Usage**
+
+.. code-block:: python
+
+    # Quickstart: returns a folium.Map, which renders inline in Jupyter
+    flight.plots.trajectory_on_map()
+
+    # Save a self-contained HTML file you can open in any browser
+    flight.plots.trajectory_on_map(filename="trajectory.html")
+
+    # Range safety check with distance rings around the launch pad
+    flight.plots.trajectory_on_map(
+        filename="trajectory.html",
+        time_step=0.5,                 # resample the track to keep the file small
+        color="#ff7f0e",               # ground track color, any CSS color
+        safety_radii=[2500, 5000],     # circles in meters, centred on the pad
+        title="Calisto — Flight 01",   # overlay title on top of the map
+    )
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Parameter
+     - Description
+   * - ``filename``
+     - Path of the HTML file to write. If None, nothing is saved and the map is
+       only returned. Default is None.
+   * - ``time_step``
+     - Sampling interval in seconds. If None, every integration step is drawn.
+       Otherwise the track is linearly interpolated over a uniform time grid,
+       mirroring ``Flight.export_kml``. Default is None.
+   * - ``color``
+     - Ground track color, as any CSS color string. Default is ``"#1f77b4"``.
+   * - ``safety_radii``
+     - Sequence of radii in meters, drawn as circles centred on the launch
+       site. Default is None.
+   * - ``title``
+     - Title rendered as an overlay on top of the map. Default is None.
+
+.. figure:: ../static/flight/trajectory_on_map_safety_radii.jpg
+   :align: center
+   :alt: Range safety circles drawn around the launch site
+
+   ``safety_radii=[2500, 5000]`` draws range safety circles around the launch
+   pad. The initial viewport widens so that the outermost circle stays in
+   frame, and the circles sit in their own layer so they can be toggled off.
+
+.. note::
+
+    The apogee marker is omitted when the simulation never detected an apogee,
+    for example when the flight terminated on the rail.
+
+.. seealso::
+
+    :ref:`flightusage` also offers ``flight.export_kml()`` for viewing the
+    full 3D trajectory in Google Earth, including altitude, which an
+    interactive 2D map cannot show.
+
 Forces and Moments
 ~~~~~~~~~~~~~~~~~~
 

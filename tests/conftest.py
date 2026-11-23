@@ -6,6 +6,20 @@ import pytest
 # Configure matplotlib to use non-interactive backend for tests
 matplotlib.use("Agg")
 
+
+@pytest.fixture(autouse=True)
+def forget_saved_forecasts(monkeypatch, tmp_path_factory):
+    """Start every test with no forecast kept in memory or saved on disk, so
+    that no test reuses what an earlier one downloaded and no test writes in
+    the cache folder of the user."""
+    # pylint: disable=import-outside-toplevel
+    from rocketpy.environment import environment, tools
+
+    environment._FORECASTS_IN_MEMORY.clear()
+    folder = str(tmp_path_factory.mktemp("rocketpy_cache"))
+    monkeypatch.setattr(tools, "user_cache_dir", lambda appname: folder)
+
+
 # Pytest configuration
 pytest_plugins = [
     "tests.fixtures.environment.environment_fixtures",

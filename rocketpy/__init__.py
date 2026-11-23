@@ -4,6 +4,8 @@ from .environment import Environment, EnvironmentAnalysis
 from .exceptions import (
     InvalidInertiaError,
     InvalidParameterError,
+    StochasticTypeError,
+    StochasticValueError,
     UnstableRocketWarning,
 )
 from .mathutils import (
@@ -52,6 +54,7 @@ from .rocket import (
     Tail,
     TrapezoidalFin,
     TrapezoidalFins,
+    TubeFins,
 )
 from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
@@ -62,6 +65,7 @@ from .stochastic import (
     StochasticEllipticalFins,
     StochasticEnvironment,
     StochasticFlight,
+    StochasticFreeFormFins,
     StochasticNoseCone,
     StochasticParachute,
     StochasticRocket,

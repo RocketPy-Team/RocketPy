@@ -1,8 +1,9 @@
-numpy>=1.13
-scipy>=1.0
+numpy>=1.23  # matplotlib 3.9 requires it
+scipy>=1.8  # first to allow numpy 1.23; bootstrap needs 1.7
 matplotlib>=3.9.0  # Released May 15th 2024
 netCDF4>=1.6.4
 requests
 pytz
+platformdirs  # system cache folder of Environment.set_atmospheric_model(cache=True)
 simplekml
 dill

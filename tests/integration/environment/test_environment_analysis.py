@@ -26,6 +26,9 @@ def test_all_info(mock_show, env_analysis):  # pylint: disable=unused-argument
     -------
     None
     """
+    pytest.importorskip("windrose")
+    pytest.importorskip("ipywidgets")
+    pytest.importorskip("IPython")
     assert env_analysis.info() is None
     assert env_analysis.all_info() is None
     assert env_analysis.plots.info() is None
@@ -45,6 +48,10 @@ def test_exports(mock_show, env_analysis):  # pylint: disable=unused-argument
     env_analysis : EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
     """
+    pytest.importorskip("windrose")
+    pytest.importorskip("ipywidgets")
+    pytest.importorskip("IPython")
+    pytest.importorskip("jsonpickle")
 
     assert env_analysis.export_mean_profiles() is None
     assert env_analysis.save("env_analysis_dict") is None

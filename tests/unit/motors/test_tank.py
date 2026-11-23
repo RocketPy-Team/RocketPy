@@ -6,6 +6,15 @@ import numpy.testing as npt
 import pytest
 import scipy.integrate as spi
 
+from rocketpy import (
+    CylindricalTank,
+    Fluid,
+    LevelBasedTank,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    UllageBasedTank,
+)
+
 BASE_PATH = Path("./data/rockets/berkeley/")
 
 
@@ -488,3 +497,134 @@ def test_mass_flow_rate_tank_inertia(
         atol=1e-3,
         rtol=1e-2,
     )
+
+
+def test_mass_flow_rate_tank_exact_depletion():
+    """Regression test for a tank drained to exact zero mass via a constant
+    (linear) mass flow rate.
+
+    Before the fix, floating-point roundoff caused the computed liquid mass
+    to land marginally below zero (e.g. -1e-15 kg) at the instant of exact
+    depletion, which incorrectly tripped the tank's underfill check and/or
+    the downstream height/volume `Function.compose` domain check, raising a
+    spurious ValueError even though the tank is simply empty.
+    """
+    liquid = Fluid(name="water", density=1000)
+    gas = Fluid(name="air", density=1.225)
+
+    geometry = CylindricalTank(radius_function=0.1, height=1.2, spherical_caps=False)
+
+    flux_time = 5.0
+    initial_liquid_mass = 32.0  # chosen to reliably reproduce the roundoff
+
+    tank = MassFlowRateBasedTank(
+        name="linear drain tank",
+        geometry=geometry,
+        flux_time=flux_time,
+        initial_liquid_mass=initial_liquid_mass,
+        initial_gas_mass=0,
+        liquid_mass_flow_rate_in=0,
+        # Constant drain rate: mass hits exactly 0 at t = flux_time
+        liquid_mass_flow_rate_out=initial_liquid_mass / flux_time,
+        gas_mass_flow_rate_in=0,
+        gas_mass_flow_rate_out=0,
+        liquid=liquid,
+        gas=gas,
+    )
+
+    time_points = np.array([0.0, 2.5, flux_time, flux_time + 1.0, flux_time + 5.0])
+
+    # Should not raise, and should read as ~0 (not negative) at/after depletion
+    liquid_mass = tank.liquid_mass(time_points)
+    npt.assert_allclose(liquid_mass[-2:], 0, atol=1e-6)
+    assert np.all(liquid_mass > -1e-6)
+
+    # Height/volume properties must also remain well-defined past depletion
+    liquid_height = tank.liquid_height(time_points)
+    assert np.all(np.isfinite(liquid_height))
+
+    gas_height = tank.gas_height(time_points)
+    assert np.all(np.isfinite(gas_height))
+
+
+def _tank_with_error(tank_type, error):
+    """Build a 1.2 m tall, 0.1 m radius tank whose input is off by ``error``.
+
+    The error is a mass of liquid drained beyond empty (kg), a gas volume
+    beyond the tank volume (m³), a liquid level above the tank top (m) or a
+    liquid mass beyond a full tank (kg), depending on the tank type.
+    """
+    geometry = CylindricalTank(radius_function=0.1, height=1.2, spherical_caps=False)
+    fluids = {
+        "liquid": Fluid(name="water", density=1000),
+        "gas": Fluid(name="air", density=1.225),
+    }
+    if tank_type == "mass_flow_rate":
+        return MassFlowRateBasedTank(
+            name="tank",
+            geometry=geometry,
+            flux_time=5.0,
+            initial_liquid_mass=32.0,
+            initial_gas_mass=0,
+            liquid_mass_flow_rate_in=0,
+            liquid_mass_flow_rate_out=(32.0 + error) / 5.0,
+            gas_mass_flow_rate_in=0,
+            gas_mass_flow_rate_out=0,
+            **fluids,
+        )
+    if tank_type == "ullage":
+        ullage = [[0.0, 0.0], [5.0, geometry.total_volume + error]]
+        return UllageBasedTank(
+            name="tank",
+            geometry=geometry,
+            flux_time=5.0,
+            ullage=np.array(ullage),
+            discretize=11,
+            **fluids,
+        )
+    if tank_type == "level":
+        level = [[0.0, geometry.top + error], [5.0, 0.0]]
+        return LevelBasedTank(
+            name="tank",
+            geometry=geometry,
+            flux_time=5.0,
+            liquid_height=np.array(level),
+            discretize=11,
+            **fluids,
+        )
+    full_mass = geometry.total_volume * 1000
+    return MassBasedTank(
+        name="tank",
+        geometry=geometry,
+        flux_time=5.0,
+        liquid_mass=np.array([[0.0, full_mass + error], [5.0, 0.0]]),
+        gas_mass=0,
+        discretize=11,
+        **fluids,
+    )
+
+
+@pytest.mark.parametrize(
+    "tank_type, error",
+    [("mass_flow_rate", 5e-7), ("ullage", 5e-7), ("level", 5e-5), ("mass", 5e-4)],
+)
+def test_tank_accepts_the_error_its_own_checks_accept(tank_type, error):
+    """An input off by less than the tank checks accept (1e-6 m³ of volume,
+    1e-4 m of height) builds the tank. It used to pass those checks and then
+    stop at the domain check of ``Function.compose``."""
+    tank = _tank_with_error(tank_type, error)
+
+    assert np.all(np.isfinite(tank.liquid_height.y_array))
+    assert np.all(np.isfinite(tank.liquid_volume.y_array))
+    assert np.all(np.isfinite(tank.gas_height.y_array))
+
+
+@pytest.mark.parametrize(
+    "tank_type, error",
+    [("mass_flow_rate", 1e-2), ("ullage", 1e-4), ("level", 1e-3), ("mass", 1.0)],
+)
+def test_tank_names_itself_when_the_error_is_too_large(tank_type, error):
+    """A larger error is reported as an underfilled or overfilled tank, not as
+    a value outside the domain of a Function."""
+    with pytest.raises(ValueError, match="underfilled|overfilled"):
+        _tank_with_error(tank_type, error)

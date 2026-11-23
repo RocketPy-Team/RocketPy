@@ -161,6 +161,30 @@ class _FlightPrints:
             "Rail Departure Reynolds Number: "
             f"{self.flight.reynolds_number(self.flight.out_of_rail_time):.3e}"
         )
+        self.tip_off_conditions()
+
+    def tip_off_conditions(self):
+        """Prints out the tip-off window, i.e. the interval during which the
+        rocket pivots about the lower rail button after the upper one has left
+        the rail. Nothing is printed when the tip-off phase did not run.
+
+        Returns
+        -------
+        None
+        """
+        if self.flight.tip_off_duration <= 0:
+            return
+        print("\nTip-Off State\n")
+        print(f"Tip-Off Duration: {self.flight.tip_off_duration:.3f} s")
+        print(f"Lower Button Departure Time: {self.flight.tip_off_end_time:.3f} s")
+        print(
+            "Lower Button Departure Velocity: "
+            f"{self.flight.tip_off_end_velocity:.3f} m/s"
+        )
+        print(
+            "Tip-Off Angle of Attack: "
+            f"{self.flight.angle_of_attack(self.flight.tip_off_end_time):.3f}°"
+        )
 
     def burn_out_conditions(self):
         """Prints out the Burn Out Conditions available about the flight,

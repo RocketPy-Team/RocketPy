@@ -13,6 +13,23 @@ intervals
 Reanalysis data can be used to set up the environment in RocketPy.
 One common reanalysis dataset is the ERA5.
 
+.. tip::
+
+    Reanalysis datasets must be downloaded as files before RocketPy can read
+    them. If you only need the atmospheric conditions of a past launch from
+    2021 onwards, :ref:`open_meteo` retrieves them straight from an API, with
+    no file to download.
+
+.. note::
+
+    A reanalysis can also be read from a web address (an OPeNDAP address)
+    instead of a local file. Pass ``cache=True`` to
+    :meth:`rocketpy.Environment.set_atmospheric_model` to save what RocketPy
+    reads on disk, in the cache folder of your system (``~/.cache/rocketpy`` on
+    Linux), and use it in later sessions without downloading it again.
+    Reanalysis data does not change, so the saved copy is always used, and a
+    warning says so each time.
+
 ERA5
 ----
 

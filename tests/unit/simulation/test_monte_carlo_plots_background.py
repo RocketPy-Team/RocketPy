@@ -1,4 +1,5 @@
 # pylint: disable=unused-argument,assignment-from-no-return
+import math
 import os
 import urllib.error
 from unittest.mock import MagicMock, patch
@@ -17,6 +18,33 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 pytest.importorskip(
     "contextily", reason="This test requires contextily to be installed"
 )
+
+
+@pytest.fixture(autouse=True)
+def mock_background_tiles(monkeypatch):
+    """Return deterministic map tiles without contacting a tile provider."""
+    contextily = import_optional_dependency("contextily")
+
+    def mock_bounds2img(west, south, east, north, **kwargs):
+        earth_radius = 6378137.0
+
+        def to_mercator(longitude, latitude):
+            x = earth_radius * math.radians(longitude)
+            y = earth_radius * math.log(
+                math.tan(math.pi / 4 + math.radians(latitude) / 2)
+            )
+            return x, y
+
+        min_x, min_y = to_mercator(west, south)
+        max_x, max_y = to_mercator(east, north)
+        return np.zeros((2, 2, 3), dtype=np.uint8), (
+            min_x,
+            max_x,
+            min_y,
+            max_y,
+        )
+
+    monkeypatch.setattr(contextily, "bounds2img", mock_bounds2img)
 
 
 class MockMonteCarlo(MonteCarlo):
@@ -220,27 +248,26 @@ def test_ellipses_background_works_with_custom_limits(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_saves_file_successfully(mock_show):
+def test_ellipses_background_saves_file_successfully(mock_show, tmp_path):
     """Test that plots with background maps can be saved to file.
 
     Parameters
     ----------
     mock_show : unittest.mock.MagicMock
         Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
+    tmp_path : pathlib.Path
+        Directory to save into, this is a pytest fixture.
     """
 
-    filename = "monte_carlo_test.png"
+    stem = tmp_path / "monte_carlo_test"
     mock_monte_carlo = MockMonteCarlo(
-        environment=SimpleEnvironment(), filename="monte_carlo_test"
+        environment=SimpleEnvironment(), filename=str(stem)
     )
 
-    try:
-        result = mock_monte_carlo.plots.ellipses(background="satellite", save=True)
-        assert result is None
-        assert os.path.exists(filename)
-    finally:
-        if os.path.exists(filename):
-            os.remove(filename)
+    result = mock_monte_carlo.plots.ellipses(background="satellite", save=True)
+
+    assert result is None
+    assert os.path.exists(f"{stem}.png")
 
 
 @patch("matplotlib.pyplot.show")

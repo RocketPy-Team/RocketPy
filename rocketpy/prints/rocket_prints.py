@@ -106,8 +106,7 @@ class _RocketPrints:
             if isinstance(surface, GenericSurface):
                 continue
             name = surface.name
-            # ref_factor corrects lift for different reference areas
-            ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
+            ref_factor = self.rocket._reference_area_factor(surface)
             print(
                 f"{name} Lift Coefficient Derivative: "
                 f"{ref_factor * surface.clalpha(0):.3f}/rad"
