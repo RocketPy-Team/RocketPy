@@ -887,6 +887,50 @@ def test_drag_csv_header_order_independent_for_multivariable_input(tmp_path):
     assert swapped_csv_function.get_interpolation_method() == "regular_grid"
 
 
+def test_load_rocket_drag_csv_missing_combination_warns_and_uses_scattered_interpolation(
+    tmp_path,
+):
+    """Non-grid drag CSVs must warn and still load with scattered interpolation.
+
+    A multi-variable CSV missing one input combination cannot form a regular
+    grid, so ``Rocket.__load_rocket_drag_csv`` falls back to interpolating
+    scattered points. The rocket must still construct and evaluate the table.
+    """
+    irregular_csv = tmp_path / "drag_missing_combination.csv"
+    irregular_csv.write_text(
+        "alpha,mach,cd\n0.0,0.5,0.30\n0.0,1.0,0.45\n0.1,0.5,0.32\n",
+        encoding="utf-8",
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match="does not form a full regular grid.*scattered interpolation",
+    ):
+        rocket = Rocket(
+            radius=0.05,
+            mass=1.0,
+            inertia=(1.0, 1.0, 1.0),
+            power_off_drag=str(irregular_csv),
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0.0,
+        )
+
+    closure = rocket.power_off_drag_7d.source.__closure__
+    csv_function = next(
+        cell.cell_contents
+        for cell in closure
+        if isinstance(cell.cell_contents, Function)
+    )
+
+    assert csv_function.get_interpolation_method() != "regular_grid"
+    assert rocket.power_off_drag_7d(0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0) == pytest.approx(
+        0.30
+    )
+    assert rocket.power_off_drag_7d(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0) == pytest.approx(
+        0.45
+    )
+
+
 def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
     """Ensure drag input processing accepts all supported input types.
 
