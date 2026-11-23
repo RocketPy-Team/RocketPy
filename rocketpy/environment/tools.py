@@ -5,15 +5,28 @@ the library (introduced in version 1.5.0), some functions may be modified in the
 future to improve their performance and usability.
 """
 
+import contextlib
+import hashlib
+import json
 import logging
 import math
+import os
+import tempfile
+import time
 import warnings
 from datetime import datetime
+from pathlib import Path
 
 import netCDF4
 import numpy as np
+from platformdirs import user_cache_dir
 
+from rocketpy.mathutils.function import Function
 from rocketpy.tools import bilinear_interpolation
+
+# Forecasts saved on disk this many days ago are deleted when another one is
+# saved. Reanalysis data never changes, so it is kept.
+FORECAST_DAYS_KEPT = 7
 
 logger = logging.getLogger(__name__)
 
@@ -755,6 +768,93 @@ def get_model_run(dataset, time_name, datetime_date):
     except (TypeError, ValueError, OverflowError, OSError, RuntimeError):
         return None
     return dataset.filepath(), str(model_run), float(times[0]), float(times[-1])
+
+
+def atmosphere_cache_path(kind, request):
+    """Return the file where ``Environment.set_atmospheric_model(cache=True)``
+    saves one request, in the cache folder of the system
+    (``~/.cache/rocketpy/atmosphere`` on Linux). ``kind`` is ``"forecast"``
+    or ``"reanalysis"``."""
+    name = hashlib.sha256(repr(request).encode("utf-8")).hexdigest()[:32]
+    return Path(user_cache_dir("rocketpy")) / "atmosphere" / f"{kind}_{name}.json"
+
+
+def save_atmosphere(path, data):
+    """Save ``data`` as JSON in ``path``, then delete the forecasts saved more
+    than ``FORECAST_DAYS_KEPT`` days ago. Warns if it cannot be saved.
+
+    The file is written under another name and then renamed, so another
+    process never reads half of it.
+    """
+    try:
+        text = json.dumps(_to_json(data))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w", dir=path.parent, suffix=".tmp", delete=False, encoding="utf-8"
+        ) as file:
+            file.write(text)
+        os.replace(file.name, path)
+    except (OSError, TypeError, ValueError):
+        warnings.warn(
+            f"Could not save the atmospheric model in '{path.parent}'. It will "
+            "be downloaded again next time."
+        )
+        return
+    oldest = time.time() - FORECAST_DAYS_KEPT * 24 * 3600
+    for saved in path.parent.glob("forecast_*.json"):
+        with contextlib.suppress(OSError):
+            if saved.stat().st_mtime < oldest:
+                saved.unlink()
+
+
+def load_atmosphere(path):
+    """Return the data saved in ``path``, or None if there is no such file or
+    it cannot be read."""
+    try:
+        with open(path, encoding="utf-8") as file:
+            return _from_json(json.load(file))
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _to_json(value):
+    """Turn what the atmosphere processing sets into numbers, text and lists,
+    so that loading the file never runs code. Arrays, masked arrays, dates and
+    Functions defined by points are tagged to be rebuilt by ``_from_json``."""
+    if isinstance(value, dict):
+        return {key: _to_json(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_json(item) for item in value]
+    if isinstance(value, Function):
+        if not isinstance(value.source, np.ndarray):
+            raise TypeError("Only Functions defined by points are saved.")
+        return {"__function__": _to_json(value.to_dict(allow_pickle=False))}
+    if isinstance(value, np.ma.MaskedArray):
+        return {"__masked__": value.data.tolist(), "mask": value.mask.tolist()}
+    if isinstance(value, np.ndarray):
+        return {"__array__": value.tolist()}
+    if isinstance(value, datetime):
+        return {"__datetime__": value.isoformat()}
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def _from_json(value):
+    """Rebuild what ``_to_json`` saved."""
+    if isinstance(value, list):
+        return [_from_json(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    if "__function__" in value:
+        return Function.from_dict(_from_json(value["__function__"]))
+    if "__masked__" in value:
+        return np.ma.MaskedArray(value["__masked__"], mask=value["mask"])
+    if "__array__" in value:
+        return np.array(value["__array__"])
+    if "__datetime__" in value:
+        return datetime.fromisoformat(value["__datetime__"])
+    return {key: _from_json(item) for key, item in value.items()}
 
 
 def get_final_date_from_time_array(time_array, units=None):

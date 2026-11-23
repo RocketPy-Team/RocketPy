@@ -33,6 +33,7 @@ from rocketpy.environment.fetchers.open_meteo_fetcher import (
     OPEN_METEO_PRESSURE_LEVELS,
 )
 from rocketpy.environment.tools import (
+    atmosphere_cache_path,
     calculate_wind_heading,
     calculate_wind_speed,
     convert_wind_heading_to_direction,
@@ -48,8 +49,10 @@ from rocketpy.environment.tools import (
     get_interval_date_from_time_array,
     get_model_run,
     get_pressure_levels_from_file,
+    load_atmosphere,
     mask_and_clean_dataset,
     pressure_unit_to_factor,
+    save_atmosphere,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
@@ -62,7 +65,7 @@ from rocketpy.tools import (
 
 logger = logging.getLogger(__name__)
 
-# Forecasts downloaded in this Python session, kept in memory only. Each
+# Forecasts downloaded in this Python session, kept in memory. Each
 # request (model, place, launch time and so on) maps to the model run that
 # supplied the launch time and to what processing it set on the Environment.
 _FORECASTS_IN_MEMORY = {}
@@ -101,6 +104,11 @@ _FORECAST_ATTRIBUTES = (
     "time_array",
     "height",
 )
+
+
+def _is_web_address(file):
+    """Whether ``file`` is the web address of a dataset, not a local file."""
+    return isinstance(file, str) and file.lower().startswith(("http://", "https://"))
 
 
 class Environment:
@@ -749,30 +757,115 @@ class Environment:
 
         return dictionary
 
-    def __process_or_reuse_forecast(self, file, dataset, dictionary, conversion_factor):
-        """Process a dataset opened from one of the latest-forecast shortcuts,
-        or reuse what an earlier Environment of this Python session obtained
-        from the same model run for the same request.
+    def __process_or_reuse_forecast(
+        self, file, fetch_function, dictionary, conversion_factor, cache
+    ):
+        """Download and process the forecast of one of the latest-forecast
+        shortcuts, or reuse one already obtained for the same request from the
+        same model run: kept in memory by an earlier Environment of this Python
+        session or, when ``cache`` is True, saved on disk.
 
-        The server has already been reached to open ``dataset``, and it is
-        asked which model run supplies the launch time and which times the
-        forecast covers. The data is downloaded and processed again whenever
-        that differs from what is kept in memory, or cannot be identified.
-        Nothing is written to disk.
+        The server is asked which model run supplies the launch time and which
+        times the forecast covers. The data is downloaded and processed again
+        whenever that differs from what was kept, or cannot be identified. A
+        forecast saved on disk is also used, with a warning, when the server
+        cannot be reached.
 
         Parameters
         ----------
         file : str
             Name of the shortcut, such as ``"GFS"``.
-        dataset : netCDF4.Dataset
-            Dataset returned by the shortcut.
+        fetch_function : callable
+            Function that opens the dataset of the shortcut on the server.
+        dictionary : dict
+            Names of the variables in the dataset.
+        conversion_factor : float
+            Factor that converts the pressure levels of the dataset to Pa.
+        cache : bool
+            Whether forecasts are read from and saved on disk.
+        """
+        request = self.__atmosphere_request(
+            "forecast", file, dictionary, conversion_factor
+        )
+        path = atmosphere_cache_path("forecast", request) if cache else None
+        saved = load_atmosphere(path) if cache else None
+        try:
+            # A saved forecast can stand in for the server, so one attempt is
+            # made instead of retrying for minutes
+            dataset = (
+                fetch_function() if saved is None else fetch_function(max_attempts=1)
+            )
+        except RuntimeError:
+            if saved is None:
+                raise
+            self.__apply_forecast_results(
+                saved["results"],
+                f"The {file} forecast server could not be reached. Using the "
+                "forecast saved on disk from the model run of "
+                f"{saved['model_run'][1]}, which may not be the latest one.",
+            )
+            return
+
+        model_run = get_model_run(dataset, dictionary.get("time"), self.datetime_date)
+        if model_run is None:
+            self.process_forecast_reanalysis(
+                dataset, dictionary, conversion_factor=conversion_factor
+            )
+            return
+        kept = _FORECASTS_IN_MEMORY.get(request)
+        if kept is not None and kept[0] == model_run:
+            dataset.close()
+            self.__apply_forecast_results(deepcopy(kept[1]))
+            return
+        if saved is not None and tuple(saved["model_run"]) == model_run:
+            dataset.close()
+            self.__keep_forecast_in_memory(request, model_run, saved["results"])
+            self.__apply_forecast_results(
+                saved["results"],
+                f"Using the {file} forecast saved on disk, from the model run of "
+                f"{model_run[1]}, which is still the latest one.",
+            )
+            return
+
+        results = self.__process_and_collect(dataset, dictionary, conversion_factor)
+        self.__keep_forecast_in_memory(request, model_run, results)
+        if cache:
+            save_atmosphere(path, {"model_run": model_run, "results": results})
+
+    def __process_or_reuse_reanalysis(self, file, dictionary, conversion_factor):
+        """Download and process a reanalysis given by a web address, or use the
+        one saved on disk for the same request. Its data never changes, so a
+        saved reanalysis is always used.
+
+        Parameters
+        ----------
+        file : str
+            Web address of the reanalysis dataset.
         dictionary : dict
             Names of the variables in the dataset.
         conversion_factor : float
             Factor that converts the pressure levels of the dataset to Pa.
         """
-        model_run = get_model_run(dataset, dictionary.get("time"), self.datetime_date)
-        request = (
+        request = self.__atmosphere_request(
+            "reanalysis", file, dictionary, conversion_factor
+        )
+        path = atmosphere_cache_path("reanalysis", request)
+        saved = load_atmosphere(path)
+        if saved is not None:
+            self.__apply_forecast_results(
+                saved["results"],
+                "Using the reanalysis saved on disk instead of downloading it "
+                f"again from '{file}'.",
+            )
+            return
+        results = self.__process_and_collect(file, dictionary, conversion_factor)
+        save_atmosphere(path, {"model_run": None, "results": results})
+
+    def __atmosphere_request(self, kind, file, dictionary, conversion_factor):
+        """What identifies a download: the model, how it is read, and the
+        launch site and time."""
+        return (
+            kind,
             file,
             self.latitude,
             self.longitude,
@@ -780,17 +873,10 @@ class Environment:
             conversion_factor,
             tuple(sorted(dictionary.items(), key=str)),
         )
-        kept = _FORECASTS_IN_MEMORY.get(request)
-        if model_run is not None and kept is not None and kept[0] == model_run:
-            dataset.close()
-            self.__dict__.update(deepcopy(kept[1]))
-            # Built here, so they read the copies this Environment now owns
-            self.wind_heading = self.__wrapped_wind_angle(self.wind_heading_unwrapped)
-            self.wind_direction = self.__wrapped_wind_angle(
-                self.wind_direction_unwrapped
-            )
-            return
 
+    def __process_and_collect(self, dataset, dictionary, conversion_factor):
+        """Process a forecast or reanalysis dataset and return what the
+        processing set on this Environment."""
         # The processing sets the elevation only when the model has a surface
         # height, and never reads it. A placeholder tells which case this is.
         elevation = self.elevation
@@ -803,14 +889,28 @@ class Environment:
             sets_elevation = self.elevation is not placeholder
             if not sets_elevation:
                 self.elevation = elevation
-        if model_run is not None:
-            results = {name: getattr(self, name) for name in _FORECAST_ATTRIBUTES}
-            if sets_elevation:
-                results["elevation"] = self.elevation
-            _FORECASTS_IN_MEMORY.pop(request, None)
-            _FORECASTS_IN_MEMORY[request] = (model_run, deepcopy(results))
-            while len(_FORECASTS_IN_MEMORY) > _MAX_FORECASTS_IN_MEMORY:
-                del _FORECASTS_IN_MEMORY[next(iter(_FORECASTS_IN_MEMORY))]
+        results = {name: getattr(self, name) for name in _FORECAST_ATTRIBUTES}
+        if sets_elevation:
+            results["elevation"] = self.elevation
+        return results
+
+    def __apply_forecast_results(self, results, warning=None):
+        """Set on this Environment what an earlier processing set, giving
+        ``warning`` first if there is one."""
+        if warning is not None:
+            warnings.warn(warning)
+        self.__dict__.update(results)
+        # Built here, so they read the values this Environment now owns
+        self.wind_heading = self.__wrapped_wind_angle(self.wind_heading_unwrapped)
+        self.wind_direction = self.__wrapped_wind_angle(self.wind_direction_unwrapped)
+
+    @staticmethod
+    def __keep_forecast_in_memory(request, model_run, results):
+        """Keep a copy of a forecast for the rest of the Python session."""
+        _FORECASTS_IN_MEMORY.pop(request, None)
+        _FORECASTS_IN_MEMORY[request] = (model_run, deepcopy(results))
+        while len(_FORECASTS_IN_MEMORY) > _MAX_FORECASTS_IN_MEMORY:
+            del _FORECASTS_IN_MEMORY[next(iter(_FORECASTS_IN_MEMORY))]
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
@@ -1345,6 +1445,7 @@ class Environment:
         pressure_conversion_factor=None,
         username=None,
         password=None,
+        cache=False,
     ):
         """Define the atmospheric model for this Environment.
 
@@ -1465,6 +1566,19 @@ class Environment:
             Meteomatics account password. Only used when ``type`` is
             ``"meteomatics"``. If None (the default), the value is read from the
             ``METEOMATICS_PASSWORD`` environment variable.
+        cache : bool, optional
+            If True, save the downloaded data on disk, in the cache folder of
+            the system (``~/.cache/rocketpy`` on Linux), and use it again in
+            later Python sessions instead of downloading it again. Only used
+            for the latest forecast shortcuts (``type="Forecast"`` with
+            ``file="GFS"``, ``"NAM"``, ``"RAP"``, ``"HRRR"`` or ``"AIGFS"``) and
+            for a reanalysis given by a web address. A saved forecast is used
+            only while the server says its model run is still the latest one,
+            or, with a warning, when the server cannot be reached. A saved
+            reanalysis is always used, since its data never changes. A
+            warning tells every time saved data is used. Forecasts saved more
+            than 7 days ago are deleted. Default is False, which saves nothing
+            on disk.
 
         Returns
         -------
@@ -1581,20 +1695,23 @@ class Environment:
                 except KeyError:
                     fetch_function = None
 
-                # Fetches the dataset using OpenDAP protocol or uses the file path
-                dataset = fetch_function() if fetch_function is not None else file
-
-                if type in ["forecast", "reanalysis"]:
-                    process = self.process_forecast_reanalysis
-                else:
-                    process = self.process_ensemble
-
-                if fetch_function is None or type != "forecast":
-                    process(dataset, dictionary, conversion_factor=conversion_factor)
-                else:
+                if fetch_function is not None and type == "forecast":
                     self.__process_or_reuse_forecast(
-                        file, dataset, dictionary, conversion_factor
+                        file, fetch_function, dictionary, conversion_factor, cache
                     )
+                elif cache and type == "reanalysis" and _is_web_address(file):
+                    self.__process_or_reuse_reanalysis(
+                        file, dictionary, conversion_factor
+                    )
+                else:
+                    # Fetches the dataset using OpenDAP protocol or uses the
+                    # file path
+                    dataset = fetch_function() if fetch_function is not None else file
+                    if type in ["forecast", "reanalysis"]:
+                        process = self.process_forecast_reanalysis
+                    else:
+                        process = self.process_ensemble
+                    process(dataset, dictionary, conversion_factor=conversion_factor)
 
                 ground_pressure = self.pressure(self.elevation)
                 if not 30000 <= ground_pressure <= 120_000:

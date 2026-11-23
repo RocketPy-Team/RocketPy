@@ -1,7 +1,10 @@
-"""Reuse, in memory, of a forecast already downloaded in the same Python
-session. The forecast server is replaced by small netCDF files shaped like the
-GFS forecast, read by the real processing, so nothing here needs a network."""
+"""Reuse of a forecast already downloaded, in memory in the same Python
+session and on disk with ``cache=True``. The forecast server is replaced by
+small netCDF files shaped like the GFS forecast, read by the real processing,
+so nothing here needs a network."""
 
+import os
+import time
 from datetime import datetime
 
 import netCDF4
@@ -10,7 +13,14 @@ import pytest
 
 from rocketpy import Environment
 from rocketpy.environment import environment as environment_module
-from rocketpy.environment.tools import get_model_run
+from rocketpy.environment import tools
+from rocketpy.environment.tools import (
+    FORECAST_DAYS_KEPT,
+    atmosphere_cache_path,
+    get_model_run,
+    load_atmosphere,
+    save_atmosphere,
+)
 
 UNITS = "Hour since 2026-01-01T00:00:00Z"
 HOURS = (24, 30, 36, 42)
@@ -84,6 +94,7 @@ class _Server:
     def __init__(self, folder, runs=(6, 6, 6, 6), **dataset):
         self.path = str(folder / "Best.nc")
         self.reachable = True
+        self.fetch_arguments = []
         self.datasets = []
         self.processed = 0
         self.publish(runs, **dataset)
@@ -91,7 +102,8 @@ class _Server:
     def publish(self, runs, **dataset):
         _write_forecast(self.path, runs, **dataset)
 
-    def fetch(self):
+    def fetch(self, **kwargs):
+        self.fetch_arguments.append(kwargs)
         if not self.reachable:
             raise RuntimeError("Unable to load latest weather data")
         self.datasets.append(netCDF4.Dataset(self.path))
@@ -113,10 +125,10 @@ class _Server:
         env.process_forecast_reanalysis = counted
         return env
 
-    def forecast(self, model="GFS", **kwargs):
+    def forecast(self, model="GFS", cache=False, **kwargs):
         """An Environment with the forecast of the server already set."""
         env = self.environment(**kwargs)
-        env.set_atmospheric_model(type="Forecast", file=model)
+        env.set_atmospheric_model(type="Forecast", file=model, cache=cache)
         return env
 
 
@@ -408,3 +420,205 @@ def test_only_the_latest_forecasts_are_kept(server, monkeypatch):
     assert server.processed == 3, "the latest one is still in memory"
     server.forecast(date=dates[0])
     assert server.processed == 4, "the oldest one was dropped"
+
+
+# Saved on disk, with cache=True. The cache folder is a temporary one for each
+# test, set in tests/conftest.py.
+
+
+def _saved_files():
+    folder = atmosphere_cache_path("forecast", None).parent
+    return sorted(folder.glob("*.json")) if folder.exists() else []
+
+
+def _new_session():
+    """What a new Python session starts with: nothing kept in memory."""
+    environment_module._FORECASTS_IN_MEMORY.clear()
+
+
+def test_nothing_is_saved_on_disk_by_default(server):
+    """Without cache=True, a forecast is kept in memory only."""
+    server.forecast()
+
+    assert not _saved_files()
+
+
+def test_a_saved_forecast_is_used_in_a_later_session(server):
+    """A forecast saved on disk is used again, with a warning, while the
+    server says its model run is still the latest one."""
+    processed = server.forecast(cache=True)
+    _new_session()
+
+    with pytest.warns(UserWarning, match="saved on disk.*still the latest"):
+        reused = server.forecast(cache=True)
+
+    assert server.processed == 1
+    assert len(_saved_files()) == 1
+    assert vars(reused).keys() == vars(processed).keys()
+    assert reused.elevation == processed.elevation == pytest.approx(SURFACE_HEIGHT)
+    for name in ("pressure", "temperature", "wind_speed", "wind_direction"):
+        assert getattr(reused, name)(2000) == getattr(processed, name)(2000), name
+    assert reused.atmospheric_model_end_date == processed.atmospheric_model_end_date
+
+
+def test_a_forecast_used_from_disk_is_then_kept_in_memory(server):
+    """Within the session that read it from disk, a forecast is reused from
+    memory, with no further warning."""
+    server.forecast(cache=True)
+    _new_session()
+    with pytest.warns(UserWarning, match="saved on disk"):
+        server.forecast(cache=True)
+
+    server.forecast(cache=True)
+
+    assert server.processed == 1
+    assert environment_module._FORECASTS_IN_MEMORY
+
+
+def test_a_saved_forecast_is_replaced_by_a_new_model_run(server):
+    """A newer model run is downloaded and replaces the saved forecast."""
+    first = server.forecast(cache=True)
+    _new_session()
+    server.publish((12, 12, 12, 12))
+
+    second = server.forecast(cache=True)
+
+    assert server.processed == 2
+    assert second.temperature(2000) != first.temperature(2000)
+    assert len(_saved_files()) == 1
+    _new_session()
+    with pytest.warns(UserWarning, match="saved on disk"):
+        third = server.forecast(cache=True)
+    assert third.temperature(2000) == second.temperature(2000)
+
+
+def test_a_saved_forecast_is_used_when_the_server_cannot_be_reached(server):
+    """Offline, the saved forecast is used with a warning, after a single
+    attempt to reach the server."""
+    processed = server.forecast(cache=True)
+    _new_session()
+    server.reachable = False
+
+    with pytest.warns(UserWarning, match="could not be reached"):
+        offline = server.forecast(cache=True)
+
+    assert server.fetch_arguments[-1] == {"max_attempts": 1}
+    assert server.processed == 1
+    assert offline.temperature(2000) == processed.temperature(2000)
+
+
+def test_an_unreachable_server_still_fails_with_nothing_saved(server):
+    """With no saved forecast, the server is tried as many times as before
+    and the error is the same as without the cache."""
+    server.reachable = False
+
+    with pytest.raises(RuntimeError, match="Unable to load latest weather data"):
+        server.forecast(cache=True)
+    assert server.fetch_arguments == [{}]
+
+
+def test_a_forecast_whose_model_run_is_unknown_is_not_saved(tmp_path):
+    """A forecast that cannot be checked against the server later is not
+    saved."""
+    server = _Server(tmp_path, runs=None)
+
+    server.forecast(cache=True)
+
+    assert not _saved_files()
+
+
+def test_a_damaged_saved_file_is_downloaded_again(server):
+    """A saved file that cannot be read counts as nothing saved."""
+    server.forecast(cache=True)
+    _saved_files()[0].write_text("not a forecast", encoding="utf-8")
+    _new_session()
+
+    server.forecast(cache=True)
+
+    assert server.processed == 2
+    assert load_atmosphere(_saved_files()[0]) is not None
+
+
+def test_a_folder_that_cannot_be_written_only_warns(server, tmp_path, monkeypatch):
+    """The forecast is still set when it cannot be saved."""
+    blocked = tmp_path / "a_file"
+    blocked.write_text("", encoding="utf-8")
+    monkeypatch.setattr(tools, "user_cache_dir", lambda appname: str(blocked))
+
+    with pytest.warns(UserWarning, match="Could not save the atmospheric model"):
+        env = server.forecast(cache=True)
+
+    assert env.temperature(2000) > 0
+
+
+def test_old_forecasts_are_deleted_and_reanalysis_is_kept():
+    """Forecasts saved more than the days kept are deleted when another one
+    is saved. Reanalysis data never changes, so it is kept."""
+    long_ago = time.time() - (FORECAST_DAYS_KEPT + 1) * 24 * 3600
+    old_forecast = atmosphere_cache_path("forecast", "old")
+    old_reanalysis = atmosphere_cache_path("reanalysis", "old")
+    for path in (old_forecast, old_reanalysis):
+        save_atmosphere(path, {})
+        os.utime(path, (long_ago, long_ago))
+
+    new_forecast = atmosphere_cache_path("forecast", "new")
+    save_atmosphere(new_forecast, {})
+
+    assert not old_forecast.exists()
+    assert old_reanalysis.exists()
+    assert new_forecast.exists()
+
+
+REANALYSIS_ADDRESS = "https://example.test/reanalysis.nc"
+
+
+@pytest.fixture
+def reanalysis(tmp_path, monkeypatch):
+    """A reanalysis at a web address, served from a local file. Returns the
+    list of the addresses opened."""
+    path = str(tmp_path / "reanalysis.nc")
+    _write_forecast(path, runs=None)
+    opened = []
+    real_dataset = netCDF4.Dataset
+
+    def open_dataset(address, *args, **kwargs):
+        opened.append(address)
+        local = path if address == REANALYSIS_ADDRESS else address
+        return real_dataset(local, *args, **kwargs)
+
+    monkeypatch.setattr(netCDF4, "Dataset", open_dataset)
+    return opened
+
+
+def _reanalysis(file=REANALYSIS_ADDRESS, cache=True):
+    env = Environment(date=LAUNCH, latitude=32.99, longitude=-106.97)
+    env.set_atmospheric_model(
+        type="Reanalysis",
+        file=file,
+        dictionary="GFS",
+        pressure_conversion_factor="Pa",
+        cache=cache,
+    )
+    return env
+
+
+def test_a_reanalysis_from_a_web_address_is_saved_and_used_again(reanalysis):
+    """A saved reanalysis is used without contacting the server, with a
+    warning."""
+    processed = _reanalysis()
+
+    with pytest.warns(UserWarning, match="reanalysis saved on disk"):
+        reused = _reanalysis()
+
+    assert reanalysis == [REANALYSIS_ADDRESS]
+    assert len(_saved_files()) == 1
+    assert vars(reused).keys() == vars(processed).keys()
+    assert reused.temperature(2000) == processed.temperature(2000)
+
+
+def test_a_reanalysis_from_a_local_file_is_not_saved(reanalysis, tmp_path):
+    """A local file is already on disk, so nothing is saved."""
+    _reanalysis(file=str(tmp_path / "reanalysis.nc"))
+
+    assert not _saved_files()
+    assert reanalysis == [str(tmp_path / "reanalysis.nc")]
