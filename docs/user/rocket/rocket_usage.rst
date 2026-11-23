@@ -101,11 +101,12 @@ positional arguments, in order:
 ``alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate``
 
 ``alpha`` and ``beta`` are the partial angle of attack and the sideslip angle in
-radians, as defined in :ref:`genericsurfaces`. They match
+radians, as defined in :ref:`genericsurfaces`. They are the same angles as
 :meth:`rocketpy.Flight.partial_angle_of_attack` and
-:meth:`rocketpy.Flight.angle_of_sideslip`, which are in degrees. The total
-angle is :meth:`rocketpy.Flight.angle_of_attack`. The angular rates are
-expressed in radians per second in the rocket body frame.
+:meth:`rocketpy.Flight.angle_of_sideslip`, but the drag model receives them in
+radians, while those Flight attributes are in degrees. The total angle is
+:meth:`rocketpy.Flight.angle_of_attack`. The angular rates are expressed in
+radians per second in the rocket body frame.
 
 .. note::
 
