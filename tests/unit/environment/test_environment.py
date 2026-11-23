@@ -148,6 +148,157 @@ def test_create_ensemble_does_not_overwrite_by_default(tmp_path):
         env.create_ensemble(_user_defined_ensemble_profiles(), file_name=file_path)
 
 
+def test_create_ensemble_writes_no_file_by_default(tmp_path, monkeypatch):
+    """The ensemble is kept in memory, so running the same call again works
+    and the working folder is left as it was."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "user_file.nc").write_text("not an ensemble")
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    first = env.create_ensemble(_user_defined_ensemble_profiles())
+    second = env.create_ensemble(_user_defined_ensemble_profiles())
+
+    assert first is None and second is None
+    assert [file.name for file in tmp_path.iterdir()] == ["user_file.nc"]
+    assert (tmp_path / "user_file.nc").read_text() == "not an ensemble"
+    assert env.atmospheric_model_type == "Ensemble"
+    assert env.atmospheric_model_file == ""
+    assert env.num_ensemble_members == 2
+    env.select_ensemble_member(1)
+    assert env.temperature(1100) == pytest.approx(283)
+    assert env.wind_velocity_x(1100) == pytest.approx(5)
+
+
+@pytest.mark.parametrize("save", [False, True])
+def test_create_ensemble_does_not_need_a_launch_date(tmp_path, save):
+    """The profiles have no date, so neither does the Environment need one."""
+    env = Environment(latitude=32.99, longitude=-106.97)
+    file_name = tmp_path / "no_date.nc" if save else None
+
+    env.create_ensemble(_user_defined_ensemble_profiles(), file_name=file_name)
+
+    assert env.num_ensemble_members == 2
+    assert env.wind_velocity_x(1000) == pytest.approx(2)
+
+
+@pytest.mark.parametrize("date", [(2025, 6, 1, 13), (2031, 1, 5, 3), None])
+def test_create_ensemble_file_loads_for_any_launch_date(tmp_path, date):
+    """A saved ensemble is not tied to the date it was created with."""
+    source_env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    file_path = source_env.create_ensemble(
+        _user_defined_ensemble_profiles(), file_name=tmp_path / "any_date.nc"
+    )
+    loaded_env = Environment(date=date, latitude=32.99, longitude=-106.97)
+
+    loaded_env.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
+    loaded_env.select_ensemble_member(1)
+
+    assert loaded_env.temperature(1100) == pytest.approx(283)
+    assert loaded_env.wind_velocity_y(1100) == pytest.approx(-5)
+
+
+def test_ensemble_file_from_elsewhere_still_checks_the_launch_date(tmp_path):
+    """Only the ensembles created from profiles are free of a date."""
+    source_env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    file_path = source_env.create_ensemble(
+        _user_defined_ensemble_profiles(), file_name=tmp_path / "forecast.nc"
+    )
+    with netCDF4.Dataset(file_path, "a") as dataset:
+        dataset.source = "A weather service"
+
+    later = Environment(date=(2025, 6, 1, 13), latitude=32.99, longitude=-106.97)
+    with pytest.raises(ValueError, match="not available in the provided file"):
+        later.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
+
+    no_date = Environment(latitude=32.99, longitude=-106.97)
+    with pytest.raises(ValueError, match="specify the launch date"):
+        no_date.set_atmospheric_model(
+            type="Ensemble", file=file_path, dictionary="GEFS"
+        )
+
+
+def test_ensemble_file_is_closed_when_the_launch_date_is_missing(tmp_path, monkeypatch):
+    """A file that needs a launch date is closed again when none is set."""
+    # Arrange
+    source_env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    file_path = source_env.create_ensemble(
+        _user_defined_ensemble_profiles(), file_name=tmp_path / "forecast.nc"
+    )
+    with netCDF4.Dataset(file_path, "a") as dataset:
+        dataset.source = "A weather service"
+    opened = []
+    real_dataset = netCDF4.Dataset
+
+    def open_and_keep(*args, **kwargs):
+        dataset = real_dataset(*args, **kwargs)
+        opened.append(dataset)
+        return dataset
+
+    monkeypatch.setattr(netCDF4, "Dataset", open_and_keep)
+    no_date = Environment(latitude=32.99, longitude=-106.97)
+
+    # Act
+    with pytest.raises(ValueError, match="specify the launch date"):
+        no_date.set_atmospheric_model(
+            type="Ensemble", file=str(file_path), dictionary="GEFS"
+        )
+
+    # Assert
+    assert opened and not any(dataset.isopen() for dataset in opened)
+
+
+def test_ensemble_from_profiles_stays_when_the_date_or_place_change():
+    """The ensemble and the selected member are kept when the launch date or
+    place is changed."""
+    # Arrange
+    env = Environment(latitude=32.99, longitude=-106.97)
+    env.create_ensemble(_user_defined_ensemble_profiles())
+    env.select_ensemble_member(1)
+
+    # Act
+    env.set_date((2030, 3, 4, 5))
+    env.set_location(-21.96, -47.48)
+
+    # Assert
+    assert env.num_ensemble_members == 2
+    assert env.ensemble_member == 1
+    assert env.wind_velocity_x(1100) == pytest.approx(5)
+
+
+def test_ensemble_from_profiles_stays_after_saving_and_loading():
+    """An ensemble created from profiles is kept when the Environment is saved
+    and loaded, and still needs no date."""
+    # Arrange
+    env = Environment(latitude=32.99, longitude=-106.97)
+    env.create_ensemble(_user_defined_ensemble_profiles())
+
+    # Act
+    loaded = Environment.from_dict(env.to_dict())
+    loaded.set_date((2030, 3, 4, 5))
+
+    # Assert
+    assert loaded.num_ensemble_members == 2
+    assert loaded.wind_velocity_x(1000) == pytest.approx(2)
+
+
+def test_ensemble_from_profiles_is_printed_without_a_time_period(capsys):
+    """The prints of an ensemble created from profiles leave out the time
+    period and the model grid, which it does not have."""
+    # Arrange
+    env = Environment(latitude=32.99, longitude=-106.97)
+    env.create_ensemble(_user_defined_ensemble_profiles())
+
+    # Act
+    env.prints.all()
+
+    # Assert
+    printed = capsys.readouterr().out
+    assert "Time Period" not in printed
+    assert "Latitude Range" not in printed
+    assert "Longitude Range" not in printed
+    assert "Number of Ensemble Members: 2" in printed
+
+
 def test_create_ensemble_accepts_array_functions_and_explicit_levels(tmp_path):
     """Accept array-backed Functions and sort explicit pressure levels."""
     # Arrange
