@@ -186,7 +186,7 @@ def test_convergence_seed_reproduces_inputs_across_batch_sizes(release_study):
         batch_size=2,
         random_seed=42,
     )
-    expected = [row["mass"] for row in _rows(release_study.input_file)]
+    expected = _rows(release_study.input_file)
     release_study.simulate(0, append=False, random_seed=42)
 
     release_study.simulate_convergence(
@@ -197,7 +197,61 @@ def test_convergence_seed_reproduces_inputs_across_batch_sizes(release_study):
         random_seed=42,
     )
 
-    assert [row["mass"] for row in _rows(release_study.input_file)] == expected
+    assert _rows(release_study.input_file) == expected
+
+
+def _converge_by_threes(study, random_seed=None, parallel=False):
+    # Stops after the second batch for seed 42: 0.269 at three samples, 0.252
+    # at six. Unseeded, the bootstrap puts the second width in 0.236-0.262.
+    history = study.simulate_convergence(
+        target_attribute="max_speed",
+        tolerance=0.26,
+        max_simulations=12,
+        batch_size=3,
+        parallel=parallel,
+        random_seed=random_seed,
+    )
+    return history, _rows(study.input_file)
+
+
+def test_the_same_seed_gives_back_the_same_study(release_study):
+    """The same seed draws the same inputs and stops after the same batch."""
+    first = _converge_by_threes(release_study, random_seed=42)
+    release_study.simulate(0, append=False, random_seed=42)
+
+    assert _converge_by_threes(release_study, random_seed=42) == first
+    assert len(first[0]) < 4  # stopped on the tolerance, not on max_simulations
+
+
+def test_an_unseeded_study_repeats_from_the_seed_it_recorded(release_study):
+    """The seed a study draws for itself reproduces it, stopping point included."""
+    first = _converge_by_threes(release_study)
+    recorded = first[1][0]["seed"]
+    release_study.simulate(0, append=False, random_seed=recorded)
+
+    assert _converge_by_threes(release_study, random_seed=recorded) == first
+
+
+def test_a_parallel_study_stops_where_a_serial_one_does(release_study):
+    """Workers finish in any order, and the widths must not follow it."""
+    serial, _ = _converge_by_threes(release_study, random_seed=42)
+    release_study.simulate(0, append=False, random_seed=42)
+
+    parallel, _ = _converge_by_threes(release_study, random_seed=42, parallel=True)
+    assert parallel == serial
+
+
+def test_rows_logged_out_of_order_give_the_serial_widths(release_study):
+    """The same check without depending on which worker finishes first."""
+    serial, _ = _converge_by_threes(release_study, random_seed=42)
+    release_study.simulate(3, append=False, random_seed=42, include_function_data=False)
+    for log in (release_study.input_file, release_study.output_file):
+        _write_rows(log, _rows(log)[::-1])
+
+    assert _converge_by_threes(release_study, random_seed=42)[0] == serial[1:]
+    assert [row["index"] for row in release_study.inputs_log] == [
+        row["index"] for row in release_study.outputs_log
+    ]
 
 
 def test_convergence_reads_the_checkpoint_once(release_study, monkeypatch):

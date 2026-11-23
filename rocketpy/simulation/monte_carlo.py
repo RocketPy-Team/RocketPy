@@ -79,6 +79,12 @@ def _study_seed(random_seed):
     return int(random_seed)
 
 
+def _bootstrap_seed(study_seed):
+    """32-bit seed, as SciPy requires, spawned off the study seed so no
+    simulation's ``[seed, index]`` stream shares it."""
+    return int(np.random.SeedSequence(study_seed, spawn_key=(0,)).generate_state(1)[0])
+
+
 def _checkpoint_rows(path):
     """Read validated checkpoint metadata without retaining physical results."""
     rows = []
@@ -980,6 +986,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         random_seed : int, optional
             Non-negative study seed passed to every batch. If omitted, an existing
             study keeps its recorded seed; a new study generates and prints one.
+            The bootstrap behind each width is seeded from it too, so the same
+            study run again with the same seed stops after the same batch,
+            in parallel or not. Runs with the same seed draw a common prefix of
+            one stream of samples; where the study stops can still depend on
+            ``batch_size``.
 
         Returns
         -------
@@ -987,6 +998,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             History of confidence interval widths, one value per batch of simulations.
             The last element corresponds to the width when the simulation stopped for
             either meeting the tolerance or reaching the maximum number of simulations.
+            Empty when the logs already hold ``max_simulations`` rows: nothing runs
+            and ``random_seed`` is not compared with the seed they record, so
+            reproducing a study needs a fresh ``filename``.
         """
 
         # Validate inputs up-front. Without this, a non-positive batch_size makes
@@ -1009,6 +1023,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 "'target_confidence' must be between 0 and 1 (exclusive), got "
                 f"{target_confidence!r}."
             )
+        # Here as well as in simulate, which a finished study never reaches.
+        if random_seed is not None:
+            _study_seed(random_seed)
 
         self.import_outputs(self.filename.with_suffix(".outputs.txt"))
         confidence_interval_history = []
@@ -1025,11 +1042,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 random_seed=random_seed,
             )
 
-            self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+            self.__read_outputs_in_simulation_order()
 
             ci = self.estimate_confidence_interval(
                 attribute=target_attribute,
                 confidence_level=target_confidence,
+                random_state=_bootstrap_seed(self.__study_seed),
             )
 
             width = float(ci.high - ci.low)
@@ -1051,6 +1069,15 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 break
 
         return confidence_interval_history
+
+    def __read_outputs_in_simulation_order(self):
+        """Reads the outputs log, then sorts both logs by simulation index and
+        rebuilds ``results``. Parallel workers append rows as they finish, and
+        the seeded bootstrap must see the same sequence every time."""
+        self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+        for log in (self.inputs_log, self.outputs_log):
+            log.sort(key=lambda row: row[_SIMULATION_INDEX_KEY])
+        self.set_results()
 
     def __evaluate_flight_inputs(self, sim_idx):
         """Evaluates the inputs of a single flight simulation.
