@@ -190,10 +190,11 @@ class Rocket:
     Rocket.motor : Motor
         Rocket's motor. See Motor class for more details.
     Rocket.wires : Components
-        Collection of all the wires attached to the rocket.
-    Rocket.plates : list
-        Collection of all the plates attached to the rocket, stored as
-        lists of [plate, position, height].
+        Collection of all current-carrying wires attached to the rocket to
+        model magnetic interference, stored as a Components instance.
+    Rocket.plates : Components
+        Collection of all plates attached to the rocket to model magnetic
+        interference, stored as a Components instance.
     Rocket.motor_position : float
         Position, in meters, of the motor's coordinate system origin
         relative to the user defined rocket coordinate system.
@@ -386,7 +387,7 @@ class Rocket:
         self._communication_wires = []
         self._ignition_wires = []
         self.wires = Components()
-        self.plates = []
+        self.plates = Components()
         self.sensors = Components()
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
@@ -700,8 +701,8 @@ class Rocket:
 
     def evaluate_surfaces_cp_to_cdm(self):
         """Calculates the relative position of each aerodynamic surface center
-        of pressure to the rocket's center of dry mass in Body Axes Coordinate
-        System.
+        of pressure to the rocket's center of dry mass in body axes coordinate
+        system.
 
         Returns
         -------
@@ -715,8 +716,8 @@ class Rocket:
 
     def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Calculates the relative position of each aerodynamic surface
-        center of pressure to the rocket's center of dry mass in Body Axes
-        Coordinate System."""
+        center of pressure to the rocket's center of dry mass in body axes
+        coordinate system."""
         # position of the surfaces coordinate system origin in body frame
         pos_origin = Vector(
             [
@@ -1881,9 +1882,9 @@ class Rocket:
         position: int, float, tuple, list, Vector
             Position of the sensor. If a Vector, tuple or list is passed, it
             must be in the format (x, y, z) where x, y, and z are defined in the
-            rocket's user defined coordinate system. If a single value is
+            rocket's user-defined coordinate system. If a single value is
             passed, it is assumed to be along the z-axis (centerline) of the
-            rocket's user defined coordinate system.
+            rocket's user-defined coordinate system.
 
         Returns
         -------
@@ -1916,9 +1917,9 @@ class Rocket:
             Sequence of two elements defining Endpoint A and Endpoint B:
 
             - If numeric scalars: [z_a, z_b] coordinates along the centerline
-              in the User-defined Coordinate System.
+              in the user-defined coordinate system.
             - If 3D vectors: [[x_a, y_a, z_a], [x_b, y_b, z_b]] coordinates in
-              the User-defined Coordinate System.
+              the user-defined coordinate system.
 
             Conventional current flows from Endpoint A to Endpoint B.
         parachute_name : str, optional
@@ -1978,13 +1979,13 @@ class Rocket:
         plate : Plate
             The Plate instance to be attached to the rocket.
         position : float, int, optional
-            Angle between the User-defined Coordinate System y-axis and the
+            Angle between the user-defined coordinate system y-axis and the
             geometric center of the plate in degrees. The angle is positive from
             y to -x. See `Rocket Axes Definition <https://docs.rocketpy.org/en/latest/user/rocket/rocket_axes.html>`_
             for more information.
         height : float, int, optional
             Axial coordinate of the geometric center along the rocket
-            longitudinal axis in the User-defined Coordinate System in
+            longitudinal axis in the user-defined coordinate system in
             meters. Required when the ``shape`` of the plate is "circular" or
             "rectangular".
         """
@@ -2009,7 +2010,7 @@ class Rocket:
                 )
         plate._rocket_belonging(self)
         plate.define_plate_position(self, position, height)
-        self.plates.append([plate, position, height])
+        self.plates.add(plate, [position, height])
 
     def add_air_brakes(
         self,
@@ -2360,7 +2361,7 @@ class Rocket:
         """Returns the radius of the rocket, including the
         nose cone and the radius variations in the body, as a function of
         the distance along the z axis from the body axes coordinate system
-        or the user defined coordinate system.
+        or the user-defined coordinate system.
 
         It assumes that the bottom radius of the nose cone is constant until
         some tail, if defined, is present. Then, the radius of the body will be
@@ -2374,8 +2375,7 @@ class Rocket:
             in which we want to calculate the radius.
         frame : str, optional
             Frame in which the z component is given. It can either be "bacs"
-            (body axis coordinate sytem) or "ucs" (user defined coordiante
-            system).
+            (body axes coordinate sytem) or "ucs" (user-defined coordinate system).
 
         Returns
         -------
@@ -2419,8 +2419,8 @@ class Rocket:
         Parameters
         ----------
         z: float, int
-            Position along the z axis in the body axis coordinate
-            system for which the radius will be returned.
+            Position along the z axis in the body axes coordinate system for
+            which the radius will be returned.
 
         Returns
         -------
@@ -2485,8 +2485,8 @@ class Rocket:
             whether it is inside or outside the rocket.
         frame: str, optional
             The coordinate system of the input z and the returned bounds.
-            "bacs" for Body Axes Coordinate System (default), or "ucs" for
-            User Coordinate System.
+            "bacs" for body axes coordinate System (default), or "ucs" for
+            user-defined coordinate system
 
         Returns
         -------
@@ -2728,10 +2728,10 @@ class Rocket:
                         )
             rocket._add_controllers(controller)
 
-        for wire, position_endpoints in data.get("wires", []):
+        for wire, position_endpoints, _ in data.get("wires", []):
             rocket.add_wire(wire, position_endpoints)
 
-        for plate, position, height in data.get("plate", []):
+        for plate, [position, height], _ in data.get("plates", []):
             rocket.add_plate(plate, position, height)
 
         return rocket

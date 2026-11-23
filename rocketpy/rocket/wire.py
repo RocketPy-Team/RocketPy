@@ -5,6 +5,7 @@ from rocketpy.exceptions import InvalidParameterError
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.plots.wire_plots import _WirePlots
 from rocketpy.prints.wire_prints import _WirePrints
+from rocketpy.tools import _position_vector_to_bacs
 
 
 def define_wire_endpoints(position_endpoints: list | tuple) -> list[Vector]:
@@ -14,7 +15,7 @@ def define_wire_endpoints(position_endpoints: list | tuple) -> list[Vector]:
     ----------
     position_endpoints : list, tuple
         Sequence of two numbers (z-coordinates) or two 3D position vectors
-        ([x, y, z]) relative to the User-defined Coordinate System.
+        ([x, y, z]) relative to the user-defined coordinate system.
         Conventional current flows from Endpoint A to Endpoint B.
 
     Returns
@@ -203,16 +204,24 @@ class Wire:
             in which we want to calculate the magnetic field.
         frame : str, optional
             Frame in which the ``position_vector`` is given. It can either be "bacs"
-            (body axis coordinate sytem) or "ucs" (user defined coordiante
+            (body axes coordinate system) or "ucs" (user-defined coordiante
             system).
         """
+        if not self._wire_endpoints_bacs:
+            raise InvalidParameterError(
+                "Add the wire to a rocket before measuring its magnetic field."
+            )
         r1 = self._wire_endpoints_bacs[0]  # starting endpoint
         r2 = self._wire_endpoints_bacs[1]  # final end
         # Vector along the wire, pointing in the direction of the current
         wire_vector = r2 - r1
         self.wire_length = abs(wire_vector)
 
-        r_v = self._position_vector_to_bacs(position_vector, frame)
+        r_v = Vector(
+            _position_vector_to_bacs(
+                position_vector, self._csys, self.center_of_dry_mass_position, frame
+            )
+        )
         r_t = tuple(r_v)
 
         if self.wire_length < 1e-12:
@@ -253,54 +262,6 @@ class Wire:
 
         self.magnetic_field[r_t] = list(b_v)
         self._magnetic_field[r_t] = b_v
-
-    def _position_vector_to_bacs(
-        self,
-        position_vector: list | tuple | Vector,
-        frame: str = "bacs",
-    ) -> Vector:
-        """Transforms, if necessary, the position_vector to the BACS frame.
-
-        Parameters
-        ----------
-        position_vector : list, tuple, Vector
-            Coordinates [x, y, z] in meters in the specified ``frame``
-            in which we want to calculate the magnetic field.
-        frame : str, optional
-            Frame in which the ``position_vector`` is given. It can either be "bacs"
-            (body axis coordinate system) or "ucs" (user defined coordinate
-            system). Default is "ucs".
-
-        Returns
-        -------
-        position_vector_bacs : Vector
-            Vector coordinates [x, y, z] in meters in the BACS frame.
-        """
-        if not isinstance(frame, str):
-            raise InvalidParameterError("'frame' must be a string.")
-
-        frame_lower = frame.lower()
-        if frame_lower not in ("ucs", "bacs"):
-            raise InvalidParameterError(
-                f"Invalid frame '{frame}'. Must be 'ucs' or 'bacs'."
-            )
-        if isinstance(position_vector, (list, tuple, Vector)):
-            pos_v = Vector(position_vector)
-        else:
-            raise InvalidParameterError(
-                "'position_vector' must be a tuple, list, or Vector instance."
-            )
-        if frame_lower == "bacs":
-            position_vector_bacs = pos_v
-        else:
-            cdm_user_frame = Vector([0, 0, self.center_of_dry_mass_position])
-            delta = pos_v - cdm_user_frame
-            if self._csys == -1:  # nose to tail
-                position_vector_bacs = Vector([-delta[0], delta[1], -delta[2]])
-            else:  # tail to nose
-                position_vector_bacs = delta
-
-        return position_vector_bacs
 
     def define_magnetic_field(
         self,
@@ -344,7 +305,7 @@ class Wire:
             Rocket instance to which the wire is attached.
         _wire_endpoints_from_user_coordinate_system : list[Vector] or tuple[Vector, Vector]
             Sequence containing the two endpoint position vectors in the
-            User-defined Coordinate System.
+            user-defined coordinate system.
         """
         self._wire_endpoints_bacs = []
         cdm_user_frame = Vector([0, 0, self.center_of_dry_mass_position])
@@ -369,7 +330,7 @@ class Wire:
         Parameters
         ----------
         pt : list, tuple, Vector
-            Endpoint coordinates [x, y, z] in the User-defined Coordinate System.
+            Endpoint coordinates [x, y, z] in the user-defined coordinate system.
         rocket : Rocket
             Rocket instance in which geometry bounds are verified.
         """
@@ -386,7 +347,7 @@ class Wire:
     def _rocket_belonging(self, rocket) -> None:
         """Associates the rocket to which the Wire belongs to the
         _WirePlots instance and defines the center of dry mass
-        and the z orientation as a wire attributes.
+        and the z orientation as wire attributes.
 
         Parameters
         ----------

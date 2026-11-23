@@ -7,6 +7,7 @@ from rocketpy.exceptions import InvalidParameterError
 from rocketpy.mathutils import Matrix, Vector
 from rocketpy.plots.plate_plots import _PlatePlots
 from rocketpy.prints.plate_prints import _PlatePrints
+from rocketpy.tools import _position_vector_to_bacs
 
 
 class Plate:
@@ -85,7 +86,7 @@ class Plate:
             - If "rectangular": sequence of [width, height] in meters, or a
               single float/int for a square.
             - If "personalized": sequence of at least 3 non-collinear 3D vertices
-              [x, y, z] defined in the User-defined Coordinate System.
+              [x, y, z] defined in the user-defined coordinate system.
         material : str
             Material composing the plate. Allowed values are "iron",
             "carbon_steel", or "personalized".
@@ -266,13 +267,13 @@ class Plate:
         rocket : Rocket
             Rocket instance to which the plate is attached.
         position : float, int, optional
-            Angle between the User-defined Coordinate System y-axis and the
+            Angle between the user-defined coordinate system y-axis and the
             geometric center of the plate in degrees. The angle is positive from
             y to -x. See `Rocket Axes Definition <https://docs.rocketpy.org/en/latest/user/rocket/rocket_axes.html>`_
             for more information.
         height : float, int, optional
             Coordinate of the geometric center along the rocket
-            longitudinal axis in the User-defined Coordinate System in
+            longitudinal axis in the user-defined coordinate system in
             meters.
         """
         self.generate_points(rocket, position, height)
@@ -298,13 +299,13 @@ class Plate:
         rocket : Rocket
             Rocket instance to which the plate is attached.
         position : float, int, optional
-            Angle between the User-defined Coordinate System y-axis and the
+            Angle between the user-defined coordinate system y-axis and the
             geometric center of the plate in degrees. The angle is positive from
             y to -x. See `Rocket Axes Definition <https://docs.rocketpy.org/en/latest/user/rocket/rocket_axes.html>`_
             for more information.
         height : float, int, optional
             Axial coordinate of the geometric center along the rocket
-            longitudinal axis in the User-defined Coordinate System in
+            longitudinal axis in the user-defined coordinate system in
             meters. Required when the ``shape`` of the plate is "circular" or
             "rectangular".
         """
@@ -399,6 +400,7 @@ class Plate:
         dz = z - center_z
         inside_sqrt = max(self.dimensions**2 - dz**2, 0)
         half_extension_angle = m.sqrt(inside_sqrt) / r
+        half_extension_angle = min(half_extension_angle, np.pi)
         alpha = geometric_center_angle - half_extension_angle
         beta = geometric_center_angle + half_extension_angle
         return alpha, beta
@@ -423,9 +425,9 @@ class Plate:
         beta : float
             Ending angular bound in radians.
         """
-        extension_angle = self.dimensions[0] / r
-        alpha = geometric_center_angle - extension_angle / 2
-        beta = geometric_center_angle + extension_angle / 2
+        half_extension_angle = min((self.dimensions[0] / r) / 2, np.pi)
+        alpha = geometric_center_angle - half_extension_angle
+        beta = geometric_center_angle + half_extension_angle
         return alpha, beta
 
     def _generate_personalized_internal_plate(
@@ -525,7 +527,7 @@ class Plate:
         Parameters
         ----------
         pt : list, tuple, Vector
-            Coordinates [x, y, z] in the User-defined Coordinate System.
+            Coordinates [x, y, z] in the user-defined coordinate system.
         rocket : Rocket
             Rocket instance in which boundaries are checked.
         """
@@ -533,10 +535,10 @@ class Plate:
             raise InvalidParameterError(
                 f"The z coordinate {pt[2]} of point {pt} is outside the rocket longitudinal bounds."
             )
-
-        if m.hypot(pt[0], pt[1]) > rocket.general_radius(pt[2], frame="ucs"):
+        max_radius = rocket.general_radius(pt[2], frame="ucs")
+        if m.hypot(pt[0], pt[1]) > max_radius:
             raise InvalidParameterError(
-                f"Point {pt} exceeds the rocket fuselage radius at z = {pt[2]} m."
+                f"Point {pt} exceeds the rocket fuselage radius at z = {pt[2]} m ({max_radius} m)."
             )
 
     def _calculate_uv_frame(
@@ -607,7 +609,14 @@ class Plate:
                 num_points = len(self.points)
                 dv = self.volume / num_points
                 dipole_scalar = (diff_magnetic * dv) / (4.0 * np.pi)
-                position_vector = self._position_vector_to_bacs(position_vector, frame)
+                position_vector = Vector(
+                    _position_vector_to_bacs(
+                        position_vector,
+                        self._csys,
+                        self.center_of_dry_mass_position,
+                        frame,
+                    )
+                )
                 for point in self.points:
                     r_v = position_vector - Vector(point)
                     r = abs(r_v)
@@ -646,54 +655,6 @@ class Plate:
                 )
         else:
             raise InvalidParameterError("The points attribute must be a list.")
-
-    def _position_vector_to_bacs(
-        self,
-        position_vector: list | tuple | Vector,
-        frame: str = "bacs",
-    ) -> Vector:
-        """Transforms, if necessary, the position_vector to the BACS frame.
-
-        Parameters
-        ----------
-        position_vector : list, tuple, Vector
-            Coordinates [x, y, z] in meters in the specified ``frame``
-            in which we want to calculate the soft iron distortion.
-        frame : str, optional
-            Frame in which the ``position_vector`` is given. It can either be "bacs"
-            (body axis coordinate system) or "ucs" (user defined coordinate
-            system). Default is "ucs".
-
-        Returns
-        -------
-        position_vector_bacs : Vector
-            Vector coordinates [x, y, z] in meters in the BACS frame.
-        """
-        if not isinstance(frame, str):
-            raise InvalidParameterError("'frame' must be a string.")
-
-        frame_lower = frame.lower()
-        if frame_lower not in ("ucs", "bacs"):
-            raise InvalidParameterError(
-                f"Invalid frame '{frame}'. Must be 'ucs' or 'bacs'."
-            )
-        if isinstance(position_vector, (list, tuple, Vector)):
-            pos_v = Vector(position_vector)
-        else:
-            raise InvalidParameterError(
-                "'position_vector' must be a tuple, list, or Vector instance."
-            )
-        if frame_lower == "bacs":
-            position_vector_bacs = pos_v
-        else:
-            cdm_user_frame = Vector([0, 0, self.center_of_dry_mass_position])
-            delta = pos_v - cdm_user_frame
-            if self._csys == -1:  # nose to tail
-                position_vector_bacs = Vector([-delta[0], delta[1], -delta[2]])
-            else:  # tail to nose
-                position_vector_bacs = delta
-
-        return position_vector_bacs
 
     def draw_3d(
         self,

@@ -7,7 +7,7 @@ class Components:
     is an object that is added to the rocket at a specific position relative to
     the rocket's coordinate system origin. Components can be added to the rocket
     using the 'add' methods. This class is currently used specifically for
-    holding aerodynamic surfaces.
+    holding aerodynamic surfaces, plates, and wires.
 
     Attributes
     ----------

@@ -6,6 +6,7 @@ import pytest
 from pytest import approx
 
 from rocketpy import Accelerometer
+from rocketpy.environment import Environment
 from rocketpy.exceptions import InvalidParameterError
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.sensors.magnetometer import Magnetometer
@@ -366,6 +367,73 @@ def test_noisy_rotated_magnetometer(
         [bx, by, bz], rel=0.1
     )
     assert noisy_rotated_magnetometer.measured_data[0][0] == TIME
+
+
+def test_magnetometer_ned_to_sensor_transformations():
+    """Validation of the magnetometer's magnetic field readings and coordinate
+        frame rotations through three independent checks.
+
+    1. Comparing WMM reading: With the body and sensor frames aligned with the
+       inertial ENU frame (zero rotation), the reading matches the NOAA WMM2020
+       reference vector in Tesla ([B_east, B_north, -B_down]) with no unintended
+       alteration.
+    2. ENU -> BACS rotation: A +90° rotation about the z-axis rotates BACS +x
+       to north and +y to west, yielding [B_north, -B_east, -B_down] and
+       verifying the inertial-to-body transformation.
+    3. BACS -> Sensor rotation: Aligning a tilted sensor's z-axis with the
+       geomagnetic field isolates the full field magnitude along the sensor's
+       z-axis ([0, 0, ||B||]), verifying the body-to-sensor transformation.
+    """
+
+    env_2020 = Environment(date=(2020, 1, 1, 0), latitude=80, longitude=0, elevation=0)
+    # NOAA WMM2020 values for (2020.0, 0 km, 80° N, 0° E) in T
+    b_north_ref, b_east_ref, b_down_ref = 6276.4e-9, -146.3e-9, 54906.0e-9
+    relative_position, u_dot = Vector([0, 0, 0]), [0.0] * 13
+
+    # 1) Comparing WMM reading
+    ideal_mag = Magnetometer(sampling_rate=100, orientation=(0, 0, 0))
+    ideal_mag.measure(
+        time=0.0,
+        u=[0.0] * 6 + [1.0] + [0.0] * 6,
+        u_dot=u_dot,
+        relative_position=relative_position,
+        environment=env_2020,
+    )
+    b_inertial = Vector(ideal_mag.measurement)
+    assert ideal_mag.measurement == approx(
+        [b_east_ref, b_north_ref, -b_down_ref], rel=5e-2
+    )
+
+    # 2) ENU -> BACS rotation
+    ideal_mag.measure(
+        time=0.0,
+        u=[0.0] * 6 + list(euler313_to_quaternions(np.pi / 2, 0.0, 0.0)) + [0.0] * 3,
+        u_dot=u_dot,
+        relative_position=relative_position,
+        environment=env_2020,
+    )
+    assert ideal_mag.measurement == approx(
+        [b_north_ref, -b_east_ref, -b_down_ref], rel=5e-2
+    )
+
+    # 3) BACS -> Sensor rotation
+    rotated_mag = Magnetometer(sampling_rate=100, orientation=(60, 60, 60))
+    n_hat, b_hat = rotated_mag.normal_vector.unit_vector, b_inertial.unit_vector
+    dot_product = max(-1.0, min(1.0, Vector.dot(n_hat, b_hat)))
+    half_theta = np.arccos(dot_product) / 2.0
+    quat_align_b = [
+        np.cos(half_theta),
+        *(Vector.cross(n_hat, b_hat).unit_vector * np.sin(half_theta)),
+    ]
+
+    rotated_mag.measure(
+        time=0.0,
+        u=[0.0] * 6 + quat_align_b + [0.0] * 3,
+        u_dot=u_dot,
+        relative_position=relative_position,
+        environment=env_2020,
+    )
+    assert rotated_mag.measurement == approx([0.0, 0.0, abs(b_inertial)], abs=1e-12)
 
 
 def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_env):
@@ -870,7 +938,7 @@ def test_rotated_accelerometer_reads_along_its_own_axes(example_plain_env):
     ``test_noisy_rotated_accelerometer`` recomputes the expression under test,
     so a rotation applied in the wrong direction gets mirrored into agreement
     there instead of being caught. This one says what the instrument does: the
-    sensor's z axis points along ``normal_vector`` by construction, so an
+    sensor's z-axis points along ``normal_vector`` by construction, so an
     acceleration pointing that way in body coordinates must land entirely on
     the z channel, with nothing on x and y. Applying
     ``_total_rotation_sensor_to_body`` instead of its transpose fails here.

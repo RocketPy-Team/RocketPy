@@ -85,10 +85,10 @@ def test_current_directon(calisto_with_sensors):
     b_field_2 = horizontal_wire_2._magnetic_field[(0, 0, 0)]
 
     # given the calisto_robust frame, [0, 0, 0] is the center of dry mass WITHOUT THE MOTOR,
-    # However the bacs frame in which the magnetic field is calculated is slighlty bellow along the z axis
-    # As a result, following right-hand rule the x component won't be 0, but a really small number, and in opposite directions
-    # In y axis since they are symmetrical component of both field will be 0
-    # In the z axis they will oppose since the direciton is opposite
+    # However the bacs frame in which the magnetic field is calculated is slighlty bellow along the z-axis
+    # As a result, following right-hand rule the x-component won't be 0, but a really small number, and in opposite directions
+    # In y-axis since they are symmetrical component of both field will be 0
+    # In the z-axis they will oppose since the direciton is opposite
     assert b_field_1[0] == pytest.approx(0, abs=1e-6)
     assert b_field_1[1] == 0
     assert b_field_2[0] == pytest.approx(0, abs=1e-6)

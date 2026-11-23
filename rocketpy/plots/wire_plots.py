@@ -12,8 +12,9 @@ class _WirePlots:
     ----------
     _WirePlots.wire : Wire
         Wire object that will be used for the plots.
-    _WirePlots.rocket : Rocket, optional
-        Rocket object the wire belongs to. Default is None.
+    _WirePlots.rocket : Rocket
+        Rocket object to which the wire belongs. Set to ``None``
+        until the wire is added to a rocket.
     """
 
     def __init__(self, wire) -> None:
@@ -83,7 +84,7 @@ class _WirePlots:
         filename : str, optional
             The path the plot should be saved to. If None, the plot will be shown instead
             of saved. Supported file formats include: eps, jpg, jpeg, pdf, pgf, png, ps,
-            raw, rgba, svg, svgz, tif, tiff, and webp. Default is None.∫
+            raw, rgba, svg, svgz, tif, tiff, and webp. Default is None.
         """
         if self.rocket is None:
             raise InvalidParameterError("Add the wire to a rocket before plotting.")

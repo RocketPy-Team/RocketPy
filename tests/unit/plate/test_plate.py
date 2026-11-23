@@ -347,6 +347,59 @@ def test_several_positions_soft_iron_distortion_matrix(
     assert list_keys[1] == (0.004, 0.003, 0.5)
 
 
+@pytest.mark.parametrize(
+    "height_ucs, shape, dimensions, position, expected",
+    [
+        (0.0, "rectangular", (0.8, 0.4), 30, "all"),
+        (1.0, "rectangular", (0.8, 0.4), 30, "all"),
+        (0.0, "circular", 0.4, 30, "some"),
+        (1.0, "circular", 0.4, 30, "some"),
+        (0.0, "rectangular", (0.05, 0.05), 90, "none"),
+        (0.0, "circular", 0.05, 30, "none"),
+    ],
+)
+def test_plate_angular_coverage_clamping(
+    height_ucs, shape, dimensions, position, expected, calisto_robust
+):
+    """Tests that wide plates clamp to a single 2*pi wrap without circumferential
+    gaps, while narrow plates remain partial arcs.
+    """
+    test_plate = Plate(
+        shape=shape,
+        material="carbon_steel",
+        thickness=0.001,
+        dimensions=dimensions,
+        z_points=50,
+        angular_points=70,
+        name="angular_coverage_plate",
+    )
+    calisto_robust.add_plate(test_plate, position=position, height=height_ucs)
+
+    rings = {}
+    for x, y, z in test_plate.points:
+        if z not in rings:
+            rings[z] = []
+        rings[z].append(np.arctan2(y, x))
+
+    max_step = (2 * np.pi) / (test_plate.angular_points - 1) + 1e-9
+    full_rings = 0
+
+    for angles in rings.values():
+        s = sorted(angles)
+        max_gap = (s[0] + 2 * np.pi) - s[-1]
+        for i in range(len(s) - 1):
+            max_gap = max(max_gap, s[i + 1] - s[i])
+        if max_gap <= max_step:
+            full_rings += 1
+
+    if expected == "all":
+        assert full_rings == len(rings)
+    elif expected == "none":
+        assert full_rings == 0
+    else:  # "some"
+        assert 0 < full_rings < len(rings)
+
+
 def test_no_soft_iron_distortion_matrix(calisto_robust):
     """Tests that when the relative magnetic permeability is 1, no distortion is added."""
     test_plate = Plate(

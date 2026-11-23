@@ -492,7 +492,7 @@ class Magnetometer(InertialSensor):
         parachute_events = kwargs.get("parachute_events")
         self._sensor_from_bacs = kwargs[
             "relative_position"
-        ]  # sensor position from body axis coordinate system
+        ]  # sensor position from body axes coordinate system
         self.sensor_from_bacs_t = tuple(self._sensor_from_bacs)
         current_time = time
         lat0, lon0, launch_site_elevation = (

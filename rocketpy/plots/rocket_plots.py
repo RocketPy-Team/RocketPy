@@ -7,6 +7,7 @@ from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+from rocketpy.rocket.plate import Plate
 
 from .plot_helpers import show_or_save_plot
 
@@ -897,7 +898,7 @@ class _RocketPlots:
         ax, _, _ = self._rocket_shape_plot(vis_args, plane)
 
         if self.rocket.plates:
-            plates_list, _, _ = zip(*self.rocket.plates)
+            plates_list = self.rocket.plates.get_by_type(Plate)
         else:
             plates_list = ()
 

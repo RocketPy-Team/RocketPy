@@ -26,6 +26,8 @@ from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
 
+from rocketpy.exceptions import InvalidParameterError
+
 logger = logging.getLogger(__name__)
 
 # Mapping of module name and the name of the package that should be installed
@@ -1499,3 +1501,58 @@ if __name__ == "__main__":  # pragma: no cover
         logger.info("All the %d tests passed!", res.attempted)
     else:
         logger.error("%d out of %d tests failed.", res.failed, res.attempted)
+
+
+def _position_vector_to_bacs(
+    position_vector: list | tuple | np.ndarray,
+    _csys: int,
+    center_of_dry_mass_position: float,
+    frame: str = "ucs",
+) -> tuple[float, float, float]:
+    """Transforms, if necessary, the position_vector to the BACS frame.
+
+    Parameters
+    ----------
+    position_vector : list, tuple, np.ndarray, Vector
+        Coordinates [x, y, z] in meters in the specified ``frame``.
+    _csys : int
+        Factor indicating the orientation of the user-defined coordinate
+        system: ``-1`` for nose-to-tail, ``1`` for tail-to-nose.
+    center_of_dry_mass_position : float
+        Position of the center of dry mass of the rocket in meters.
+    frame : str, optional
+        Frame in which the ``position_vector`` is given. It can either be "bacs"
+        (body axes coordinate system) or "ucs" (user-defined coordinate system).
+        Default is "ucs".
+
+    Returns
+    -------
+    positon_vector_bacs: tuple
+        Coordinates (x, y, z) in meters in the BACS frame.
+    """
+    if not isinstance(frame, str):
+        raise InvalidParameterError("'frame' must be a string.")
+
+    frame_lower = frame.lower()
+    if frame_lower not in ("ucs", "bacs"):
+        raise InvalidParameterError(
+            f"Invalid frame '{frame}'. Must be 'ucs' or 'bacs'."
+        )
+
+    try:
+        x, y, z = position_vector
+    except (TypeError, ValueError) as exc:
+        raise InvalidParameterError(
+            "'position_vector' must be an iterable of 3 elements (e.g., tuple, list, or Vector)."
+        ) from exc
+
+    if frame_lower == "bacs":
+        position_vector_bacs = (x, y, z)
+    else:
+        dz = z - center_of_dry_mass_position
+        if _csys == -1:  # nose to tail
+            position_vector_bacs = (-x, y, -dz)
+        else:
+            position_vector_bacs = (x, y, dz)
+
+    return position_vector_bacs

@@ -12,8 +12,9 @@ class _PlatePlots:
     ----------
     _PlatePlots.plate : Plate
         Plate object that will be used for the plots.
-    _PlatePlots.rocket : Rocket, optional
-        Rocket object to which the plate belongs. Default is None.
+    _PlatePlots.rocket : Rocket
+        Rocket object to which the plate belongs. Set to ``None``
+        until the plate is added to a rocket.
     """
 
     def __init__(self, plate) -> None:
