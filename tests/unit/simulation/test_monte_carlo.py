@@ -238,6 +238,7 @@ def test_estimate_confidence_interval_raises_type_error_for_invalid_statistic():
         ({"batch_size": 0}, "batch_size"),
         ({"batch_size": -5}, "batch_size"),
         ({"max_simulations": 0}, "max_simulations"),
+        ({"max_simulations": 1}, "max_simulations"),
         ({"tolerance": 0}, "tolerance"),
         ({"tolerance": -1.0}, "tolerance"),
         ({"target_confidence": 1.5}, "target_confidence"),
@@ -541,6 +542,7 @@ class ConvergenceMockMonteCarlo(MonteCarlo):
         self.filename = pathlib.Path("dummy_mc")
         self._width_model = width_model
         self.simulate_calls = 0
+        self.estimate_calls = []
 
     def import_outputs(self, *args, **kwargs):  # no-op, avoids file I/O
         pass
@@ -552,6 +554,7 @@ class ConvergenceMockMonteCarlo(MonteCarlo):
 
     def estimate_confidence_interval(self, attribute, confidence_level=0.95, **kwargs):
         # pylint: disable=arguments-differ,unused-argument
+        self.estimate_calls.append(self.num_of_loaded_sims)
         width = self._width_model(self.num_of_loaded_sims)
         return _CI(low=0.0, high=width)
 
@@ -573,6 +576,26 @@ def test_simulate_convergence_stops_early_when_tolerance_met():
     assert len(history) == 2  # stopped after the second batch
     assert mc.num_of_loaded_sims == 100
     assert mc.num_of_loaded_sims < 1000  # did not exhaust the simulation budget
+
+
+def test_simulate_convergence_never_estimates_from_a_single_result():
+    """A fresh study with batch_size=1 must wait for its second result.
+
+    ``scipy.stats.bootstrap`` needs two or more observations, so the first
+    batch of a one-row-per-batch study could not be summarised (#1229).
+    """
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 10.0)
+
+    history = mc.simulate_convergence(
+        target_attribute="apogee_time",
+        tolerance=0.5,
+        max_simulations=4,
+        batch_size=1,
+    )
+
+    assert mc.simulate_calls == 4
+    assert mc.estimate_calls == [2, 3, 4]  # never a lone observation
+    assert len(history) == 3
 
 
 def test_simulate_convergence_runs_until_max_when_not_converging():

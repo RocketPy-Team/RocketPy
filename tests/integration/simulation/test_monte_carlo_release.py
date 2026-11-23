@@ -225,6 +225,35 @@ def test_convergence_reads_the_checkpoint_once(release_study, monkeypatch):
     ]
 
 
+def test_convergence_with_a_batch_size_of_one_waits_for_a_second_result(
+    release_study,
+):
+    """A fresh study with ``batch_size=1`` must not bootstrap a lone result.
+
+    The first batch leaves a single row, and ``scipy.stats.bootstrap`` needs at
+    least two, so the study has to keep running instead of raising on its very
+    first batch.
+    """
+    history = release_study.simulate_convergence(
+        target_attribute="max_speed",
+        tolerance=1e-12,
+        max_simulations=4,
+        batch_size=1,
+        random_seed=1,
+    )
+
+    assert release_study.num_of_loaded_sims == 4
+    # One width per batch that had two results to bootstrap: the batches that
+    # ended at 2, 3 and 4 rows.
+    assert len(history) == 3
+    assert sorted(row["index"] for row in _rows(release_study.input_file)) == [
+        0,
+        1,
+        2,
+        3,
+    ]
+
+
 def test_a_log_changed_after_the_run_is_read_again(release_study):
     """The shortcut only holds while the logs are what the study wrote."""
     release_study.simulate(2, random_seed=42, include_function_data=False)
