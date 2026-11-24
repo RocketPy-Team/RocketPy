@@ -1,6 +1,6 @@
-numpy>=1.23  # matplotlib 3.9 requires it
+numpy>=1.23  # matplotlib 3.10 requires it
 scipy>=1.8  # first to allow numpy 1.23; bootstrap needs 1.7
-matplotlib>=3.9.0  # Released May 15th 2024
+matplotlib>=3.10.0  # first with boxplot(orientation=...)
 netCDF4>=1.6.4
 requests
 pytz

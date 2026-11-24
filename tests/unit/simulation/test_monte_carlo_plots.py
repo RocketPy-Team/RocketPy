@@ -1,14 +1,17 @@
-"""Unit tests for the ellipse plots in ``rocketpy.plots.monte_carlo_plots``.
+"""Unit tests for the ellipse and box plots in ``rocketpy.plots.monte_carlo_plots``.
 
 Background-map fetching is covered separately in
 ``test_monte_carlo_plots_background.py``. Everything here runs with
 ``background=None`` so no tile provider is contacted.
 """
 
+import warnings
 from unittest.mock import patch
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from matplotlib import MatplotlibDeprecationWarning
 
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.simulation import MonteCarlo
@@ -116,3 +119,39 @@ def test_ellipses_comparison_draws_over_an_image(mock_show, square_image):  # py
     other = MockMonteCarlo({**APOGEE, **IMPACT}, filename="other")
 
     assert monte_carlo.plots.ellipses_comparison(other, image=square_image) is None
+
+
+def _box_plot_x_range(axes):
+    """The whiskers of a horizontal box plot span the data along x."""
+    x_data = np.concatenate([line.get_xdata() for line in axes.lines])
+    return x_data.min(), x_data.max()
+
+
+@patch("matplotlib.pyplot.show")
+def test_all_draws_horizontal_box_plots_without_deprecated_arguments(mock_show):  # pylint: disable=unused-argument
+    """``vert`` is deprecated in Matplotlib 3.11 and removed in 3.13 (#1230)."""
+    monte_carlo = MockMonteCarlo(dict(APOGEE))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", MatplotlibDeprecationWarning)
+        monte_carlo.plots.all("apogee_x")
+
+    assert _box_plot_x_range(plt.gcf().axes[0]) == (100, 300)
+    plt.close("all")
+
+
+@patch("matplotlib.pyplot.show")
+def test_plot_comparison_draws_horizontal_box_plots_without_deprecated_arguments(  # pylint: disable=unused-argument
+    mock_show,
+):
+    """The comparison box plot takes the same ``orientation`` argument (#1230)."""
+    monte_carlo = MockMonteCarlo(dict(APOGEE))
+    other = MockMonteCarlo(dict(APOGEE), filename="other")
+    monte_carlo.processed_results = other.processed_results = {"apogee_x": None}
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", MatplotlibDeprecationWarning)
+        monte_carlo.plots.plot_comparison(other)
+
+    assert _box_plot_x_range(plt.gcf().axes[0]) == (100, 300)
+    plt.close("all")
