@@ -894,7 +894,9 @@ def test_load_rocket_drag_csv_missing_combination_warns_and_uses_scattered_inter
 
     A multi-variable CSV missing one input combination cannot form a regular
     grid, so ``Rocket.__load_rocket_drag_csv`` falls back to interpolating
-    scattered points. The rocket must still construct and evaluate the table.
+    scattered points. The warning names the drag file and points at the
+    caller's ``Rocket(...)`` line. The rocket must still construct and
+    evaluate the table.
     """
     irregular_csv = tmp_path / "drag_missing_combination.csv"
     irregular_csv.write_text(
@@ -905,7 +907,7 @@ def test_load_rocket_drag_csv_missing_combination_warns_and_uses_scattered_inter
     with pytest.warns(
         UserWarning,
         match="does not form a full regular grid.*scattered interpolation",
-    ):
+    ) as caught:
         rocket = Rocket(
             radius=0.05,
             mass=1.0,
@@ -914,6 +916,10 @@ def test_load_rocket_drag_csv_missing_combination_warns_and_uses_scattered_inter
             power_on_drag=0.3,
             center_of_mass_without_motor=0.0,
         )
+
+    warning = caught[0]
+    assert warning.filename == __file__
+    assert str(irregular_csv) in str(warning.message)
 
     closure = rocket.power_off_drag_7d.source.__closure__
     csv_function = next(
