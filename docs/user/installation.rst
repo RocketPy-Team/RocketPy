@@ -103,6 +103,7 @@ The following packages are needed in order to run RocketPy:
 - requests
 - pytz
 - simplekml
+- platformdirs
 
 All of these packages, are automatically installed when RocketPy is installed using either ``pip`` or ``conda``.
 However, in case the user wants to install these packages manually, they can do so by following the instructions bellow.
@@ -121,6 +122,7 @@ The packages needed can be installed via ``pip`` by running the following lines 
     pip install requests
     pip install pytz
     pip install simplekml
+    pip install platformdirs
 
 Installing Required Packages Using ``conda``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
