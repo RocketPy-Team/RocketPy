@@ -1,11 +1,12 @@
 import logging
 import os
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 
-from rocketpy import Function, utilities
+from rocketpy import Function, TrapezoidalFins, utilities
 
 
 @pytest.mark.parametrize(
@@ -110,12 +111,64 @@ def test_fin_flutter_analysis(flight_calisto_custom_wind):
         see_prints=False,
         see_graphs=False,
     )
-    assert np.isclose(flutter_mach(0), 1.00482, atol=5e-3)
-    assert np.isclose(flutter_mach(10), 1.1413572089696549, atol=5e-3)
-    assert np.isclose(flutter_mach(np.inf), 1.0048188594647927, atol=5e-3)
-    assert np.isclose(safety_factor(0), 64.78797, atol=5e-3)
-    assert np.isclose(safety_factor(10), 2.1948620401502072, atol=5e-3)
-    assert np.isclose(safety_factor(np.inf), 61.669562809629035, atol=5e-3)
+    assert np.isclose(flutter_mach(0), 0.7105140845699177, atol=5e-3)
+    assert np.isclose(flutter_mach(10), 0.8070387292674097, atol=5e-3)
+    assert np.isclose(flutter_mach(np.inf), 0.7105140859542808, atol=5e-3)
+    assert np.isclose(safety_factor(0), 45.81200340574091, atol=5e-3)
+    assert np.isclose(safety_factor(10), 1.551202495333104, atol=5e-3)
+    assert np.isclose(safety_factor(np.inf), 43.610793287739654, atol=5e-3)
+
+
+# Fin geometry in inches, shear modulus and pressure in psi, and the flutter
+# Mach number Vf / a from John K. Bennett's reference calculator (Fin Flutter
+# Boundary Calculator v1.3, github.com/jkb-git/Fin-Flutter-Velocity-Calculator).
+# Each fin has its centroid at mid-root-chord, where the calculator reduces to
+# Martin's equation (NACA TN 4197) with its constant of 39.3 psi.
+MARTIN_REFERENCE_CASES = [
+    # thickness, sweep, tip chord, root chord, span, G, p, flutter Mach
+    (1 / 8, 0.0, 4.0, 4.0, 4.0, 380000, 14.173548105504, 0.9581278421552433),
+    (1 / 8, 2.5, 2.5, 7.5, 3.0, 600000, 11.474749839986, 1.2785504155701972),
+    (1 / 8, 3.0, 0.0, 6.0, 2.5, 600000, 12.6957004220342, 1.2509974714673138),
+    (3 / 16, 6.0, 4.0, 16.0, 5.0, 700000, 14.0274369504818, 0.9803746521458),
+    (1 / 16, 1.0, 2.0, 4.0, 3.0, 90000, 8.81559972329207, 0.24137409108946878),
+]
+
+
+@pytest.mark.parametrize(
+    "thickness, sweep, tip_chord, root_chord, span, shear_modulus, pressure, expected",
+    MARTIN_REFERENCE_CASES,
+)
+def test_fin_flutter_analysis_matches_martin(
+    thickness, sweep, tip_chord, root_chord, span, shear_modulus, pressure, expected
+):
+    """The flutter Mach number must match Martin's equation. The form from
+    Apogee Peak of Flight issue 291 used previously applied Martin's factor of
+    1/2 twice and returned sqrt(2) times these values."""
+    inch, psi = 0.0254, 6894.757293168361
+    fins = TrapezoidalFins(
+        n=4,
+        root_chord=root_chord * inch,
+        tip_chord=tip_chord * inch,
+        span=span * inch,
+        rocket_radius=0.05,
+        sweep_length=sweep * inch,
+    )
+    flight = SimpleNamespace(
+        rocket=SimpleNamespace(fins=[fins]),
+        pressure=Function(pressure * psi),
+        mach_number=Function(0.8),
+    )
+
+    flutter_mach, safety_factor = utilities.fin_flutter_analysis(
+        fin_thickness=thickness * inch,
+        shear_modulus=shear_modulus * psi,
+        flight=flight,
+        see_prints=False,
+        see_graphs=False,
+    )
+
+    assert flutter_mach(0) == pytest.approx(expected, rel=1e-4)
+    assert safety_factor(0) == pytest.approx(expected / 0.8, rel=1e-4)
 
 
 def test_calculate_stall_wind_velocity_returns_value(flight_calisto_custom_wind):
