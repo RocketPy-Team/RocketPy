@@ -23,6 +23,31 @@ Other generic forecasts can also be imported.
     the same kind of pressure-level forecast as plain JSON, see
     :ref:`open_meteo`.
 
+.. note::
+
+    Within one Python session, RocketPy keeps in memory the forecasts it
+    downloaded with the shortcuts on this page (``file="GFS"``, ``"NAM"`` and
+    so on), so that asking again for the same forecast, as when a notebook
+    cell is run again, takes a couple of seconds instead of a full download.
+    When the same model, place and launch time are asked for again, it asks
+    the server which model run is current and downloads the data again only
+    if the server published something new. Each forecast takes about 50 kB of
+    memory and the 100 most recent ones are kept.
+
+    To keep forecasts between sessions, pass ``cache=True``:
+
+    .. code-block:: python
+
+        env.set_atmospheric_model(type="Forecast", file="GFS", cache=True)
+
+    The forecast is then also saved on disk, in the cache folder of your
+    system (``~/.cache/rocketpy`` on Linux), and a later session uses it while
+    the server says its model run is still the latest one. If the server
+    cannot be reached, the saved forecast is used anyway, with a warning that
+    it may not be the latest. A warning tells you every time a saved forecast
+    is used, and forecasts saved more than 7 days ago are deleted. Without
+    ``cache=True`` nothing is saved on disk.
+
 
 .. _global-forecast-system:
 

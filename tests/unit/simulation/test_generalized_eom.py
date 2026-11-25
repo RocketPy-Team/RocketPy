@@ -87,10 +87,6 @@ class _Rocket:
         self.aerodynamic_surfaces = [(surface, None)]
         self.surfaces_cp_to_cdm = {surface: Vector(cp)}
 
-    def _get_com_to_cdm_rates(self, _t):
-        """This rigid body's prescribed CM offset is constant in time."""
-        return self.com_to_cdm_function.value, 0.0, 0.0
-
     def get_inertia_tensor_at_time(self, _t):
         return self._inertia
 

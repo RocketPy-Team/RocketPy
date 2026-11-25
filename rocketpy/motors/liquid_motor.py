@@ -314,17 +314,6 @@ class LiquidMotor(Motor):
 
         return propellant_mass
 
-    def get_mass_property_time_knots(self):
-        """Include tank flux endpoints and underlying sampled mass/center knots."""
-        knots = super().get_mass_property_time_knots()
-        for positioned_tank in self.positioned_tanks:
-            tank = positioned_tank["tank"]
-            knots.extend(tank.flux_time)
-            for function in (tank.fluid_mass, tank.center_of_mass):
-                if function.is_array_source():
-                    knots.extend(function.x_array)
-        return knots
-
     @cached_property
     def propellant_initial_mass(self):
         """Property to store the initial mass of the propellant, this includes

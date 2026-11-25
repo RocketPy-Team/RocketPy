@@ -100,17 +100,40 @@ positional arguments, in order:
 
 ``alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate``
 
-``alpha`` and ``beta`` are the angle of attack and sideslip angle in radians.
-The angular rates are expressed in radians per second in the rocket body frame.
-For example, a model based on angle of attack and Mach number can ignore the
-other inputs:
+``alpha`` and ``beta`` are the partial angle of attack and the sideslip angle in
+radians, as defined in :ref:`genericsurfaces`. They are the same angles as
+:meth:`rocketpy.Flight.partial_angle_of_attack` and
+:meth:`rocketpy.Flight.angle_of_sideslip`, but the drag model receives them in
+radians, while those Flight attributes are in degrees. The total angle is
+:meth:`rocketpy.Flight.angle_of_attack`. The angular rates are expressed in
+radians per second in the rocket body frame.
+
+.. note::
+
+    - ``alpha`` and ``beta`` are two separate signed angles, and neither is
+      the total angle of attack. ``alpha`` is measured in the pitch plane (the
+      rocket axis and the body y axis) and ``beta`` in the yaw plane (the
+      rocket axis and the body x axis). Each goes from -pi to pi, and reaches
+      pi when the rocket flies tail first. Drag that depends on the total
+      angle of attack has to combine both, for example through
+      ``alpha**2 + beta**2``, which is the square of the total angle for the
+      small angles of a normal flight. Both can be negative, and a table that
+      stops at zero returns its edge value for them, so tabulate the negative
+      angles too (a callable can use ``abs``).
+    - ``reynolds`` uses the rocket **diameter** (twice the ``radius`` given to
+      ``Rocket``) as the reference length. Some tools use the rocket length
+      instead, so check which one your drag data was built with.
+
+For example, a model based on the total angle of attack and Mach number can
+ignore the other inputs. Its angle term is only meant for small angles: at
+``alpha = pi`` it adds about 5.9 to the drag coefficient.
 
 .. code-block:: python
 
     def drag_coefficient(
-        alpha, _beta, mach, _reynolds, _pitch_rate, _yaw_rate, _roll_rate
+        alpha, beta, mach, _reynolds, _pitch_rate, _yaw_rate, _roll_rate
     ):
-        return 0.38 + 0.08 * mach**2 + 0.6 * alpha**2
+        return 0.38 + 0.08 * mach**2 + 0.6 * (alpha**2 + beta**2)
 
     rocket = Rocket(
         radius=0.0635,
@@ -130,10 +153,21 @@ defines drag as a function of angle of attack and Mach number:
 .. code-block:: text
 
     alpha,mach,cd
+    -0.1,0.5,0.32
+    -0.1,1.0,0.48
     0.0,0.5,0.30
     0.0,1.0,0.45
     0.1,0.5,0.32
     0.1,1.0,0.48
+
+.. note::
+
+    Fill in every combination of the values in the table, and write each value
+    the same way in every row. If a combination is missing, a row is repeated
+    or a value differs in any digit (0.3 and 0.30000000000000004), the file
+    still loads and no warning is given, but RocketPy interpolates between
+    scattered points instead of along the grid, and the drag coefficient
+    changes both between and outside the points.
 
 For backward compatibility, ``rocket.power_off_drag`` and
 ``rocket.power_on_drag`` expose the Mach-only slice of each model, with the

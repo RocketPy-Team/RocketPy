@@ -30,13 +30,6 @@ class RingClusterMotor(Motor):
         The radial distance from the rocket's central axis to the center of each motor.
     """
 
-    def get_mass_property_time_knots(self):
-        """Include the constituent motor's mass-property boundaries."""
-        return (
-            super().get_mass_property_time_knots()
-            + self.motor.get_mass_property_time_knots()
-        )
-
     def __init__(self, motor, number, radius):
         """
         Initialize the ClusterMotor.

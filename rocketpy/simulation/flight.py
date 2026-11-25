@@ -2004,13 +2004,7 @@ class Flight:
         # Positions along the rocket axis, from the center of dry mass
         rocket = self.rocket
         mass = rocket.total_mass.get_value_opt(t)
-        cached = getattr(self, "_com_to_cdm_offset_cache", None)
-        cm_offset = (
-            cached[1]
-            if cached is not None and cached[0] == t
-            else rocket._get_com_to_cdm_rates(t)[0]
-        )
-        z_cm = -cm_offset
+        z_cm = -rocket.com_to_cdm_function.get_value_opt(t)
         z_button = (
             rocket.rail_buttons[0].position.z - rocket.center_of_dry_mass_position
         ) * rocket._csys
@@ -2684,12 +2678,11 @@ class Flight:
         total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
         total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
         ## CM position vector and time derivatives relative to CDM in body frame
-        ## Use branch-local rates; negate CM-to-CDM to obtain CDM-to-CM.
-        cm_offset, cm_rate, cm_second = self.rocket._get_com_to_cdm_rates(t)
-        self._com_to_cdm_offset_cache = (t, cm_offset)
-        r_CM = Vector([0, 0, -cm_offset])
-        r_CM_dot = Vector([0, 0, -cm_rate])
-        r_CM_ddot = Vector([0, 0, -cm_second])
+        ## com_to_cdm_function runs CM to CDM, so it is negated here
+        com_to_cdm = self.rocket.com_to_cdm_function
+        r_CM = Vector([0, 0, -com_to_cdm.get_value_opt(t)])
+        r_CM_dot = Vector([0, 0, -com_to_cdm.differentiate_complex_step(t)])
+        r_CM_ddot = Vector([0, 0, -com_to_cdm.differentiate(t, order=2)])
         ## Nozzle position vector, likewise negated
         r_NOZ = Vector([0, 0, -self.rocket.nozzle_to_cdm])
         ## Nozzle gyration tensor
