@@ -919,7 +919,10 @@ def test_load_rocket_drag_csv_missing_combination_warns_and_uses_scattered_inter
 
     warning = caught[0]
     assert warning.filename == __file__
-    assert str(irregular_csv) in str(warning.message)
+    warning_text = str(warning.message)
+    assert irregular_csv.name in warning_text
+    path_str = str(irregular_csv)
+    assert path_str in warning_text or repr(path_str) in warning_text
 
     closure = rocket.power_off_drag_7d.source.__closure__
     csv_function = next(
