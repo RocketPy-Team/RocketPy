@@ -1048,8 +1048,10 @@ class Rocket:
         -----
         1. The `com_to_cdm_function` plus `center_of_mass` should be equal
         to `center_of_dry_mass_position` at every time step.
-        2. The `com_to_cdm_function` is a function of time and will usually
-        already be discretized.
+        2. The function uses 1000 linear samples over the burn interval,
+        sampled mass/position domains and declared tank-flux intervals.
+        Constant extrapolation applies outside that range. Its second
+        derivative between samples is zero.
 
         Returns
         -------
@@ -1066,6 +1068,17 @@ class Rocket:
             * self.motor.propellant_mass
             / self.total_mass
         )
+        bounds = list(self.motor.burn_time)
+        for function in (
+            self.motor.propellant_mass,
+            self.center_of_propellant_position,
+        ):
+            if function.is_array_source():
+                bounds.extend(function.x_array[[0, -1]])
+        for positioned_tank in getattr(self.motor, "positioned_tanks", []):
+            bounds.extend(positioned_tank["tank"].flux_time)
+        start, end = min(bounds), max(bounds)
+        self.com_to_cdm_function.set_discrete(start, end, 1000, "linear", "constant")
         self.com_to_cdm_function.set_inputs("Time (s)")
         self.com_to_cdm_function.set_outputs("Z Coordinate COM to CDM (m)")
         self.com_to_cdm_function.set_title("Z Coordinate COM to CDM")

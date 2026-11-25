@@ -321,7 +321,9 @@ def test_udot_rail2_reports_the_accelerations_it_integrates():
     assert abs(u_dot[10]) > 0.1
     assert flight.alpha1(time) == pytest.approx(u_dot[10], rel=1e-9)
     assert flight.alpha2(time) == pytest.approx(u_dot[11], rel=1e-9)
-    assert flight.alpha3(time) == 0
+    assert u_dot[12] == 0
+    # Interpolation may leave roundoff even at a stored zero sample.
+    assert flight.alpha3(time) == pytest.approx(u_dot[12], abs=1e-12)
     assert flight.ax(time) == pytest.approx(u_dot[3], abs=1e-9)
     assert flight.ay(time) == pytest.approx(u_dot[4], rel=1e-9)
     assert flight.az(time) == pytest.approx(u_dot[5], rel=1e-9)

@@ -609,11 +609,59 @@ def test_evaluate_nozzle_gyration_tensor_parallel_axis_term(calisto):
 
 def test_evaluate_com_to_cdm_function(calisto):
     atol = 1e-3  # Equivalent to 1mm
+    times = calisto.com_to_cdm_function.x_array
+    expected = calisto.center_of_dry_mass_position - calisto.center_of_mass
     assert np.allclose(
-        (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
-        calisto.com_to_cdm_function.source,
+        expected(times),
+        calisto.com_to_cdm_function(times),
         atol=atol,
     )
+
+
+@pytest.mark.parametrize(
+    "rocket_fixture",
+    ["calisto_motorless", "calisto", "calisto_liquid_modded", "calisto_hybrid_modded"],
+)
+def test_com_to_cdm_function_linear_samples(request, rocket_fixture):
+    """Use a finite linear table for empty, solid, liquid and hybrid motors."""
+    rocket = request.getfixturevalue(rocket_fixture)
+    offset = rocket.com_to_cdm_function
+
+    assert offset.source.shape == (1000, 2)
+    assert offset.get_interpolation_method() == "linear"
+    assert offset.get_extrapolation_method() == "constant"
+    assert np.isfinite(offset.source).all()
+    for time in rocket.motor.burn_time:
+        assert np.isfinite(offset.differentiate_complex_step(time))
+        assert offset.differentiate(time, order=2) == 0
+
+
+def test_com_to_cdm_function_covers_tank_flux(calisto_hybrid_modded, oxidizer_tank):
+    """Do not freeze the offset while a tank continues flowing after burnout."""
+    rocket = calisto_hybrid_modded
+    offset = rocket.com_to_cdm_function
+    end = oxidizer_tank.flux_time[-1]
+    times = np.linspace(rocket.motor.burn_out_time, end, 20)
+
+    assert offset.x_array[-1] == end
+    np.testing.assert_allclose(
+        offset(times),
+        rocket.center_of_dry_mass_position - rocket.center_of_mass(times),
+        rtol=0,
+        atol=1e-3,
+    )
+
+
+def test_com_to_cdm_function_covers_sampled_mass(calisto_motorless):
+    """Include declared mass data outside the thrust interval in the table."""
+    rocket = calisto_motorless
+    rocket.motor.propellant_mass = Function([[-1, 4], [2, 2]])
+    rocket.total_mass = rocket.dry_mass + rocket.motor.propellant_mass
+    rocket.center_of_propellant_position = Function(-0.3)
+
+    offset = rocket.evaluate_com_to_cdm_function()
+
+    np.testing.assert_array_equal(offset.x_array[[0, -1]], [-1, 2])
 
 
 def test_get_inertia_tensor_at_time(calisto):
