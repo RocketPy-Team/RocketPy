@@ -2612,6 +2612,13 @@ class Rocket:
             extrapolation="constant",
         )
         if csv_func is None:
+            warnings.warn(
+                f"{coeff_name} CSV {file_path!r} does not form a full regular "
+                "grid; using scattered interpolation. Drag coefficient values "
+                "may differ both between and outside the tabulated points.",
+                UserWarning,
+                stacklevel=4,
+            )
             csv_func = Function(
                 file_path,
                 interpolation="linear",

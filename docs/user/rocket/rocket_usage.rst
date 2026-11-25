@@ -165,9 +165,9 @@ defines drag as a function of angle of attack and Mach number:
     Fill in every combination of the values in the table, and write each value
     the same way in every row. If a combination is missing, a row is repeated
     or a value differs in any digit (0.3 and 0.30000000000000004), the file
-    still loads and no warning is given, but RocketPy interpolates between
-    scattered points instead of along the grid, and the drag coefficient
-    changes both between and outside the points.
+    still loads, but RocketPy warns and interpolates between scattered points
+    instead of along the grid, and the drag coefficient changes both between
+    and outside the points.
 
 For backward compatibility, ``rocket.power_off_drag`` and
 ``rocket.power_on_drag`` expose the Mach-only slice of each model, with the
